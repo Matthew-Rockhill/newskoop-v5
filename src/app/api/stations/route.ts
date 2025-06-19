@@ -147,12 +147,11 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({
-      success: true,
-      data: stations,
+      stations,
       pagination: {
         page,
-        limit,
-        totalCount,
+        perPage: limit,
+        total: totalCount,
         totalPages: Math.ceil(totalCount / limit),
       },
     });
