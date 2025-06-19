@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStations } from '@/hooks/use-stations';
 import { Button } from '@/components/ui/button';
-import { Table } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableCell,
+} from '@/components/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
@@ -88,39 +95,39 @@ export function StationList() {
           }}
         />
       ) : (
-        <Table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Province</th>
-              <th>Contact</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="[--gutter:--spacing(6)] sm:[--gutter:--spacing(8)]">
+          <TableHead>
+            <TableRow>
+              <TableHeader>Name</TableHeader>
+              <TableHeader>Province</TableHeader>
+              <TableHeader>Contact</TableHeader>
+              <TableHeader>Status</TableHeader>
+              <TableHeader>Actions</TableHeader>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {isLoading ? (
-              <tr>
-                <td colSpan={6} className="text-center py-4">
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4">
                   Loading...
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               stations.map((station) => (
-                <tr key={station.id}>
-                  <td>{station.name}</td>
-                  <td>
+                <TableRow key={station.id}>
+                  <TableCell>{station.name}</TableCell>
+                  <TableCell>
                     <Badge color="zinc">
                       {station.province}
                     </Badge>
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <div className="text-sm">
                       <div>{station.contactEmail}</div>
                       <div className="text-zinc-500">{station.contactNumber}</div>
                     </div>
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <Switch
                       checked={station.isActive}
                       onChange={(checked: boolean) =>
@@ -128,8 +135,8 @@ export function StationList() {
                       }
                       color="green"
                     />
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex gap-2">
                       <Button
                         onClick={() => setSelectedStation(station)}
@@ -145,11 +152,11 @@ export function StationList() {
                         Delete
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
+          </TableBody>
         </Table>
       )}
 
