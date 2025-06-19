@@ -4,9 +4,35 @@ import React, { forwardRef } from 'react'
 import { TouchTarget } from './button'
 import { Link } from './link'
 
+const colors = [
+  'bg-red-100 text-red-800',
+  'bg-yellow-100 text-yellow-800',
+  'bg-green-100 text-green-800',
+  'bg-blue-100 text-blue-800',
+  'bg-indigo-100 text-indigo-800',
+  'bg-purple-100 text-purple-800',
+  'bg-pink-100 text-pink-800',
+]
+
+function getInitials(name: string) {
+  const parts = name.split(' ').filter(Boolean)
+  if (parts.length === 0) return ''
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+}
+
+function getColorFromString(str: string) {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colors[Math.abs(hash) % colors.length]
+}
+
 type AvatarProps = {
   src?: string | null
   square?: boolean
+  name?: string
   initials?: string
   alt?: string
   className?: string
@@ -15,11 +41,15 @@ type AvatarProps = {
 export function Avatar({
   src = null,
   square = false,
-  initials,
+  name,
+  initials: providedInitials,
   alt = '',
   className,
   ...props
 }: AvatarProps & React.ComponentPropsWithoutRef<'span'>) {
+  const initials = providedInitials || (name ? getInitials(name) : '')
+  const colorClass = name ? getColorFromString(name) : colors[0]
+
   return (
     <span
       data-slot="avatar"
@@ -27,25 +57,28 @@ export function Avatar({
       className={clsx(
         className,
         // Basic layout
-        'inline-grid shrink-0 align-middle [--avatar-radius:20%] *:col-start-1 *:row-start-1',
-        'outline -outline-offset-1 outline-black/10 dark:outline-white/10',
+        'inline-grid shrink-0 place-items-center align-middle [--avatar-radius:20%] *:col-start-1 *:row-start-1',
         // Border radius
-        square ? 'rounded-(--avatar-radius) *:rounded-(--avatar-radius)' : 'rounded-full *:rounded-full'
+        square ? 'rounded-(--avatar-radius) *:rounded-(--avatar-radius)' : 'rounded-full *:rounded-full',
+        // Add background color when showing initials
+        !src && colorClass
       )}
     >
-      {initials && (
-        <svg
-          className="size-full fill-current p-[5%] text-[48px] font-medium uppercase select-none"
-          viewBox="0 0 100 100"
+      {initials && !src && (
+        <span
+          className="text-sm font-medium uppercase select-none"
           aria-hidden={alt ? undefined : 'true'}
         >
-          {alt && <title>{alt}</title>}
-          <text x="50%" y="50%" alignmentBaseline="middle" dominantBaseline="middle" textAnchor="middle" dy=".125em">
-            {initials}
-          </text>
-        </svg>
+          {initials}
+        </span>
       )}
-      {src && <img className="size-full" src={src} alt={alt} />}
+      {src && (
+        <img 
+          className="size-full object-cover" 
+          src={src} 
+          alt={alt || name || 'Avatar'} 
+        />
+      )}
     </span>
   )
 }
@@ -54,6 +87,7 @@ export const AvatarButton = forwardRef(function AvatarButton(
   {
     src,
     square = false,
+    name,
     initials,
     alt,
     className,
@@ -71,13 +105,13 @@ export const AvatarButton = forwardRef(function AvatarButton(
   return 'href' in props ? (
     <Link {...props} className={classes} ref={ref as React.ForwardedRef<HTMLAnchorElement>}>
       <TouchTarget>
-        <Avatar src={src} square={square} initials={initials} alt={alt} />
+        <Avatar src={src} square={square} name={name} initials={initials} alt={alt} />
       </TouchTarget>
     </Link>
   ) : (
     <Headless.Button {...props} className={classes} ref={ref}>
       <TouchTarget>
-        <Avatar src={src} square={square} initials={initials} alt={alt} />
+        <Avatar src={src} square={square} name={name} initials={initials} alt={alt} />
       </TouchTarget>
     </Headless.Button>
   )

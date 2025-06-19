@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import Container from '../ui/Container';
+import { Container } from '../ui/container';
 import { Button } from '../ui/button';
 import { Link } from '../ui/link';
 import Logo from '../shared/Logo';

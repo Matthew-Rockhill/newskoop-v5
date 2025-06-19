@@ -2,12 +2,72 @@ import clsx from 'clsx'
 import type React from 'react'
 import { Button } from './button'
 
-export function Pagination({
-  'aria-label': ariaLabel = 'Page navigation',
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<'nav'>) {
-  return <nav aria-label={ariaLabel} {...props} className={clsx(className, 'flex gap-x-2')} />
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  className?: string;
+}
+
+export function Pagination({ currentPage, totalPages, onPageChange, className }: PaginationProps) {
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const visiblePages = pages.slice(
+    Math.max(0, Math.min(currentPage - 3, totalPages - 5)),
+    Math.min(totalPages, Math.max(5, currentPage + 2))
+  );
+
+  return (
+    <div className={clsx('flex items-center gap-2', className)}>
+      <Button
+        outline
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        Previous
+      </Button>
+
+      {visiblePages[0] > 1 && (
+        <>
+          <Button outline onClick={() => onPageChange(1)}>
+            1
+          </Button>
+          {visiblePages[0] > 2 && <span className="px-2">...</span>}
+        </>
+      )}
+
+      {visiblePages.map((page) => (
+        <Button
+          key={page}
+          outline={page !== currentPage}
+          onClick={() => onPageChange(page)}
+          className={clsx(
+            page === currentPage && 'bg-primary text-white'
+          )}
+        >
+          {page}
+        </Button>
+      ))}
+
+      {visiblePages[visiblePages.length - 1] < totalPages && (
+        <>
+          {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
+            <span className="px-2">...</span>
+          )}
+          <Button outline onClick={() => onPageChange(totalPages)}>
+            {totalPages}
+          </Button>
+        </>
+      )}
+
+      <Button
+        outline
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        Next
+      </Button>
+    </div>
+  );
 }
 
 export function PaginationPrevious({

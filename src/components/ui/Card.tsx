@@ -2,9 +2,9 @@ import React from "react";
 
 type CardProps = React.PropsWithChildren<{}> & React.HTMLAttributes<HTMLDivElement>;
 
-export default function Card({ children, className, ...props }: CardProps) {
+export function Card({ children, className, ...props }: CardProps) {
   return (
-    <div className={"card-custom " + (className || "")} {...props}>
+    <div className={`bg-white rounded-lg shadow ${className || ''}`} {...props}>
       {children}
     </div>
   );

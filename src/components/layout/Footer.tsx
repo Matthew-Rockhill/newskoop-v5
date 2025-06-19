@@ -1,6 +1,6 @@
 import Logo from '../shared/Logo';
 import { Phone, Mail, MapPin } from 'lucide-react';
-import Container from '../ui/Container';
+import { Container } from '../ui/container';
 import { Text } from '../ui/text';
 import { Link } from '../ui/link';
 

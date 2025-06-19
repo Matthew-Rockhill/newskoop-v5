@@ -1,12 +1,52 @@
 'use client';
 
+import { useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button'
 import { Link } from '@/components/ui/link'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import Logo from '@/components/shared/Logo'
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/admin';
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsLoading(true);
+
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const rememberMe = formData.get('remember-me') === 'on';
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+        callbackUrl,
+      });
+
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success('Successfully signed in!');
+        router.push(callbackUrl);
+        router.refresh();
+      }
+    } catch (error) {
+      toast.error('An error occurred during sign in');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="flex min-h-[100vh] flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8 bg-[#f5f5f5]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
@@ -19,7 +59,7 @@ export default function LoginPage() {
       </div>
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
         <div className="bg-white px-6 py-12 shadow-sm sm:rounded-lg sm:px-12">
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-[#272727]">
                 Email address
@@ -31,6 +71,7 @@ export default function LoginPage() {
                   type="email"
                   required
                   autoComplete="email"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -45,6 +86,7 @@ export default function LoginPage() {
                   type="password"
                   required
                   autoComplete="current-password"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -53,6 +95,7 @@ export default function LoginPage() {
                 <Checkbox
                   id="remember-me"
                   name="remember-me"
+                  disabled={isLoading}
                 />
                 <label htmlFor="remember-me" className="block text-sm text-[#272727]">
                   Remember me
@@ -65,8 +108,8 @@ export default function LoginPage() {
               </div>
             </div>
             <div>
-              <Button type="submit" color="primary" className="w-full">
-                Sign in
+              <Button type="submit" color="primary" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
             </div>
           </form>

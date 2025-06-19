@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  STAFF
+  RADIO
+}
+
+enum StaffRole {
+  SUPERADMIN
+  ADMIN
+  EDITOR
+  SUB_EDITOR
+  JOURNALIST
+  INTERN
+}
+
+enum TranslationLanguage {
+  AFRIKAANS
+  XHOSA
+}
+
+enum Province {
+  EASTERN_CAPE
+  FREE_STATE
+  GAUTENG
+  KWAZULU_NATAL
+  LIMPOPO
+  MPUMALANGA
+  NORTHERN_CAPE
+  NORTH_WEST
+  WESTERN_CAPE
+  NATIONAL
+}
+
+model User {
+  id                    String                @id @default(cuid())
+  email                 String                @unique
+  firstName             String
+  lastName              String
+  mobileNumber          String?
+  password              String
+  userType              UserType
+  isActive              Boolean               @default(true)
+  isPrimaryContact      Boolean               @default(false)
+  mustChangePassword    Boolean               @default(false)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  lastLoginAt           DateTime?
+  resetToken           String?
+  resetTokenExpiresAt  DateTime?
+  
+  staffRole             StaffRole?
+  translationLanguage   TranslationLanguage?
+  
+  radioStationId        String?
+  radioStation          Station?              @relation(fields: [radioStationId], references: [id])
+  
+  sessions              Session[]
+  auditLogs             AuditLog[]
+  
+  @@index([email])
+  @@index([userType])
+  @@index([radioStationId])
+}
+
+model Station {
+  id                    String                @id @default(cuid())
+  name                  String
+  description           String?
+  logoUrl               String?
+  province              Province              @default(GAUTENG)
+  
+  contactNumber         String?
+  contactEmail         String?
+  website               String?
+  
+  isActive              Boolean               @default(true)
+  hasContentAccess      Boolean               @default(true)
+  
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  users                 User[]
+  
+  @@index([province])
+  @@index([isActive])
+}
+
+model Session {
+  id                    String                @id @default(cuid())
+  sessionToken          String                @unique
+  userId                String
+  expires               DateTime
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+model AuditLog {
+  id                    String                @id @default(cuid())
+  userId                String
+  user                  User                  @relation(fields: [userId], references: [id])
+  action                String
+  entityType            String?
+  entityId              String?
+  metadata              Json?
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime              @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+} 
