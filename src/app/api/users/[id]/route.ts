@@ -1,14 +1,15 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
-import { userSchema } from '@/lib/validations';
+import { userUpdateSchema } from '@/lib/validations';
 
 // GET /api/users/[id] - Get a single user
 const getUser = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+    const { id } = await params;
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
-      include: { station: true },
+      where: { id },
+      include: { radioStation: true },
     });
 
     if (!user) {
@@ -25,7 +26,8 @@ const getUser = createHandler(
 
 // PATCH /api/users/[id] - Update a user
 const updateUser = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+    const { id } = await params;
     const data = (req as any).validatedData;
 
     // Check if email is being changed and if it's already taken
@@ -33,7 +35,7 @@ const updateUser = createHandler(
       const existingUser = await prisma.user.findFirst({
         where: {
           email: data.email,
-          NOT: { id: params.id },
+          NOT: { id },
         },
       });
 
@@ -47,9 +49,9 @@ const updateUser = createHandler(
 
     try {
       const user = await prisma.user.update({
-        where: { id: params.id },
+        where: { id },
         data,
-        include: { station: true },
+        include: { radioStation: true },
       });
 
       return Response.json(user);
@@ -66,17 +68,18 @@ const updateUser = createHandler(
   [
     withErrorHandling,
     withAuth,
-    withValidation(userSchema.partial()),
+    withValidation(userUpdateSchema),
     withAudit('user.update'),
   ]
 );
 
 // DELETE /api/users/[id] - Delete a user
 const deleteUser = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+    const { id } = await params;
     try {
       await prisma.user.delete({
-        where: { id: params.id },
+        where: { id },
       });
 
       return new Response(null, { status: 204 });

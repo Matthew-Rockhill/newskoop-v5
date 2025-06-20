@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import { Container } from '../ui/container';
 import { Button } from '../ui/button';
 import { Link } from '../ui/link';
 import Logo from '../shared/Logo';
@@ -38,7 +37,7 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
           : 'bg-white shadow-sm border-b border-gray-100'
       }`}
     >
-      <Container>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <Link href="/" className="bg-transparent">
             <Logo 
@@ -99,7 +98,7 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
             </div>
           </div>
         )}
-      </Container>
+      </div>
     </header>
   );
 } 

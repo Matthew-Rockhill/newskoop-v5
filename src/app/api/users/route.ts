@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
-import { userSchema, userSearchSchema } from '@/lib/validations';
+import { userCreateSchema, userSearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
 import { sendEmail, generateWelcomeEmail } from '@/lib/email';
 import { generatePassword } from '@/lib/auth';
@@ -16,27 +16,28 @@ const getUsers = createHandler(
       query, 
       userType, 
       staffRole, 
-      stationId, 
+      radioStationId, 
       isActive,
       page = 1,
       perPage = 10 
     } = userSearchSchema.parse({
       ...searchParams,
-      page: Number(searchParams.page),
-      perPage: Number(searchParams.perPage),
+      page: searchParams.page ? Number(searchParams.page) : 1,
+      perPage: searchParams.perPage ? Number(searchParams.perPage) : 10,
     });
 
     // Build where clause
     const where: Prisma.UserWhereInput = {
       ...(query && {
         OR: [
-          { name: { contains: query, mode: 'insensitive' } },
+          { firstName: { contains: query, mode: 'insensitive' } },
+          { lastName: { contains: query, mode: 'insensitive' } },
           { email: { contains: query, mode: 'insensitive' } },
         ],
       }),
       ...(userType && { userType }),
       ...(staffRole && { staffRole }),
-      ...(stationId && { stationId }),
+      ...(radioStationId && { radioStationId }),
       ...(typeof isActive === 'boolean' && { isActive }),
     };
 
@@ -47,7 +48,7 @@ const getUsers = createHandler(
     const users = await prisma.user.findMany({
       where,
       include: {
-        station: true,
+        radioStation: true,
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * perPage,
@@ -93,13 +94,13 @@ const createUser = createHandler(
         mustChangePassword: true,
       },
       include: {
-        station: true,
+        radioStation: true,
       },
     });
 
     // Send welcome email
     try {
-      const { subject, html } = generateWelcomeEmail(user.name, temporaryPassword);
+      const { subject, html } = generateWelcomeEmail(`${user.firstName} ${user.lastName}`, temporaryPassword);
       await sendEmail({
         to: user.email,
         subject,
@@ -118,7 +119,7 @@ const createUser = createHandler(
   [
     withErrorHandling,
     withAuth,
-    withValidation(userSchema),
+    withValidation(userCreateSchema),
     withAudit('user.create'),
   ]
 );

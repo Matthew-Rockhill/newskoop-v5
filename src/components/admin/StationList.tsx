@@ -2,27 +2,40 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStations } from '@/hooks/use-stations';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableCell,
-} from '@/components/table';
+import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog } from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
+import { Avatar } from '@/components/ui/avatar';
 import { Pagination } from '@/components/ui/pagination';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { StationForm } from './StationForm';
-import type { Station, StationFormData } from '@/types';
+import type { StationFormData } from '@/types';
 import { RadioIcon } from '@heroicons/react/24/outline';
 
+// Define Station type locally since it's not exported from types
+type Station = {
+  id: string;
+  name: string;
+  description?: string | null;
+  logoUrl?: string | null;
+  province: string;
+  contactNumber?: string | null;
+  contactEmail?: string | null;
+  website?: string | null;
+  isActive: boolean;
+  hasContentAccess: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+// Helper function to format province names
+const formatProvince = (province: string) => {
+  return province
+    .split('_')
+    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export function StationList() {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   const {
@@ -31,12 +44,8 @@ export function StationList() {
     isLoading,
     filters,
     setFilters,
-    createStation,
     updateStation,
-    deleteStation,
-    isCreating,
     isUpdating,
-    isDeleting,
   } = useStations({
     perPage: 10,
   });
@@ -52,21 +61,15 @@ export function StationList() {
     setFilters((prev) => ({ ...prev, page }));
   };
 
-  const handleCreateStation = async (data: StationFormData) => {
-    await createStation(data);
-    setIsCreateDialogOpen(false);
+  const handleToggleActive = async (station: Station) => {
+    await updateStation({ 
+      id: station.id, 
+      data: { isActive: !station.isActive } 
+    });
   };
 
-  const handleUpdateStation = async (data: StationFormData) => {
-    if (!selectedStation) return;
-    await updateStation({ id: selectedStation.id, data });
-    setSelectedStation(null);
-  };
-
-  const handleDeleteStation = async (id: string) => {
-    if (confirm('Are you sure you want to delete this station?')) {
-      await deleteStation(id);
-    }
+  const handleRowClick = (stationId: string) => {
+    router.push(`/admin/stations/${stationId}`);
   };
 
   return (
@@ -95,90 +98,96 @@ export function StationList() {
           }}
         />
       ) : (
-        <Table className="[--gutter:--spacing(6)] sm:[--gutter:--spacing(8)]">
-          <TableHead>
-            <TableRow>
-              <TableHeader>Name</TableHeader>
-              <TableHeader>Province</TableHeader>
-              <TableHeader>Contact</TableHeader>
-              <TableHeader>Status</TableHeader>
-              <TableHeader>Actions</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+        <Table striped>
+          <thead>
+            <tr>
+              <th className="w-2/3">Station</th>
+              <th className="w-1/6">Status</th>
+              <th className="w-1/6">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
+              <tr>
+                <td colSpan={3} className="text-center py-4">
                   Loading...
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               stations.map((station) => (
-                <TableRow key={station.id}>
-                  <TableCell>{station.name}</TableCell>
-                  <TableCell>
-                    <Badge color="zinc">
-                      {station.province}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{station.contactEmail}</div>
-                      <div className="text-zinc-500">{station.contactNumber}</div>
+                <tr 
+                  key={station.id}
+                  onClick={() => handleRowClick(station.id)}
+                  className="cursor-pointer hover:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                >
+                  <td className="py-4">
+                    <div className="flex items-center gap-4">
+                      <Avatar 
+                        src={station.logoUrl} 
+                        name={station.name}
+                        className="size-12" 
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-gray-900 truncate">{station.name}</div>
+                        <div className="text-sm text-gray-600 truncate">
+                          {station.contactEmail && (
+                            <a 
+                              href={`mailto:${station.contactEmail}`} 
+                              className="text-blue-600 hover:text-blue-500"
+                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            >
+                              {station.contactEmail}
+                            </a>
+                          )}
+                          {!station.contactEmail && station.contactNumber && (
+                            <span>{station.contactNumber}</span>
+                          )}
+                          {!station.contactEmail && !station.contactNumber && (
+                            <span>No contact info</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {formatProvince(station.province)}
+                        </div>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={station.isActive}
-                      onChange={(checked: boolean) =>
-                        updateStation({ id: station.id, data: { isActive: checked } })
-                      }
-                      color="green"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setSelectedStation(station)}
-                        outline
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteStation(station.id)}
-                        disabled={isDeleting}
-                        color="primary"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                  <td className="py-4">
+                    {station.isActive ? (
+                      <Badge color="lime">Active</Badge>
+                    ) : (
+                      <Badge color="zinc">Inactive</Badge>
+                    )}
+                  </td>
+                  <td className="py-4">
+                    <Button
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        router.push(`/admin/stations/${station.id}/edit`);
+                      }}
+                      outline
+                      className="text-sm"
+                    >
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
+          </tbody>
         </Table>
       )}
 
       {pagination && stations.length > 0 && (
-        <Pagination
-          currentPage={pagination.page}
-          totalPages={pagination.totalPages}
-          onPageChange={handlePageChange}
-        />
+        <div className="flex justify-end">
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        </div>
       )}
-
-      <Dialog
-        open={!!selectedStation}
-        onClose={() => setSelectedStation(null)}
-        title="Edit Radio Station"
-      >
-        <StationForm
-          station={selectedStation}
-          onSubmit={handleUpdateStation}
-          isSubmitting={isUpdating}
-        />
-      </Dialog>
     </div>
   );
 } 

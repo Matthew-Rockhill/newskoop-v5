@@ -114,4 +114,13 @@ export function generateToken(length: number = 32): string {
 export function generateMagicLink(token: string): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   return `${baseUrl}/auth/set-password?token=${token}`;
+}
+
+export function generatePassword(length: number = 12): string {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return password;
 } 

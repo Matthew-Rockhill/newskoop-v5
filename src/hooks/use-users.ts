@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import type { User, UserType, StaffRole } from '@prisma/client';
 
 interface UserWithStation extends User {
-  station?: {
+  radioStation?: {
     id: string;
     name: string;
   };
@@ -24,7 +24,7 @@ interface UserFilters {
   query?: string;
   userType?: UserType;
   staffRole?: StaffRole;
-  stationId?: string;
+  radioStationId?: string;
   isActive?: boolean;
   page?: number;
   perPage?: number;

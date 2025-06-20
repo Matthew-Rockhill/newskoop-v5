@@ -12,13 +12,13 @@ export async function GET(
       where: { id: params.id },
       include: {
         users: {
-          where: { isPrimaryContact: true },
           select: { 
             id: true, 
             firstName: true,
             lastName: true,
             email: true,
             mobileNumber: true,
+            isPrimaryContact: true,
           },
         },
         _count: {
@@ -90,6 +90,7 @@ export async function PATCH(
         contactEmail: data.contactEmail,
         contactNumber: data.contactNumber,
         isActive: data.isActive !== undefined ? data.isActive : existingStation.isActive,
+        hasContentAccess: data.hasContentAccess !== undefined ? data.hasContentAccess : existingStation.hasContentAccess,
       },
       include: {
         users: {
@@ -107,21 +108,7 @@ export async function PATCH(
       },
     });
 
-    // If station is being deactivated, deactivate all users
-    if (data.isActive === false && existingStation.isActive === true) {
-      await prisma.user.updateMany({
-        where: { radioStationId: params.id },
-        data: { isActive: false }
-      });
-    }
-    
-    // If station is being activated, activate all users
-    if (data.isActive === true && existingStation.isActive === false) {
-      await prisma.user.updateMany({
-        where: { radioStationId: params.id },
-        data: { isActive: true }
-      });
-    }
+    // TODO: Add user activation/deactivation logic if needed
 
     return NextResponse.json(updatedStation);
   } catch (error) {

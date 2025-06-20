@@ -1,40 +1,42 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUsers } from '@/hooks/use-users';
 import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog } from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
 import { Pagination } from '@/components/ui/pagination';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { UserForm } from './UserForm';
-import { UsersIcon } from '@heroicons/react/24/outline';
-import type { User, UserType, StaffRole } from '@prisma/client';
+import { Avatar } from '@/components/ui/avatar';
+import { UsersIcon, UserIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
 
-interface UserFormData {
+// Define types locally to match the database schema
+type UserType = 'STAFF' | 'RADIO';
+type StaffRole = 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'SUB_EDITOR' | 'JOURNALIST' | 'INTERN';
+
+interface UserWithStation {
+  id: string;
   email: string;
   firstName: string;
   lastName: string;
-  mobileNumber?: string;
+  mobileNumber?: string | null;
   userType: UserType;
-  staffRole?: StaffRole;
+  staffRole?: StaffRole | null;
   isActive: boolean;
-}
-
-interface UserWithStation extends User {
-  station?: {
+  radioStation?: {
     id: string;
     name: string;
-  };
+  } | null;
 }
 
+type UserFilter = 'all' | 'radio' | 'staff';
+
 export function UserList() {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserWithStation | null>(null);
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [userTypeFilter, setUserTypeFilter] = useState<UserFilter>('all');
   
   const {
     users,
@@ -42,12 +44,6 @@ export function UserList() {
     isLoading,
     filters,
     setFilters,
-    createUser,
-    updateUser,
-    deleteUser,
-    isCreating,
-    isUpdating,
-    isDeleting,
   } = useUsers({
     perPage: 10,
   });
@@ -61,22 +57,24 @@ export function UserList() {
     setFilters((prev) => ({ ...prev, page }));
   };
 
-  const handleCreateUser = async (data: UserFormData) => {
-    await createUser(data);
-    setIsCreateDialogOpen(false);
+  const handleRowClick = (userId: string) => {
+    router.push(`/admin/users/${userId}`);
   };
 
-  const handleUpdateUser = async (data: UserFormData) => {
-    if (!selectedUser) return;
-    await updateUser({ id: selectedUser.id, data });
-    setSelectedUser(null);
-  };
-
-  const handleDeleteUser = async (id: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      await deleteUser(id);
+  const formatUserRole = (userType: UserType, staffRole?: StaffRole | null, radioStation?: { name: string } | null) => {
+    if (userType === 'STAFF') {
+      return staffRole || 'Staff';
     }
+    return radioStation?.name || 'Radio Station';
   };
+
+  // Filter users based on selected user type
+  const filteredUsers = users.filter((user: any) => {
+    if (userTypeFilter === 'all') return true;
+    if (userTypeFilter === 'radio') return user.userType === 'RADIO';
+    if (userTypeFilter === 'staff') return user.userType === 'STAFF';
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -89,86 +87,132 @@ export function UserList() {
         }}
         action={{
           label: "Create",
-          onClick: () => setIsCreateDialogOpen(true)
+          onClick: () => router.push('/admin/users/new')
         }}
       />
 
-      {!isLoading && users.length === 0 ? (
+      {/* User Type Filter Toggle */}
+      <div className="flex gap-2">
+        <Button
+          onClick={() => setUserTypeFilter('all')}
+          color={userTypeFilter === 'all' ? 'primary' : 'white'}
+          className="text-sm"
+        >
+          <UsersIcon className="size-4" />
+          All Users
+        </Button>
+        <Button
+          onClick={() => setUserTypeFilter('radio')}
+          color={userTypeFilter === 'radio' ? 'primary' : 'white'}
+          className="text-sm"
+        >
+          <BuildingOfficeIcon className="size-4" />
+          Radio Users
+        </Button>
+        <Button
+          onClick={() => setUserTypeFilter('staff')}
+          color={userTypeFilter === 'staff' ? 'primary' : 'white'}
+          className="text-sm"
+        >
+          <UserIcon className="size-4" />
+          Staff Users
+        </Button>
+      </div>
+
+      {!isLoading && filteredUsers.length === 0 ? (
         <EmptyState
           icon={UsersIcon}
-          title="No users"
-          description="Get started by creating a new user."
-          action={{
+          title={userTypeFilter === 'all' ? "No users" : `No ${userTypeFilter} users`}
+          description={userTypeFilter === 'all' ? "Get started by creating a new user." : `No ${userTypeFilter} users found.`}
+          action={userTypeFilter === 'all' ? {
             label: "New User",
-            onClick: () => setIsCreateDialogOpen(true)
-          }}
+            onClick: () => router.push('/admin/users/new')
+          } : undefined}
         />
       ) : (
-        <Table>
+        <Table striped>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th className="w-2/3">User</th>
+              <th className="w-1/6">Status</th>
+              <th className="w-1/6">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="text-center py-4">
+                <td colSpan={3} className="text-center py-4">
                   Loading...
                 </td>
               </tr>
             ) : (
-              users.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 flex-shrink-0 rounded-full bg-zinc-200 flex items-center justify-center">
-                        <span className="text-sm font-medium text-zinc-600">
-                          {user.firstName?.[0]}{user.lastName?.[0]}
-                        </span>
-                      </div>
-                      <div className="ml-4">
-                        <div className="font-medium text-zinc-900 dark:text-white">
-                          {user.firstName} {user.lastName}
+              filteredUsers.map((user: any) => (
+                <tr 
+                  key={user.id}
+                  onClick={() => handleRowClick(user.id)}
+                  className="cursor-pointer hover:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                >
+                  <td className="py-4">
+                    <div className="flex items-center gap-4">
+                      <Avatar 
+                        name={`${user.firstName} ${user.lastName}`}
+                        className="size-12" 
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-gray-900">
+                            {user.firstName} {user.lastName}
+                          </div>
+                          <Badge 
+                            color={user.userType === 'STAFF' ? 'blue' : 'purple'}
+                            className="text-xs"
+                          >
+                            {user.userType === 'STAFF' ? (
+                              <div className="flex items-center gap-1">
+                                <UserIcon className="size-3" />
+                                Staff
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <BuildingOfficeIcon className="size-3" />
+                                Radio
+                              </div>
+                            )}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <a 
+                            href={`mailto:${user.email}`} 
+                            className="text-blue-600 hover:text-blue-500"
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                          >
+                            {user.email}
+                          </a>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {formatUserRole(user.userType, user.staffRole, user.radioStation)}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td>{user.email}</td>
-                  <td>
-                    <Badge color="zinc">
-                      {user.userType === 'STAFF' ? user.staffRole : 'Radio Station'}
-                    </Badge>
+                  <td className="py-4">
+                    {user.isActive ? (
+                      <Badge color="lime">Active</Badge>
+                    ) : (
+                      <Badge color="zinc">Inactive</Badge>
+                    )}
                   </td>
-                  <td>
-                    <Switch
-                      checked={user.isActive}
-                      onChange={(checked) => 
-                        updateUser({ id: user.id, data: { isActive: checked } })
-                      }
-                      color="green"
-                    />
-                  </td>
-                  <td>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setSelectedUser(user)}
-                        outline
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteUser(user.id)}
-                        disabled={isDeleting}
-                        color="primary"
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                  <td className="py-4">
+                    <Button
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        router.push(`/admin/users/${user.id}/edit`);
+                      }}
+                      outline
+                      className="text-sm"
+                    >
+                      Edit
+                    </Button>
                   </td>
                 </tr>
               ))
@@ -177,37 +221,14 @@ export function UserList() {
         </Table>
       )}
 
-      {pagination && users.length > 0 && (
-        <Pagination
-          currentPage={pagination.page}
-          totalPages={pagination.totalPages}
-          onPageChange={handlePageChange}
-        />
-      )}
-
-      <Dialog
-        open={isCreateDialogOpen}
-        onClose={() => setIsCreateDialogOpen(false)}
-        title="Create User"
-      >
-        <UserForm
-          onSubmit={handleCreateUser}
-          isSubmitting={isCreating}
-        />
-      </Dialog>
-
-      {selectedUser && (
-        <Dialog
-          open={!!selectedUser}
-          onClose={() => setSelectedUser(null)}
-          title="Edit User"
-        >
-          <UserForm
-            user={selectedUser}
-            onSubmit={handleUpdateUser}
-            isSubmitting={isUpdating}
+      {pagination && filteredUsers.length > 0 && (
+        <div className="flex justify-end">
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
           />
-        </Dialog>
+        </div>
       )}
     </div>
   );
