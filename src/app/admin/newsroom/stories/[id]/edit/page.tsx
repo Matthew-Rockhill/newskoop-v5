@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -136,8 +137,8 @@ export default function EditStoryPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Story not found</p>
-          <Button href="/admin/newsroom/stories" className="mt-4">
-            Back to Stories
+          <Button asChild className="mt-4">
+            <Link href="/admin/newsroom/stories">Back to Stories</Link>
           </Button>
         </div>
       </Container>

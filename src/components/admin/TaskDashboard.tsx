@@ -68,7 +68,7 @@ export function TaskDashboard({ className = '' }: TaskDashboardProps) {
         return {
           title: 'My Writing Tasks',
           description: 'Stories to write and revisions to complete',
-          primaryAction: { label: 'New Story', href: '/admin/newsroom/stories/new' },
+          primaryAction: { label: 'View All Tasks', href: '/admin/newsroom/tasks' },
         };
       case 'JOURNALIST':
         return {
@@ -127,9 +127,11 @@ export function TaskDashboard({ className = '' }: TaskDashboardProps) {
           <Heading level={2}>{roleStats.title}</Heading>
           <Text className="text-gray-600 mt-1">{roleStats.description}</Text>
         </div>
-        <Button href={roleStats.primaryAction.href}>
-          <PlusIcon className="h-4 w-4" />
-          {roleStats.primaryAction.label}
+        <Button asChild>
+          <Link href={roleStats.primaryAction.href}>
+            <PlusIcon className="h-4 w-4" />
+            {roleStats.primaryAction.label}
+          </Link>
         </Button>
       </div>
 
@@ -274,15 +276,21 @@ export function TaskDashboard({ className = '' }: TaskDashboardProps) {
       <Card className="p-6 mt-6">
         <Heading level={3} className="mb-4">Quick Actions</Heading>
         <div className="flex flex-wrap gap-3">
-          <Button href="/admin/newsroom/stories/new" color="white">
-            New Story
+          <Button asChild size="sm" color="white">
+            <Link href="/admin/newsroom/stories/new">
+              Create New Story
+            </Link>
           </Button>
-          <Button href="/admin/newsroom/tasks?status=PENDING" color="white">
-            View All Pending Tasks
+          <Button asChild size="sm" color="white">
+            <Link href="/admin/newsroom/tasks?status=PENDING">
+              View All Pending Tasks
+            </Link>
           </Button>
           {session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
-            <Button href="/admin/newsroom/tasks/new" color="white">
-              Assign New Task
+            <Button asChild size="sm" color="white">
+              <Link href="/admin/newsroom/tasks/new">
+                Assign New Task
+              </Link>
             </Button>
           )}
         </div>

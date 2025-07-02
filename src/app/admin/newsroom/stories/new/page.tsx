@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import toast from 'react-hot-toast';
 
 import { Container } from '@/components/ui/container';
@@ -11,245 +13,272 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
-import { Field, FieldGroup, Fieldset, Label, ErrorMessage } from '@/components/ui/fieldset';
+import { Field, FieldGroup, Fieldset, Label, Description, ErrorMessage } from '@/components/ui/fieldset';
 import { Heading } from '@/components/ui/heading';
-import { Text } from '@/components/ui/text';
-import { Badge } from '@/components/ui/badge';
-import { 
-  DocumentTextIcon,
-  ClockIcon,
-  UserIcon,
-} from '@heroicons/react/24/outline';
+import { Divider } from '@/components/ui/divider';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { FileUpload } from '@/components/ui/file-upload';
+
+import { useCategories } from '@/hooks/use-categories';
+import { useTags } from '@/hooks/use-tags';
+import { storyCreateSchema } from '@/lib/validations';
+import { ContentLanguage, ReligiousFilter } from '@prisma/client';
+
+type StoryFormData = z.infer<typeof storyCreateSchema>;
 
 export default function NewStoryPage() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const [isCreating, setIsCreating] = useState(false);
-  
-  // Task form state
-  const [taskData, setTaskData] = useState({
-    title: '',
-    description: '',
-    priority: 'MEDIUM' as const,
-    dueDate: '',
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [content, setContent] = useState('');
+  const [audioFiles, setAudioFiles] = useState<any[]>([]);
+
+  const { data: categoriesData } = useCategories(true); // Flat list
+  const { data: tagsData } = useTags();
+
+  const categories = categoriesData?.categories || [];
+  const tags = tagsData?.tags || [];
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+  } = useForm<StoryFormData>({
+    resolver: zodResolver(storyCreateSchema),
+    defaultValues: {
+      language: ContentLanguage.ENGLISH,
+      tagIds: [],
+    },
   });
-  
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!session?.user) {
-      router.push('/login');
-    }
-  }, [session, router]);
+  const selectedTagIds = watch('tagIds') || [];
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!taskData.title.trim()) {
-      newErrors.title = 'Story title is required';
-    }
-    if (!taskData.description.trim()) {
-      newErrors.description = 'Story description is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleTagToggle = (tagId: string) => {
+    const currentTags = selectedTagIds;
+    const newTags = currentTags.includes(tagId)
+      ? currentTags.filter(id => id !== tagId)
+      : [...currentTags, tagId];
+    setValue('tagIds', newTags);
   };
 
-  const handleCreateStoryTask = async () => {
-    if (!validateForm() || !session?.user?.id) return;
-
-    setIsCreating(true);
+  const onSubmit: SubmitHandler<StoryFormData> = async (data) => {
+    setIsSubmitting(true);
     try {
-      // Create a STORY_CREATE task
-      const response = await fetch('/api/tasks', {
+      // Create FormData for file uploads
+      const formData = new FormData();
+      
+      // Add story data
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      // Add audio files
+      audioFiles.forEach((audioFile, index) => {
+        formData.append(`audioFile_${index}`, audioFile.file);
+        if (audioFile.description) {
+          formData.append(`audioDescription_${index}`, audioFile.description);
+        }
+      });
+      formData.append('audioFilesCount', String(audioFiles.length));
+
+      const response = await fetch('/api/newsroom/stories', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'STORY_CREATE',
-          title: `Write Story: ${taskData.title}`,
-          description: taskData.description,
-          priority: taskData.priority,
-          assignedToId: session.user.id,
-          contentType: 'story', // Required field
-          ...(taskData.dueDate && { dueDate: taskData.dueDate }),
-          metadata: {
-            storyTitle: taskData.title,
-            storyDescription: taskData.description,
-          },
-        }),
+        body: formData, // Remove JSON headers for FormData
       });
 
       if (!response.ok) {
-        let errorMessage = 'Failed to create story task';
-        try {
-          const error = await response.json();
-          errorMessage = error.error || errorMessage;
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-        }
-        throw new Error(errorMessage);
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create story');
       }
 
-      let result;
-      try {
-        result = await response.json();
-      } catch (parseError) {
-        console.error('Failed to parse success response:', parseError);
-        throw new Error('Task created but failed to get response data');
-      }
-
-      toast.success('Story task created! Redirecting to work interface...');
-      
-      // Redirect to the work interface
-      router.push(`/admin/newsroom/tasks/${result.id}/work`);
+      const story = await response.json();
+      toast.success('Story created successfully!');
+      router.push(`/admin/newsroom/stories/${story.id}`);
     } catch (error) {
-      console.error('Failed to create story task:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create story task');
+      toast.error(error instanceof Error ? error.message : 'Failed to create story');
     } finally {
-      setIsCreating(false);
+      setIsSubmitting(false);
     }
   };
-
-  if (!session?.user) {
-    return null; // Will redirect
-  }
 
   return (
     <Container>
       <PageHeader
         title="Create New Story"
-        description="Start a new story through the editorial workflow"
+        description="Write and publish news articles and editorial content"
       />
 
-      <div className="space-y-6">
-        {/* Workflow Explanation */}
-        <Card className="p-6 bg-blue-50 border-blue-200">
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-full bg-blue-100 text-blue-600">
-              <DocumentTextIcon className="h-6 w-6" />
-            </div>
-            <div className="flex-1">
-              <Heading level={3} className="text-blue-900 mb-2">Task-Based Story Creation</Heading>
-              <Text className="text-blue-800 mb-4">
-                All stories are now created through our editorial workflow to ensure quality and consistency. 
-                This creates a writing task that you can work on immediately.
-              </Text>
-              
-              <div className="flex flex-wrap gap-2">
-                <Badge color="blue">1. Write Story</Badge>
-                <Badge color="orange">2. Review & Edit</Badge>
-                <Badge color="green">3. Approve</Badge>
-                <Badge color="purple">4. Translate</Badge>
-                <Badge color="emerald">5. Publish</Badge>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Task Creation Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        {/* Basic Information */}
         <Card className="p-6">
-          <Heading level={2} className="mb-6">Story Details</Heading>
+          <Heading level={2} className="mb-6">Basic Information</Heading>
           
           <Fieldset>
-            <FieldGroup className="space-y-6">
+            <FieldGroup>
               <Field>
-                <Label htmlFor="title">Story Title *</Label>
+                <Label htmlFor="title">Title *</Label>
                 <Input
                   id="title"
-                  value={taskData.title}
-                  onChange={(e) => setTaskData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter the story title..."
+                  {...register('title')}
+                  placeholder="Enter story title..."
                 />
                 {errors.title && (
-                  <ErrorMessage>{errors.title}</ErrorMessage>
+                  <ErrorMessage>{errors.title.message}</ErrorMessage>
                 )}
               </Field>
 
               <Field>
-                <Label htmlFor="description">Story Brief/Description *</Label>
-                <Textarea
-                  id="description"
-                  value={taskData.description}
-                  onChange={(e) => setTaskData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Provide a brief description of what this story will cover..."
-                  rows={4}
+                <Label htmlFor="content">Content *</Label>
+                <Description>
+                  The main content of your story
+                </Description>
+                <RichTextEditor
+                  content={content}
+                  onChange={(newContent) => {
+                    setContent(newContent);
+                    setValue('content', newContent);
+                  }}
+                  placeholder="Write your story content here..."
                 />
-                {errors.description && (
-                  <ErrorMessage>{errors.description}</ErrorMessage>
+                {errors.content && (
+                  <ErrorMessage>{errors.content.message}</ErrorMessage>
                 )}
               </Field>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Field>
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select
-                    id="priority"
-                    value={taskData.priority}
-                    onChange={(e) => setTaskData(prev => ({ ...prev, priority: e.target.value as any }))}
-                  >
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                    <option value="URGENT">Urgent</option>
-                  </Select>
-                </Field>
-
-                <Field>
-                  <Label htmlFor="dueDate">Due Date (Optional)</Label>
-                  <Input
-                    id="dueDate"
-                    type="datetime-local"
-                    value={taskData.dueDate}
-                    onChange={(e) => setTaskData(prev => ({ ...prev, dueDate: e.target.value }))}
-                  />
-                </Field>
-              </div>
             </FieldGroup>
           </Fieldset>
         </Card>
 
-        {/* Assignment Info */}
-        <Card className="p-6 bg-gray-50">
-          <div className="flex items-center gap-4">
-            <div className="p-2 rounded-full bg-gray-200">
-              <UserIcon className="h-5 w-5 text-gray-600" />
-            </div>
-            <div>
-              <Text className="font-medium">Assigned to you</Text>
-              <Text className="text-sm text-gray-600">
-                {session.user.firstName} {session.user.lastName} ({session.user.staffRole})
-              </Text>
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              <ClockIcon className="h-4 w-4 text-gray-400" />
-              <Text className="text-sm text-gray-600">Will start immediately</Text>
-            </div>
-          </div>
+        {/* Categorization & Settings */}
+        <Card className="p-6">
+          <Heading level={2} className="mb-6">Categorization & Settings</Heading>
+          
+          <Fieldset>
+            <FieldGroup className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Field>
+                <Label htmlFor="categoryId">Category *</Label>
+                <Select
+                  id="categoryId"
+                  {...register('categoryId')}
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {'  '.repeat(category.level - 1)}{category.name}
+                    </option>
+                  ))}
+                </Select>
+                {errors.categoryId && (
+                  <ErrorMessage>{errors.categoryId.message}</ErrorMessage>
+                )}
+              </Field>
+
+              <Field>
+                <Label htmlFor="language">Language</Label>
+                <Select
+                  id="language"
+                  {...register('language')}
+                >
+                  <option value="ENGLISH">English</option>
+                  <option value="AFRIKAANS">Afrikaans</option>
+                  <option value="XHOSA">Xhosa</option>
+                </Select>
+                {errors.language && (
+                  <ErrorMessage>{errors.language.message}</ErrorMessage>
+                )}
+              </Field>
+
+              <Field>
+                <Label htmlFor="religiousFilter">Religious Filter</Label>
+                <Description>
+                  Optional religious content classification
+                </Description>
+                <Select
+                  id="religiousFilter"
+                  {...register('religiousFilter')}
+                >
+                  <option value="">No religious filter</option>
+                  <option value="CHRISTIAN">Christian</option>
+                  <option value="MUSLIM">Muslim</option>
+                </Select>
+                {errors.religiousFilter && (
+                  <ErrorMessage>{errors.religiousFilter.message}</ErrorMessage>
+                )}
+              </Field>
+            </FieldGroup>
+          </Fieldset>
         </Card>
 
+        {/* Tags */}
+        <Card className="p-6">
+          <Heading level={2} className="mb-6">Tags</Heading>
+          <p className="text-base/6 text-zinc-500 mb-4 sm:text-sm/6 dark:text-zinc-400">
+            Select relevant tags to help categorize and organize your story
+          </p>
+          
+          {tags.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {tags.map((tag) => (
+                <div key={tag.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={selectedTagIds.includes(tag.id)}
+                    onChange={() => handleTagToggle(tag.id)}
+                  />
+                  <label 
+                    className="text-sm font-medium text-gray-700 cursor-pointer"
+                    onClick={() => handleTagToggle(tag.id)}
+                  >
+                    {tag.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No tags available. Create some tags first to organize your stories.</p>
+          )}
+        </Card>
+
+        {/* Audio Files */}
+        <Card className="p-6">
+          <Heading level={2} className="mb-6">Audio Files</Heading>
+          <p className="text-base/6 text-zinc-500 mb-4 sm:text-sm/6 dark:text-zinc-400">
+            Upload audio clips to accompany your story
+          </p>
+          
+          <FileUpload
+            onFilesChange={setAudioFiles}
+            maxFiles={5}
+            maxFileSize={50}
+          />
+        </Card>
+
+        <Divider />
+
         {/* Actions */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-end space-x-4">
           <Button
             type="button"
             color="white"
-            onClick={() => router.push('/admin/newsroom/stories')}
+            onClick={() => router.back()}
           >
             Cancel
           </Button>
-          
           <Button
-            onClick={handleCreateStoryTask}
-            disabled={isCreating}
+            type="submit"
+            disabled={isSubmitting}
           >
-            {isCreating ? 'Creating Task...' : 'Create Story Task & Start Writing'}
+            {isSubmitting ? 'Creating...' : 'Create Story'}
           </Button>
         </div>
-      </div>
+      </form>
     </Container>
   );
 }

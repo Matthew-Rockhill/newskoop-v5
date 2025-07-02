@@ -137,21 +137,10 @@ export function TaskAssignmentModal({
   const onSubmit = async (data: TaskAssignmentFormData) => {
     setIsSubmitting(true);
     try {
-      const taskData = {
-        type: data.type,
-        title: data.title,
-        description: data.description,
-        priority: data.priority,
-        assignedToId: data.assignedToId,
-        contentType: 'story', // Default to story for now
-        contentId: data.contentId || undefined,
-        sourceLanguage: data.sourceLanguage || undefined,
-        targetLanguage: data.targetLanguage || undefined,
-        dueDate: data.dueDate || undefined,
-      };
-
-      console.log('Submitting task data:', taskData);
-      await createTask(taskData);
+      await createTask({
+        ...data,
+        contentType: 'story', // Default to story
+      });
       
       toast.success('Task assigned successfully');
       reset();
