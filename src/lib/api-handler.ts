@@ -36,6 +36,7 @@ export const withErrorHandling: ApiMiddleware = (handler) => {
 export const withAuth: ApiMiddleware = (handler) => {
   return async (req, context) => {
     const token = await getToken({ req });
+    console.log('🔐 Auth Token:', token ? 'Present' : 'Missing');
 
     if (!token) {
       return NextResponse.json(
@@ -43,6 +44,32 @@ export const withAuth: ApiMiddleware = (handler) => {
         { status: 401 }
       );
     }
+
+    // Fetch full user data from database
+    const user = await prisma.user.findUnique({
+      where: { id: token.sub },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        userType: true,
+        staffRole: true,
+        isActive: true,
+      },
+    });
+
+    console.log('👤 User Data:', user ? `${user.email} (${user.staffRole || 'no staff role'})` : 'Not found');
+
+    if (!user || !user.isActive) {
+      return NextResponse.json(
+        { error: 'User not found or inactive' },
+        { status: 401 }
+      );
+    }
+
+    // Attach user to request
+    (req as any).user = user;
 
     return handler(req, context);
   };

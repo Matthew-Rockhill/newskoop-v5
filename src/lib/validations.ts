@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StaffRole, UserType, TranslationLanguage, Province } from '@prisma/client';
+import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryPriority, ContentLanguage, ReligiousFilter, CommentType, TaskStatus, TaskType, TaskPriority } from '@prisma/client';
 
 // Base user schema
 const baseUserSchema = z.object({
@@ -18,7 +18,11 @@ export const userCreateSchema = z.object({
   mobileNumber: z.string().optional(),
   userType: z.nativeEnum(UserType),
   staffRole: z.nativeEnum(StaffRole).optional(),
-  translationLanguage: z.nativeEnum(TranslationLanguage).optional(),
+  translationLanguage: z.string().optional().transform((val) => {
+    // Convert empty string to undefined for optional enum validation
+    if (val === '' || val === undefined) return undefined;
+    return val;
+  }).pipe(z.nativeEnum(TranslationLanguage).optional()),
   isActive: z.boolean().default(true),
 }).refine((data) => {
   // For STAFF users, staffRole is required
@@ -90,6 +94,145 @@ export const userSearchSchema = z.object({
   staffRole: z.nativeEnum(StaffRole).optional(),
   radioStationId: z.string().optional(),
   isActive: z.boolean().optional(),
+  page: z.number().int().positive().default(1),
+  perPage: z.number().int().positive().default(10),
+});
+
+// Station search params schema
+export const stationSearchSchema = z.object({
+  query: z.string().optional(),
+  province: z.nativeEnum(Province).optional(),
+  isActive: z.boolean().optional(),
+  page: z.number().int().positive().default(1),
+  perPage: z.number().int().positive().default(10),
+});
+
+// NEWSROOM VALIDATION SCHEMAS
+
+// Story schemas
+export const storyCreateSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(255),
+  content: z.string().min(1, 'Content is required'),
+  summary: z.string().optional(),
+  priority: z.nativeEnum(StoryPriority).default(StoryPriority.MEDIUM),
+  categoryId: z.string().optional(), // Optional until approval stage
+  tagIds: z.array(z.string()).optional().default([]),
+});
+
+// Validation for approval stage (requires category)
+export const storyApprovalSchema = storyCreateSchema.extend({
+  categoryId: z.string().min(1, 'Category is required for approval'),
+});
+
+export const storyUpdateSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  content: z.string().min(1).optional(),
+  summary: z.string().optional(),
+  priority: z.nativeEnum(StoryPriority).optional(),
+  language: z.nativeEnum(ContentLanguage).optional(),
+  categoryId: z.string().optional(),
+  religiousFilter: z.nativeEnum(ReligiousFilter).optional(),
+  tagIds: z.array(z.string()).optional(),
+});
+
+export const storyStatusUpdateSchema = z.object({
+  status: z.nativeEnum(StoryStatus),
+  assignedToId: z.string().optional(),
+  reviewerId: z.string().optional(),
+});
+
+export const storySearchSchema = z.object({
+  query: z.string().optional(),
+  status: z.nativeEnum(StoryStatus).optional(),
+  priority: z.nativeEnum(StoryPriority).optional(),
+  language: z.nativeEnum(ContentLanguage).optional(),
+  categoryId: z.string().optional(),
+  authorId: z.string().optional(),
+  assignedToId: z.string().optional(),
+  reviewerId: z.string().optional(),
+  religiousFilter: z.nativeEnum(ReligiousFilter).optional(),
+  tagIds: z.array(z.string()).optional(),
+  page: z.number().int().positive().default(1),
+  perPage: z.number().int().positive().default(10),
+});
+
+// Category schemas
+export const categoryCreateSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100),
+  description: z.string().optional(),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
+  parentId: z.string().optional(),
+});
+
+export const categoryUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().optional(),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
+  parentId: z.string().optional(),
+});
+
+// Tag schemas
+export const tagCreateSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(50),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
+});
+
+export const tagUpdateSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
+});
+
+// Comment schemas
+export const commentCreateSchema = z.object({
+  content: z.string().min(1, 'Comment content is required'),
+  type: z.nativeEnum(CommentType).default(CommentType.GENERAL),
+  storyId: z.string().min(1, 'Story ID is required'),
+  parentId: z.string().optional(),
+});
+
+export const commentUpdateSchema = z.object({
+  content: z.string().min(1).optional(),
+  type: z.nativeEnum(CommentType).optional(),
+  isResolved: z.boolean().optional(),
+});
+
+// Audio clip schemas
+export const audioClipCreateSchema = z.object({
+  filename: z.string().min(1),
+  originalName: z.string().min(1),
+  url: z.string().url(),
+  duration: z.number().int().positive().optional(),
+  fileSize: z.number().int().positive().optional(),
+  mimeType: z.string().min(1),
+  description: z.string().optional(),
+  storyId: z.string().min(1, 'Story ID is required'),
+});
+
+export const audioClipUpdateSchema = z.object({
+  description: z.string().optional(),
+});
+
+// TASK VALIDATION SCHEMAS
+export const taskUpdateSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().optional(),
+  status: z.nativeEnum(TaskStatus).optional(),
+  priority: z.nativeEnum(TaskPriority).optional(),
+  assignedToId: z.string().optional(),
+  dueDate: z.string().optional(),
+  scheduledFor: z.string().optional(),
+  completedAt: z.string().optional(),
+  blockedBy: z.string().optional(),
+  metadata: z.record(z.any()).optional(),
+});
+
+export const taskSearchSchema = z.object({
+  query: z.string().optional(),
+  status: z.nativeEnum(TaskStatus).optional(),
+  type: z.nativeEnum(TaskType).optional(),
+  priority: z.nativeEnum(TaskPriority).optional(),
+  assignedToId: z.string().optional(),
+  contentId: z.string().optional(),
   page: z.number().int().positive().default(1),
   perPage: z.number().int().positive().default(10),
 }); 

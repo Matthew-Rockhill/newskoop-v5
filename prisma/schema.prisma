@@ -39,6 +39,77 @@ enum Province {
   NATIONAL
 }
 
+// Newsroom enums
+enum StoryStatus {
+  DRAFT
+  IN_REVIEW
+  NEEDS_REVISION
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum StoryPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+  BREAKING
+}
+
+enum ContentLanguage {
+  ENGLISH
+  AFRIKAANS
+  XHOSA
+}
+
+enum ReligiousFilter {
+  CHRISTIAN
+  MUSLIM
+}
+
+enum CommentType {
+  GENERAL
+  REVISION_REQUEST
+  APPROVAL
+  REJECTION
+  EDITORIAL_NOTE
+}
+
+enum TaskType {
+  STORY_CREATE
+  STORY_REVIEW
+  STORY_REVISION_TO_AUTHOR
+  STORY_APPROVAL
+  STORY_REVISION_TO_JOURNALIST
+  STORY_TRANSLATE
+  STORY_TRANSLATION_REVIEW
+  STORY_PUBLISH
+  STORY_FOLLOW_UP
+  BULLETIN_CREATE
+  BULLETIN_REVIEW
+  BULLETIN_PUBLISH
+  SHOW_CREATE
+  SHOW_REVIEW
+  SHOW_PUBLISH
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  BLOCKED
+  PENDING_ASSIGNMENT
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
 model User {
   id                    String                @id @default(cuid())
   email                 String                @unique
@@ -64,6 +135,19 @@ model User {
   
   sessions              Session[]
   auditLogs             AuditLog[]
+  
+  // Newsroom relationships
+  authoredStories       Story[]               @relation("AuthoredStories")
+  assignedStories       Story[]               @relation("AssignedStories")
+  reviewedStories       Story[]               @relation("ReviewedStories")
+  publishedStories      Story[]               @relation("PublishedStories")
+  uploadedAudioClips    AudioClip[]
+  comments              Comment[]
+  resolvedComments      Comment[]             @relation("ResolvedComments")
+  
+  // Task relationships
+  assignedTasks         Task[]                @relation("AssignedTasks")
+  createdTasks          Task[]                @relation("CreatedTasks")
   
   @@index([email])
   @@index([userType])
@@ -117,4 +201,193 @@ model AuditLog {
   
   @@index([userId])
   @@index([createdAt])
+}
+
+// NEWSROOM MODELS
+
+model Story {
+  id                String              @id @default(cuid())
+  title             String
+  slug              String              @unique
+  content           String              @db.Text
+  summary           String?             @db.Text
+  status            StoryStatus         @default(DRAFT)
+  priority          StoryPriority       @default(MEDIUM)
+  language          ContentLanguage     @default(ENGLISH)
+  
+  // Authoring
+  authorId          String
+  author            User                @relation("AuthoredStories", fields: [authorId], references: [id])
+  
+  // Editorial workflow
+  assignedToId      String?
+  assignedTo        User?               @relation("AssignedStories", fields: [assignedToId], references: [id])
+  reviewerId        String?
+  reviewer          User?               @relation("ReviewedStories", fields: [reviewerId], references: [id])
+  
+  // Publishing
+  publishedAt       DateTime?
+  publishedBy       String?
+  publisher         User?               @relation("PublishedStories", fields: [publishedBy], references: [id])
+  
+  // Categorization (must have exactly one category)
+  categoryId        String
+  category          Category            @relation(fields: [categoryId], references: [id])
+  
+  // Tagging
+  tags              StoryTag[]
+  
+  // Content filters for stations
+  religiousFilter   ReligiousFilter?    // CHRISTIAN, MUSLIM, or null for neutral
+  
+  // Audio
+  audioClips        AudioClip[]
+  
+  // Tasks and workflow
+  comments          Comment[]
+  tasks             Task[]
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  @@index([status])
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([language])
+  @@index([slug])
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?
+  color       String?
+  
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  level       Int        @default(1) // 1=Parent, 2=Sub, 3=Sub-Sub
+  
+  isParent    Boolean    @default(false)
+  isEditable  Boolean    @default(true) // false for parent categories
+  
+  stories     Story[]
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@index([parentId])
+  @@index([level])
+}
+
+model Tag {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  slug      String     @unique
+  color     String?
+  stories   StoryTag[]
+  createdAt DateTime   @default(now())
+}
+
+model StoryTag {
+  storyId String
+  tagId   String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@id([storyId, tagId])
+}
+
+model AudioClip {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  url         String
+  duration    Int?
+  fileSize    Int?
+  mimeType    String
+  description String?
+  
+  storyId     String
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  uploadedBy  String
+  uploader    User     @relation(fields: [uploadedBy], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([storyId])
+}
+
+model Comment {
+  id          String      @id @default(cuid())
+  content     String      @db.Text
+  type        CommentType @default(GENERAL)
+  
+  storyId     String
+  story       Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  authorId    String
+  author      User        @relation(fields: [authorId], references: [id])
+  
+  parentId    String?
+  parent      Comment?    @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[]   @relation("CommentReplies")
+  
+  isResolved  Boolean     @default(false)
+  resolvedBy  String?
+  resolver    User?       @relation("ResolvedComments", fields: [resolvedBy], references: [id])
+  resolvedAt  DateTime?
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([storyId])
+  @@index([authorId])
+}
+
+model Task {
+  id              String         @id @default(cuid())
+  type            TaskType
+  title           String
+  description     String?        @db.Text
+  status          TaskStatus     @default(PENDING)
+  priority        TaskPriority   @default(MEDIUM)
+  
+  // Assignment
+  assignedToId    String
+  assignedTo      User           @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  createdById     String
+  createdBy       User           @relation("CreatedTasks", fields: [createdById], references: [id])
+  
+  // Content association
+  contentType     String         // "story", "bulletin", "show"
+  contentId       String?
+  story           Story?         @relation(fields: [contentId], references: [id])
+  
+  // Translation fields
+  sourceLanguage  ContentLanguage?
+  targetLanguage  ContentLanguage?
+  
+  // Scheduling and timing
+  dueDate         DateTime?
+  scheduledFor    DateTime?
+  completedAt     DateTime?
+  
+  // Workflow
+  blockedBy       String?        // Reason for blocking
+  metadata        Json?          // Additional task-specific data
+  
+  // Timestamps
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  @@index([assignedToId, status])
+  @@index([contentType, contentId])
+  @@index([type, status])
+  @@index([scheduledFor])
+  @@index([createdById])
 } 

@@ -24,6 +24,7 @@ const getUsers = createHandler(
       ...searchParams,
       page: searchParams.page ? Number(searchParams.page) : 1,
       perPage: searchParams.perPage ? Number(searchParams.perPage) : 10,
+      isActive: searchParams.isActive ? searchParams.isActive === 'true' : undefined,
     });
 
     // Build where clause

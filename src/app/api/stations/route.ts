@@ -2,10 +2,37 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
+import { stationSearchSchema } from '@/lib/validations';
+import { Prisma } from '@prisma/client';
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+
+    // Validate that primary contact data is provided
+    if (!data.primaryContact) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Primary contact information is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate required primary contact fields
+    const requiredFields = ['firstName', 'lastName', 'email', 'password'];
+    const missingFields = requiredFields.filter(field => !data.primaryContact[field]);
+    
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Missing required primary contact fields: ${missingFields.join(', ')}`,
+        },
+        { status: 400 }
+      );
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       // 1) Create the station
@@ -95,40 +122,41 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
-    const province = searchParams.get('province') || '';
-    const status = searchParams.get('status') || '';
-
-    const skip = (page - 1) * limit;
+    const searchParamsObj = Object.fromEntries(searchParams);
+    
+    const { 
+      query, 
+      province, 
+      isActive,
+      page = 1,
+      perPage = 10 
+    } = stationSearchSchema.parse({
+      ...searchParamsObj,
+      page: searchParamsObj.page ? Number(searchParamsObj.page) : 1,
+      perPage: searchParamsObj.perPage ? Number(searchParamsObj.perPage) : 10,
+      isActive: searchParamsObj.isActive ? searchParamsObj.isActive === 'true' : undefined,
+    });
 
     // Build where clause
-    const where: any = {};
-    
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { contactEmail: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-    
-    if (province) {
-      where.province = province;
-    }
-    
-    if (status) {
-      where.isActive = status === 'active';
-    }
+    const where: Prisma.StationWhereInput = {
+      ...(query && {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { contactEmail: { contains: query, mode: 'insensitive' } },
+        ],
+      }),
+      ...(province && { province }),
+      ...(typeof isActive === 'boolean' && { isActive }),
+    };
 
     // Get total count for pagination
-    const totalCount = await prisma.station.count({ where });
+    const total = await prisma.station.count({ where });
 
     // Get stations with primary contact info
     const stations = await prisma.station.findMany({
       where,
-      skip,
-      take: limit,
+      skip: (page - 1) * perPage,
+      take: perPage,
       orderBy: { createdAt: 'desc' },
       include: {
         users: {
@@ -149,10 +177,10 @@ export async function GET(request: Request) {
     return NextResponse.json({
       stations,
       pagination: {
+        total,
         page,
-        perPage: limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
+        perPage,
+        totalPages: Math.ceil(total / perPage),
       },
     });
   } catch (error) {
