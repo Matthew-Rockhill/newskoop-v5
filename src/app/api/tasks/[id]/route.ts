@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { taskUpdateSchema } from '@/lib/validations';
@@ -51,7 +51,7 @@ const getTask = createHandler(
 
     const canAccess = await canAccessTask(user.id, user.staffRole, id);
     if (!canAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return Response.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const task = await prisma.task.findUnique({
@@ -129,10 +129,10 @@ const getTask = createHandler(
     });
 
     if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      return Response.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    return NextResponse.json(task);
+    return Response.json(task);
   },
   [withErrorHandling, withAuth]
 );
@@ -146,7 +146,7 @@ const updateTask = createHandler(
 
     const canAccess = await canAccessTask(user.id, user.staffRole, id);
     if (!canAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return Response.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Get current task to check permissions
@@ -156,7 +156,7 @@ const updateTask = createHandler(
     });
 
     if (!currentTask) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      return Response.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Only assigned user or creator can update task
@@ -165,7 +165,7 @@ const updateTask = createHandler(
                      ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(user.staffRole);
 
     if (!canUpdate) {
-      return NextResponse.json({ error: 'Insufficient permissions to update this task' }, { status: 403 });
+      return Response.json({ error: 'Insufficient permissions to update this task' }, { status: 403 });
     }
 
     // If reassigning task, validate new assignee
@@ -176,7 +176,7 @@ const updateTask = createHandler(
       });
 
       if (!assignedUser || !assignedUser.isActive) {
-        return NextResponse.json({ error: 'Assigned user not found or inactive' }, { status: 400 });
+        return Response.json({ error: 'Assigned user not found or inactive' }, { status: 400 });
       }
     }
 
@@ -226,7 +226,7 @@ const updateTask = createHandler(
       },
     });
 
-    return NextResponse.json(task);
+    return Response.json(task);
   },
   [
     withErrorHandling,
@@ -243,7 +243,7 @@ const deleteTask = createHandler(
     const user = (req as any).user;
 
     if (!hasTaskPermission(user.staffRole, 'delete')) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Check if task exists
@@ -253,7 +253,7 @@ const deleteTask = createHandler(
     });
 
     if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      return Response.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Only creator or editors+ can delete tasks
@@ -261,19 +261,19 @@ const deleteTask = createHandler(
                      ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(user.staffRole);
 
     if (!canDelete) {
-      return NextResponse.json({ error: 'Insufficient permissions to delete this task' }, { status: 403 });
+      return Response.json({ error: 'Insufficient permissions to delete this task' }, { status: 403 });
     }
 
     // Don't allow deletion of completed tasks unless admin
     if (task.status === 'COMPLETED' && !['ADMIN', 'SUPERADMIN'].includes(user.staffRole)) {
-      return NextResponse.json({ error: 'Cannot delete completed tasks' }, { status: 400 });
+      return Response.json({ error: 'Cannot delete completed tasks' }, { status: 400 });
     }
 
     await prisma.task.delete({
       where: { id },
     });
 
-    return NextResponse.json({ message: 'Task deleted successfully' });
+    return Response.json({ message: 'Task deleted successfully' });
   },
   [withErrorHandling, withAuth, withAudit('task.delete')]
 );

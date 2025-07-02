@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryPriority, ContentLanguage, ReligiousFilter, CommentType, TaskStatus, TaskType, TaskPriority } from '@prisma/client';
+import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryPriority, ContentLanguage, ReligiousFilter, CommentType, TaskType, TaskStatus, TaskPriority } from '@prisma/client';
 
 // Base user schema
 const baseUserSchema = z.object({
@@ -115,13 +115,10 @@ export const storyCreateSchema = z.object({
   content: z.string().min(1, 'Content is required'),
   summary: z.string().optional(),
   priority: z.nativeEnum(StoryPriority).default(StoryPriority.MEDIUM),
-  categoryId: z.string().optional(), // Optional until approval stage
+  language: z.nativeEnum(ContentLanguage).default(ContentLanguage.ENGLISH),
+  categoryId: z.string().min(1, 'Category is required'),
+  religiousFilter: z.nativeEnum(ReligiousFilter).optional(),
   tagIds: z.array(z.string()).optional().default([]),
-});
-
-// Validation for approval stage (requires category)
-export const storyApprovalSchema = storyCreateSchema.extend({
-  categoryId: z.string().min(1, 'Category is required for approval'),
 });
 
 export const storyUpdateSchema = z.object({
@@ -213,17 +210,33 @@ export const audioClipUpdateSchema = z.object({
 });
 
 // TASK VALIDATION SCHEMAS
-export const taskUpdateSchema = z.object({
-  title: z.string().min(1).optional(),
+
+// Task schemas
+export const taskCreateSchema = z.object({
+  type: z.nativeEnum(TaskType),
+  title: z.string().min(1, 'Title is required').max(255),
   description: z.string().optional(),
-  status: z.nativeEnum(TaskStatus).optional(),
+  priority: z.nativeEnum(TaskPriority).default(TaskPriority.MEDIUM),
+  assignedToId: z.string().min(1, 'Assigned user is required'),
+  contentType: z.string().min(1, 'Content type is required'),
+  contentId: z.string().optional(),
+  dueDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  scheduledFor: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  sourceLanguage: z.nativeEnum(ContentLanguage).optional(),
+  targetLanguage: z.nativeEnum(ContentLanguage).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const taskUpdateSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  description: z.string().optional(),
   priority: z.nativeEnum(TaskPriority).optional(),
+  status: z.nativeEnum(TaskStatus).optional(),
   assignedToId: z.string().optional(),
-  dueDate: z.string().optional(),
-  scheduledFor: z.string().optional(),
-  completedAt: z.string().optional(),
-  blockedBy: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  dueDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  scheduledFor: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  completedAt: z.date().optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 export const taskSearchSchema = z.object({
@@ -232,7 +245,15 @@ export const taskSearchSchema = z.object({
   type: z.nativeEnum(TaskType).optional(),
   priority: z.nativeEnum(TaskPriority).optional(),
   assignedToId: z.string().optional(),
+  createdById: z.string().optional(),
+  contentType: z.string().optional(),
   contentId: z.string().optional(),
   page: z.number().int().positive().default(1),
   perPage: z.number().int().positive().default(10),
+});
+
+export const taskAssignmentSchema = z.object({
+  assignedToId: z.string().min(1, 'Assigned user is required'),
+  dueDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  notes: z.string().optional(),
 }); 

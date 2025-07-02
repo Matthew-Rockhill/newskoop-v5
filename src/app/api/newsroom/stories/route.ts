@@ -197,71 +197,57 @@ const createStory = createHandler(
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const contentType = req.headers.get('content-type') || '';
-    let storyData: any = {};
-    let tagIds: string[] = [];
-    const uploadedAudioFiles: any[] = [];
-
-    if (contentType.includes('multipart/form-data')) {
-      // Handle FormData for file uploads
-      const formData = await req.formData();
-      
-      // Extract story data from FormData
-      const audioFiles: File[] = [];
-      const audioDescriptions: string[] = [];
-      
-      for (const [key, value] of formData.entries()) {
-        if (key.startsWith('audioFile_')) {
-          audioFiles.push(value as File);
-        } else if (key.startsWith('audioDescription_')) {
-          const index = parseInt(key.split('_')[1]);
-          audioDescriptions[index] = value as string;
-        } else if (key !== 'audioFilesCount') {
-          if (key === 'tagIds') {
-            tagIds = JSON.parse(value as string);
-          } else {
-            storyData[key] = value as string;
-          }
+    // Handle FormData for file uploads
+    const formData = await req.formData();
+    
+    // Extract story data from FormData
+    const storyData: any = {};
+    const audioFiles: File[] = [];
+    const audioDescriptions: string[] = [];
+    
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith('audioFile_')) {
+        audioFiles.push(value as File);
+      } else if (key.startsWith('audioDescription_')) {
+        const index = parseInt(key.split('_')[1]);
+        audioDescriptions[index] = value as string;
+      } else if (key !== 'audioFilesCount') {
+        if (key === 'tagIds') {
+          storyData[key] = JSON.parse(value as string);
+        } else {
+          storyData[key] = value as string;
         }
       }
-
-      // Process audio files
-      for (let i = 0; i < audioFiles.length; i++) {
-        const file = audioFiles[i];
-        const description = audioDescriptions[i] || '';
-        
-        // Validate audio file
-        const validation = validateAudioFile(file);
-        if (!validation.valid) {
-          return Response.json({ error: validation.error }, { status: 400 });
-        }
-        
-        // Save file and get file info
-        const uploadedFile = await saveUploadedFile(file);
-        uploadedAudioFiles.push({
-          filename: uploadedFile.filename,
-          originalName: uploadedFile.originalName,
-          url: uploadedFile.url,
-          fileSize: uploadedFile.size, // Note: database field is fileSize, not size
-          mimeType: uploadedFile.mimeType,
-          description,
-          uploadedBy: user.id,
-        });
-      }
-    } else {
-      // Handle JSON data (no file uploads)
-      const body = await req.json();
-      const { tagIds: bodyTagIds, ...restData } = body;
-      storyData = restData;
-      tagIds = bodyTagIds || [];
     }
 
     // Validate story data
     const validatedData = storyCreateSchema.parse(storyData);
-    const { tagIds: validatedTagIds, ...cleanStoryData } = validatedData;
-    
-    // Use tagIds from validation if present, otherwise use extracted tagIds
-    const finalTagIds = validatedTagIds || tagIds;
+    const { tagIds, ...cleanStoryData } = validatedData;
+
+    // Process audio files
+    const uploadedAudioFiles = [];
+    for (let i = 0; i < audioFiles.length; i++) {
+      const file = audioFiles[i];
+      const description = audioDescriptions[i] || '';
+      
+      // Validate audio file
+      const validation = validateAudioFile(file);
+      if (!validation.valid) {
+        return Response.json({ error: validation.error }, { status: 400 });
+      }
+      
+      // Save file and get file info
+      const uploadedFile = await saveUploadedFile(file);
+      uploadedAudioFiles.push({
+        filename: uploadedFile.filename,
+        originalName: uploadedFile.originalName,
+        url: uploadedFile.url,
+        fileSize: uploadedFile.size, // Note: database field is fileSize, not size
+        mimeType: uploadedFile.mimeType,
+        description,
+        uploadedBy: user.id,
+      });
+    }
 
     // Create story with audio files
     const story = await prisma.story.create({
@@ -270,9 +256,9 @@ const createStory = createHandler(
         authorId: user.id,
         slug: generateSlug(validatedData.title),
         // Connect tags if provided
-        ...(finalTagIds && finalTagIds.length > 0 && {
+        ...(tagIds && tagIds.length > 0 && {
           tags: {
-            create: finalTagIds.map((tagId: string) => ({
+            create: tagIds.map((tagId: string) => ({
               tag: { connect: { id: tagId } }
             }))
           }

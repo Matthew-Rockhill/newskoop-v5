@@ -4,17 +4,11 @@ import {
   StaffRole as PrismaStaffRole, 
   Province as PrismaProvince,
   TranslationLanguage as PrismaTranslationLanguage,
-  ContentLanguage,
-  StoryStatus,
-  StoryPriority,
   Station,
-  TaskPriority as PrismaTaskPriority,
   TaskType as PrismaTaskType,
   TaskStatus as PrismaTaskStatus,
-  Task as PrismaTask,
-  WorkflowStage,
-  TranslationStatus,
-  TranslationTask as PrismaTranslationTask
+  TaskPriority as PrismaTaskPriority,
+  Task as PrismaTask
 } from '@prisma/client';
 
 export type UserType = PrismaUserType;
@@ -78,82 +72,19 @@ export interface StationFormData {
 export type { UserType, StaffRole, Province, TranslationLanguage };
 
 // Task Types
-export type TaskPriority = PrismaTaskPriority;
 export type TaskType = PrismaTaskType;
 export type TaskStatus = PrismaTaskStatus;
+export type TaskPriority = PrismaTaskPriority;
 
-export interface Task {
-  id: string;
-  type: TaskType;
-  title: string;
-  description?: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  assignedToId: string;
-  assignedTo: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    staffRole?: StaffRole;
-  };
-  createdById: string;
-  createdBy: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    staffRole?: StaffRole;
-  };
-  contentType: string;
-  contentId?: string;
+export interface Task extends PrismaTask {
+  assignedTo: User;
+  createdBy: User;
   story?: {
     id: string;
     title: string;
-    slug: string;
-    status: StoryStatus;
-    language: ContentLanguage;
+    status: string;
+    author: User;
   };
-  sourceLanguage?: ContentLanguage;
-  targetLanguage?: ContentLanguage;
-  dueDate?: string;
-  scheduledFor?: string;
-  completedAt?: string;
-  blockedBy?: string;
-  metadata?: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface TranslationTask {
-  id: string;
-  storyId: string;
-  story: {
-    id: string;
-    title: string;
-  };
-  language: ContentLanguage;
-  status: TranslationStatus;
-  translatorId: string;
-  translator: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  reviewerId: string;
-  reviewer: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  content?: string;
-  revisionNotes?: string;
-  createdAt: string;
-  updatedAt: string;
-  submittedAt?: string;
-  approvedAt?: string;
 }
 
 export interface TaskFilters {
@@ -162,7 +93,7 @@ export interface TaskFilters {
   type?: TaskType;
   priority?: TaskPriority;
   assignedToId?: string;
-  contentId?: string;
+  contentType?: string;
   page?: number;
   perPage?: number;
 }
@@ -175,10 +106,10 @@ export interface TaskFormData {
   assignedToId: string;
   contentType: string;
   contentId?: string;
-  sourceLanguage?: ContentLanguage;
-  targetLanguage?: ContentLanguage;
   dueDate?: Date;
   scheduledFor?: Date;
+  sourceLanguage?: string;
+  targetLanguage?: string;
   metadata?: Record<string, unknown>;
 }
 

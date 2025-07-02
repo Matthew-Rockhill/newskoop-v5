@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { z } from 'zod';
@@ -18,7 +18,7 @@ const completeTask = createHandler(
       const body = await req.json();
       data = completeTaskSchema.parse(body);
     } catch (error) {
-      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
+      return Response.json({ error: 'Invalid request data' }, { status: 400 });
     }
 
     // Get current task
@@ -36,17 +36,17 @@ const completeTask = createHandler(
     });
 
     if (!currentTask) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      return Response.json({ error: 'Task not found' }, { status: 404 });
     }
 
     // Only assigned user can complete task
     if (currentTask.assignedToId !== user.id) {
-      return NextResponse.json({ error: 'Only assigned user can complete this task' }, { status: 403 });
+      return Response.json({ error: 'Only assigned user can complete this task' }, { status: 403 });
     }
 
     // Check if task is already completed
     if (currentTask.status === 'COMPLETED') {
-      return NextResponse.json({ error: 'Task is already completed' }, { status: 400 });
+      return Response.json({ error: 'Task is already completed' }, { status: 400 });
     }
 
     // Update task to completed
@@ -98,7 +98,7 @@ const completeTask = createHandler(
     // This is where we'll add logic to automatically create next tasks
     // For example, when STORY_REVIEW is completed, create STORY_APPROVAL task
     
-    return NextResponse.json(task);
+    return Response.json(task);
   },
   [withErrorHandling, withAuth, withAudit('task.complete')]
 );

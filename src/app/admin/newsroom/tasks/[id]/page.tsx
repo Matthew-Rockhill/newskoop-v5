@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { 
   CheckCircleIcon,
   XMarkIcon,
@@ -14,7 +15,6 @@ import {
   ExclamationTriangleIcon,
   CalendarIcon,
   ChatBubbleLeftRightIcon,
-  PlayIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -35,7 +35,6 @@ import { TaskEditModal } from '@/components/admin/TaskEditModal';
 import { TaskComments } from '@/components/admin/TaskComments';
 import { TaskType, TaskStatus, TaskPriority } from '@prisma/client';
 import { useSession } from 'next-auth/react';
-import { useQueryClient } from '@tanstack/react-query';
 
 // Task status badge colors
 const statusColors = {
@@ -79,7 +78,6 @@ export default function TaskDetailPage() {
   const params = useParams();
   const taskId = params.id as string;
   const { data: session } = useSession();
-  const queryClient = useQueryClient();
   
   const [isCompleting, setIsCompleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -125,8 +123,6 @@ export default function TaskDetailPage() {
     setIsCompleting(true);
     try {
       await completeTask({ id: task.id, metadata: {} });
-      // Invalidate and refetch the current task
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
       toast.success('Task completed successfully!');
     } catch (error) {
       toast.error('Failed to complete task');
@@ -144,8 +140,6 @@ export default function TaskDetailPage() {
         id: task.id, 
         data: { status: newStatus } 
       });
-      // Invalidate and refetch the current task
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
       toast.success('Task status updated successfully!');
     } catch (error) {
       toast.error('Failed to update task status');
@@ -220,6 +214,16 @@ export default function TaskDetailPage() {
       });
     }
     
+    if (task?.status === 'PENDING' && canEditTask()) {
+      actions.push({
+        label: 'Start Task',
+        action: () => handleUpdateStatus('IN_PROGRESS'),
+        color: 'blue',
+        icon: ClockIcon,
+        loading: isUpdating,
+      });
+    }
+    
     return actions;
   };
 
@@ -238,8 +242,8 @@ export default function TaskDetailPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Error loading task: {error?.message || 'Task not found'}</p>
-          <Button href="/admin/newsroom/tasks" className="mt-4">
-            Back to Tasks
+          <Button asChild className="mt-4">
+            <Link href="/admin/newsroom/tasks">Back to Tasks</Link>
           </Button>
         </div>
       </Container>
@@ -264,17 +268,6 @@ export default function TaskDetailPage() {
 
         {/* Action Buttons Row */}
         <div className="flex flex-wrap gap-2">
-          {/* Start Work Button - Most Important Action */}
-          {canCompleteTask() && task.status !== 'COMPLETED' && (
-            <Button 
-              href={`/admin/newsroom/tasks/${task.id}/work`}
-              color="primary"
-            >
-              <PlayIcon className="h-4 w-4" />
-              Start Work
-            </Button>
-          )}
-
           {/* Status Actions */}
           {availableActions.map((action) => (
             <Button
@@ -393,8 +386,10 @@ export default function TaskDetailPage() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <Heading level={3}>Related Story</Heading>
-                  <Button href={`/admin/newsroom/stories/${task.story.id}`} color="white">
-                    View Story
+                  <Button asChild size="sm" color="white">
+                    <Link href={`/admin/newsroom/stories/${task.story.id}`}>
+                      View Story
+                    </Link>
                   </Button>
                 </div>
                 

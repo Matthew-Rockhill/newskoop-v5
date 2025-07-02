@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { 
   PencilSquareIcon,
   TrashIcon,
@@ -170,8 +171,8 @@ export default function StoryDetailPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Error loading story: {error?.message || 'Story not found'}</p>
-          <Button href="/admin/newsroom/stories" className="mt-4">
-            Back to Stories
+          <Button asChild className="mt-4">
+            <Link href="/admin/newsroom/stories">Back to Stories</Link>
           </Button>
         </div>
       </Container>
@@ -202,9 +203,11 @@ export default function StoryDetailPage() {
             ))}
             
             {/* Edit Button */}
-            <Button href={`/admin/newsroom/stories/${story.id}/edit`} color="white">
-              <PencilSquareIcon className="h-4 w-4" />
-              Edit
+            <Button asChild size="sm" color="white">
+              <Link href={`/admin/newsroom/stories/${story.id}/edit`}>
+                <PencilSquareIcon className="h-4 w-4" />
+                Edit
+              </Link>
             </Button>
 
             {/* Delete Button */}
