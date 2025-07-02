@@ -1,331 +1,176 @@
-import { Suspense } from 'react';
+'use client';
+
+import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+
 import { Container } from '@/components/ui/container';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { StatsCard } from '@/components/ui/stats-card';
 import { PageHeader } from '@/components/ui/page-header';
-import { Avatar } from '@/components/ui/avatar';
-import { getAuditLogs } from '@/lib/audit';
-import { prisma } from '@/lib/prisma';
+import { StatsCard } from '@/components/ui/stats-card';
+import { Button } from '@/components/ui/button';
+import { useUsers } from '@/hooks/use-users';
+import { useStations } from '@/hooks/use-stations';
+import { useStories } from '@/hooks/use-stories';
+import { UserActivityChart } from '@/components/admin/UserActivityChart';
 import { 
-  UsersIcon, 
-  BuildingOfficeIcon, 
-  UserGroupIcon, 
-  ChartBarIcon,
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  UserPlusIcon,
-  Cog6ToothIcon
+  CogIcon, 
+  NewspaperIcon,
 } from '@heroicons/react/24/outline';
 
-async function getMetrics() {
-  const [
-    totalUsers,
-    activeUsers,
-    totalStations,
-    activeStations,
-    usersByType,
-    usersByRole,
-    // Get previous month data for comparison
-    previousMonthUsers,
-    previousMonthStations,
-  ] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { isActive: true } }),
-    prisma.station.count(),
-    prisma.station.count({ where: { isActive: true } }),
-    prisma.user.groupBy({
-      by: ['userType'],
-      _count: true,
-    }),
-    prisma.user.groupBy({
-      by: ['staffRole'],
-      _count: true,
-      where: { userType: 'STAFF' },
-    }),
-    // Previous month comparison
-    prisma.user.count({
-      where: {
-        createdAt: {
-          lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
-      },
-    }),
-    prisma.station.count({
-      where: {
-        createdAt: {
-          lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
-      },
-    }),
-  ]);
+type DashboardSection = 'admin' | 'newsroom';
 
-  // Calculate growth percentages
-  const userGrowth = previousMonthUsers > 0 
-    ? (((totalUsers - previousMonthUsers) / previousMonthUsers) * 100).toFixed(1)
-    : '0';
+export default function AdminDashboard() {
+  const { data: session } = useSession();
+  const [activeSection, setActiveSection] = useState<DashboardSection>('admin');
   
-  const stationGrowth = previousMonthStations > 0 
-    ? (((totalStations - previousMonthStations) / previousMonthStations) * 100).toFixed(1)
-    : '0';
+  // Fetch data for stats - get more data to show actual counts
+  const { users: allUsers, pagination: usersPagination } = useUsers({ page: 1, perPage: 100 });
+  const { users: activeUsers, pagination: activeUsersPagination } = useUsers({ isActive: true, page: 1, perPage: 100 });
+  const { stations: allStations, pagination: stationsPagination } = useStations({ page: 1, perPage: 100 });
+  const { stations: activeStations, pagination: activeStationsPagination } = useStations({ isActive: true, page: 1, perPage: 100 });
+  
+  // Newsroom stats
+  const { data: allStoriesData } = useStories({ page: 1, perPage: 1 });
+  const { data: draftStoriesData } = useStories({ status: 'DRAFT', page: 1, perPage: 1 });
+  const { data: reviewStoriesData } = useStories({ status: 'IN_REVIEW', page: 1, perPage: 1 });
+  const { data: publishedStoriesData } = useStories({ status: 'PUBLISHED', page: 1, perPage: 1 });
 
-  const activeUserRate = totalUsers > 0 
-    ? ((activeUsers / totalUsers) * 100).toFixed(1)
-    : '0';
+  const isAdmin = session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole);
+  const isEditorialStaff = session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole);
 
-  const activeStationRate = totalStations > 0 
-    ? ((activeStations / totalStations) * 100).toFixed(1)
-    : '0';
-
-  return {
-    totalUsers,
-    activeUsers,
-    totalStations,
-    activeStations,
-    usersByType,
-    usersByRole,
-    userGrowth,
-    stationGrowth,
-    activeUserRate,
-    activeStationRate,
+  // Admin stats (for SUPERADMIN and ADMIN only)
+  const getAdminStats = () => {
+    if (!isAdmin) return [];
+    
+    const totalUsers = usersPagination?.total || 0;
+    const activeUserCount = activeUsersPagination?.total || 0;
+    const totalStations = stationsPagination?.total || 0;
+    const activeStationCount = activeStationsPagination?.total || 0;
+    
+    // Count staff vs radio users from the actual data
+    const staffUsers = allUsers.filter(user => user.userType === 'STAFF').length;
+    const radioUsers = allUsers.filter(user => user.userType === 'RADIO').length;
+    
+    const activeUserPercentage = totalUsers > 0 ? Math.round((activeUserCount / totalUsers) * 100) : 0;
+    const activeStationPercentage = totalStations > 0 ? Math.round((activeStationCount / totalStations) * 100) : 0;
+    
+    return [
+      {
+        name: 'Total Users',
+        value: totalUsers,
+        description: `${activeUserCount} active users`,
+        change: `${activeUserPercentage}% active`,
+        changeType: activeUserPercentage >= 80 ? 'positive' : activeUserPercentage >= 60 ? 'neutral' : 'negative' as const,
+      },
+      {
+        name: 'Radio Stations',
+        value: totalStations,
+        description: `${activeStationCount} active stations`,
+        change: `${activeStationPercentage}% active`,
+        changeType: activeStationPercentage >= 80 ? 'positive' : activeStationPercentage >= 60 ? 'neutral' : 'negative' as const,
+      },
+      {
+        name: 'Staff Users',
+        value: staffUsers,
+        description: 'Editorial and admin staff',
+      },
+      {
+        name: 'Radio Users',
+        value: radioUsers,
+        description: 'Radio station personnel',
+      },
+    ];
   };
-}
 
-async function getRecentActivity() {
-  const { logs } = await getAuditLogs({
-    page: 1,
-    perPage: 10,
-  });
+  // Newsroom stats (for editorial staff)
+  const getNewsroomStats = () => {
+    if (!isEditorialStaff && !isAdmin) return [];
+    
+    return [
+      {
+        name: 'Total Stories',
+        value: allStoriesData?.pagination?.total || 0,
+        description: 'All stories in the system',
+      },
+      {
+        name: 'Draft Stories',
+        value: draftStoriesData?.pagination?.total || 0,
+        description: 'Stories in draft status',
+      },
+      {
+        name: 'In Review',
+        value: reviewStoriesData?.pagination?.total || 0,
+        description: 'Stories pending review',
+      },
+      {
+        name: 'Published',
+        value: publishedStoriesData?.pagination?.total || 0,
+        description: 'Published stories',
+      },
+    ];
+  };
 
-  return logs;
-}
+  const adminStats = getAdminStats();
+  const newsroomStats = getNewsroomStats();
 
-// Helper function to get activity icon and color
-function getActivityIcon(action: string) {
-  if (action.includes('create')) {
-    return { icon: PlusIcon, color: 'bg-green-100', iconColor: 'text-green-600' };
-  } else if (action.includes('update')) {
-    return { icon: PencilIcon, color: 'bg-blue-100', iconColor: 'text-blue-600' };
-  } else if (action.includes('delete')) {
-    return { icon: TrashIcon, color: 'bg-red-100', iconColor: 'text-red-600' };
-  } else if (action.includes('user')) {
-    return { icon: UserPlusIcon, color: 'bg-purple-100', iconColor: 'text-purple-600' };
-  } else {
-    return { icon: Cog6ToothIcon, color: 'bg-gray-100', iconColor: 'text-gray-600' };
-  }
-}
-
-// Helper function to format activity message
-function formatActivityMessage(log: any) {
-  const actionParts = log.action.split('.');
-  const entity = actionParts[0]; // user, station, etc.
-  const action = actionParts[1]; // create, update, delete
-
-  switch (action) {
-    case 'create':
-      return `created a new ${entity}`;
-    case 'update':
-      return `updated ${entity} settings`;
-    case 'delete':
-      return `deleted a ${entity}`;
-    default:
-      return `performed ${action} on ${entity}`;
-  }
-}
-
-// Helper function to get relative time
-function getRelativeTime(date: Date) {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return 'just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  return date.toLocaleDateString();
-}
-
-export const metadata = {
-  title: 'Dashboard - Newskoop Admin',
-};
-
-export default async function AdminDashboard() {
-  const metrics = await getMetrics();
-  const recentActivity = await getRecentActivity();
-
-  // Prepare stats for the StatsCard component
-  const stats = [
-    {
-      name: 'Total Users',
-      value: metrics.totalUsers,
-      change: `+${metrics.userGrowth}%`,
-      changeType: parseFloat(metrics.userGrowth) >= 0 ? 'positive' : 'negative' as const,
-      description: `${metrics.activeUsers} active users`,
-    },
-    {
-      name: 'Radio Stations',
-      value: metrics.totalStations,
-      change: `+${metrics.stationGrowth}%`,
-      changeType: parseFloat(metrics.stationGrowth) >= 0 ? 'positive' : 'negative' as const,
-      description: `${metrics.activeStations} active stations`,
-    },
-    {
-      name: 'User Activity Rate',
-      value: `${metrics.activeUserRate}%`,
-      change: metrics.activeUserRate > '80' ? 'Excellent' : metrics.activeUserRate > '60' ? 'Good' : 'Needs attention',
-      changeType: parseFloat(metrics.activeUserRate) > 80 ? 'positive' : parseFloat(metrics.activeUserRate) > 60 ? 'neutral' : 'negative' as const,
-      description: 'Active vs total users',
-    },
-    {
-      name: 'Station Coverage',
-      value: `${metrics.activeStationRate}%`,
-      change: metrics.activeStationRate > '85' ? 'Excellent' : metrics.activeStationRate > '70' ? 'Good' : 'Needs attention',
-      changeType: parseFloat(metrics.activeStationRate) > 85 ? 'positive' : parseFloat(metrics.activeStationRate) > 70 ? 'neutral' : 'negative' as const,
-      description: 'Active stations coverage',
-    },
-  ];
+  // Determine which sections to show
+  const showAdminSection = isAdmin && adminStats.length > 0;
+  const showNewsroomSection = (isEditorialStaff || isAdmin) && newsroomStats.length > 0;
+  const showToggle = showAdminSection && showNewsroomSection;
 
   return (
     <Container>
-      <div className="py-8 space-y-8">
-        {/* Header */}
-        <PageHeader
-          title="Dashboard"
-        />
-        <p className="text-sm text-gray-500 -mt-6">
-          Overview of your Newskoop platform performance and key metrics.
-        </p>
+      <PageHeader
+        title="Dashboard"
+        description={`Welcome back, ${session?.user?.firstName || 'User'}!`}
+      />
 
-        {/* Key Metrics Stats Cards */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-medium text-gray-900">Key Metrics</h2>
-          <StatsCard stats={stats} />
+      {/* Section Toggle - Only show if user has access to both sections */}
+      {showToggle && (
+        <div className="mt-8 flex gap-2">
+          <Button
+            onClick={() => setActiveSection('admin')}
+            color={activeSection === 'admin' ? 'primary' : 'white'}
+            className="text-sm"
+          >
+            <CogIcon className="size-4" />
+            System Administration
+          </Button>
+          <Button
+            onClick={() => setActiveSection('newsroom')}
+            color={activeSection === 'newsroom' ? 'primary' : 'white'}
+            className="text-sm"
+          >
+            <NewspaperIcon className="size-4" />
+            Newsroom
+          </Button>
         </div>
+      )}
 
-        {/* Analytics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* User Distribution */}
-          <Card>
-            <div className="p-6">
-              <div className="flex items-center">
-                <UserGroupIcon className="h-5 w-5 text-gray-400 mr-2" />
-                <h3 className="text-lg font-medium text-gray-900">User Distribution</h3>
-              </div>
-              <div className="mt-6 space-y-4">
-                {metrics.usersByType.map((type) => (
-                  <div key={type.userType} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {type.userType === 'STAFF' ? (
-                        <UsersIcon className="h-4 w-4 text-blue-500 mr-2" />
-                      ) : (
-                        <BuildingOfficeIcon className="h-4 w-4 text-purple-500 mr-2" />
-                      )}
-                      <span className="text-sm font-medium text-gray-900">
-                        {type.userType === 'STAFF' ? 'Staff Users' : 'Radio Station Users'}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-sm font-semibold text-gray-900 mr-2">{type._count}</span>
-                      <Badge color={type.userType === 'STAFF' ? 'blue' : 'purple'}>
-                        {((type._count / metrics.totalUsers) * 100).toFixed(0)}%
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      <div className="mt-8">
+        {/* Admin Section */}
+        {showAdminSection && (!showToggle || activeSection === 'admin') && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">System Administration</h2>
+              <StatsCard stats={adminStats} />
             </div>
-          </Card>
-
-          {/* Staff Roles */}
-          <Card>
-            <div className="p-6">
-              <div className="flex items-center">
-                <ChartBarIcon className="h-5 w-5 text-gray-400 mr-2" />
-                <h3 className="text-lg font-medium text-gray-900">Staff Roles</h3>
-              </div>
-              <div className="mt-6 space-y-3">
-                {metrics.usersByRole.map((role) => (
-                  <div key={role.staffRole} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      {role.staffRole?.replace('_', ' ') || 'Unassigned'}
-                    </span>
-                    <div className="flex items-center">
-                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-3">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{
-                            width: `${(role._count / metrics.usersByType.find(t => t.userType === 'STAFF')?._count || 1) * 100}%`
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-semibold text-gray-900 w-8 text-right">{role._count}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Recent Activity Feed - Full Width */}
-        <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Recent Activity</h3>
-            <div className="flow-root">
-              <ul role="list" className="-mb-8">
-                {recentActivity.map((activityItem, activityItemIdx) => {
-                  const { icon: Icon, color, iconColor } = getActivityIcon(activityItem.action);
-                  return (
-                    <li key={activityItem.id}>
-                      <div className="relative pb-8">
-                        {activityItemIdx !== recentActivity.length - 1 ? (
-                          <span 
-                            aria-hidden="true" 
-                            className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200" 
-                          />
-                        ) : null}
-                        <div className="relative flex items-start space-x-3">
-                          <div>
-                            <div className="relative px-1">
-                              <div className={`flex size-8 items-center justify-center rounded-full ${color} ring-8 ring-white`}>
-                                <Icon aria-hidden="true" className={`size-4 ${iconColor}`} />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="min-w-0 flex-1 py-1.5">
-                            <div className="text-sm text-gray-500">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Avatar 
-                                  name={activityItem.user.name || activityItem.user.email}
-                                  className="size-6"
-                                />
-                                <span className="font-medium text-gray-900">
-                                  {activityItem.user.name || activityItem.user.email}
-                                </span>
-                              </div>
-                              <div className="text-gray-600">
-                                {formatActivityMessage(activityItem)}
-                                {activityItem.targetType && (
-                                  <span className="ml-1 text-gray-500">
-                                    ({activityItem.targetType})
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-400 mt-1">
-                                {getRelativeTime(new Date(activityItem.createdAt))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+            
+            {/* User Activity Chart */}
+            <div>
+              <UserActivityChart />
             </div>
           </div>
-        </Card>
+        )}
+
+        {/* Newsroom Section */}
+        {showNewsroomSection && (!showToggle || activeSection === 'newsroom') && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Newsroom Overview</h2>
+              <StatsCard stats={newsroomStats} />
+            </div>
+          </div>
+        )}
       </div>
     </Container>
   );

@@ -9,19 +9,17 @@ import {
   ChartBarIcon,
   Cog6ToothIcon,
   XMarkIcon,
+  DocumentTextIcon,
+  FolderIcon,
+  TagIcon,
+  HomeIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '../shared/Logo'
 import { useSession } from 'next-auth/react'
 import { Avatar } from '../ui/avatar'
-
-const navigation = [
-  { name: 'Dashboard', href: '/admin', icon: ChartBarIcon },
-  { name: 'Radio Stations', href: '/admin/stations', icon: RadioIcon },
-  { name: 'Users', href: '/admin/users', icon: UsersIcon },
-  { name: 'Reports', href: '/admin/reports', icon: ChartBarIcon },
-]
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -31,10 +29,118 @@ interface AdminLayoutProps {
   children: React.ReactNode
 }
 
+interface NavigationItem {
+  name: string
+  href: string
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+}
+
+interface NavigationSection {
+  name: string
+  items: NavigationItem[]
+}
+
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { data: session } = useSession()
+
+  // Role-based navigation with sections
+  const getNavigation = (): (NavigationItem | NavigationSection)[] => {
+    const navigation: (NavigationItem | NavigationSection)[] = []
+
+    // Dashboard - always visible to authenticated users
+    navigation.push({ name: 'Dashboard', href: '/admin', icon: HomeIcon })
+
+    // Newsroom section - available to all staff users
+    if (session?.user?.userType === 'STAFF') {
+      const newsroomItems: NavigationItem[] = []
+      
+      // All staff can see stories and tasks
+      newsroomItems.push({ name: 'Stories', href: '/admin/newsroom/stories', icon: DocumentTextIcon })
+      newsroomItems.push({ name: 'Tasks', href: '/admin/newsroom/tasks', icon: ClipboardDocumentListIcon })
+      
+      // Categories and Tags - SUB_EDITOR and above
+      if (session.user.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
+        newsroomItems.push({ name: 'Categories', href: '/admin/newsroom/categories', icon: FolderIcon })
+        newsroomItems.push({ name: 'Tags', href: '/admin/newsroom/tags', icon: TagIcon })
+      }
+      
+
+
+      if (newsroomItems.length > 0) {
+        navigation.push({
+          name: 'Newsroom',
+          items: newsroomItems
+        })
+      }
+    }
+
+    // System Administration section - ADMIN and SUPERADMIN only
+    if (session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole)) {
+      const adminItems: NavigationItem[] = [
+        { name: 'Radio Stations', href: '/admin/stations', icon: RadioIcon },
+        { name: 'Users', href: '/admin/users', icon: UsersIcon },
+      ]
+
+      // Reports - SUPERADMIN only for now
+      if (session.user.staffRole === 'SUPERADMIN') {
+        adminItems.push({ name: 'Reports', href: '/admin/reports', icon: ChartBarIcon })
+      }
+
+      navigation.push({
+        name: 'System Administration',
+        items: adminItems
+      })
+    }
+
+    return navigation
+  }
+
+  const navigation = getNavigation()
+
+  const renderNavigationItem = (item: NavigationItem, isInSection: boolean = false) => {
+    const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
+    const content = (
+      <Link
+        href={item.href}
+        className={classNames(
+          isActive
+            ? 'bg-gray-50 text-[#76BD43]'
+            : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
+          'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
+        )}
+      >
+        <item.icon
+          className={classNames(
+            isActive ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
+            'h-6 w-6 shrink-0'
+          )}
+          aria-hidden="true"
+        />
+        {item.name}
+      </Link>
+    )
+
+    // If it's in a section, don't wrap in li (the section will handle that)
+    // If it's standalone, wrap in li
+    return isInSection ? content : <li key={item.name}>{content}</li>
+  }
+
+  const renderNavigationSection = (section: NavigationSection) => (
+    <li key={section.name}>
+      <div className="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider mb-2">
+        {section.name}
+      </div>
+      <ul role="list" className="-mx-2 space-y-1">
+        {section.items.map((item) => (
+          <li key={item.name}>
+            {renderNavigationItem(item, true)}
+          </li>
+        ))}
+      </ul>
+    </li>
+  )
 
   const SidebarContent = () => (
     <>
@@ -43,57 +149,45 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </div>
       <nav className="flex flex-1 flex-col justify-between">
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
-          <li>
-            <ul role="list" className="-mx-2 space-y-1">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      className={classNames(
-                        isActive
-                          ? 'bg-gray-50 text-[#76BD43]'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
-                        'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
-                      )}
-                    >
-                      <item.icon
-                        className={classNames(
-                          isActive ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
-                          'h-6 w-6 shrink-0'
-                        )}
-                        aria-hidden="true"
-                      />
-                      {item.name}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </li>
+          {navigation.map((item) => {
+            if ('items' in item) {
+              return renderNavigationSection(item)
+            } else {
+              // Wrap standalone items in the same structure as sections
+              return (
+                <li key={item.name}>
+                  <ul role="list" className="-mx-2 space-y-1">
+                    {renderNavigationItem(item, false)}
+                  </ul>
+                </li>
+              )
+            }
+          })}
         </ul>
 
         <div className="-mx-6 mt-auto">
           <div className="flex flex-col gap-y-4">
-            <Link
-              href="/admin/settings"
-              className={classNames(
-                pathname === '/admin/settings'
-                  ? 'bg-gray-50 text-[#76BD43]'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
-                'group flex items-center gap-x-3 px-6 py-3 text-sm font-semibold leading-6'
-              )}
-            >
-              <Cog6ToothIcon
+            {/* Settings - only for ADMIN and SUPERADMIN */}
+            {session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole) && (
+              <Link
+                href="/admin/settings"
                 className={classNames(
-                  pathname === '/admin/settings' ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
-                  'h-6 w-6 shrink-0'
+                  pathname === '/admin/settings'
+                    ? 'bg-gray-50 text-[#76BD43]'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
+                  'group flex items-center gap-x-3 px-6 py-3 text-sm font-semibold leading-6'
                 )}
-                aria-hidden="true"
-              />
-              Settings
-            </Link>
+              >
+                <Cog6ToothIcon
+                  className={classNames(
+                    pathname === '/admin/settings' ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
+                    'h-6 w-6 shrink-0'
+                  )}
+                  aria-hidden="true"
+                />
+                Settings
+              </Link>
+            )}
 
             {session?.user && (
               <div className="flex items-center gap-x-4 border-t border-gray-200 px-6 py-3">
@@ -116,6 +210,23 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </nav>
     </>
   )
+
+  // Get current page name for mobile header
+  const getCurrentPageName = () => {
+    for (const item of navigation) {
+      if ('items' in item) {
+        const found = item.items.find(subItem => 
+          pathname === subItem.href || (subItem.href !== '/admin' && pathname.startsWith(subItem.href))
+        )
+        if (found) return found.name
+      } else {
+        if (pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))) {
+          return item.name
+        }
+      }
+    }
+    return 'Dashboard'
+  }
 
   return (
     <>
@@ -160,7 +271,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />
           </button>
           <div className="flex-1 text-sm font-semibold leading-6 text-gray-900">
-            {navigation.find(item => pathname === item.href)?.name || 'Dashboard'}
+            {getCurrentPageName()}
           </div>
           {session?.user && (
             <Avatar
