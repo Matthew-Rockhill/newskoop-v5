@@ -253,7 +253,7 @@ Mayor Johnson spoke at the opening ceremony, emphasizing the center's role in br
 
 The center is expected to serve over 5,000 community members annually and will provide employment opportunities for 25 local residents.
       `.trim(),
-      summary: 'New Johannesburg Community Center opens with modern facilities and programs for all ages.',
+
       priority: 'MEDIUM' as const,
       categoryId: localNewsCategory.id,
       authorId: journalist.id,
@@ -282,7 +282,7 @@ Economists predict these changes will have both immediate and long-term effects 
 
 Further details will be released in the coming days as the implementation timeline is finalized.
       `.trim(),
-      summary: 'Government announces major economic policy changes including interest rate adjustments and business incentives.',
+
       priority: 'HIGH' as const,
       categoryId: localNewsCategory.id,
       authorId: journalist.id,
@@ -311,7 +311,7 @@ Captain Sarah Mthembu lifted the trophy amid cheers from thousands of supporters
 
 The team will now advance to the national championships next month.
       `.trim(),
-      summary: 'Johannesburg Eagles win regional football championship 3-2 against Cape Town Sharks.',
+
       priority: 'MEDIUM' as const,
       categoryId: footballSportsCategory.id,
       authorId: journalist.id,
@@ -343,7 +343,7 @@ The program will be rolled out in phases:
 
 Health officials expect to see measurable improvements in student wellbeing within the first year of implementation.
       `.trim(),
-      summary: 'New comprehensive health initiative launches in schools focusing on nutrition, exercise, and mental health.',
+
       priority: 'MEDIUM' as const,
       categoryId: localNewsCategory.id,
       authorId: journalist.id,

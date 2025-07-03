@@ -24,7 +24,7 @@ import { FileUpload } from '@/components/ui/file-upload';
 import { useCategories } from '@/hooks/use-categories';
 import { useTags } from '@/hooks/use-tags';
 import { storyCreateSchema } from '@/lib/validations';
-import { ContentLanguage, ReligiousFilter } from '@prisma/client';
+
 
 type StoryFormData = z.infer<typeof storyCreateSchema>;
 
@@ -49,7 +49,6 @@ export default function NewStoryPage() {
   } = useForm<StoryFormData>({
     resolver: zodResolver(storyCreateSchema),
     defaultValues: {
-      language: ContentLanguage.ENGLISH,
       tagIds: [],
     },
   });
@@ -162,7 +161,7 @@ export default function NewStoryPage() {
           <Heading level={2} className="mb-6">Categorization & Settings</Heading>
           
           <Fieldset>
-            <FieldGroup className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <FieldGroup>
               <Field>
                 <Label htmlFor="categoryId">Category *</Label>
                 <Select
@@ -178,39 +177,6 @@ export default function NewStoryPage() {
                 </Select>
                 {errors.categoryId && (
                   <ErrorMessage>{errors.categoryId.message}</ErrorMessage>
-                )}
-              </Field>
-
-              <Field>
-                <Label htmlFor="language">Language</Label>
-                <Select
-                  id="language"
-                  {...register('language')}
-                >
-                  <option value="ENGLISH">English</option>
-                  <option value="AFRIKAANS">Afrikaans</option>
-                  <option value="XHOSA">Xhosa</option>
-                </Select>
-                {errors.language && (
-                  <ErrorMessage>{errors.language.message}</ErrorMessage>
-                )}
-              </Field>
-
-              <Field>
-                <Label htmlFor="religiousFilter">Religious Filter</Label>
-                <Description>
-                  Optional religious content classification
-                </Description>
-                <Select
-                  id="religiousFilter"
-                  {...register('religiousFilter')}
-                >
-                  <option value="">No religious filter</option>
-                  <option value="CHRISTIAN">Christian</option>
-                  <option value="MUSLIM">Muslim</option>
-                </Select>
-                {errors.religiousFilter && (
-                  <ErrorMessage>{errors.religiousFilter.message}</ErrorMessage>
                 )}
               </Field>
             </FieldGroup>

@@ -13,7 +13,6 @@ import {
   FolderIcon,
   TagIcon,
   HomeIcon,
-  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -56,9 +55,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     if (session?.user?.userType === 'STAFF') {
       const newsroomItems: NavigationItem[] = []
       
-      // All staff can see stories and tasks
+      // All staff can see stories
       newsroomItems.push({ name: 'Stories', href: '/admin/newsroom/stories', icon: DocumentTextIcon })
-      newsroomItems.push({ name: 'Tasks', href: '/admin/newsroom/tasks', icon: ClipboardDocumentListIcon })
       
       // Categories and Tags - SUB_EDITOR and above
       if (session.user.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {

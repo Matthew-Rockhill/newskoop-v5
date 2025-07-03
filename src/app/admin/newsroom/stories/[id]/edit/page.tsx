@@ -25,7 +25,7 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { useCategories } from '@/hooks/use-categories';
 import { useTags } from '@/hooks/use-tags';
 import { storyUpdateSchema } from '@/lib/validations';
-import { StoryPriority, ContentLanguage, ReligiousFilter } from '@prisma/client';
+import { StoryPriority } from '@prisma/client';
 
 type StoryFormData = z.infer<typeof storyUpdateSchema>;
 
@@ -76,8 +76,6 @@ export default function EditStoryPage() {
           title: storyData.title,
           content: storyData.content,
           categoryId: storyData.categoryId,
-          language: storyData.language,
-          religiousFilter: storyData.religiousFilter || '',
           tagIds: storyData.tags?.map((st: any) => st.tag.id) || [],
         });
       } catch (error) {
@@ -197,7 +195,7 @@ export default function EditStoryPage() {
           <Heading level={2} className="mb-6">Categorization & Settings</Heading>
           
           <Fieldset>
-            <FieldGroup className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <FieldGroup>
               <Field>
                 <Label htmlFor="categoryId">Category *</Label>
                 <Select
@@ -213,39 +211,6 @@ export default function EditStoryPage() {
                 </Select>
                 {errors.categoryId && (
                   <ErrorMessage>{errors.categoryId.message}</ErrorMessage>
-                )}
-              </Field>
-
-              <Field>
-                <Label htmlFor="language">Language</Label>
-                <Select
-                  id="language"
-                  {...register('language')}
-                >
-                  <option value="ENGLISH">English</option>
-                  <option value="AFRIKAANS">Afrikaans</option>
-                  <option value="XHOSA">Xhosa</option>
-                </Select>
-                {errors.language && (
-                  <ErrorMessage>{errors.language.message}</ErrorMessage>
-                )}
-              </Field>
-
-              <Field>
-                <Label htmlFor="religiousFilter">Religious Filter</Label>
-                <Description>
-                  Optional religious content classification
-                </Description>
-                <Select
-                  id="religiousFilter"
-                  {...register('religiousFilter')}
-                >
-                  <option value="">No religious filter</option>
-                  <option value="CHRISTIAN">Christian</option>
-                  <option value="MUSLIM">Muslim</option>
-                </Select>
-                {errors.religiousFilter && (
-                  <ErrorMessage>{errors.religiousFilter.message}</ErrorMessage>
                 )}
               </Field>
             </FieldGroup>

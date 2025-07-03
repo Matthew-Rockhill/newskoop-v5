@@ -229,15 +229,6 @@ export default function StoryDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Story Content */}
           <Card className="p-6">
-            {story.summary && (
-              <div className="mb-6">
-                <Heading level={3} className="mb-2">Summary</Heading>
-                <Text className="text-gray-600 italic">{story.summary}</Text>
-              </div>
-            )}
-
-            <Divider className="my-6" />
-
             <div className="prose max-w-none">
               <div className="whitespace-pre-wrap text-gray-900 leading-relaxed">
                 {story.content}
@@ -283,21 +274,7 @@ export default function StoryDetailPage() {
                 </Badge>
               </DescriptionDetails>
 
-              <DescriptionTerm>Language</DescriptionTerm>
-              <DescriptionDetails>
-                {story.language}
-              </DescriptionDetails>
 
-              {story.religiousFilter && (
-                <>
-                  <DescriptionTerm>Religious Filter</DescriptionTerm>
-                  <DescriptionDetails>
-                    <Badge color="blue" size="sm">
-                      {story.religiousFilter}
-                    </Badge>
-                  </DescriptionDetails>
-                </>
-              )}
             </DescriptionList>
           </Card>
 

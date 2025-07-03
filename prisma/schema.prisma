@@ -57,16 +57,7 @@ enum StoryPriority {
   BREAKING
 }
 
-enum ContentLanguage {
-  ENGLISH
-  AFRIKAANS
-  XHOSA
-}
 
-enum ReligiousFilter {
-  CHRISTIAN
-  MUSLIM
-}
 
 enum CommentType {
   GENERAL
@@ -76,40 +67,7 @@ enum CommentType {
   EDITORIAL_NOTE
 }
 
-// Task system enums
-enum TaskType {
-  STORY_CREATE
-  STORY_REVIEW
-  STORY_REVISION_TO_AUTHOR
-  STORY_APPROVAL
-  STORY_REVISION_TO_JOURNALIST
-  STORY_TRANSLATE
-  STORY_TRANSLATION_REVIEW
-  STORY_PUBLISH
-  STORY_FOLLOW_UP
-  BULLETIN_CREATE
-  BULLETIN_REVIEW
-  BULLETIN_PUBLISH
-  SHOW_CREATE
-  SHOW_REVIEW
-  SHOW_PUBLISH
-}
 
-enum TaskStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  BLOCKED
-  PENDING_ASSIGNMENT
-}
-
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
 
 model User {
   id                    String                @id @default(cuid())
@@ -146,9 +104,7 @@ model User {
   comments              Comment[]
   resolvedComments      Comment[]             @relation("ResolvedComments")
   
-  // Task relationships
-  assignedTasks         Task[]                @relation("AssignedTasks")
-  createdTasks          Task[]                @relation("CreatedTasks")
+
   
   @@index([email])
   @@index([userType])
@@ -211,10 +167,8 @@ model Story {
   title             String
   slug              String              @unique
   content           String              @db.Text
-  summary           String?             @db.Text
   status            StoryStatus         @default(DRAFT)
   priority          StoryPriority       @default(MEDIUM)
-  language          ContentLanguage     @default(ENGLISH)
   
   // Authoring
   authorId          String
@@ -238,15 +192,11 @@ model Story {
   // Tagging
   tags              StoryTag[]
   
-  // Content filters for stations
-  religiousFilter   ReligiousFilter?    // CHRISTIAN, MUSLIM, or null for neutral
-  
   // Audio
   audioClips        AudioClip[]
   
-  // Tasks and workflow
+  // Comments
   comments          Comment[]
-  tasks             Task[]
   
   // Timestamps
   createdAt         DateTime            @default(now())
@@ -255,7 +205,6 @@ model Story {
   @@index([status])
   @@index([authorId])
   @@index([categoryId])
-  @@index([language])
   @@index([slug])
 }
 
@@ -350,46 +299,4 @@ model Comment {
   @@index([authorId])
 }
 
-model Task {
-  id          String      @id @default(cuid())
-  type        TaskType
-  title       String
-  description String?     @db.Text
-  status      TaskStatus  @default(PENDING)
-  priority    TaskPriority @default(MEDIUM)
-  
-  // Assignment
-  assignedToId String
-  assignedTo   User       @relation("AssignedTasks", fields: [assignedToId], references: [id])
-  createdById  String
-  createdBy    User       @relation("CreatedTasks", fields: [createdById], references: [id])
-  
-  // Content relationship
-  contentType  String     // 'story', 'bulletin', 'show'
-  contentId    String?    // Null for creation tasks
-  story        Story?     @relation(fields: [contentId], references: [id])
-  
-  // Translation-specific
-  sourceLanguage ContentLanguage?
-  targetLanguage ContentLanguage?
-  
-  // Scheduling
-  dueDate     DateTime?
-  scheduledFor DateTime?  // For follow-up tasks
-  
-  // Workflow state
-  completedAt DateTime?
-  blockedBy   String?    // Task ID that must complete first
-  
-  // Metadata for task-specific data (checklist, etc.)
-  metadata    Json?
-  
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  
-  @@index([assignedToId, status])
-  @@index([contentType, contentId])
-  @@index([type, status])
-  @@index([scheduledFor])
-  @@index([createdById])
-} 
+ 

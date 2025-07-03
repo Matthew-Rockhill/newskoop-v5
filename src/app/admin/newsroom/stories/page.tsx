@@ -24,7 +24,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { useStories, type StoryFilters } from '@/hooks/use-stories';
 import { useCategories } from '@/hooks/use-categories';
-import { StoryStatus, ContentLanguage } from '@prisma/client';
+import { StoryStatus } from '@prisma/client';
 
 // Status badge colors
 const statusColors = {
@@ -191,11 +191,6 @@ export default function StoriesPage() {
                           <div className="font-medium text-gray-900 truncate">
                             {story.title}
                           </div>
-                          {story.language !== 'ENGLISH' && (
-                            <Badge color="blue" className="text-xs">
-                              {story.language}
-                            </Badge>
-                          )}
                         </div>
                         <div className="text-sm text-gray-600 truncate">
                           by {story.author.firstName} {story.author.lastName}

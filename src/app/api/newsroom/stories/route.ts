@@ -40,12 +40,10 @@ const getStories = createHandler(
       query,
       status,
       priority,
-      language,
       categoryId,
       authorId,
       assignedToId,
       reviewerId,
-      religiousFilter,
       tagIds,
       page = 1,
       perPage = 10
@@ -62,17 +60,14 @@ const getStories = createHandler(
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
           { content: { contains: query, mode: 'insensitive' } },
-          { summary: { contains: query, mode: 'insensitive' } },
         ],
       }),
       ...(status && { status }),
       ...(priority && { priority }),
-      ...(language && { language }),
       ...(categoryId && { categoryId }),
       ...(authorId && { authorId }),
       ...(assignedToId && { assignedToId }),
       ...(reviewerId && { reviewerId }),
-      ...(religiousFilter && { religiousFilter }),
       ...(tagIds && tagIds.length > 0 && {
         tags: {
           some: {

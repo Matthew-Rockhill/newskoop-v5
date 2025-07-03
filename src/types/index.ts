@@ -4,11 +4,7 @@ import {
   StaffRole as PrismaStaffRole, 
   Province as PrismaProvince,
   TranslationLanguage as PrismaTranslationLanguage,
-  Station,
-  TaskType as PrismaTaskType,
-  TaskStatus as PrismaTaskStatus,
-  TaskPriority as PrismaTaskPriority,
-  Task as PrismaTask
+  Station
 } from '@prisma/client';
 
 export type UserType = PrismaUserType;
@@ -70,48 +66,6 @@ export interface StationFormData {
 }
 
 export type { UserType, StaffRole, Province, TranslationLanguage };
-
-// Task Types
-export type TaskType = PrismaTaskType;
-export type TaskStatus = PrismaTaskStatus;
-export type TaskPriority = PrismaTaskPriority;
-
-export interface Task extends PrismaTask {
-  assignedTo: User;
-  createdBy: User;
-  story?: {
-    id: string;
-    title: string;
-    status: string;
-    author: User;
-  };
-}
-
-export interface TaskFilters {
-  query?: string;
-  status?: TaskStatus;
-  type?: TaskType;
-  priority?: TaskPriority;
-  assignedToId?: string;
-  contentType?: string;
-  page?: number;
-  perPage?: number;
-}
-
-export interface TaskFormData {
-  type: TaskType;
-  title: string;
-  description?: string;
-  priority: TaskPriority;
-  assignedToId: string;
-  contentType: string;
-  contentId?: string;
-  dueDate?: Date;
-  scheduledFor?: Date;
-  sourceLanguage?: string;
-  targetLanguage?: string;
-  metadata?: Record<string, unknown>;
-}
 
 export interface AuditLog {
   id: string;

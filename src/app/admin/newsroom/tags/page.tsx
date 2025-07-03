@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { 
   TagIcon,
   PencilIcon,
@@ -156,10 +155,7 @@ export default function TagsPage() {
           action={
             canCreateTag() ? {
               label: "New Tag",
-              onClick: () => {
-                // TODO: Implement tag creation modal or page
-                alert('Tag creation will be implemented soon');
-              }
+              onClick: () => router.push('/admin/newsroom/tags/new')
             } : undefined
           }
         />
@@ -211,10 +207,7 @@ export default function TagsPage() {
             action={
               canCreateTag() ? {
                 label: "New Tag",
-                onClick: () => {
-                  // TODO: Implement tag creation modal or page
-                  alert('Tag creation will be implemented soon');
-                }
+                onClick: () => router.push('/admin/newsroom/tags/new')
               } : undefined
             }
           />
@@ -234,7 +227,7 @@ export default function TagsPage() {
                 return (
                   <tr
                     key={tag.id}
-                    onClick={() => canEditTag(tag) && alert('Tag editing will be implemented soon')}
+                    onClick={() => canEditTag(tag) && router.push(`/admin/newsroom/tags/${tag.id}/edit`)}
                     className={`${canEditTag(tag) ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'} focus:outline-none border-b border-gray-100 last:border-b-0`}
                   >
                     <td className="py-4">
@@ -280,7 +273,7 @@ export default function TagsPage() {
                         <Button
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
-                            alert('Tag editing will be implemented soon');
+                            router.push(`/admin/newsroom/tags/${tag.id}/edit`);
                           }}
                           outline
                           className="text-sm"
