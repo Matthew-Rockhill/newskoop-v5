@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StoryStatus, StoryPriority, ContentLanguage, ReligiousFilter } from '@prisma/client';
+import { StoryStatus, StoryPriority } from '@prisma/client';
 
 // Types for story data
 export interface Story {
@@ -7,11 +7,8 @@ export interface Story {
   title: string;
   slug: string;
   content: string;
-  summary?: string;
   status: StoryStatus;
   priority: StoryPriority;
-  language: ContentLanguage;
-  religiousFilter?: ReligiousFilter;
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
@@ -107,12 +104,10 @@ export interface StoryFilters {
   query?: string;
   status?: StoryStatus;
   priority?: StoryPriority;
-  language?: ContentLanguage;
   categoryId?: string;
   authorId?: string;
   assignedToId?: string;
   reviewerId?: string;
-  religiousFilter?: ReligiousFilter;
   tagIds?: string[];
   page?: number;
   perPage?: number;
@@ -121,22 +116,16 @@ export interface StoryFilters {
 export interface CreateStoryData {
   title: string;
   content: string;
-  summary?: string;
   priority?: StoryPriority;
-  language?: ContentLanguage;
   categoryId: string;
-  religiousFilter?: ReligiousFilter;
   tagIds?: string[];
 }
 
 export interface UpdateStoryData {
   title?: string;
   content?: string;
-  summary?: string;
   priority?: StoryPriority;
-  language?: ContentLanguage;
   categoryId?: string;
-  religiousFilter?: ReligiousFilter;
   tagIds?: string[];
 }
 

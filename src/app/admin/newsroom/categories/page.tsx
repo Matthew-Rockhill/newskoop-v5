@@ -65,11 +65,11 @@ export default function CategoriesPage() {
     
     // Add the current category
     rows.push(
-                        <tr
-                    key={category.id}
-                    onClick={() => canEditCategory(category) && alert('Category editing will be implemented soon')}
-                    className={`${canEditCategory(category) ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'} focus:outline-none border-b border-gray-100 last:border-b-0`}
-                  >
+      <tr
+        key={category.id}
+        onClick={() => canEditCategory(category) && router.push(`/admin/newsroom/categories/${category.id}/edit`)}
+        className={`${canEditCategory(category) ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'} focus:outline-none border-b border-gray-100 last:border-b-0`}
+      >
         <td className="py-4">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
@@ -123,16 +123,16 @@ export default function CategoriesPage() {
         </td>
         <td className="py-4">
           {canEditCategory(category) ? (
-                                    <Button
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            alert('Category editing will be implemented soon');
-                          }}
-                          outline
-                          className="text-sm"
-                        >
-                          Edit
-                        </Button>
+            <Button
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                router.push(`/admin/newsroom/categories/${category.id}/edit`);
+              }}
+              outline
+              className="text-sm"
+            >
+              Edit
+            </Button>
           ) : (
             <span className="text-sm text-gray-400">Protected</span>
           )}
@@ -173,10 +173,7 @@ export default function CategoriesPage() {
           action={
             canCreateCategory() ? {
               label: "New Category",
-              onClick: () => {
-                // TODO: Implement category creation modal or page
-                alert('Category creation will be implemented soon');
-              }
+              onClick: () => router.push('/admin/newsroom/categories/new')
             } : undefined
           }
         />
@@ -227,10 +224,7 @@ export default function CategoriesPage() {
             action={
               canCreateCategory() ? {
                 label: "New Category",
-                onClick: () => {
-                  // TODO: Implement category creation modal or page
-                  alert('Category creation will be implemented soon');
-                }
+                onClick: () => router.push('/admin/newsroom/categories/new')
               } : undefined
             }
           />

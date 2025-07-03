@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryPriority, ContentLanguage, ReligiousFilter, CommentType, TaskType, TaskStatus, TaskPriority } from '@prisma/client';
+import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryPriority, CommentType } from '@prisma/client';
 
 // Base user schema
 const baseUserSchema = z.object({
@@ -113,22 +113,16 @@ export const stationSearchSchema = z.object({
 export const storyCreateSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   content: z.string().min(1, 'Content is required'),
-  summary: z.string().optional(),
   priority: z.nativeEnum(StoryPriority).default(StoryPriority.MEDIUM),
-  language: z.nativeEnum(ContentLanguage).default(ContentLanguage.ENGLISH),
   categoryId: z.string().min(1, 'Category is required'),
-  religiousFilter: z.nativeEnum(ReligiousFilter).optional(),
   tagIds: z.array(z.string()).optional().default([]),
 });
 
 export const storyUpdateSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   content: z.string().min(1).optional(),
-  summary: z.string().optional(),
   priority: z.nativeEnum(StoryPriority).optional(),
-  language: z.nativeEnum(ContentLanguage).optional(),
   categoryId: z.string().optional(),
-  religiousFilter: z.nativeEnum(ReligiousFilter).optional(),
   tagIds: z.array(z.string()).optional(),
 });
 
@@ -142,12 +136,10 @@ export const storySearchSchema = z.object({
   query: z.string().optional(),
   status: z.nativeEnum(StoryStatus).optional(),
   priority: z.nativeEnum(StoryPriority).optional(),
-  language: z.nativeEnum(ContentLanguage).optional(),
   categoryId: z.string().optional(),
   authorId: z.string().optional(),
   assignedToId: z.string().optional(),
   reviewerId: z.string().optional(),
-  religiousFilter: z.nativeEnum(ReligiousFilter).optional(),
   tagIds: z.array(z.string()).optional(),
   page: z.number().int().positive().default(1),
   perPage: z.number().int().positive().default(10),
@@ -209,51 +201,4 @@ export const audioClipUpdateSchema = z.object({
   description: z.string().optional(),
 });
 
-// TASK VALIDATION SCHEMAS
-
-// Task schemas
-export const taskCreateSchema = z.object({
-  type: z.nativeEnum(TaskType),
-  title: z.string().min(1, 'Title is required').max(255),
-  description: z.string().optional(),
-  priority: z.nativeEnum(TaskPriority).default(TaskPriority.MEDIUM),
-  assignedToId: z.string().min(1, 'Assigned user is required'),
-  contentType: z.string().min(1, 'Content type is required'),
-  contentId: z.string().optional(),
-  dueDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
-  scheduledFor: z.string().optional().transform((val) => val ? new Date(val) : undefined),
-  sourceLanguage: z.nativeEnum(ContentLanguage).optional(),
-  targetLanguage: z.nativeEnum(ContentLanguage).optional(),
-  metadata: z.record(z.unknown()).optional(),
-});
-
-export const taskUpdateSchema = z.object({
-  title: z.string().min(1).max(255).optional(),
-  description: z.string().optional(),
-  priority: z.nativeEnum(TaskPriority).optional(),
-  status: z.nativeEnum(TaskStatus).optional(),
-  assignedToId: z.string().optional(),
-  dueDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
-  scheduledFor: z.string().optional().transform((val) => val ? new Date(val) : undefined),
-  completedAt: z.date().optional(),
-  metadata: z.record(z.unknown()).optional(),
-});
-
-export const taskSearchSchema = z.object({
-  query: z.string().optional(),
-  status: z.nativeEnum(TaskStatus).optional(),
-  type: z.nativeEnum(TaskType).optional(),
-  priority: z.nativeEnum(TaskPriority).optional(),
-  assignedToId: z.string().optional(),
-  createdById: z.string().optional(),
-  contentType: z.string().optional(),
-  contentId: z.string().optional(),
-  page: z.number().int().positive().default(1),
-  perPage: z.number().int().positive().default(10),
-});
-
-export const taskAssignmentSchema = z.object({
-  assignedToId: z.string().min(1, 'Assigned user is required'),
-  dueDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
-  notes: z.string().optional(),
-}); 
+ 
