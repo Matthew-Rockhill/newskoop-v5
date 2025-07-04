@@ -226,6 +226,36 @@ async function main() {
     },
   });
 
+  const subEditorPassword = await bcrypt.hash('SubEditor@123', 12);
+  const subEditor = await prisma.user.upsert({
+    where: { email: 'subeditor@newskoop.com' },
+    update: {},
+    create: {
+      email: 'subeditor@newskoop.com',
+      firstName: 'Lisa',
+      lastName: 'SubEditor',
+      password: subEditorPassword,
+      userType: UserType.STAFF,
+      staffRole: StaffRole.SUB_EDITOR,
+      isActive: true,
+    },
+  });
+
+  const internPassword = await bcrypt.hash('Intern@123', 12);
+  const intern = await prisma.user.upsert({
+    where: { email: 'intern@newskoop.com' },
+    update: {},
+    create: {
+      email: 'intern@newskoop.com',
+      firstName: 'Alex',
+      lastName: 'Intern',
+      password: internPassword,
+      userType: UserType.STAFF,
+      staffRole: StaffRole.INTERN,
+      isActive: true,
+    },
+  });
+
   console.log('✅ Editorial staff created');
 
   // Create sample stories
@@ -347,6 +377,60 @@ Health officials expect to see measurable improvements in student wellbeing with
       priority: 'MEDIUM' as const,
       categoryId: localNewsCategory.id,
       authorId: journalist.id,
+      status: 'DRAFT' as const,
+    },
+    {
+      title: 'Intern Story: Local Library Hosts Reading Program',
+      slug: 'intern-story-local-library-hosts-reading-program',
+      content: `
+# Local Library Hosts Reading Program
+
+The Johannesburg Public Library has launched a new reading program aimed at encouraging young people to develop a love for books and reading.
+
+## Program Details
+
+The program includes:
+- Weekly story time sessions for children
+- Book clubs for teenagers
+- Reading challenges with prizes
+- Author meet-and-greet events
+
+## Community Response
+
+Local parents have shown great enthusiasm for the program. "It's wonderful to see our children excited about reading again," said Maria Santos, a mother of two.
+
+The library expects to reach over 200 young readers through this initiative.
+      `.trim(),
+      priority: 'MEDIUM' as const,
+      categoryId: localNewsCategory.id,
+      authorId: intern.id,
+      status: 'NEEDS_REVISION' as const,
+    },
+    {
+      title: 'Draft: School Art Exhibition Opens Next Week',
+      slug: 'draft-school-art-exhibition-opens-next-week',
+      content: `
+# School Art Exhibition Opens Next Week
+
+Students from five local high schools will showcase their artwork in an exhibition opening next week at the Community Arts Center.
+
+## Featured Artwork
+
+The exhibition will include:
+- Paintings and drawings
+- Sculptures and pottery
+- Photography displays
+- Digital art presentations
+
+## Opening Event
+
+The opening ceremony is scheduled for next Friday at 6 PM. The public is invited to attend and support local young artists.
+
+Awards will be given for outstanding pieces in each category.
+      `.trim(),
+      priority: 'MEDIUM' as const,
+      categoryId: localNewsCategory.id,
+      authorId: intern.id,
       status: 'DRAFT' as const,
     },
   ];

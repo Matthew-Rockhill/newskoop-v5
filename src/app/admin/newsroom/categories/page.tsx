@@ -74,24 +74,24 @@ export default function CategoriesPage() {
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
               <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-                {category.isParent ? (
+              {category.isParent ? (
                   <FolderIcon className="h-6 w-6 text-blue-500" />
-                ) : (
+              ) : (
                   <TagIcon className="h-6 w-6 text-gray-500" />
-                )}
+              )}
               </div>
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2" style={{ marginLeft: `${level * 16}px` }}>
                 <div className="font-medium text-gray-900 truncate">
                   {category.name}
-                </div>
-                <Badge 
+          </div>
+          <Badge 
                   color={category.level === 1 ? 'blue' : category.level === 2 ? 'purple' : 'zinc'} 
                   className="text-xs"
-                >
-                  Level {category.level}
-                </Badge>
+          >
+            Level {category.level}
+          </Badge>
                 {!canEditCategory(category) && (
                   <Badge color="red" className="text-xs">
                     Protected
@@ -104,7 +104,7 @@ export default function CategoriesPage() {
               <div className="flex items-center gap-4 mt-1 text-xs text-gray-500" style={{ marginLeft: `${level * 16}px` }}>
                 <div className="flex items-center gap-1">
                   <DocumentTextIcon className="h-3 w-3" />
-                  {category._count?.stories || 0} stories
+            {category._count?.stories || 0} stories
                 </div>
                 {category._count?.children > 0 && (
                   <div className="flex items-center gap-1">
@@ -123,16 +123,16 @@ export default function CategoriesPage() {
         </td>
         <td className="py-4">
           {canEditCategory(category) ? (
-            <Button
+          <Button
               onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                router.push(`/admin/newsroom/categories/${category.id}/edit`);
-              }}
+              e.stopPropagation();
+              router.push(`/admin/newsroom/categories/${category.id}/edit`);
+            }}
               outline
               className="text-sm"
-            >
+          >
               Edit
-            </Button>
+          </Button>
           ) : (
             <span className="text-sm text-gray-400">Protected</span>
           )}
@@ -163,8 +163,8 @@ export default function CategoriesPage() {
   return (
     <Container>
       <div className="space-y-6">
-        <PageHeader
-          title="Categories"
+      <PageHeader
+        title="Categories"
           searchProps={{
             value: searchQuery,
             onChange: setSearchQuery,
@@ -210,25 +210,25 @@ export default function CategoriesPage() {
           >
             Sub-subcategories
           </Button>
-        </div>
+      </div>
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <p>Loading categories...</p>
-          </div>
-        ) : filteredCategories.length === 0 ? (
-          <EmptyState
-            icon={TagIcon}
-            title="No categories found"
-            description="Get started by creating your first category."
-            action={
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p>Loading categories...</p>
+        </div>
+      ) : filteredCategories.length === 0 ? (
+        <EmptyState
+          icon={TagIcon}
+          title="No categories found"
+          description="Get started by creating your first category."
+          action={
               canCreateCategory() ? {
                 label: "New Category",
                 onClick: () => router.push('/admin/newsroom/categories/new')
               } : undefined
-            }
-          />
-        ) : (
+          }
+        />
+      ) : (
           <Table striped>
             <thead>
               <tr>
@@ -242,7 +242,7 @@ export default function CategoriesPage() {
             </tbody>
           </Table>
         )}
-      </div>
+        </div>
     </Container>
   );
 } 

@@ -11,7 +11,7 @@ function hasStoryPermission(userRole: string | null, action: 'create' | 'read' |
   }
   
   const permissions = {
-    INTERN: ['create', 'read'],
+    INTERN: ['create', 'read', 'update'],
     JOURNALIST: ['create', 'read', 'update'],
     SUB_EDITOR: ['create', 'read', 'update'],
     EDITOR: ['create', 'read', 'update', 'delete'],

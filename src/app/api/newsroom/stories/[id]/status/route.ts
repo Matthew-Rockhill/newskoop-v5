@@ -3,74 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { storyStatusUpdateSchema } from '@/lib/validations';
 import { StoryStatus } from '@prisma/client';
+import { canUpdateStoryStatus } from '@/lib/permissions';
 
 // Helper function to check workflow permissions
-function canUpdateStatus(userRole: string, currentStatus: StoryStatus, newStatus: StoryStatus) {
-  const workflows = {
-    INTERN: {
-      allowed: [StoryStatus.DRAFT, StoryStatus.IN_REVIEW],
-      transitions: {
-        [StoryStatus.DRAFT]: [StoryStatus.IN_REVIEW],
-        [StoryStatus.NEEDS_REVISION]: [StoryStatus.IN_REVIEW],
-      }
-    },
-    JOURNALIST: {
-      allowed: [StoryStatus.DRAFT, StoryStatus.IN_REVIEW, StoryStatus.NEEDS_REVISION, StoryStatus.APPROVED],
-      transitions: {
-        [StoryStatus.DRAFT]: [StoryStatus.IN_REVIEW],
-        [StoryStatus.IN_REVIEW]: [StoryStatus.NEEDS_REVISION, StoryStatus.APPROVED],
-        [StoryStatus.NEEDS_REVISION]: [StoryStatus.IN_REVIEW],
-        [StoryStatus.APPROVED]: [StoryStatus.NEEDS_REVISION],
-      }
-    },
-    SUB_EDITOR: {
-      allowed: [StoryStatus.DRAFT, StoryStatus.IN_REVIEW, StoryStatus.NEEDS_REVISION, StoryStatus.APPROVED, StoryStatus.PUBLISHED],
-      transitions: {
-        [StoryStatus.DRAFT]: [StoryStatus.IN_REVIEW],
-        [StoryStatus.IN_REVIEW]: [StoryStatus.NEEDS_REVISION, StoryStatus.APPROVED],
-        [StoryStatus.NEEDS_REVISION]: [StoryStatus.IN_REVIEW],
-        [StoryStatus.APPROVED]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION],
-      }
-    },
-    EDITOR: {
-      allowed: Object.values(StoryStatus),
-      transitions: {
-        [StoryStatus.DRAFT]: [StoryStatus.IN_REVIEW, StoryStatus.APPROVED],
-        [StoryStatus.IN_REVIEW]: [StoryStatus.NEEDS_REVISION, StoryStatus.APPROVED],
-        [StoryStatus.NEEDS_REVISION]: [StoryStatus.IN_REVIEW, StoryStatus.APPROVED],
-        [StoryStatus.APPROVED]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION, StoryStatus.ARCHIVED],
-        [StoryStatus.PUBLISHED]: [StoryStatus.ARCHIVED],
-      }
-    },
-    ADMIN: {
-      allowed: Object.values(StoryStatus),
-      transitions: {
-        [StoryStatus.DRAFT]: Object.values(StoryStatus),
-        [StoryStatus.IN_REVIEW]: Object.values(StoryStatus),
-        [StoryStatus.NEEDS_REVISION]: Object.values(StoryStatus),
-        [StoryStatus.APPROVED]: Object.values(StoryStatus),
-        [StoryStatus.PUBLISHED]: Object.values(StoryStatus),
-        [StoryStatus.ARCHIVED]: Object.values(StoryStatus),
-      }
-    },
-    SUPERADMIN: {
-      allowed: Object.values(StoryStatus),
-      transitions: {
-        [StoryStatus.DRAFT]: Object.values(StoryStatus),
-        [StoryStatus.IN_REVIEW]: Object.values(StoryStatus),
-        [StoryStatus.NEEDS_REVISION]: Object.values(StoryStatus),
-        [StoryStatus.APPROVED]: Object.values(StoryStatus),
-        [StoryStatus.PUBLISHED]: Object.values(StoryStatus),
-        [StoryStatus.ARCHIVED]: Object.values(StoryStatus),
-      }
-    }
-  };
-
-  const userWorkflow = workflows[userRole as keyof typeof workflows];
-  if (!userWorkflow) return false;
-
-  const allowedTransitions = userWorkflow.transitions[currentStatus];
-  return allowedTransitions?.includes(newStatus) || false;
+function canUpdateStatus(userRole: string, currentStatus: StoryStatus, newStatus: StoryStatus, storyAuthorId?: string, currentUserId?: string) {
+  return canUpdateStoryStatus(userRole as any, currentStatus, newStatus, storyAuthorId, currentUserId);
 }
 
 // PATCH /api/newsroom/stories/[id]/status - Update story status
@@ -98,7 +35,7 @@ const updateStoryStatus = createHandler(
     }
 
     // Check if user can update this story's status
-    if (!canUpdateStatus(user.staffRole, story.status, status)) {
+    if (!canUpdateStatus(user.staffRole, story.status, status, story.authorId, user.id)) {
       return Response.json({ 
         error: `Cannot transition from ${story.status} to ${status}` 
       }, { status: 403 });

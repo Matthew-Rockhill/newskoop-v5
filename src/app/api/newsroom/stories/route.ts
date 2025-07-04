@@ -215,8 +215,45 @@ const createStory = createHandler(
       }
     }
 
-    // Validate story data
-    const validatedData = storyCreateSchema.parse(storyData);
+    // Handle role-based validation
+    let validatedData;
+    let reviewerId = storyData.reviewerId; // Extract reviewer ID if provided
+    
+    if (user.staffRole === 'INTERN' || user.staffRole === 'JOURNALIST') {
+      // Interns and journalists don't need to specify category or tags - use defaults
+      let defaultCategoryId = storyData.categoryId;
+      
+      // If no category provided, find or create a default "General" category
+      if (!defaultCategoryId) {
+        let defaultCategory = await prisma.category.findFirst({
+          where: { name: 'General' }
+        });
+        
+        if (!defaultCategory) {
+          defaultCategory = await prisma.category.create({
+            data: {
+              name: 'General',
+              slug: 'general',
+              description: 'General news stories',
+              color: '#6B7280',
+            }
+          });
+        }
+        defaultCategoryId = defaultCategory.id;
+      }
+      
+      const storyFormData = {
+        title: storyData.title,
+        content: storyData.content,
+        priority: storyData.priority || 'MEDIUM',
+        categoryId: defaultCategoryId,
+        tagIds: [],
+      };
+      validatedData = storyCreateSchema.parse(storyFormData);
+    } else {
+      validatedData = storyCreateSchema.parse(storyData);
+    }
+    
     const { tagIds, ...cleanStoryData } = validatedData;
 
     // Process audio files
@@ -250,6 +287,8 @@ const createStory = createHandler(
         ...cleanStoryData,
         authorId: user.id,
         slug: generateSlug(validatedData.title),
+        // Assign reviewer if provided
+        ...(reviewerId && { reviewerId }),
         // Connect tags if provided
         ...(tagIds && tagIds.length > 0 && {
           tags: {

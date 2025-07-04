@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   DocumentTextIcon,
   ChatBubbleLeftRightIcon,
@@ -38,10 +38,34 @@ const statusColors = {
 
 export default function StoriesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<StoryFilters>({
     page: 1,
     perPage: 10,
   });
+  
+  // Read URL parameters and set initial filters
+  useEffect(() => {
+    const urlFilters: StoryFilters = {
+      page: 1,
+      perPage: 10,
+    };
+
+    // Read URL parameters
+    const status = searchParams.get('status');
+    const authorId = searchParams.get('authorId');
+    const reviewerId = searchParams.get('reviewerId');
+    const query = searchParams.get('query');
+    const page = searchParams.get('page');
+
+    if (status) urlFilters.status = status as StoryStatus;
+    if (authorId) urlFilters.authorId = authorId;
+    if (reviewerId) urlFilters.reviewerId = reviewerId;
+    if (query) urlFilters.query = query;
+    if (page) urlFilters.page = parseInt(page);
+
+    setFilters(urlFilters);
+  }, [searchParams]);
   
   const { data, isLoading, error } = useStories(filters);
   const { data: categoriesData } = useCategories(true); // Flat list for filter dropdown
@@ -95,7 +119,13 @@ export default function StoriesPage() {
     <Container>
       <div className="space-y-6">
         <PageHeader
-          title="Stories"
+          title={
+            filters.reviewerId && filters.status === 'IN_REVIEW' 
+              ? 'Stories to Review' 
+              : filters.authorId 
+                ? 'My Stories'
+                : 'Stories'
+          }
           searchProps={{
             value: filters.query || '',
             onChange: (value) => handleFilterChange('query', value),

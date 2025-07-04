@@ -13,12 +13,14 @@ import {
   FolderIcon,
   TagIcon,
   HomeIcon,
+  ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '../shared/Logo'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { Avatar } from '../ui/avatar'
+import { Button } from '../ui/button'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -188,19 +190,29 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             )}
 
             {session?.user && (
-              <div className="flex items-center gap-x-4 border-t border-gray-200 px-6 py-3">
-                <Avatar
-                  className="h-8 w-8"
-                  name={`${session.user.firstName} ${session.user.lastName}`}
-                />
-                <div className="min-w-0 flex-auto">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {`${session.user.firstName} ${session.user.lastName}`}
-                  </p>
-                  <p className="truncate text-xs text-gray-500">
-                    {session.user.userType === 'STAFF' ? session.user.staffRole : 'Radio Station User'}
-                  </p>
+              <div className="border-t border-gray-200 px-6 py-3">
+                <div className="flex items-center gap-x-4 mb-3">
+                  <Avatar
+                    className="h-8 w-8"
+                    name={`${session.user.firstName} ${session.user.lastName}`}
+                  />
+                  <div className="min-w-0 flex-auto">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {`${session.user.firstName} ${session.user.lastName}`}
+                    </p>
+                    <p className="truncate text-xs text-gray-500">
+                      {session.user.userType === 'STAFF' ? session.user.staffRole : 'Radio Station User'}
+                    </p>
+                  </div>
                 </div>
+                <Button
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  color="white"
+                  className="w-full justify-start text-sm"
+                >
+                  <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
               </div>
             )}
           </div>
@@ -271,12 +283,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex-1 text-sm font-semibold leading-6 text-gray-900">
             {getCurrentPageName()}
           </div>
-          {session?.user && (
-            <Avatar
-              className="h-8 w-8"
-              name={`${session.user.firstName} ${session.user.lastName}`}
-            />
-          )}
+          <div className="flex items-center gap-x-2">
+            {session?.user && (
+              <Avatar
+                className="h-8 w-8"
+                name={`${session.user.firstName} ${session.user.lastName}`}
+              />
+            )}
+            <Button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              color="white"
+              size="sm"
+              className="lg:hidden"
+            >
+              <ArrowRightOnRectangleIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <main className="py-10 lg:pl-72">

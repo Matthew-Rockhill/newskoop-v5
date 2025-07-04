@@ -145,8 +145,8 @@ export default function TagsPage() {
   return (
     <Container>
       <div className="space-y-6">
-        <PageHeader
-          title="Tags"
+      <PageHeader
+        title="Tags"
           searchProps={{
             value: searchQuery,
             onChange: setSearchQuery,
@@ -193,25 +193,25 @@ export default function TagsPage() {
             <TagIcon className="h-4 w-4" />
             General Tags
           </Button>
-        </div>
+      </div>
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <p>Loading tags...</p>
-          </div>
-        ) : filteredTags.length === 0 ? (
-          <EmptyState
-            icon={TagIcon}
-            title="No tags found"
-            description="Get started by creating your first tag."
-            action={
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p>Loading tags...</p>
+        </div>
+      ) : filteredTags.length === 0 ? (
+        <EmptyState
+          icon={TagIcon}
+          title="No tags found"
+          description="Get started by creating your first tag."
+          action={
               canCreateTag() ? {
                 label: "New Tag",
                 onClick: () => router.push('/admin/newsroom/tags/new')
               } : undefined
-            }
-          />
-        ) : (
+          }
+        />
+      ) : (
           <Table striped>
             <thead>
               <tr>
@@ -226,7 +226,7 @@ export default function TagsPage() {
                 
                 return (
                   <tr
-                    key={tag.id}
+                  key={tag.id}
                     onClick={() => canEditTag(tag) && router.push(`/admin/newsroom/tags/${tag.id}/edit`)}
                     className={`${canEditTag(tag) ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'} focus:outline-none border-b border-gray-100 last:border-b-0`}
                   >
@@ -238,30 +238,30 @@ export default function TagsPage() {
                           </div>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                             <div className="font-medium text-gray-900 truncate">
                               {tag.name}
-                            </div>
+                    </div>
                             {!canEditTag(tag) && (
                               <Badge color="red" className="text-xs">
                                 Protected
                               </Badge>
-                            )}
-                          </div>
+                      )}
+                    </div>
                           <div className="text-sm text-gray-600 truncate">
                             {getCategoryName(tag.category)} tag
                           </div>
                           <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                             <div className="flex items-center gap-1">
                               <DocumentTextIcon className="h-3 w-3" />
-                              {tag._count?.stories || 0} stories
-                            </div>
+                      {tag._count?.stories || 0} stories
+                    </div>
                             <div className="flex items-center gap-1">
                               <span>Created {formatDate(tag.createdAt)}</span>
                             </div>
                           </div>
                         </div>
-                      </div>
+                    </div>
                     </td>
                     <td className="py-4">
                       <Badge color={getCategoryColor(tag.category)}>
@@ -270,16 +270,16 @@ export default function TagsPage() {
                     </td>
                     <td className="py-4">
                       {canEditTag(tag) ? (
-                        <Button
+                    <Button
                           onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            router.push(`/admin/newsroom/tags/${tag.id}/edit`);
-                          }}
+                        e.stopPropagation();
+                        router.push(`/admin/newsroom/tags/${tag.id}/edit`);
+                      }}
                           outline
                           className="text-sm"
-                        >
+                    >
                           Edit
-                        </Button>
+                    </Button>
                       ) : (
                         <span className="text-sm text-gray-400">Protected</span>
                       )}
@@ -290,7 +290,7 @@ export default function TagsPage() {
             </tbody>
           </Table>
         )}
-      </div>
+        </div>
     </Container>
   );
 } 

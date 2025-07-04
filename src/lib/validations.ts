@@ -175,7 +175,6 @@ export const tagUpdateSchema = z.object({
 export const commentCreateSchema = z.object({
   content: z.string().min(1, 'Comment content is required'),
   type: z.nativeEnum(CommentType).default(CommentType.GENERAL),
-  storyId: z.string().min(1, 'Story ID is required'),
   parentId: z.string().optional(),
 });
 

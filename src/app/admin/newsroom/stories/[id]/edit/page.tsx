@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,10 +27,12 @@ import { useCategories } from '@/hooks/use-categories';
 import { useTags } from '@/hooks/use-tags';
 import { storyUpdateSchema } from '@/lib/validations';
 import { StoryPriority } from '@prisma/client';
+import { InternEditForm } from '@/components/admin/InternEditForm';
 
 type StoryFormData = z.infer<typeof storyUpdateSchema>;
 
 export default function EditStoryPage() {
+  const { data: session } = useSession();
   const router = useRouter();
   const params = useParams();
   const storyId = params.id as string;
@@ -57,6 +60,11 @@ export default function EditStoryPage() {
   });
 
   const selectedTagIds = watch('tagIds') || [];
+
+  // Role-based edit forms - after all hooks
+  if (session?.user?.staffRole === 'INTERN' || session?.user?.staffRole === 'JOURNALIST') {
+    return <InternEditForm storyId={storyId} />;
+  }
 
   // Load story data
   useEffect(() => {
@@ -147,7 +155,10 @@ export default function EditStoryPage() {
     <Container>
       <PageHeader
         title="Edit Story"
-        description={`Editing: ${story.title}`}
+        action={{
+          label: "Back to Story",
+          onClick: () => router.push(`/admin/newsroom/stories/${storyId}`)
+        }}
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">

@@ -6,9 +6,9 @@ export default function NotFound() {
   return (
     <div className="flex min-h-[100vh] flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8 bg-[#f5f5f5]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-block">
-          <Logo className="mx-auto h-12 w-auto" variant="full" />
-        </Link>
+          <Link href="/" className="inline-block">
+            <Logo className="mx-auto h-12 w-auto" variant="full" />
+          </Link>
         <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-[#272727]">
           Page not found
         </h2>
@@ -21,16 +21,16 @@ export default function NotFound() {
               <p className="text-6xl font-bold text-[#76BD43] mb-4">404</p>
               <h1 className="text-3xl font-semibold text-[#272727] mb-4">
                 Oops! Page not found
-              </h1>
+        </h1>
               <p className="text-gray-500 mb-8">
                 The page you're looking for doesn't exist or has been moved.
-              </p>
+        </p>
             </div>
             
             <div className="space-y-4">
               <Button href="/" color="primary" className="w-full">
-                Go back home
-              </Button>
+            Go back home
+          </Button>
               <Button href="/admin" color="secondary" className="w-full">
                 Go to Admin Dashboard
               </Button>
