@@ -133,6 +133,9 @@ export interface UpdateStoryStatusData {
   status: StoryStatus;
   assignedToId?: string;
   reviewerId?: string;
+  categoryId?: string;
+  language?: 'ENGLISH' | 'AFRIKAANS' | 'XHOSA';
+  tagIds?: string[];
 }
 
 // Fetch stories with filters

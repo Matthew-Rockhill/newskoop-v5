@@ -44,11 +44,25 @@ const getCategories = createHandler(
     const url = new URL(req.url);
     const flat = url.searchParams.get('flat') === 'true';
     const level = url.searchParams.get('level');
+    const search = url.searchParams.get('search');
 
     if (flat) {
       // Return flat list of categories
+      const whereClause: any = {};
+      
+      if (level) {
+        whereClause.level = parseInt(level);
+      }
+      
+      if (search) {
+        whereClause.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
       const categories = await prisma.category.findMany({
-        ...(level && { where: { level: parseInt(level) } }),
+        where: whereClause,
         include: {
           parent: {
             select: {

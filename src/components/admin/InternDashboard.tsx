@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { useStories } from '@/hooks/use-stories';
+import { StoryPipelineView } from './StoryPipelineView';
 import { 
   PlusIcon,
   PencilIcon,
@@ -27,6 +28,7 @@ export function UserDashboard() {
   const userId = session?.user?.id;
   const userRole = session?.user?.staffRole;
   const isJournalist = userRole === 'JOURNALIST';
+  const isSubEditor = userRole === 'SUB_EDITOR';
 
   // Fetch stories for the user
   const { data: allStoriesData } = useStories({ authorId: userId, page: 1, perPage: 100 });
@@ -65,6 +67,31 @@ export function UserDashboard() {
     page: 1, 
     perPage: 100 
   });
+  
+  // Sub-editor specific: stories pending approval (submitted by journalists)
+  const { data: pendingApprovalStoriesData } = useStories({ 
+    status: 'PENDING_APPROVAL', 
+    page: 1, 
+    perPage: 100 
+  });
+  
+  // Sub-editor specific: stories needing revision (fact-checking, categorization)
+  const { data: needsRevisionStoriesData } = useStories({ 
+    status: 'NEEDS_REVISION', 
+    page: 1, 
+    perPage: 100 
+  });
+  
+  // Sub-editor specific: approved stories ready for pre-publishing
+  const { data: approvedForPublishingStoriesData } = useStories({ 
+    status: 'APPROVED', 
+    page: 1, 
+    perPage: 100 
+  });
+
+  // Fetch stories assigned to the user for translation
+  const { data: assignedTranslationStoriesData } = useStories({ assignedToId: userId, status: 'PENDING_TRANSLATION', page: 1, perPage: 100 });
+  const assignedTranslationStories = assignedTranslationStoriesData?.stories || [];
 
   const allStories = allStoriesData?.stories || [];
   const draftStories = draftStoriesData?.stories || [];
@@ -73,6 +100,9 @@ export function UserDashboard() {
   const publishedStories = publishedStoriesData?.stories || [];
   const reviewStories = reviewStoriesData?.stories || [];
   const approvedStories = approvedStoriesData?.stories || [];
+  const pendingApprovalStories = pendingApprovalStoriesData?.stories || [];
+  const needsRevisionStories = needsRevisionStoriesData?.stories || [];
+  const approvedForPublishingStories = approvedForPublishingStoriesData?.stories || [];
 
   // Calculate success metrics
   const totalStories = allStories.length;
@@ -86,7 +116,30 @@ export function UserDashboard() {
   // Calculate average time from draft to published (simplified)
   const avgTimeToPublish = "3.2 days"; // This would need proper calculation
 
-  const successMetrics = isJournalist ? [
+  const successMetrics = isSubEditor ? [
+    {
+      name: 'Pending Approval',
+      value: pendingApprovalStories.length,
+      description: 'Stories awaiting fact-check and approval',
+      change: pendingApprovalStories.length > 5 ? 'High workload' : pendingApprovalStories.length > 2 ? 'Moderate' : 'Clear',
+      changeType: pendingApprovalStories.length > 5 ? 'negative' as const : pendingApprovalStories.length > 2 ? 'neutral' as const : 'positive' as const,
+    },
+    {
+      name: 'Ready for Publishing',
+      value: approvedForPublishingStories.length,
+      description: 'Approved stories ready for pre-publishing',
+    },
+    {
+      name: 'Avg. Processing Time',
+      value: '2.1 days',
+      description: 'From submission to approval',
+    },
+    {
+      name: 'Total in Pipeline',
+      value: pendingApprovalStories.length + approvedForPublishingStories.length,
+      description: 'Stories in your workflow',
+    },
+  ] : isJournalist ? [
     {
       name: 'Stories Published',
       value: publishedCount,
@@ -154,6 +207,8 @@ export function UserDashboard() {
       case 'NEEDS_REVISION': return 'red';
       case 'PENDING_APPROVAL': return 'blue';
       case 'APPROVED': return 'green';
+      case 'PENDING_TRANSLATION': return 'purple';
+      case 'READY_TO_PUBLISH': return 'emerald';
       case 'PUBLISHED': return 'blue';
       default: return 'gray';
     }
@@ -166,6 +221,8 @@ export function UserDashboard() {
       case 'NEEDS_REVISION': return 'Needs Revision';
       case 'PENDING_APPROVAL': return 'Pending Approval';
       case 'APPROVED': return 'Approved';
+      case 'PENDING_TRANSLATION': return 'Pending Translation';
+      case 'READY_TO_PUBLISH': return 'Ready to Publish';
       case 'PUBLISHED': return 'Published';
       default: return status;
     }
@@ -180,11 +237,12 @@ export function UserDashboard() {
             My Dashboard
           </h3>
           <p className="mt-1 text-sm text-gray-600">
-            Welcome back, {session?.user?.firstName || (isJournalist ? 'Journalist' : 'Intern')}! Here's your {isJournalist ? 'writing and review' : 'writing'} progress.
+            Welcome back, {session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here's your {isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.
           </p>
         </div>
         <div className="mt-3 sm:ml-4 sm:mt-0">
           <div className="flex flex-wrap gap-3">
+            {!isSubEditor && (
             <Button
               onClick={() => router.push('/admin/newsroom/stories/new')}
               className="flex items-center space-x-2"
@@ -192,14 +250,26 @@ export function UserDashboard() {
               <PlusIcon className="h-4 w-4" />
               <span>Create New Story</span>
             </Button>
+            )}
+            {!isSubEditor && (
             <Button
               color="white"
               onClick={() => router.push('/admin/newsroom/stories?authorId=' + userId)}
             >
               <DocumentTextIcon className="h-4 w-4 mr-2" />
-              View {isJournalist ? 'My' : 'All My'} Stories
+                View {isJournalist ? 'My' : 'All My'} Stories
+              </Button>
+            )}
+            {isSubEditor && pendingApprovalStories.length > 0 && (
+              <Button
+                color="white"
+                onClick={() => router.push('/admin/newsroom/stories?status=PENDING_APPROVAL')}
+              >
+                <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
+                Review Pending Approval ({pendingApprovalStories.length})
             </Button>
-            {!isJournalist && rejectedCount > 0 && (
+            )}
+            {!isJournalist && !isSubEditor && rejectedCount > 0 && (
               <Button
                 color="white"
                 onClick={() => router.push('/admin/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
@@ -225,6 +295,127 @@ export function UserDashboard() {
       <div className="mt-8">
         <StatsCard stats={successMetrics} />
       </div>
+
+      {/* Story Pipeline View - All Editorial Roles */}
+      <div className="mt-8">
+        <StoryPipelineView />
+      </div>
+
+      {/* Sub-Editor Specific Sections */}
+      {isSubEditor && (
+        <>
+          {/* Pending Approval Section */}
+          <div className="mt-8">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Heading level={3}>Pending Approval</Heading>
+                <Badge color="blue">{pendingApprovalStories.length}</Badge>
+              </div>
+              <Text className="text-gray-600 mb-4">
+                Stories submitted by journalists awaiting fact-check and approval
+              </Text>
+              
+              {pendingApprovalStories.length > 0 ? (
+                <div className="space-y-3">
+                  {pendingApprovalStories.slice(0, 5).map((story) => (
+                    <div key={story.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{story.title}</h4>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <ClockIcon className="h-4 w-4" />
+                          <span>Submitted {formatDate(story.updatedAt)} by {story.author.firstName} {story.author.lastName}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          color="white"
+                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                        >
+                          <EyeIcon className="h-4 w-4 mr-1" />
+                          Review
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {pendingApprovalStories.length > 5 && (
+                    <Button
+                      color="white"
+                      className="w-full"
+                      onClick={() => router.push('/admin/newsroom/stories?status=PENDING_APPROVAL')}
+                    >
+                      View all {pendingApprovalStories.length} pending approval
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <CheckCircleIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <Text className="text-gray-500">No stories pending approval</Text>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Ready for Publishing Section */}
+          <div className="mt-8">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Heading level={3}>Ready for Pre-Publishing</Heading>
+                <Badge color="green">{approvedForPublishingStories.length}</Badge>
+              </div>
+              <Text className="text-gray-600 mb-4">
+                Approved stories ready for translation, pre-publish checklist, and scheduling
+              </Text>
+              
+              {approvedForPublishingStories.length > 0 ? (
+                <div className="space-y-3">
+                  {approvedForPublishingStories.slice(0, 5).map((story) => (
+                    <div key={story.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{story.title}</h4>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <CheckCircleIcon className="h-4 w-4" />
+                          <span>Approved {formatDate(story.updatedAt)}</span>
+                          <span>• Author: {story.author.firstName} {story.author.lastName}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          color="white"
+                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                        >
+                          <EyeIcon className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                        >
+                          <PencilIcon className="h-4 w-4 mr-1" />
+                          Pre-Publish
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {approvedForPublishingStories.length > 5 && (
+                    <Button
+                      color="white"
+                      className="w-full"
+                      onClick={() => router.push('/admin/newsroom/stories?status=APPROVED')}
+                    >
+                      View all {approvedForPublishingStories.length} ready for publishing
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <DocumentTextIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <Text className="text-gray-500">No stories ready for pre-publishing</Text>
+                </div>
+              )}
+            </Card>
+          </div>
+        </>
+      )}
 
       {/* Pending Reviews Section - Journalists Only */}
       {isJournalist && (
@@ -281,7 +472,7 @@ export function UserDashboard() {
       )}
 
       {/* Revision Requests Section - Interns Only */}
-      {!isJournalist && (
+      {!isJournalist && !isSubEditor && (
         <div className="mt-8">
           <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
@@ -314,12 +505,12 @@ export function UserDashboard() {
                       <EyeIcon className="h-4 w-4 mr-1" />
                       View
                     </Button>
-                    <Button
-                      onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
-                    >
-                      <PencilIcon className="h-4 w-4 mr-1" />
-                      Revise
-                    </Button>
+                                  <Button
+                  onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                >
+                    <PencilIcon className="h-4 w-4 mr-1" />
+                    Revise
+                  </Button>
                   </div>
                 </div>
               ))}
@@ -339,10 +530,12 @@ export function UserDashboard() {
               <Text className="text-gray-500">No revision requests</Text>
             </div>
           )}
-        </Card>
-      </div>
+          </Card>
+        </div>
       )}
 
+      {/* Regular User Sections - Hide for Sub-Editors */}
+      {!isSubEditor && (
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* My Drafts */}
         <Card className="p-6">
@@ -399,55 +592,55 @@ export function UserDashboard() {
 
         {/* Submitted Stories - Interns Only */}
         {!isJournalist ? (
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Heading level={3}>Submitted Stories</Heading>
-              <Badge color="yellow">{submittedStories.length}</Badge>
-            </div>
-            <Text className="text-gray-600 mb-4">
-              Stories in the review pipeline
-            </Text>
-            
-            {submittedStories.length > 0 ? (
-              <div className="space-y-3">
-                {submittedStories.slice(0, 5).map((story) => (
-                  <div key={story.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{story.title}</h4>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <ClockIcon className="h-4 w-4" />
-                        <span>Submitted {formatDate(story.updatedAt)}</span>
-                        {story.reviewer && (
-                          <span>• Reviewer: {story.reviewer.firstName} {story.reviewer.lastName}</span>
-                        )}
-                      </div>
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <Heading level={3}>Submitted Stories</Heading>
+            <Badge color="yellow">{submittedStories.length}</Badge>
+          </div>
+          <Text className="text-gray-600 mb-4">
+            Stories in the review pipeline
+          </Text>
+          
+          {submittedStories.length > 0 ? (
+            <div className="space-y-3">
+              {submittedStories.slice(0, 5).map((story) => (
+                <div key={story.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{story.title}</h4>
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <ClockIcon className="h-4 w-4" />
+                      <span>Submitted {formatDate(story.updatedAt)}</span>
+                      {story.reviewer && (
+                        <span>• Reviewer: {story.reviewer.firstName} {story.reviewer.lastName}</span>
+                      )}
                     </div>
-                    <Button
-                      color="white"
-                      onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
-                    >
-                      <EyeIcon className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
                   </div>
-                ))}
-                {submittedStories.length > 5 && (
                   <Button
                     color="white"
-                    className="w-full"
-                    onClick={() => router.push('/admin/newsroom/stories?status=IN_REVIEW')}
+                    onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
                   >
-                    View all {submittedStories.length} submitted stories
+                    <EyeIcon className="h-4 w-4 mr-1" />
+                    View
                   </Button>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <ClockIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <Text className="text-gray-500">No stories in review</Text>
-              </div>
-            )}
-          </Card>
+                </div>
+              ))}
+              {submittedStories.length > 5 && (
+                <Button
+                  color="white"
+                  className="w-full"
+                  onClick={() => router.push('/admin/newsroom/stories?status=IN_REVIEW')}
+                >
+                  View all {submittedStories.length} submitted stories
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <ClockIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <Text className="text-gray-500">No stories in review</Text>
+            </div>
+          )}
+        </Card>
         ) : (
           /* Submitted for Approval - Journalists Only */
           <Card className="p-6">
@@ -498,6 +691,54 @@ export function UserDashboard() {
           </Card>
         )}
       </div>
+      )}
+
+      {/* Assigned Translations Section - Translators Only */}
+      {assignedTranslationStories.length > 0 && (
+        <div className="mt-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Heading level={3}>Assigned Translations</Heading>
+              <Badge color="purple">{assignedTranslationStories.length}</Badge>
+            </div>
+            <Text className="text-gray-600 mb-4">
+              Stories assigned to you for translation
+            </Text>
+            <div className="space-y-3">
+              {assignedTranslationStories.slice(0, 5).map((story) => (
+                <div key={story.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{story.title}</h4>
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <ClockIcon className="h-4 w-4" />
+                      <span>Assigned {formatDate(story.updatedAt)}</span>
+                      {story.author && (
+                        <span>• Author: {story.author.firstName} {story.author.lastName}</span>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    color="white"
+                    onClick={() => router.push(`/admin/newsroom/translations/${story.id}/work`)}
+                  >
+                    <PencilIcon className="h-4 w-4 mr-1" />
+                    Translate
+                  </Button>
+                </div>
+              ))}
+              {assignedTranslationStories.length > 5 && (
+                <Button
+                  color="white"
+                  className="w-full"
+                  onClick={() => router.push('/admin/newsroom/stories?assignedToId=' + userId + '&status=PENDING_TRANSLATION')}
+                >
+                  View all {assignedTranslationStories.length} assigned translations
+                </Button>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
 
 
     </Container>

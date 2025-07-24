@@ -23,20 +23,14 @@ export default function CategoriesPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
-  const [levelFilter, setLevelFilter] = useState<number | undefined>(undefined);
 
-  const { data, isLoading, error } = useCategories(false); // Get hierarchical structure
+  // Use flat data for better search performance
+  const { data, isLoading, error } = useCategories(
+    true, // Always use flat=true for consistent search
+    undefined,
+    searchQuery || undefined // Pass search query to API
+  );
   const categories = data?.categories || [];
-
-  // Filter categories based on search and level
-  const filteredCategories = categories.filter(category => {
-    const matchesSearch = category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      category.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesLevel = levelFilter === undefined || category.level === levelFilter;
-    
-    return matchesSearch && matchesLevel;
-  });
 
   // Check if user can create categories (SUPERADMIN can create parent categories, ADMIN/EDITOR can create subcategories)
   const canCreateCategory = () => {
@@ -60,11 +54,11 @@ export default function CategoriesPage() {
     return false;
   };
 
-  const renderCategoryRow = (category: any, level: number = 0) => {
-    const rows = [];
+  const renderCategoryRow = (category: any) => {
+    // Calculate indentation based on level
+    const indentLevel = category.level - 1;
     
-    // Add the current category
-    rows.push(
+    return (
       <tr
         key={category.id}
         onClick={() => canEditCategory(category) && router.push(`/admin/newsroom/categories/${category.id}/edit`)}
@@ -82,7 +76,7 @@ export default function CategoriesPage() {
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2" style={{ marginLeft: `${level * 16}px` }}>
+              <div className="flex items-center gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
                 <div className="font-medium text-gray-900 truncate">
                   {category.name}
           </div>
@@ -98,10 +92,10 @@ export default function CategoriesPage() {
                   </Badge>
                 )}
               </div>
-              <div className="text-sm text-gray-600 truncate" style={{ marginLeft: `${level * 16}px` }}>
+              <div className="text-sm text-gray-600 truncate" style={{ marginLeft: `${indentLevel * 16}px` }}>
                 {category.description || 'No description'}
               </div>
-              <div className="flex items-center gap-4 mt-1 text-xs text-gray-500" style={{ marginLeft: `${level * 16}px` }}>
+              <div className="flex items-center gap-4 mt-1 text-xs text-gray-500" style={{ marginLeft: `${indentLevel * 16}px` }}>
                 <div className="flex items-center gap-1">
                   <DocumentTextIcon className="h-3 w-3" />
             {category._count?.stories || 0} stories
@@ -116,11 +110,7 @@ export default function CategoriesPage() {
             </div>
           </div>
         </td>
-        <td className="py-4">
-          <Badge color={category.isParent ? 'blue' : 'zinc'}>
-            {category.isParent ? 'Parent' : 'Subcategory'}
-          </Badge>
-        </td>
+
         <td className="py-4">
           {canEditCategory(category) ? (
           <Button
@@ -139,15 +129,6 @@ export default function CategoriesPage() {
         </td>
       </tr>
     );
-
-    // Add child categories
-    if (category.children && category.children.length > 0) {
-      category.children.forEach((child: any) => {
-        rows.push(...renderCategoryRow(child, level + 1));
-      });
-    }
-
-    return rows;
   };
 
   if (error) {
@@ -178,45 +159,11 @@ export default function CategoriesPage() {
           }
         />
 
-        {/* Filter Buttons */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => setLevelFilter(undefined)}
-            color={levelFilter === undefined ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            All Levels
-          </Button>
-          <Button
-            onClick={() => setLevelFilter(1)}
-            color={levelFilter === 1 ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <FolderIcon className="h-4 w-4" />
-            Parent Categories
-          </Button>
-          <Button
-            onClick={() => setLevelFilter(2)}
-            color={levelFilter === 2 ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <TagIcon className="h-4 w-4" />
-            Subcategories
-          </Button>
-          <Button
-            onClick={() => setLevelFilter(3)}
-            color={levelFilter === 3 ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            Sub-subcategories
-          </Button>
-      </div>
-
       {isLoading ? (
         <div className="text-center py-12">
           <p>Loading categories...</p>
         </div>
-      ) : filteredCategories.length === 0 ? (
+      ) : categories.length === 0 ? (
         <EmptyState
           icon={TagIcon}
           title="No categories found"
@@ -232,13 +179,12 @@ export default function CategoriesPage() {
           <Table striped>
             <thead>
               <tr>
-                <th className="w-2/3">Category</th>
-                <th className="w-1/6">Type</th>
-                <th className="w-1/6">Actions</th>
+                <th className="w-4/5">Category</th>
+                <th className="w-1/5">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredCategories.map((category) => renderCategoryRow(category))}
+              {categories.map((category) => renderCategoryRow(category))}
             </tbody>
           </Table>
         )}

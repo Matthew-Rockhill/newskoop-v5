@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { MusicalNoteIcon } from '@heroicons/react/24/outline';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -15,8 +16,22 @@ import { Field, FieldGroup, Fieldset, Label, ErrorMessage } from '@/components/u
 import { Heading } from '@/components/ui/heading';
 import { Divider } from '@/components/ui/divider';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { ReviewerSelectionModal } from './ReviewerSelectionModal';
 import { SubEditorSelectionModal } from './SubEditorSelectionModal';
+import { RevisionNotes } from './RevisionNotes';
+import { 
+  canUpdateStoryStatus, 
+  canEditStory, 
+  canDeleteStory, 
+  canApproveStory, 
+  canPublishStory,
+  getAvailableStatusTransitions,
+  getEditLockReason
+} from '@/lib/permissions';
+import { StoryStatus } from '@prisma/client';
 
 // Simplified schema for interns - only title and content
 const internStoryEditSchema = z.object({
@@ -26,19 +41,57 @@ const internStoryEditSchema = z.object({
 
 type InternStoryEditFormData = z.infer<typeof internStoryEditSchema>;
 
+// Status badge colors
+const statusColors = {
+  DRAFT: 'zinc',
+  IN_REVIEW: 'amber',
+  NEEDS_REVISION: 'red',
+  PENDING_APPROVAL: 'blue',
+  APPROVED: 'lime',
+  PENDING_TRANSLATION: 'purple',
+  READY_TO_PUBLISH: 'emerald',
+  PUBLISHED: 'emerald',
+  ARCHIVED: 'gray',
+} as const;
+
+// Priority badge colors
+const priorityColors = {
+  LOW: 'gray',
+  MEDIUM: 'blue',
+  HIGH: 'amber',
+  URGENT: 'red',
+  BREAKING: 'red',
+} as const;
+
 interface InternEditFormProps {
   storyId: string;
 }
 
 export function InternEditForm({ storyId }: InternEditFormProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Show loading while session is loading
+  if (status === 'loading') {
+    return (
+      <Container>
+        <div className="text-center py-12">
+          <p>Loading...</p>
+        </div>
+      </Container>
+    );
+  }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [story, setStory] = useState<any>(null);
   const [content, setContent] = useState('');
   const [showReviewerModal, setShowReviewerModal] = useState(false);
   const [showSubEditorModal, setShowSubEditorModal] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<StoryStatus | null>(null);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
+  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
   const {
     register,
@@ -204,6 +257,136 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusActions = (currentStatus: StoryStatus) => {
+    const actions = [];
+    const userRole = session?.user?.staffRole;
+    const userId = session?.user?.id;
+    
+    if (!userRole || !story) return actions;
+    
+    // Check if user is the author of this story
+    const isAuthor = story.authorId === userId;
+    
+    // Get available transitions for the current user role and status
+    const availableTransitions = getAvailableStatusTransitions(userRole, currentStatus);
+    
+    // Map transitions to action buttons
+    availableTransitions.forEach((newStatus) => {
+      switch (newStatus) {
+        case 'IN_REVIEW':
+          actions.push({
+            label: currentStatus === 'DRAFT' ? 'Submit for Review' : 'Resubmit for Review',
+            status: newStatus,
+            color: 'primary' as const,
+          });
+          break;
+        case 'PENDING_APPROVAL':
+          if (userRole === 'JOURNALIST') {
+            if (isAuthor) {
+              // Journalists submit their own stories for approval
+              actions.push({
+                label: 'Submit for Approval',
+                status: newStatus,
+                color: 'emerald' as const,
+              });
+            } else {
+              // Journalists submit intern stories for sub-editor approval
+              actions.push({
+                label: 'Submit for Approval',
+                status: newStatus,
+                color: 'emerald' as const,
+              });
+            }
+          }
+          break;
+        case 'APPROVED':
+          if (canApproveStory(userRole)) {
+            actions.push({
+              label: 'Approve',
+              status: newStatus,
+              color: 'emerald' as const,
+            });
+          }
+          break;
+        case 'NEEDS_REVISION':
+          actions.push({
+            label: 'Request Revision',
+            status: newStatus,
+            color: 'red' as const,
+          });
+          break;
+        case 'PENDING_TRANSLATION':
+          if (canApproveStory(userRole)) {
+            actions.push({
+              label: 'Send for Translation',
+              status: newStatus,
+              color: 'purple' as const,
+            });
+          }
+          break;
+        case 'READY_TO_PUBLISH':
+          if (canPublishStory(userRole)) {
+            actions.push({
+              label: 'Mark Ready to Publish',
+              status: newStatus,
+              color: 'emerald' as const,
+            });
+          }
+          break;
+        case 'PUBLISHED':
+          if (canPublishStory(userRole)) {
+            actions.push({
+              label: 'Publish',
+              status: newStatus,
+              color: 'emerald' as const,
+            });
+          }
+          break;
+      }
+    });
+
+    return actions;
+  };
+
+  const handleAudioPlay = (audioId: string) => {
+    // Stop any currently playing audio
+    if (playingAudioId && playingAudioId !== audioId) {
+      setPlayingAudioId(null);
+    }
+    setPlayingAudioId(playingAudioId === audioId ? null : audioId);
+  };
+
+  const handleAudioStop = (audioId: string) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
+    setPlayingAudioId(null);
+  };
+
+  const handleAudioRestart = (audioId: string) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
+  };
+
+  const handleAudioSeek = (audioId: string, time: number) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
+  };
+
+  const handleAudioTimeUpdate = useCallback((audioId: string, currentTime: number) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
+  }, []);
+
+  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
+    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
+  };
+
   if (isLoading) {
     return (
       <Container>
@@ -227,96 +410,194 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
     );
   }
 
+  const statusActions = getStatusActions(story.status);
+
   return (
     <Container>
       <div className="space-y-6">
         <PageHeader
-          title="Edit Story"
-          action={{
-            label: "Back to Story",
-            onClick: () => router.push(`/admin/newsroom/stories/${storyId}`)
+          title={story.title}
+          description={
+            <div className="flex items-center gap-4 mt-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
+                <Badge color={statusColors[story.status]} size="sm">
+                  {story.status.replace('_', ' ')}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
+                <Badge color={priorityColors[story.priority]} size="sm">
+                  {story.priority}
+                </Badge>
+              </div>
+            </div>
+          }
+          metadata={{
+            sections: [
+              {
+                title: "Author & Timeline",
+                items: [
+                  {
+                    label: "Author",
+                    value: (
+                      <>
+                        <Avatar
+                          className="h-6 w-6"
+                          name={`${story.author.firstName} ${story.author.lastName}`}
+                        />
+                        <span>{story.author.firstName} {story.author.lastName}</span>
+                      </>
+                    ),
+                    type: 'avatar'
+                  },
+                  {
+                    label: "Created",
+                    value: formatDate(story.createdAt),
+                    type: 'date'
+                  },
+                  {
+                    label: "Last Updated",
+                    value: formatDate(story.updatedAt),
+                    type: 'date'
+                  }
+                ]
+              }
+            ]
           }}
+          actions={
+            <div className="flex items-center space-x-3">
+              {/* Status Actions */}
+              {statusActions.map((action) => (
+                <Button
+                  key={action.status}
+                  color={action.color as any}
+                  size="sm"
+                  onClick={() => handleSubmitForReview()}
+                  disabled={isUpdatingStatus}
+                >
+                  {action.label}
+                </Button>
+              ))}
+              
+              {/* Back to Story Button */}
+              <Button size="sm" color="secondary" href={`/admin/newsroom/stories/${storyId}`}>
+                Back to Story
+              </Button>
+            </div>
+          }
         />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* Story Content */}
-          <Card className="p-6">
-            <Heading level={2} className="mb-6">Story Content</Heading>
-            
-            <Fieldset>
-              <FieldGroup>
-                <Field>
-                  <Label htmlFor="title">Story Title *</Label>
-                  <Input
-                    id="title"
-                    {...register('title')}
-                    placeholder="Enter your story title..."
-                    className="text-lg"
-                  />
-                  {errors.title && (
-                    <ErrorMessage>{errors.title.message}</ErrorMessage>
-                  )}
-                </Field>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+              {/* Story Content */}
+              <Card className="p-6">
+                <Heading level={2} className="mb-6">Story Content</Heading>
+                
+                <Fieldset>
+                  <FieldGroup>
+                    <Field>
+                      <Label htmlFor="title">Story Title *</Label>
+                      <Input
+                        id="title"
+                        {...register('title')}
+                        placeholder="Enter your story title..."
+                        className="text-lg"
+                      />
+                      {errors.title && (
+                        <ErrorMessage>{errors.title.message}</ErrorMessage>
+                      )}
+                    </Field>
 
-                <Field>
-                  <Label htmlFor="content">Story Content *</Label>
-                  <RichTextEditor
-                    content={content}
-                    onChange={(newContent) => {
-                      setContent(newContent);
-                      setValue('content', newContent);
-                    }}
-                    placeholder="Write your story content here..."
-                    className="min-h-[400px]"
-                  />
-                  {errors.content && (
-                    <ErrorMessage>{errors.content.message}</ErrorMessage>
-                  )}
-                </Field>
-              </FieldGroup>
-            </Fieldset>
-          </Card>
+                    <Field>
+                      <Label htmlFor="content">Story Content *</Label>
+                      <RichTextEditor
+                        content={content}
+                        onChange={(newContent) => {
+                          setContent(newContent);
+                          setValue('content', newContent);
+                        }}
+                        placeholder="Write your story content here..."
+                        className="min-h-[400px]"
+                      />
+                      {errors.content && (
+                        <ErrorMessage>{errors.content.message}</ErrorMessage>
+                      )}
+                    </Field>
+                  </FieldGroup>
+                </Fieldset>
+              </Card>
 
-          <Divider />
+              {/* Audio Clips Section */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Heading level={3}>Audio Clips</Heading>
+                  <Badge color="gray" size="sm">
+                    {story.audioClips?.length || 0} clips
+                  </Badge>
+                </div>
+                
+                {!story.audioClips || story.audioClips.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <MusicalNoteIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                    <p>No audio clips have been attached to this story</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {story.audioClips.map((clip) => (
+                      <CustomAudioPlayer
+                        key={clip.id}
+                        clip={clip}
+                        isPlaying={playingAudioId === clip.id}
+                        currentTime={audioProgress[clip.id] || 0}
+                        duration={audioDuration[clip.id] || 0}
+                        onPlay={handleAudioPlay}
+                        onStop={handleAudioStop}
+                        onRestart={handleAudioRestart}
+                        onSeek={handleAudioSeek}
+                        onTimeUpdate={handleAudioTimeUpdate}
+                        onLoadedMetadata={handleAudioLoadedMetadata}
+                        onEnded={() => setPlayingAudioId(null)}
+                        onError={() => {
+                          toast.error('Failed to play audio file');
+                          setPlayingAudioId(null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </Card>
 
-          {/* Actions */}
-          <div className="flex justify-between">
-            <Button
-              type="button"
-              color="white"
-              onClick={() => router.push(`/admin/newsroom/stories/${storyId}`)}
-            >
-              Cancel
-            </Button>
-            
-            <div className="flex space-x-4">
-              <Button
-                type="submit"
-                color="white"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Saving...' : 'Save Draft'}
-              </Button>
-              
-              {story.status === 'DRAFT' || story.status === 'NEEDS_REVISION' ? (
+              <Divider />
+
+              {/* Actions */}
+              <div className="flex justify-between">
                 <Button
                   type="button"
-                  onClick={handleSubmitForReview}
-                  disabled={isSubmitting}
+                  color="white"
+                  onClick={() => router.push(`/admin/newsroom/stories/${storyId}`)}
                 >
-                  {isSubmitting ? 'Submitting...' : session?.user?.staffRole === 'JOURNALIST' ? 'Submit for Approval' : 'Submit for Review'}
+                  Cancel
                 </Button>
-              ) : (
+                
                 <Button
                   type="submit"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>
-              )}
-            </div>
+              </div>
+            </form>
           </div>
-        </form>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Revision Notes */}
+            <RevisionNotes storyId={storyId} />
+          </div>
+        </div>
       </div>
 
       {/* Reviewer Selection Modal */}

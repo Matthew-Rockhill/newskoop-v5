@@ -24,6 +24,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { useStories, type StoryFilters } from '@/hooks/use-stories';
 import { useCategories } from '@/hooks/use-categories';
+import { useSession } from 'next-auth/react';
 import { StoryStatus } from '@prisma/client';
 
 // Status badge colors
@@ -31,7 +32,10 @@ const statusColors = {
   DRAFT: 'zinc',
   IN_REVIEW: 'amber',
   NEEDS_REVISION: 'red',
+  PENDING_APPROVAL: 'blue',
   APPROVED: 'lime',
+  PENDING_TRANSLATION: 'purple',
+  READY_TO_PUBLISH: 'emerald',
   PUBLISHED: 'emerald',
   ARCHIVED: 'zinc',
 } as const;
@@ -39,6 +43,7 @@ const statusColors = {
 export default function StoriesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const [filters, setFilters] = useState<StoryFilters>({
     page: 1,
     perPage: 10,
@@ -228,7 +233,7 @@ export default function StoriesPage() {
                         <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                           <div className="flex items-center gap-1">
                             <TagIcon className="h-3 w-3" />
-                            {story.category.name}
+                            {story.category ? story.category.name : <span className="italic text-zinc-400">No category</span>}
                           </div>
                           <div className="flex items-center gap-1">
                             <ChatBubbleLeftRightIcon className="h-3 w-3" />
@@ -248,16 +253,33 @@ export default function StoriesPage() {
                     </Badge>
                   </td>
                   <td className="py-4">
-                    <Button
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        router.push(`/admin/newsroom/stories/${story.id}`);
-                      }}
-                      outline
-                      className="text-sm"
-                    >
-                      View
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          router.push(`/admin/newsroom/stories/${story.id}`);
+                        }}
+                        outline
+                        className="text-sm"
+                      >
+                        View
+                      </Button>
+                      
+                      {/* Review Button for Sub-Editors */}
+                      {session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && 
+                       story.status === 'PENDING_APPROVAL' && (
+                        <Button
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            router.push(`/admin/newsroom/stories/${story.id}/review`);
+                          }}
+                          color="primary"
+                          className="text-sm"
+                        >
+                          Review
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

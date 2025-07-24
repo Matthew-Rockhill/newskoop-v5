@@ -39,13 +39,14 @@ export interface UpdateCategoryData {
 }
 
 // Fetch categories
-export function useCategories(flat = false, level?: number) {
+export function useCategories(flat = false, level?: number, search?: string) {
   return useQuery({
-    queryKey: ['categories', { flat, level }],
+    queryKey: ['categories', { flat, level, search }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (flat) params.set('flat', 'true');
       if (level) params.set('level', String(level));
+      if (search) params.set('search', search);
 
       const response = await fetch(`/api/newsroom/categories?${params}`);
       if (!response.ok) {

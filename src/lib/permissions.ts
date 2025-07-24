@@ -20,7 +20,8 @@ const storyPermissions = {
     statusTransitions: {
       [StoryStatus.DRAFT]: [StoryStatus.PENDING_APPROVAL], // Submit directly for approval
       [StoryStatus.IN_REVIEW]: [StoryStatus.NEEDS_REVISION, StoryStatus.PENDING_APPROVAL], // Review intern stories
-      [StoryStatus.NEEDS_REVISION]: [StoryStatus.PENDING_APPROVAL], // Submit for approval after editing
+      [StoryStatus.NEEDS_REVISION]: [StoryStatus.IN_REVIEW], // Can resubmit after making revisions
+      [StoryStatus.PENDING_TRANSLATION]: [StoryStatus.READY_TO_PUBLISH], // Mark translation ready
     },
     canEditOwnOnly: true,
     canDelete: false,
@@ -34,7 +35,9 @@ const storyPermissions = {
       [StoryStatus.IN_REVIEW]: [StoryStatus.NEEDS_REVISION, StoryStatus.PENDING_APPROVAL],
       [StoryStatus.NEEDS_REVISION]: [StoryStatus.IN_REVIEW],
       [StoryStatus.PENDING_APPROVAL]: [StoryStatus.APPROVED, StoryStatus.NEEDS_REVISION],
-      [StoryStatus.APPROVED]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION],
+      [StoryStatus.APPROVED]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION, StoryStatus.PENDING_TRANSLATION],
+      [StoryStatus.PENDING_TRANSLATION]: [StoryStatus.READY_TO_PUBLISH, StoryStatus.NEEDS_REVISION],
+      [StoryStatus.READY_TO_PUBLISH]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION],
     },
     canEditOwnOnly: false,
     canDelete: false,
@@ -48,7 +51,9 @@ const storyPermissions = {
       [StoryStatus.IN_REVIEW]: [StoryStatus.NEEDS_REVISION, StoryStatus.PENDING_APPROVAL],
       [StoryStatus.NEEDS_REVISION]: [StoryStatus.IN_REVIEW, StoryStatus.PENDING_APPROVAL],
       [StoryStatus.PENDING_APPROVAL]: [StoryStatus.APPROVED, StoryStatus.NEEDS_REVISION],
-      [StoryStatus.APPROVED]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION, StoryStatus.ARCHIVED],
+      [StoryStatus.APPROVED]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION, StoryStatus.PENDING_TRANSLATION, StoryStatus.ARCHIVED],
+      [StoryStatus.PENDING_TRANSLATION]: [StoryStatus.READY_TO_PUBLISH, StoryStatus.NEEDS_REVISION, StoryStatus.ARCHIVED],
+      [StoryStatus.READY_TO_PUBLISH]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION, StoryStatus.ARCHIVED],
       [StoryStatus.PUBLISHED]: [StoryStatus.ARCHIVED],
     },
     canEditOwnOnly: false,
@@ -64,6 +69,8 @@ const storyPermissions = {
       [StoryStatus.NEEDS_REVISION]: Object.values(StoryStatus),
       [StoryStatus.PENDING_APPROVAL]: Object.values(StoryStatus),
       [StoryStatus.APPROVED]: Object.values(StoryStatus),
+      [StoryStatus.PENDING_TRANSLATION]: Object.values(StoryStatus),
+      [StoryStatus.READY_TO_PUBLISH]: Object.values(StoryStatus),
       [StoryStatus.PUBLISHED]: Object.values(StoryStatus),
       [StoryStatus.ARCHIVED]: Object.values(StoryStatus),
     },
@@ -80,6 +87,8 @@ const storyPermissions = {
       [StoryStatus.NEEDS_REVISION]: Object.values(StoryStatus),
       [StoryStatus.PENDING_APPROVAL]: Object.values(StoryStatus),
       [StoryStatus.APPROVED]: Object.values(StoryStatus),
+      [StoryStatus.PENDING_TRANSLATION]: Object.values(StoryStatus),
+      [StoryStatus.READY_TO_PUBLISH]: Object.values(StoryStatus),
       [StoryStatus.PUBLISHED]: Object.values(StoryStatus),
       [StoryStatus.ARCHIVED]: Object.values(StoryStatus),
     },
@@ -119,8 +128,11 @@ export function canEditStory(userRole: StaffRole | null, storyAuthorId: string, 
     return false;
   }
   
-  // Stories that are approved or published cannot be edited
-  if (storyStatus === StoryStatus.APPROVED || storyStatus === StoryStatus.PUBLISHED) {
+  // Stories that are approved, published, or in translation workflow cannot be edited
+  if (storyStatus === StoryStatus.APPROVED || 
+      storyStatus === StoryStatus.PUBLISHED ||
+      storyStatus === StoryStatus.PENDING_TRANSLATION ||
+      storyStatus === StoryStatus.READY_TO_PUBLISH) {
     return false;
   }
   
@@ -166,6 +178,10 @@ export function getEditLockReason(storyStatus: StoryStatus): string | null {
       return 'Story needs revision and can only be edited by the author';
     case StoryStatus.APPROVED:
       return 'Story has been approved and cannot be edited';
+    case StoryStatus.PENDING_TRANSLATION:
+      return 'Story is pending translation and cannot be edited';
+    case StoryStatus.READY_TO_PUBLISH:
+      return 'Story is ready to publish and cannot be edited';
     case StoryStatus.PUBLISHED:
       return 'Story has been published and cannot be edited';
     default:
@@ -175,7 +191,7 @@ export function getEditLockReason(storyStatus: StoryStatus): string | null {
 
 // Comment permissions
 const commentPermissions = {
-  INTERN: ['create', 'read'],
+  INTERN: ['create', 'read', 'update'],
   JOURNALIST: ['create', 'read', 'update'],
   SUB_EDITOR: ['create', 'read', 'update', 'delete'],
   EDITOR: ['create', 'read', 'update', 'delete'],
@@ -206,8 +222,8 @@ export function hasCategoryPermission(userRole: StaffRole | null, action: Permis
 // Tag permissions
 const tagPermissions = {
   INTERN: ['read'],
-  JOURNALIST: ['create', 'read'],
-  SUB_EDITOR: ['create', 'read', 'update', 'delete'],
+  JOURNALIST: ['read'],
+  SUB_EDITOR: ['create', 'read', 'update'],
   EDITOR: ['create', 'read', 'update', 'delete'],
   ADMIN: ['create', 'read', 'update', 'delete'],
   SUPERADMIN: ['create', 'read', 'update', 'delete'],

@@ -215,6 +215,11 @@ const updateStory = createHandler(
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
+    // When updating to APPROVED or READY_TO_PUBLISH, require categoryId
+    if ((data.status === 'APPROVED' || data.status === 'READY_TO_PUBLISH') && !data.categoryId) {
+      return Response.json({ error: 'Category is required to approve or publish a story.' }, { status: 400 });
+    }
+
     // Extract tag IDs from the data
     const { tagIds, ...storyData } = data;
 

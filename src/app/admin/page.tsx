@@ -36,7 +36,7 @@ export default function AdminDashboard() {
   const { data: publishedStoriesData } = useStories({ status: 'PUBLISHED', page: 1, perPage: 1 });
   
   // Role-based dashboard routing - after all hooks
-  if (session?.user?.staffRole === 'INTERN' || session?.user?.staffRole === 'JOURNALIST') {
+  if (session?.user?.staffRole === 'INTERN' || session?.user?.staffRole === 'JOURNALIST' || session?.user?.staffRole === 'SUB_EDITOR') {
     return <UserDashboard />;
   }
 

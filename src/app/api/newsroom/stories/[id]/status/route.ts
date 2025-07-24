@@ -15,7 +15,7 @@ const updateStoryStatus = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const user = (req as any).user;
-    const { status, assignedToId, reviewerId } = (req as any).validatedData;
+    const { status, assignedToId, reviewerId, categoryId, language, tagIds } = (req as any).validatedData;
 
     // Get current story
     const story = await prisma.story.findUnique({
@@ -60,6 +60,8 @@ const updateStoryStatus = createHandler(
       status,
       ...(assignedToId && { assignedToId }),
       ...(reviewerId && { reviewerId }),
+      ...(categoryId && { categoryId }),
+      ...(language && { language }),
     };
 
     // Set publisher info when publishing
@@ -74,55 +76,79 @@ const updateStoryStatus = createHandler(
       updateData.publishedBy = null;
     }
 
-    const updatedStory = await prisma.story.update({
-      where: { id },
-      data: updateData,
-      include: {
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            staffRole: true,
+    // Use a transaction to update story and tags
+    const updatedStory = await prisma.$transaction(async (tx) => {
+      // Update story
+      const story = await tx.story.update({
+        where: { id },
+        data: updateData,
+        include: {
+          author: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              staffRole: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              staffRole: true,
+            },
+          },
+          reviewer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              staffRole: true,
+            },
+          },
+          publisher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              staffRole: true,
+            },
+          },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              color: true,
+            },
           },
         },
-        assignedTo: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            staffRole: true,
-          },
-        },
-        reviewer: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            staffRole: true,
-          },
-        },
-        publisher: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            staffRole: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true,
-          },
-        },
-      },
+      });
+
+      // Update tags if provided
+      if (tagIds && Array.isArray(tagIds)) {
+        // Remove existing tags
+        await tx.storyTag.deleteMany({
+          where: { storyId: id },
+        });
+
+        // Add new tags
+        if (tagIds.length > 0) {
+          await tx.storyTag.createMany({
+            data: tagIds.map(tagId => ({
+              storyId: id,
+              tagId,
+            })),
+          });
+        }
+      }
+
+      return story;
     });
 
     // Create audit log with detailed information

@@ -43,15 +43,22 @@ const getTags = createHandler(
 
     const url = new URL(req.url);
     const query = url.searchParams.get('query');
+    const category = url.searchParams.get('category');
     const page = parseInt(url.searchParams.get('page') || '1');
     const perPage = parseInt(url.searchParams.get('perPage') || '50');
 
-    const where = query ? {
-      OR: [
+    const where: any = {};
+    
+    if (query) {
+      where.OR = [
         { name: { contains: query, mode: 'insensitive' as const } },
         { slug: { contains: query, mode: 'insensitive' as const } },
-      ],
-    } : {};
+      ];
+    }
+    
+    if (category) {
+      where.category = category;
+    }
 
     // Get total count
     const total = await prisma.tag.count({ where });
@@ -128,4 +135,30 @@ const createTag = createHandler(
   ]
 );
 
-export { getTags as GET, createTag as POST }; 
+const deleteTag = createHandler(
+  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+    const { id } = await params;
+    const user = (req as any).user;
+
+    if (!hasTagPermission(user.staffRole, 'delete')) {
+      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    // Check if tag exists
+    const tag = await prisma.tag.findUnique({ where: { id }, include: { stories: true } });
+    if (!tag) {
+      return Response.json({ error: 'Tag not found' }, { status: 404 });
+    }
+
+    // Prevent deletion if tag is in use and is LANGUAGE or RELIGION
+    if ((tag.category === 'LANGUAGE' || tag.category === 'RELIGION') && tag.stories.length > 0) {
+      return Response.json({ error: 'Cannot delete a language or religion tag that is in use by stories.' }, { status: 400 });
+    }
+
+    await prisma.tag.delete({ where: { id } });
+    return Response.json({ success: true });
+  },
+  [withErrorHandling, withAuth, withAudit('tag.delete')]
+);
+
+export { getTags as GET, createTag as POST, deleteTag as DELETE }; 
