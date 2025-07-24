@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "StoryStatus" ADD VALUE 'PENDING_APPROVAL';

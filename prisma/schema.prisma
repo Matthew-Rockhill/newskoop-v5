@@ -44,7 +44,10 @@ enum StoryStatus {
   DRAFT
   IN_REVIEW
   NEEDS_REVISION
+  PENDING_APPROVAL
+  PENDING_TRANSLATION
   APPROVED
+  READY_TO_PUBLISH
   PUBLISHED
   ARCHIVED
 }
@@ -57,8 +60,6 @@ enum StoryPriority {
   BREAKING
 }
 
-
-
 enum CommentType {
   GENERAL
   REVISION_REQUEST
@@ -67,7 +68,27 @@ enum CommentType {
   EDITORIAL_NOTE
 }
 
+enum TagCategory {
+  LANGUAGE
+  RELIGION
+  LOCALITY
+  GENERAL
+}
 
+// Translation workflow enums
+enum TranslationStatus {
+  PENDING
+  IN_PROGRESS
+  NEEDS_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum StoryLanguage {
+  ENGLISH
+  AFRIKAANS
+  XHOSA
+}
 
 model User {
   id                    String                @id @default(cuid())
@@ -80,6 +101,8 @@ model User {
   isActive              Boolean               @default(true)
   isPrimaryContact      Boolean               @default(false)
   mustChangePassword    Boolean               @default(false)
+  isTranslator          Boolean               @default(false)
+  translationLanguages  TranslationLanguage[]
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   lastLoginAt           DateTime?
@@ -87,7 +110,6 @@ model User {
   resetTokenExpiresAt  DateTime?
   
   staffRole             StaffRole?
-  translationLanguage   TranslationLanguage?
   
   radioStationId        String?
   radioStation          Station?              @relation(fields: [radioStationId], references: [id])
@@ -104,11 +126,14 @@ model User {
   comments              Comment[]
   resolvedComments      Comment[]             @relation("ResolvedComments")
   
-
+  // Translation relationships
+  assignedTranslations  Translation[]         @relation("AssignedTranslations")
+  reviewedTranslations  Translation[]         @relation("ReviewedTranslations")
   
   @@index([email])
   @@index([userType])
   @@index([radioStationId])
+  @@index([isTranslator])
 }
 
 model Station {
@@ -170,6 +195,15 @@ model Story {
   status            StoryStatus         @default(DRAFT)
   priority          StoryPriority       @default(MEDIUM)
   
+  // Language and translation fields
+  language          StoryLanguage       @default(ENGLISH)
+  isTranslation     Boolean             @default(false)
+  originalStoryId   String?
+  originalStory     Story?              @relation("StoryTranslations", fields: [originalStoryId], references: [id])
+  translations      Story[]             @relation("StoryTranslations")
+  storyGroupId      String?
+  storyGroup        StoryGroup?         @relation(fields: [storyGroupId], references: [id])
+  
   // Authoring
   authorId          String
   author            User                @relation("AuthoredStories", fields: [authorId], references: [id])
@@ -185,9 +219,9 @@ model Story {
   publishedBy       String?
   publisher         User?               @relation("PublishedStories", fields: [publishedBy], references: [id])
   
-  // Categorization (must have exactly one category)
-  categoryId        String
-  category          Category            @relation(fields: [categoryId], references: [id])
+  // Categorization (optional during creation, required during approval)
+  categoryId        String?
+  category          Category?           @relation(fields: [categoryId], references: [id])
   
   // Tagging
   tags              StoryTag[]
@@ -198,14 +232,24 @@ model Story {
   // Comments
   comments          Comment[]
   
+  // Translation workflow
+  translationRequests Translation[]     @relation("OriginalStory")
+  assignedTranslations Translation[]    @relation("TranslatedStory")
+  
   // Timestamps
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  followUpDate      DateTime?           // Editorial follow-up date
+  followUpNote      String?             // Optional follow-up note
   
   @@index([status])
   @@index([authorId])
   @@index([categoryId])
   @@index([slug])
+  @@index([language])
+  @@index([isTranslation])
+  @@index([originalStoryId])
+  @@index([storyGroupId])
 }
 
 model Category {
@@ -237,8 +281,15 @@ model Tag {
   name      String     @unique
   slug      String     @unique
   color     String?
+  category  TagCategory @default(GENERAL)
+  isRequired Boolean   @default(false) // For LANGUAGE and RELIGION tags
+  isPreset   Boolean   @default(false) // For LOCALITY tags (provinces)
   stories   StoryTag[]
   createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@index([category])
+  @@index([isRequired])
 }
 
 model StoryTag {
@@ -276,6 +327,7 @@ model Comment {
   id          String      @id @default(cuid())
   content     String      @db.Text
   type        CommentType @default(GENERAL)
+  category    String?     // For revision notes categorization
   
   storyId     String
   story       Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -297,6 +349,69 @@ model Comment {
   
   @@index([storyId])
   @@index([authorId])
+}
+
+// TRANSLATION WORKFLOW MODELS
+
+model Translation {
+  id                String            @id @default(cuid())
+  status            TranslationStatus @default(PENDING)
+  targetLanguage    StoryLanguage
+  
+  // Story relationships
+  originalStoryId   String
+  originalStory     Story             @relation("OriginalStory", fields: [originalStoryId], references: [id], onDelete: Cascade)
+  translatedStoryId String?
+  translatedStory   Story?            @relation("TranslatedStory", fields: [translatedStoryId], references: [id])
+  
+  // Assignment and workflow
+  assignedToId      String?
+  assignedTo        User?             @relation("AssignedTranslations", fields: [assignedToId], references: [id])
+  reviewerId        String?
+  reviewer          User?             @relation("ReviewedTranslations", fields: [reviewerId], references: [id])
+  
+  // Progress tracking
+  startedAt         DateTime?
+  completedAt       DateTime?
+  reviewedAt        DateTime?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  
+  // Notes and feedback
+  translatorNotes   String?           @db.Text
+  reviewerNotes     String?           @db.Text
+  rejectionReason   String?           @db.Text
+  
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  @@index([status])
+  @@index([originalStoryId])
+  @@index([translatedStoryId])
+  @@index([assignedToId])
+  @@index([targetLanguage])
+}
+
+model StoryGroup {
+  id                String    @id @default(cuid())
+  name              String
+  description       String?
+  
+  // Publishing coordination
+  publishTogether   Boolean   @default(true)
+  scheduledPublishAt DateTime?
+  publishedAt       DateTime?
+  
+  // Stories in this group
+  stories           Story[]
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([publishTogether])
+  @@index([scheduledPublishAt])
 }
 
  

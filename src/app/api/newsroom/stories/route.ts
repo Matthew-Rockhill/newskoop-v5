@@ -60,6 +60,19 @@ const getStories = createHandler(
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
           { content: { contains: query, mode: 'insensitive' } },
+          { author: { 
+            OR: [
+              { firstName: { contains: query, mode: 'insensitive' } },
+              { lastName: { contains: query, mode: 'insensitive' } },
+              { email: { contains: query, mode: 'insensitive' } }
+            ]
+          }},
+          { category: { name: { contains: query, mode: 'insensitive' } } },
+          { tags: { 
+            some: { 
+              tag: { name: { contains: query, mode: 'insensitive' } } 
+            } 
+          }},
         ],
       }),
       ...(status && { status }),
@@ -77,21 +90,53 @@ const getStories = createHandler(
       }),
     };
 
+    // Debug logging
+    if (query) {
+      console.log('🔍 Search query:', query);
+      console.log('🔍 Where clause:', JSON.stringify(where, null, 2));
+    }
+
+    // Debug logging
+    if (query) {
+      console.log('Search query:', query);
+      console.log('Where clause:', JSON.stringify(where, null, 2));
+    }
+
     // Role-based filtering
     if (user.staffRole === 'INTERN') {
       // Interns can only see their own stories
       where.authorId = user.id;
     } else if (user.staffRole === 'JOURNALIST') {
       // Journalists can see their own stories and stories assigned to them
-      where.OR = [
-        { authorId: user.id },
-        { assignedToId: user.id },
-        { reviewerId: user.id }
-      ];
+      // Combine role-based filtering with existing search conditions
+      const roleFilter = {
+        OR: [
+          { authorId: user.id },
+          { assignedToId: user.id },
+          { reviewerId: user.id }
+        ]
+      };
+      
+      // If there's already a search query, combine it with role filtering
+      if (query) {
+        where.AND = [
+          { OR: where.OR }, // Keep the search conditions
+          roleFilter // Add role-based filtering
+        ];
+        delete where.OR; // Remove the original OR since it's now in AND
+      } else {
+        // No search query, just apply role filtering
+        where.OR = roleFilter.OR;
+      }
     }
 
     // Get total count
     const total = await prisma.story.count({ where });
+
+    // Debug logging
+    if (query) {
+      console.log('🔍 Total stories found:', total);
+    }
 
     // Get paginated stories
     const stories = await prisma.story.findMany({
@@ -170,6 +215,11 @@ const getStories = createHandler(
       take: perPage,
     });
 
+    // Debug logging
+    if (query) {
+      console.log('🔍 Stories returned:', stories.map(s => ({ id: s.id, title: s.title })));
+    }
+
     return Response.json({
       stories,
       pagination: {
@@ -215,8 +265,24 @@ const createStory = createHandler(
       }
     }
 
-    // Validate story data
-    const validatedData = storyCreateSchema.parse(storyData);
+    // Handle role-based validation
+    let validatedData;
+    let reviewerId = storyData.reviewerId; // Extract reviewer ID if provided
+    
+    if (user.staffRole === 'INTERN' || user.staffRole === 'JOURNALIST') {
+      // Interns and journalists can create stories without a category
+      const storyFormData = {
+        title: storyData.title,
+        content: storyData.content,
+        priority: storyData.priority || 'MEDIUM',
+        // categoryId: not required
+        tagIds: [],
+      };
+      validatedData = storyCreateSchema.parse(storyFormData);
+    } else {
+      validatedData = storyCreateSchema.parse(storyData);
+    }
+    
     const { tagIds, ...cleanStoryData } = validatedData;
 
     // Process audio files
@@ -250,6 +316,8 @@ const createStory = createHandler(
         ...cleanStoryData,
         authorId: user.id,
         slug: generateSlug(validatedData.title),
+        // Assign reviewer if provided
+        ...(reviewerId && { reviewerId }),
         // Connect tags if provided
         ...(tagIds && tagIds.length > 0 && {
           tags: {

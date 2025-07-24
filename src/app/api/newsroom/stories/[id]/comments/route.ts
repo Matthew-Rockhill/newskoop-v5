@@ -27,6 +27,12 @@ const getComments = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id: storyId } = await params;
     const user = (req as any).user;
+    
+    // Get query parameters
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get('type');
+    const page = parseInt(searchParams.get('page') || '1');
+    const perPage = parseInt(searchParams.get('perPage') || '100');
 
     if (!hasCommentPermission(user.staffRole, 'read')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -61,11 +67,18 @@ const getComments = createHandler(
       }
     }
 
+    const whereClause: any = {
+      storyId,
+      parentId: null, // Only get top-level comments
+    };
+
+    // Filter by type if specified
+    if (type) {
+      whereClause.type = type;
+    }
+
     const comments = await prisma.comment.findMany({
-      where: { 
-        storyId,
-        parentId: null, // Only get top-level comments
-      },
+      where: whereClause,
       include: {
         author: {
           select: {
@@ -177,6 +190,7 @@ const createComment = createHandler(
       data: {
         content: data.content,
         type: data.type,
+        category: data.category,
         storyId,
         authorId: user.id,
         parentId: data.parentId,

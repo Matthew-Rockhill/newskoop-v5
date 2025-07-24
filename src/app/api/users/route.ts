@@ -18,6 +18,7 @@ const getUsers = createHandler(
       staffRole, 
       radioStationId, 
       isActive,
+      translationLanguage,
       page = 1,
       perPage = 10 
     } = userSearchSchema.parse({
@@ -40,6 +41,7 @@ const getUsers = createHandler(
       ...(staffRole && { staffRole }),
       ...(radioStationId && { radioStationId }),
       ...(typeof isActive === 'boolean' && { isActive }),
+      ...(translationLanguage && { translationLanguages: { has: translationLanguage } }),
     };
 
     // Get total count

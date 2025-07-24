@@ -175,20 +175,52 @@ async function main() {
 
   console.log('✅ Categories created');
 
-  // Create sample tags
-  const tags = [
-    { name: 'Breaking', slug: 'breaking', color: '#DC2626' },
-    { name: 'Politics', slug: 'politics', color: '#7C3AED' },
-    { name: 'Economy', slug: 'economy', color: '#059669' },
-    { name: 'Health', slug: 'health', color: '#0891B2' },
-    { name: 'Education', slug: 'education', color: '#EA580C' },
-    { name: 'Technology', slug: 'technology', color: '#4F46E5' },
+  // Create sample tags with new categorization
+  const languageTags = [
+    { name: 'English', slug: 'english', color: '#3B82F6', category: 'LANGUAGE' as const, isRequired: true, isPreset: true },
+    { name: 'Afrikaans', slug: 'afrikaans', color: '#3B82F6', category: 'LANGUAGE' as const, isRequired: true, isPreset: true },
+    { name: 'Xhosa', slug: 'xhosa', color: '#3B82F6', category: 'LANGUAGE' as const, isRequired: true, isPreset: true },
   ];
 
-  for (const tag of tags) {
+  const religionTags = [
+    { name: 'Christian', slug: 'christian', color: '#8B5CF6', category: 'RELIGION' as const, isRequired: true, isPreset: true },
+    { name: 'Muslim', slug: 'muslim', color: '#8B5CF6', category: 'RELIGION' as const, isRequired: true, isPreset: true },
+    { name: 'Neutral', slug: 'neutral', color: '#8B5CF6', category: 'RELIGION' as const, isRequired: true, isPreset: true },
+  ];
+
+  const localityTags = [
+    { name: 'Eastern Cape', slug: 'eastern-cape', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+    { name: 'Free State', slug: 'free-state', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+    { name: 'Gauteng', slug: 'gauteng', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+    { name: 'KwaZulu-Natal', slug: 'kwazulu-natal', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+    { name: 'Limpopo', slug: 'limpopo', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+    { name: 'Mpumalanga', slug: 'mpumalanga', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+    { name: 'Northern Cape', slug: 'northern-cape', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+    { name: 'North West', slug: 'north-west', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+    { name: 'Western Cape', slug: 'western-cape', color: '#10B981', category: 'LOCALITY' as const, isRequired: false, isPreset: true },
+  ];
+
+  const generalTags = [
+    { name: 'Breaking', slug: 'breaking', color: '#6B7280', category: 'GENERAL' as const, isRequired: false, isPreset: false },
+    { name: 'Politics', slug: 'politics', color: '#6B7280', category: 'GENERAL' as const, isRequired: false, isPreset: false },
+    { name: 'Economy', slug: 'economy', color: '#6B7280', category: 'GENERAL' as const, isRequired: false, isPreset: false },
+    { name: 'Health', slug: 'health', color: '#6B7280', category: 'GENERAL' as const, isRequired: false, isPreset: false },
+    { name: 'Education', slug: 'education', color: '#6B7280', category: 'GENERAL' as const, isRequired: false, isPreset: false },
+    { name: 'Technology', slug: 'technology', color: '#6B7280', category: 'GENERAL' as const, isRequired: false, isPreset: false },
+    { name: 'Sports', slug: 'sports', color: '#6B7280', category: 'GENERAL' as const, isRequired: false, isPreset: false },
+    { name: 'Entertainment', slug: 'entertainment', color: '#6B7280', category: 'GENERAL' as const, isRequired: false, isPreset: false },
+  ];
+
+  const allTags = [...languageTags, ...religionTags, ...localityTags, ...generalTags];
+
+  for (const tag of allTags) {
     await prisma.tag.upsert({
       where: { slug: tag.slug },
-      update: {},
+      update: {
+        category: tag.category,
+        isRequired: tag.isRequired,
+        isPreset: tag.isPreset,
+      },
       create: tag,
     });
   }
@@ -222,6 +254,36 @@ async function main() {
       password: journalistPassword,
       userType: UserType.STAFF,
       staffRole: StaffRole.JOURNALIST,
+      isActive: true,
+    },
+  });
+
+  const subEditorPassword = await bcrypt.hash('SubEditor@123', 12);
+  const subEditor = await prisma.user.upsert({
+    where: { email: 'subeditor@newskoop.com' },
+    update: {},
+    create: {
+      email: 'subeditor@newskoop.com',
+      firstName: 'Lisa',
+      lastName: 'SubEditor',
+      password: subEditorPassword,
+      userType: UserType.STAFF,
+      staffRole: StaffRole.SUB_EDITOR,
+      isActive: true,
+    },
+  });
+
+  const internPassword = await bcrypt.hash('Intern@123', 12);
+  const intern = await prisma.user.upsert({
+    where: { email: 'intern@newskoop.com' },
+    update: {},
+    create: {
+      email: 'intern@newskoop.com',
+      firstName: 'Alex',
+      lastName: 'Intern',
+      password: internPassword,
+      userType: UserType.STAFF,
+      staffRole: StaffRole.INTERN,
       isActive: true,
     },
   });
@@ -347,6 +409,60 @@ Health officials expect to see measurable improvements in student wellbeing with
       priority: 'MEDIUM' as const,
       categoryId: localNewsCategory.id,
       authorId: journalist.id,
+      status: 'DRAFT' as const,
+    },
+    {
+      title: 'Intern Story: Local Library Hosts Reading Program',
+      slug: 'intern-story-local-library-hosts-reading-program',
+      content: `
+# Local Library Hosts Reading Program
+
+The Johannesburg Public Library has launched a new reading program aimed at encouraging young people to develop a love for books and reading.
+
+## Program Details
+
+The program includes:
+- Weekly story time sessions for children
+- Book clubs for teenagers
+- Reading challenges with prizes
+- Author meet-and-greet events
+
+## Community Response
+
+Local parents have shown great enthusiasm for the program. "It's wonderful to see our children excited about reading again," said Maria Santos, a mother of two.
+
+The library expects to reach over 200 young readers through this initiative.
+      `.trim(),
+      priority: 'MEDIUM' as const,
+      categoryId: localNewsCategory.id,
+      authorId: intern.id,
+      status: 'NEEDS_REVISION' as const,
+    },
+    {
+      title: 'Draft: School Art Exhibition Opens Next Week',
+      slug: 'draft-school-art-exhibition-opens-next-week',
+      content: `
+# School Art Exhibition Opens Next Week
+
+Students from five local high schools will showcase their artwork in an exhibition opening next week at the Community Arts Center.
+
+## Featured Artwork
+
+The exhibition will include:
+- Paintings and drawings
+- Sculptures and pottery
+- Photography displays
+- Digital art presentations
+
+## Opening Event
+
+The opening ceremony is scheduled for next Friday at 6 PM. The public is invited to attend and support local young artists.
+
+Awards will be given for outstanding pieces in each category.
+      `.trim(),
+      priority: 'MEDIUM' as const,
+      categoryId: localNewsCategory.id,
+      authorId: intern.id,
       status: 'DRAFT' as const,
     },
   ];

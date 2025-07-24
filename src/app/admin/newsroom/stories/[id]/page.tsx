@@ -1,19 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { 
   PencilSquareIcon,
   TrashIcon,
-  ChatBubbleLeftRightIcon,
-  ClockIcon,
-  UserIcon,
-  TagIcon,
   EyeIcon,
-  CheckCircleIcon,
-  XCircleIcon,
+  MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -27,16 +23,29 @@ import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Divider } from '@/components/ui/divider';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
+import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 
-import { useStory, useUpdateStoryStatus, useDeleteStory } from '@/hooks/use-stories';
+import { CustomAudioPlayer } from '@/components/ui/audio-player';
+import { TranslationSelectionModal } from '@/components/admin/TranslationSelectionModal';
+
+import { useStory, useDeleteStory } from '@/hooks/use-stories';
 import { StoryStatus } from '@prisma/client';
+import { 
+  canEditStory, 
+  canDeleteStory, 
+  getEditLockReason,
+  canUpdateStoryStatus
+} from '@/lib/permissions';
 
 // Status badge colors
 const statusColors = {
   DRAFT: 'zinc',
   IN_REVIEW: 'amber',
   NEEDS_REVISION: 'red',
+  PENDING_APPROVAL: 'blue',
   APPROVED: 'lime',
+  PENDING_TRANSLATION: 'purple',
+  READY_TO_PUBLISH: 'emerald',
   PUBLISHED: 'emerald',
   ARCHIVED: 'gray',
 } as const;
@@ -50,41 +59,88 @@ const priorityColors = {
   BREAKING: 'red',
 } as const;
 
+// Helper: should show review button
+function canShowReviewButton(userRole, status) {
+  if (!userRole) return false;
+  // Only show for sub-editor and above, and only for PENDING_APPROVAL
+  return (
+    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) &&
+    status === 'PENDING_APPROVAL'
+  );
+}
+
+// Helper: should show edit button
+function canShowEditButton(userRole, authorId, userId, status) {
+  // Only allow edit for DRAFT, IN_REVIEW, NEEDS_REVISION
+  const editableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
+  return canEditStory(userRole, authorId, userId, status) && editableStatuses.includes(status);
+}
+
+// Helper: should show delete button
+function canShowDeleteButton(userRole, status) {
+  // Only allow delete for DRAFT, IN_REVIEW, NEEDS_REVISION
+  const deletableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
+  return canDeleteStory(userRole) && deletableStatuses.includes(status);
+}
+
 export default function StoryDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { data: session } = useSession();
   const storyId = params.id as string;
   
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
+  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showTranslationModal, setShowTranslationModal] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   // Fetch single story
   const { data: story, isLoading, error } = useStory(storyId);
-  
+
   // Mutations
-  const updateStoryStatusMutation = useUpdateStoryStatus();
   const deleteStoryMutation = useDeleteStory();
 
-  const handleStatusUpdate = async (newStatus: StoryStatus) => {
-    setIsUpdatingStatus(true);
+  // Only compute this after story is defined
+  const canSendForTranslation = !!session?.user?.staffRole && !!story && canUpdateStoryStatus(session.user.staffRole, story.status, 'PENDING_TRANSLATION');
+
+  const handleSendForTranslation = () => {
+    setShowTranslationModal(true);
+  };
+
+  const handleTranslationConfirm = async ({ language, translatorId }: { language: string; translatorId: string }) => {
+    setIsTranslating(true);
     try {
-      await updateStoryStatusMutation.mutateAsync({ 
-        id: storyId, 
-        data: { status: newStatus } 
+      const response = await fetch(`/api/newsroom/stories/${storyId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PENDING_TRANSLATION', translationLanguage: language, translatorId }),
       });
-      toast.success('Story status updated successfully');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send for translation');
+      }
+      toast.success('Story sent for translation');
+      setShowTranslationModal(false);
+      router.refresh?.();
     } catch (error) {
-      toast.error('Failed to update story status');
+      toast.error(error instanceof Error ? error.message : 'Failed to send for translation');
     } finally {
-      setIsUpdatingStatus(false);
+      setIsTranslating(false);
     }
   };
 
+
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
+    // Check permissions before attempting delete
+    if (!canDeleteStory(session?.user?.staffRole)) {
+      toast.error('You do not have permission to delete stories');
       return;
     }
 
+    setShowDeleteModal(false);
     setIsDeleting(true);
     try {
       await deleteStoryMutation.mutateAsync(storyId);
@@ -97,6 +153,37 @@ export default function StoryDetailPage() {
     }
   };
 
+  const handleAudioPlay = (audioId: string) => {
+    // Stop any currently playing audio
+    if (playingAudioId && playingAudioId !== audioId) {
+      setPlayingAudioId(null);
+    }
+    setPlayingAudioId(playingAudioId === audioId ? null : audioId);
+  };
+
+  const handleAudioStop = (audioId: string) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
+    setPlayingAudioId(null);
+  };
+
+  const handleAudioRestart = (audioId: string) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
+  };
+
+  const handleAudioSeek = (audioId: string, time: number) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
+  };
+
+  const handleAudioTimeUpdate = useCallback((audioId: string, currentTime: number) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
+  }, []);
+
+  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
+    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
+  };
+
+
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -107,54 +194,7 @@ export default function StoryDetailPage() {
     });
   };
 
-  const getStatusActions = (currentStatus: StoryStatus) => {
-    const actions = [];
-    
-    switch (currentStatus) {
-      case 'DRAFT':
-        actions.push({
-          label: 'Submit for Review',
-          status: 'IN_REVIEW' as StoryStatus,
-          color: 'amber',
-          icon: EyeIcon,
-        });
-        break;
-      case 'IN_REVIEW':
-        actions.push(
-          {
-            label: 'Approve',
-            status: 'APPROVED' as StoryStatus,
-            color: 'emerald',
-            icon: CheckCircleIcon,
-          },
-          {
-            label: 'Request Revision',
-            status: 'NEEDS_REVISION' as StoryStatus,
-            color: 'red',
-            icon: XCircleIcon,
-          }
-        );
-        break;
-      case 'NEEDS_REVISION':
-        actions.push({
-          label: 'Resubmit for Review',
-          status: 'IN_REVIEW' as StoryStatus,
-          color: 'amber',
-          icon: EyeIcon,
-        });
-        break;
-      case 'APPROVED':
-        actions.push({
-          label: 'Publish',
-          status: 'PUBLISHED' as StoryStatus,
-          color: 'emerald',
-          icon: CheckCircleIcon,
-        });
-        break;
-    }
 
-    return actions;
-  };
 
   if (isLoading) {
     return (
@@ -179,180 +219,307 @@ export default function StoryDetailPage() {
     );
   }
 
-  const statusActions = getStatusActions(story.status);
-
+  // Only render the main page content if story is defined
   return (
     <Container>
       <PageHeader
         title={story.title}
-        description={`Story #${story.id.slice(-8)}`}
+        description={
+          <div className="flex items-center gap-4 mt-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
+              <Badge color={statusColors[story.status]} size="sm">
+                {story.status.replace('_', ' ')}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
+              <Badge color={priorityColors[story.priority]} size="sm">
+                {story.priority}
+              </Badge>
+            </div>
+          </div>
+        }
+        metadata={{
+          sections: [
+            {
+              title: "Author & Timeline",
+              items: [
+                {
+                  label: "Author",
+                  value: (
+                    <>
+                      <Avatar
+                        className="h-6 w-6"
+                        name={`${story.author.firstName} ${story.author.lastName}`}
+                      />
+                      <span>{story.author.firstName} {story.author.lastName}</span>
+                    </>
+                  ),
+                  type: 'avatar'
+                },
+                {
+                  label: "Created",
+                  value: formatDate(story.createdAt),
+                  type: 'date'
+                },
+                {
+                  label: "Last Updated",
+                  value: formatDate(story.updatedAt),
+                  type: 'date'
+                }
+              ]
+            }
+          ]
+        }}
         actions={
           <div className="flex items-center space-x-3">
-            {/* Status Actions */}
-            {statusActions.map((action) => (
-              <Button
-                key={action.status}
-                color={action.color as any}
-                size="sm"
-                onClick={() => handleStatusUpdate(action.status)}
-                disabled={isUpdatingStatus}
-              >
-                <action.icon className="h-4 w-4" />
-                {action.label}
-              </Button>
-            ))}
-            
-            {/* Edit Button */}
-            <Button asChild size="sm" color="white">
-              <Link href={`/admin/newsroom/stories/${story.id}/edit`}>
-                <PencilSquareIcon className="h-4 w-4" />
-                Edit
-              </Link>
-            </Button>
-
-            {/* Delete Button */}
+            {/* Back to Stories */}
             <Button
               size="sm"
-              color="red"
-              onClick={handleDelete}
-              disabled={isDeleting}
+              color="white"
+              onClick={() => router.push('/admin/newsroom/stories')}
             >
-              <TrashIcon className="h-4 w-4" />
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              ← Back to Stories
             </Button>
+
+            {/* Review Button for Sub-Editors - Only for PENDING_APPROVAL */}
+            {canShowReviewButton(session?.user?.staffRole, story.status) && (
+              <Button
+                size="sm"
+                color="primary"
+                onClick={() => router.push(`/admin/newsroom/stories/${storyId}/review`)}
+              >
+                <EyeIcon className="h-4 w-4 mr-2" />
+                Review Story
+              </Button>
+            )}
+
+            {/* Edit Button - Only show if user can edit this story and status is editable */}
+            {canShowEditButton(session?.user?.staffRole, story.authorId, session?.user?.id || '', story.status) ? (
+              <Button 
+                size="sm" 
+                color="secondary" 
+                onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+              >
+                <PencilSquareIcon className="h-4 w-4 mr-2" />
+                Edit Story
+              </Button>
+            ) : (
+              // Show lock reason only if user is the author and story is locked
+              (session?.user?.staffRole && story.authorId === session?.user?.id && getEditLockReason(story.status)) && (
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <PencilSquareIcon className="h-4 w-4" />
+                  <span>{getEditLockReason(story.status)}</span>
+                </div>
+              )
+            )}
+
+            {/* Delete Button - Only show if user can delete stories and status is deletable */}
+            {canShowDeleteButton(session?.user?.staffRole, story.status) && (
+              <Button
+                size="sm"
+                color="red"
+                onClick={() => setShowDeleteModal(true)}
+                disabled={isDeleting}
+              >
+                <TrashIcon className="h-4 w-4 mr-2" />
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            )}
+
+            {/* Send for Translation Button - Only for APPROVED status and with permission */}
+            {story.status === 'APPROVED' && canSendForTranslation && (
+              <Button
+                size="sm"
+                color="purple"
+                onClick={handleSendForTranslation}
+                disabled={isTranslating}
+              >
+                {isTranslating ? 'Sending...' : 'Send for Translation'}
+              </Button>
+            )}
           </div>
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Story Content */}
           <Card className="p-6">
             <div className="prose max-w-none">
-              <div className="whitespace-pre-wrap text-gray-900 leading-relaxed">
-                {story.content}
-              </div>
+              <div 
+                className="text-gray-900 leading-relaxed space-y-4"
+                dangerouslySetInnerHTML={{ __html: story.content }}
+              />
             </div>
           </Card>
 
-          {/* Comments Section */}
+          {/* Audio Clips Section */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <Heading level={3}>Comments</Heading>
+              <Heading level={3}>Audio Clips</Heading>
               <Badge color="gray" size="sm">
-                {story._count?.comments || 0} comments
+                {story.audioClips?.length || 0} clips
               </Badge>
             </div>
             
-            {/* Comments would be loaded here */}
-            <div className="text-center py-8 text-gray-500">
-              <ChatBubbleLeftRightIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-              <p>Comments functionality coming soon</p>
-            </div>
+            {!story.audioClips || story.audioClips.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <MusicalNoteIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                <p>No audio clips have been attached to this story</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {story.audioClips.map((clip) => (
+                  <CustomAudioPlayer
+                    key={clip.id}
+                    clip={clip}
+                    isPlaying={playingAudioId === clip.id}
+                    currentTime={audioProgress[clip.id] || 0}
+                    duration={audioDuration[clip.id] || 0}
+                    onPlay={handleAudioPlay}
+                    onStop={handleAudioStop}
+                    onRestart={handleAudioRestart}
+                    onSeek={handleAudioSeek}
+                    onTimeUpdate={handleAudioTimeUpdate}
+                    onLoadedMetadata={handleAudioLoadedMetadata}
+                    onEnded={() => setPlayingAudioId(null)}
+                    onError={() => {
+                      toast.error('Failed to play audio file');
+                      setPlayingAudioId(null);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </Card>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Status & Priority */}
-          <Card className="p-6">
-            <Heading level={3} className="mb-4">Status & Priority</Heading>
-            
-            <DescriptionList>
-              <DescriptionTerm>Status</DescriptionTerm>
-              <DescriptionDetails>
-                <Badge color={statusColors[story.status]} size="sm">
-                  {story.status.replace('_', ' ')}
-                </Badge>
-              </DescriptionDetails>
 
-              <DescriptionTerm>Priority</DescriptionTerm>
-              <DescriptionDetails>
-                <Badge color={priorityColors[story.priority]} size="sm">
-                  {story.priority}
-                </Badge>
-              </DescriptionDetails>
+          {/* Category & Tags - Only show for editors and admins */}
+          {session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
+            <Card className="p-6">
+              <Heading level={3} className="mb-4">Organization</Heading>
+              
+              <DescriptionList>
+                <DescriptionTerm>Category</DescriptionTerm>
+                <DescriptionDetails>
+                  <div className="flex items-center space-x-2">
+                    {/* Remove category color dot, just show name or fallback */}
+                    {story.category ? (
+                      <span>{story.category.name}</span>
+                    ) : (
+                      <span className="italic text-zinc-400">No category</span>
+                    )}
+                  </div>
+                </DescriptionDetails>
 
+                <DescriptionTerm>Language</DescriptionTerm>
+                <DescriptionDetails>
+                  <Badge color="blue" size="sm">
+                    {story.language}
+                  </Badge>
+                </DescriptionDetails>
 
-            </DescriptionList>
-          </Card>
+                {story.tags && story.tags.length > 0 && (
+                  <>
+                    <DescriptionTerm>Tags</DescriptionTerm>
+                    <DescriptionDetails>
+                      <div className="flex flex-wrap gap-1">
+                        {story.tags.map((storyTag: any) => (
+                          <Badge 
+                            key={storyTag.tag.id} 
+                            color="gray" 
+                            size="sm"
+                          >
+                            {storyTag.tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </DescriptionDetails>
+                  </>
+                )}
+              </DescriptionList>
+            </Card>
+          )}
 
-          {/* Author & Dates */}
-          <Card className="p-6">
-            <Heading level={3} className="mb-4">Author & Timeline</Heading>
-            
-            <DescriptionList>
-              <DescriptionTerm>Author</DescriptionTerm>
-              <DescriptionDetails>
-                <div className="flex items-center space-x-2">
-                  <Avatar
-                    className="h-6 w-6"
-                    name={`${story.author.firstName} ${story.author.lastName}`}
-                  />
-                  <span>{story.author.firstName} {story.author.lastName}</span>
-                </div>
-              </DescriptionDetails>
-
-              <DescriptionTerm>Created</DescriptionTerm>
-              <DescriptionDetails>
-                {formatDate(story.createdAt)}
-              </DescriptionDetails>
-
-              <DescriptionTerm>Last Updated</DescriptionTerm>
-              <DescriptionDetails>
-                {formatDate(story.updatedAt)}
-              </DescriptionDetails>
-
-              {story.publishedAt && (
-                <>
-                  <DescriptionTerm>Published</DescriptionTerm>
-                  <DescriptionDetails>
-                    {formatDate(story.publishedAt)}
-                  </DescriptionDetails>
-                </>
-              )}
-            </DescriptionList>
-          </Card>
-
-          {/* Category & Tags */}
-          <Card className="p-6">
-            <Heading level={3} className="mb-4">Organization</Heading>
-            
-            <DescriptionList>
-              <DescriptionTerm>Category</DescriptionTerm>
-              <DescriptionDetails>
-                <div className="flex items-center space-x-2">
-                  <div 
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: story.category.color || '#6B7280' }}
-                  />
-                  <span>{story.category.name}</span>
-                </div>
-              </DescriptionDetails>
-
-              {story.tags && story.tags.length > 0 && (
-                <>
-                  <DescriptionTerm>Tags</DescriptionTerm>
-                  <DescriptionDetails>
-                    <div className="flex flex-wrap gap-1">
-                      {story.tags.map((storyTag: any) => (
-                        <Badge 
-                          key={storyTag.tag.id} 
-                          color="gray" 
-                          size="sm"
-                        >
-                          {storyTag.tag.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </DescriptionDetails>
-                </>
-              )}
-            </DescriptionList>
-          </Card>
+          {/* Published Date (if published) */}
+          {story.publishedAt && (
+            <Card className="p-6">
+              <Heading level={3} className="mb-4">Publication</Heading>
+              
+              <DescriptionList>
+                <DescriptionTerm>Published</DescriptionTerm>
+                <DescriptionDetails>
+                  {formatDate(story.publishedAt)}
+                </DescriptionDetails>
+              </DescriptionList>
+            </Card>
+          )}
         </div>
       </div>
+
+      {/* Associated Translations Section */}
+      {story.translations && story.translations.length > 0 && (
+        <div className="mt-8">
+          <Card className="p-6">
+            <Heading level={3} className="mb-4">Associated Translations</Heading>
+            <div className="space-y-3">
+              {story.translations.map((translation: any) => (
+                <div key={translation.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{translation.title}</h4>
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <Badge color="purple">{translation.language || translation.targetLanguage}</Badge>
+                      <Badge color={translation.status === 'APPROVED' ? 'green' : 'amber'}>{translation.status}</Badge>
+                      {translation.assignedTo && (
+                        <span>• Translator: {translation.assignedTo.firstName} {translation.assignedTo.lastName}</span>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    color="white"
+                    onClick={() => router.push(`/admin/newsroom/translations/${translation.id}/work`)}
+                  >
+                    View
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <DialogTitle>Delete Story</DialogTitle>
+        <DialogDescription>
+          Are you sure you want to delete this story? This action cannot be undone.
+        </DialogDescription>
+        <DialogActions>
+          <Button color="white" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={handleDelete} disabled={isDeleting} className="font-bold flex items-center gap-2">
+            <TrashIcon className="h-5 w-5 text-red-600" />
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Translation Selection Modal */}
+      <TranslationSelectionModal
+        isOpen={showTranslationModal}
+        onClose={() => setShowTranslationModal(false)}
+        onConfirm={handleTranslationConfirm}
+        storyTitle={story.title}
+        isLoading={isTranslating}
+      />
+
     </Container>
   );
 }

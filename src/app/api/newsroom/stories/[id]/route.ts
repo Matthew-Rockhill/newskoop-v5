@@ -11,7 +11,7 @@ function hasStoryPermission(userRole: string | null, action: 'create' | 'read' |
   }
   
   const permissions = {
-    INTERN: ['create', 'read'],
+    INTERN: ['create', 'read', 'update'],
     JOURNALIST: ['create', 'read', 'update'],
     SUB_EDITOR: ['create', 'read', 'update'],
     EDITOR: ['create', 'read', 'update', 'delete'],
@@ -213,6 +213,11 @@ const updateStory = createHandler(
     const canEdit = await canEditStory(user.id, user.staffRole, id);
     if (!canEdit) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    // When updating to APPROVED or READY_TO_PUBLISH, require categoryId
+    if ((data.status === 'APPROVED' || data.status === 'READY_TO_PUBLISH') && !data.categoryId) {
+      return Response.json({ error: 'Category is required to approve or publish a story.' }, { status: 400 });
     }
 
     // Extract tag IDs from the data

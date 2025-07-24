@@ -116,7 +116,7 @@ export function FileUpload({
         className={clsx(
           'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
           isDragOver
-            ? 'border-blue-400 bg-blue-50'
+            ? 'border-[#76BD43] bg-[#76BD43]/5'
             : 'border-gray-300 hover:border-gray-400'
         )}
         onDrop={handleDrop}
@@ -130,7 +130,7 @@ export function FileUpload({
         <div className="mt-4">
           <p className="text-sm text-gray-600">
             <label htmlFor="file-upload" className="cursor-pointer">
-              <span className="text-blue-600 hover:text-blue-500">
+              <span className="text-[#76BD43] hover:text-[#5fa013]">
                 Click to upload audio files
               </span>
               <input
@@ -169,7 +169,7 @@ export function FileUpload({
               key={audioFile.id}
               className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg"
             >
-              <MusicalNoteIcon className="h-8 w-8 text-blue-500 flex-shrink-0 mt-1" />
+              <MusicalNoteIcon className="h-8 w-8 text-[#76BD43] flex-shrink-0 mt-1" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-900 truncate">
@@ -194,7 +194,7 @@ export function FileUpload({
                     placeholder="Add description (optional)..."
                     value={audioFile.description || ''}
                     onChange={(e) => updateFileDescription(audioFile.id, e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#76BD43] focus:border-transparent"
                   />
                 </div>
               </div>

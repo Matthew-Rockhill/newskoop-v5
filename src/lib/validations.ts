@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryPriority, CommentType } from '@prisma/client';
+import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryPriority, CommentType, StoryLanguage } from '@prisma/client';
 
 // Base user schema
 const baseUserSchema = z.object({
@@ -64,6 +64,7 @@ export const userUpdateSchema = z.object({
   userType: z.nativeEnum(UserType).optional(),
   staffRole: z.nativeEnum(StaffRole).optional(),
   translationLanguage: z.nativeEnum(TranslationLanguage).optional(),
+  translationLanguages: z.array(z.nativeEnum(TranslationLanguage)).optional(),
   radioStationId: z.string().optional(),
   isPrimaryContact: z.boolean().optional(),
   isActive: z.boolean().optional(),
@@ -94,6 +95,7 @@ export const userSearchSchema = z.object({
   staffRole: z.nativeEnum(StaffRole).optional(),
   radioStationId: z.string().optional(),
   isActive: z.boolean().optional(),
+  translationLanguage: z.nativeEnum(TranslationLanguage).optional(),
   page: z.number().int().positive().default(1),
   perPage: z.number().int().positive().default(10),
 });
@@ -114,7 +116,7 @@ export const storyCreateSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   content: z.string().min(1, 'Content is required'),
   priority: z.nativeEnum(StoryPriority).default(StoryPriority.MEDIUM),
-  categoryId: z.string().min(1, 'Category is required'),
+  categoryId: z.string().optional(), // Now optional
   tagIds: z.array(z.string()).optional().default([]),
 });
 
@@ -130,6 +132,9 @@ export const storyStatusUpdateSchema = z.object({
   status: z.nativeEnum(StoryStatus),
   assignedToId: z.string().optional(),
   reviewerId: z.string().optional(),
+  categoryId: z.string().optional(),
+  language: z.nativeEnum(StoryLanguage).optional(),
+  tagIds: z.array(z.string()).optional(),
 });
 
 export const storySearchSchema = z.object({
@@ -175,8 +180,8 @@ export const tagUpdateSchema = z.object({
 export const commentCreateSchema = z.object({
   content: z.string().min(1, 'Comment content is required'),
   type: z.nativeEnum(CommentType).default(CommentType.GENERAL),
-  storyId: z.string().min(1, 'Story ID is required'),
   parentId: z.string().optional(),
+  category: z.string().optional(),
 });
 
 export const commentUpdateSchema = z.object({

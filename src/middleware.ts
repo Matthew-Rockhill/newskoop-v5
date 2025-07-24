@@ -7,8 +7,7 @@ const publicPaths = ['/login', '/password-reset', '/register'];
 
 // Paths that require specific roles
 const roleBasedPaths = {
-  '/admin': ['SUPERADMIN', 'ADMIN'],
-  '/admin/staff': ['SUPERADMIN', 'ADMIN'],
+  '/admin/users': ['SUPERADMIN', 'ADMIN'],
   '/admin/stations': ['SUPERADMIN', 'ADMIN', 'EDITOR'],
 };
 

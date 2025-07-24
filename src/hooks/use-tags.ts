@@ -6,7 +6,11 @@ export interface Tag {
   name: string;
   slug: string;
   color?: string;
+  category: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
+  isRequired: boolean;
+  isPreset: boolean;
   createdAt: string;
+  updatedAt: string;
   _count: {
     stories: number;
   };
@@ -15,31 +19,37 @@ export interface Tag {
 export interface CreateTagData {
   name: string;
   color?: string;
+  category: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
+  isRequired?: boolean;
+  isPreset?: boolean;
 }
 
 export interface UpdateTagData {
   name?: string;
   color?: string;
+  category?: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
+  isRequired?: boolean;
+  isPreset?: boolean;
 }
 
 export interface TagFilters {
   query?: string;
+  category?: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
   page?: number;
   perPage?: number;
 }
 
 // Fetch tags
-export function useTags(filters: TagFilters = {}) {
+export function useTags(query?: string, category?: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL', page?: number, perPage?: number) {
   return useQuery({
-    queryKey: ['tags', filters],
+    queryKey: ['tags', { query, category, page, perPage }],
     queryFn: async () => {
       const params = new URLSearchParams();
       
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.set(key, String(value));
-        }
-      });
+      if (query) params.set('query', query);
+      if (category) params.set('category', category);
+      if (page) params.set('page', String(page));
+      if (perPage) params.set('perPage', String(perPage));
 
       const response = await fetch(`/api/newsroom/tags?${params}`);
       if (!response.ok) {

@@ -73,6 +73,11 @@ const styles = {
       'dark:[--btn-hover-overlay:#272727]/5',
       '[--btn-icon:#272727] data-active:[--btn-icon:#272727] data-hover:[--btn-icon:#272727]',
     ],
+    red: [
+      'text-white [--btn-hover-overlay:var(--color-white)]/10 [--btn-bg:#dc2626] [--btn-border:#dc2626]/90',
+      'data-active:[--btn-bg:#b91c1c] data-hover:[--btn-bg:#b91c1c]',
+      '[--btn-icon:var(--color-white)]/60 data-active:[--btn-icon:var(--color-white)]/80 data-hover:[--btn-icon:var(--color-white)]/80',
+    ],
   },
 }
 
