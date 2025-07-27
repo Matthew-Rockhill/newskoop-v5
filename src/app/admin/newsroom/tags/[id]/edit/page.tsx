@@ -39,7 +39,7 @@ export default function EditTagPage() {
   const deleteTag = useDeleteTag();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const tag = tags.find((t: any) => t.id === tagId);
+  const tag = tags.find((t: Tag) => t.id === tagId);
 
   // Permission check: only allow edit if user can edit this tag
   const userRole = session?.user?.staffRole;
@@ -50,7 +50,6 @@ export default function EditTagPage() {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
     reset,
   } = useForm<TagFormData>({
     resolver: zodResolver(tagSchema),
@@ -71,8 +70,12 @@ export default function EditTagPage() {
       await updateTag.mutateAsync({ id: tagId, data: formData });
       toast.success("Tag updated successfully!");
       router.push("/admin/newsroom/tags");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update tag");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to update tag");
+      } else {
+        toast.error("Failed to update tag");
+      }
     }
   };
 
@@ -83,8 +86,12 @@ export default function EditTagPage() {
       await deleteTag.mutateAsync(tagId);
       toast.success("Tag deleted successfully!");
       router.push("/admin/newsroom/tags");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete tag");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to delete tag");
+      } else {
+        toast.error("Failed to delete tag");
+      }
     }
   };
 

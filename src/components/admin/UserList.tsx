@@ -16,20 +16,6 @@ import { UsersIcon, UserIcon, BuildingOfficeIcon } from '@heroicons/react/24/out
 type UserType = 'STAFF' | 'RADIO';
 type StaffRole = 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'SUB_EDITOR' | 'JOURNALIST' | 'INTERN';
 
-interface UserWithStation {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  mobileNumber?: string | null;
-  userType: UserType;
-  staffRole?: StaffRole | null;
-  isActive: boolean;
-  radioStation?: {
-    id: string;
-    name: string;
-  } | null;
-}
 
 type UserFilter = 'all' | 'radio' | 'staff';
 
@@ -42,7 +28,6 @@ export function UserList() {
     users,
     pagination,
     isLoading,
-    filters,
     setFilters,
   } = useUsers({
     perPage: 10,

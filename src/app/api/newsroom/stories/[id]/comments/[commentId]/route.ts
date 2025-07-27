@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation } from '@/lib/api-handler';
 import { commentUpdateSchema } from '@/lib/validations';
-import { canEditStory, hasCommentPermission } from '@/lib/permissions'; // ← Import hasCommentPermission from permissions file
+import { hasCommentPermission } from '@/lib/permissions'; // ← Import hasCommentPermission from permissions file
 
 // Helper function to check if user can resolve revision notes
 function canResolveRevisionNote(userRole: string, storyAuthorId: string, userId: string, storyAssignedToId: string | null, storyReviewerId: string | null) {
@@ -33,8 +33,8 @@ function canResolveRevisionNote(userRole: string, storyAuthorId: string, userId:
 const updateComment = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string; commentId: string }> }) => {
     const { id: storyId, commentId } = await params;
-    const user = (req as any).user;
-    const data = (req as any).validatedData;
+    const user = req.user;
+    const data = req.validatedData;
 
     console.log('PATCH comment request:', {
       storyId,
@@ -153,7 +153,7 @@ const updateComment = createHandler(
     }
 
     // Prepare update data
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     
     if (data.content !== undefined) {
       updateData.content = data.content;

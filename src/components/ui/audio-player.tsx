@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef } from 'react';
 import { 
   MusicalNoteIcon,
   PlayIcon,
@@ -64,16 +64,16 @@ export function CustomAudioPlayer({
     onError?.(clip.id);
   }, [onError, clip.id]);
 
-  const handleLoadedMetadata = useCallback((e: any) => {
-    onLoadedMetadata?.(clip.id, e.target.duration);
+  const handleLoadedMetadata = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
+    onLoadedMetadata?.(clip.id, e.currentTarget.duration);
   }, [onLoadedMetadata, clip.id]);
 
-  const handleTimeUpdate = useCallback((e: any) => {
-    onTimeUpdate?.(clip.id, e.target.currentTime);
+  const handleTimeUpdate = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
+    onTimeUpdate?.(clip.id, e.currentTarget.currentTime);
   }, [onTimeUpdate, clip.id]);
 
-  const handleSeeked = useCallback((e: any) => {
-    onSeek?.(clip.id, e.target.currentTime);
+  const handleSeeked = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
+    onSeek?.(clip.id, e.currentTarget.currentTime);
   }, [onSeek, clip.id]);
 
   const formatTime = (seconds: number) => {

@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Select } from "@/components/ui/select";
-import { useTags, useCreateTag } from "@/hooks/use-tags";
+import { useCreateTag } from "@/hooks/use-tags";
 import { useSession } from "next-auth/react";
 
 const tagSchema = z.object({
@@ -40,8 +40,6 @@ export default function NewTagPage() {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
-    watch,
   } = useForm<TagFormData>({
     resolver: zodResolver(tagSchema),
     defaultValues: {
@@ -55,7 +53,7 @@ export default function NewTagPage() {
       await createTag.mutateAsync(formData);
       toast.success("Tag created successfully!");
       router.push("/admin/newsroom/tags");
-    } catch (error: any) {
+    } catch (error: Error) {
       toast.error(error.message || "Failed to create tag");
     } finally {
       setIsSubmitting(false);

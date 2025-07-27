@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { 
   TagIcon,
   FolderIcon,
-  PencilIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 
@@ -39,7 +38,7 @@ export default function CategoriesPage() {
   };
 
   // Check if user can edit a specific category
-  const canEditCategory = (category: any) => {
+  const canEditCategory = (category: Category) => {
     const userRole = session?.user?.staffRole;
     if (!userRole) return false;
     
@@ -54,7 +53,7 @@ export default function CategoriesPage() {
     return false;
   };
 
-  const renderCategoryRow = (category: any) => {
+  const renderCategoryRow = (category: Category) => {
     // Calculate indentation based on level
     const indentLevel = category.level - 1;
     

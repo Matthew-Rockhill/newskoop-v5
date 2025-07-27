@@ -81,7 +81,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
       {/* Basic Information */}
       <Fieldset>
         <Heading level={3}>Basic Information</Heading>
-        <Text className="mt-1">Enter the user's basic information and contact details.</Text>
+        <Text className="mt-1">Enter the user&apos;s basic information and contact details.</Text>
         
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -151,7 +151,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
       {/* Role Information */}
       <Fieldset>
         <Heading level={3}>Role & Permissions</Heading>
-        <Text className="mt-1">Configure the user's role and access permissions.</Text>
+        <Text className="mt-1">Configure the user&apos;s role and access permissions.</Text>
         
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>

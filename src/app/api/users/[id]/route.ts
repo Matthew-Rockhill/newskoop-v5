@@ -28,7 +28,7 @@ const getUser = createHandler(
 const updateUser = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const data = (req as any).validatedData;
+    const data = (req as { validatedData: { email?: string; firstName?: string; lastName?: string; staffRole?: string } }).validatedData;
 
     // Check if email is being changed and if it's already taken
     if (data.email) {
@@ -55,8 +55,8 @@ const updateUser = createHandler(
       });
 
       return Response.json(user);
-    } catch (error) {
-      if (error.code === 'P2025') {
+    } catch (error: unknown) {
+      if ((error as { code?: string }).code === 'P2025') {
         return Response.json(
           { error: 'User not found' },
           { status: 404 }
@@ -83,8 +83,8 @@ const deleteUser = createHandler(
       });
 
       return new Response(null, { status: 204 });
-    } catch (error) {
-      if (error.code === 'P2025') {
+    } catch (error: unknown) {
+      if ((error as { code?: string }).code === 'P2025') {
         return Response.json(
           { error: 'User not found' },
           { status: 404 }

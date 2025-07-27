@@ -1,6 +1,4 @@
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { randomBytes } from 'crypto';
+import { uploadAudioFile, validateAudioFile as cloudinaryValidateAudioFile, CloudinaryFile } from './cloudinary';
 
 export interface UploadedFile {
   filename: string;
@@ -8,59 +6,38 @@ export interface UploadedFile {
   url: string;
   size: number;
   mimeType: string;
+  duration?: number;
 }
 
 export async function saveUploadedFile(
   file: File,
-  uploadDir: string = '/uploads/audio'
+  uploadDir: string = 'newsroom/audio'
 ): Promise<UploadedFile> {
-  // Ensure upload directory exists
-  const fullUploadDir = join(process.cwd(), 'public', uploadDir);
-  
-  try {
-    await mkdir(fullUploadDir, { recursive: true });
-  } catch (error) {
-    // Directory might already exist, that's okay
+  // Validate file first
+  const validation = validateAudioFile(file);
+  if (!validation.valid) {
+    throw new Error(validation.error);
   }
 
-  // Generate unique filename
-  const fileExtension = file.name.split('.').pop() || '';
-  const uniqueFilename = `${randomBytes(16).toString('hex')}.${fileExtension}`;
-  const filePath = join(fullUploadDir, uniqueFilename);
-
-  // Convert File to Buffer
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  // Write file to disk
-  await writeFile(filePath, buffer);
-
-  return {
-    filename: uniqueFilename,
-    originalName: file.name,
-    url: `${uploadDir}/${uniqueFilename}`,
-    size: file.size,
-    mimeType: file.type,
-  };
+  try {
+    // Upload to Cloudinary
+    const cloudinaryFile: CloudinaryFile = await uploadAudioFile(file, uploadDir);
+    
+    return {
+      filename: cloudinaryFile.public_id,
+      originalName: cloudinaryFile.original_filename,
+      url: cloudinaryFile.secure_url,
+      size: cloudinaryFile.bytes,
+      mimeType: file.type,
+      duration: cloudinaryFile.duration,
+    };
+  } catch (error) {
+    console.error('Error uploading file to Cloudinary:', error);
+    throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export function validateAudioFile(file: File): { valid: boolean; error?: string } {
-  const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
-  const maxSize = 50 * 1024 * 1024; // 50MB
-
-  if (!allowedTypes.includes(file.type)) {
-    return {
-      valid: false,
-      error: `Invalid file type: ${file.type}. Only MP3, WAV, OGG, and MP4 files are allowed.`,
-    };
-  }
-
-  if (file.size > maxSize) {
-    return {
-      valid: false,
-      error: `File too large: ${file.name}. Maximum size is 50MB.`,
-    };
-  }
-
-  return { valid: true };
+  // Use the Cloudinary validation function
+  return cloudinaryValidateAudioFile(file);
 } 

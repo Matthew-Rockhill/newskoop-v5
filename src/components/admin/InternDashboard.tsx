@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { useStories } from '@/hooks/use-stories';
+import { useQuery } from '@tanstack/react-query';
 import { StoryPipelineView } from './StoryPipelineView';
 import { 
   PlusIcon,
@@ -75,13 +75,6 @@ export function UserDashboard() {
     perPage: 100 
   });
   
-  // Sub-editor specific: stories needing revision (fact-checking, categorization)
-  const { data: needsRevisionStoriesData } = useStories({ 
-    status: 'NEEDS_REVISION', 
-    page: 1, 
-    perPage: 100 
-  });
-  
   // Sub-editor specific: approved stories ready for pre-publishing
   const { data: approvedForPublishingStoriesData } = useStories({ 
     status: 'APPROVED', 
@@ -89,9 +82,19 @@ export function UserDashboard() {
     perPage: 100 
   });
 
-  // Fetch stories assigned to the user for translation
-  const { data: assignedTranslationStoriesData } = useStories({ assignedToId: userId, status: 'PENDING_TRANSLATION', page: 1, perPage: 100 });
-  const assignedTranslationStories = assignedTranslationStoriesData?.stories || [];
+  // Fetch translations assigned to the user
+  const { data: assignedTranslationsData } = useQuery({
+    queryKey: ['assignedTranslations', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const response = await fetch(`/api/newsroom/translations?assignedToId=${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch assigned translations');
+      const data = await response.json();
+      return data.translations || [];
+    },
+    enabled: !!userId,
+  });
+  const assignedTranslationStories = assignedTranslationsData || [];
 
   const allStories = allStoriesData?.stories || [];
   const draftStories = draftStoriesData?.stories || [];
@@ -101,7 +104,6 @@ export function UserDashboard() {
   const reviewStories = reviewStoriesData?.stories || [];
   const approvedStories = approvedStoriesData?.stories || [];
   const pendingApprovalStories = pendingApprovalStoriesData?.stories || [];
-  const needsRevisionStories = needsRevisionStoriesData?.stories || [];
   const approvedForPublishingStories = approvedForPublishingStoriesData?.stories || [];
 
   // Calculate success metrics
@@ -200,34 +202,6 @@ export function UserDashboard() {
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT': return 'gray';
-      case 'IN_REVIEW': return 'yellow';
-      case 'NEEDS_REVISION': return 'red';
-      case 'PENDING_APPROVAL': return 'blue';
-      case 'APPROVED': return 'green';
-      case 'PENDING_TRANSLATION': return 'purple';
-      case 'READY_TO_PUBLISH': return 'emerald';
-      case 'PUBLISHED': return 'blue';
-      default: return 'gray';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'DRAFT': return 'Draft';
-      case 'IN_REVIEW': return 'In Review';
-      case 'NEEDS_REVISION': return 'Needs Revision';
-      case 'PENDING_APPROVAL': return 'Pending Approval';
-      case 'APPROVED': return 'Approved';
-      case 'PENDING_TRANSLATION': return 'Pending Translation';
-      case 'READY_TO_PUBLISH': return 'Ready to Publish';
-      case 'PUBLISHED': return 'Published';
-      default: return status;
-    }
-  };
-
   return (
     <Container>
       {/* Custom Header with Quick Actions */}
@@ -237,7 +211,7 @@ export function UserDashboard() {
             My Dashboard
           </h3>
           <p className="mt-1 text-sm text-gray-600">
-            Welcome back, {session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here's your {isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.
+            Welcome back, {session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here&apos;s your {isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.
           </p>
         </div>
         <div className="mt-3 sm:ml-4 sm:mt-0">
@@ -544,7 +518,7 @@ export function UserDashboard() {
             <Badge color="zinc">{draftStories.length}</Badge>
           </div>
           <Text className="text-gray-600 mb-4">
-            Stories you're currently working on
+            Stories you&apos;re currently working on
           </Text>
           
           {draftStories.length > 0 ? (
@@ -694,7 +668,7 @@ export function UserDashboard() {
       )}
 
       {/* Assigned Translations Section - Translators Only */}
-      {assignedTranslationStories.length > 0 && (
+      {session?.user?.isTranslator && assignedTranslationStories.length > 0 && (
         <div className="mt-8">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -705,21 +679,21 @@ export function UserDashboard() {
               Stories assigned to you for translation
             </Text>
             <div className="space-y-3">
-              {assignedTranslationStories.slice(0, 5).map((story) => (
-                <div key={story.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+              {assignedTranslationStories.slice(0, 5).map((translation) => (
+                <div key={translation.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{story.title}</h4>
+                    <h4 className="font-medium text-gray-900">{translation.originalStory?.title || 'Untitled'}</h4>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <ClockIcon className="h-4 w-4" />
-                      <span>Assigned {formatDate(story.updatedAt)}</span>
-                      {story.author && (
-                        <span>• Author: {story.author.firstName} {story.author.lastName}</span>
+                      <span>Assigned {formatDate(translation.createdAt)}</span>
+                      {translation.originalStory?.author && (
+                        <span>• Author: {translation.originalStory.author.firstName} {translation.originalStory.author.lastName}</span>
                       )}
                     </div>
                   </div>
                   <Button
                     color="white"
-                    onClick={() => router.push(`/admin/newsroom/translations/${story.id}/work`)}
+                    onClick={() => router.push(`/admin/newsroom/translations/${translation.id}/work`)}
                   >
                     <PencilIcon className="h-4 w-4 mr-1" />
                     Translate
@@ -730,7 +704,7 @@ export function UserDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/stories?assignedToId=' + userId + '&status=PENDING_TRANSLATION')}
+                  onClick={() => router.push('/admin/newsroom/translations?assignedToId=' + userId)}
                 >
                   View all {assignedTranslationStories.length} assigned translations
                 </Button>

@@ -109,7 +109,7 @@ export function TranslationSelectionModal({
                 Select the target language and translator for this story:
               </Text>
               <div className="bg-gray-50 p-3 rounded-lg">
-                <Text className="font-medium text-gray-900">"{storyTitle}"</Text>
+                <Text className="font-medium text-gray-900">&ldquo;{storyTitle}&rdquo;</Text>
               </div>
 
               <div className="space-y-3">

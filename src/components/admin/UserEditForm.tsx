@@ -25,7 +25,7 @@ type User = {
   mobileNumber?: string | null;
   userType: 'STAFF' | 'RADIO';
   staffRole?: 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'SUB_EDITOR' | 'JOURNALIST' | 'INTERN' | null;
-  translationLanguage?: 'AFRIKAANS' | 'XHOSA' | null;
+  translationLanguages?: ('AFRIKAANS' | 'XHOSA')[];
   isActive: boolean;
   isPrimaryContact: boolean;
   radioStationId?: string | null;
@@ -43,11 +43,7 @@ const userEditSchema = z.object({
   mobileNumber: z.string().optional(),
   userType: z.enum(['STAFF', 'RADIO']),
   staffRole: z.enum(['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN']).optional(),
-  translationLanguage: z.string().optional().transform((val) => {
-    // Convert empty string to undefined for optional enum validation
-    if (val === '' || val === undefined) return undefined;
-    return val;
-  }).pipe(z.enum(['AFRIKAANS', 'XHOSA']).optional()),
+  translationLanguages: z.array(z.enum(['AFRIKAANS', 'XHOSA'])).max(1).optional(),
   isActive: z.boolean(),
 });
 
@@ -76,7 +72,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
       mobileNumber: user.mobileNumber || '',
       userType: user.userType,
       staffRole: user.staffRole || undefined,
-      translationLanguage: user.translationLanguage || undefined,
+      translationLanguages: user.translationLanguages || [],
       isActive: user.isActive,
     },
   });
@@ -89,7 +85,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
       // Remove translation language for radio users
       const submitData = { ...data };
       if (data.userType === 'RADIO') {
-        delete submitData.translationLanguage;
+        delete submitData.translationLanguages;
         delete submitData.staffRole;
       }
 
@@ -134,7 +130,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
         {/* Basic Information */}
         <Fieldset>
           <Heading level={2}>Basic Information</Heading>
-          <Text className="mt-1">Update the user's basic information and contact details.</Text>
+          <Text className="mt-1">Update the user&apos;s basic information and contact details.</Text>
           
           <div className="mt-6 flex items-center gap-4">
             <Avatar 
@@ -219,7 +215,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
         {/* Role Information */}
         <Fieldset>
           <Heading level={2}>Role & Permissions</Heading>
-          <Text className="mt-1">Configure the user's role and access permissions.</Text>
+          <Text className="mt-1">Configure the user&apos;s role and access permissions.</Text>
           
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
@@ -267,21 +263,22 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
             {userType === 'STAFF' && (
               <div>
-                <label htmlFor="translationLanguage" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="translationLanguages" className="block text-sm font-medium text-gray-700">
                   Translation Language
                 </label>
                 <Select
-                  {...register('translationLanguage')}
-                  id="translationLanguage"
+                  id="translationLanguages"
+                  value={watch('translationLanguages')?.[0] || ''}
+                  onChange={e => setValue('translationLanguages', e.target.value ? [e.target.value] : [])}
                   className="mt-1"
-                  invalid={!!errors.translationLanguage}
+                  invalid={!!errors.translationLanguages}
                 >
                   <option value="">None</option>
                   <option value="AFRIKAANS">Afrikaans</option>
                   <option value="XHOSA">Xhosa</option>
                 </Select>
-                {errors.translationLanguage && (
-                  <p className="mt-1 text-sm text-red-600">{errors.translationLanguage.message}</p>
+                {errors.translationLanguages && (
+                  <p className="mt-1 text-sm text-red-600">{errors.translationLanguages.message}</p>
                 )}
               </div>
             )}
@@ -316,7 +313,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
         {/* Account Status */}
         <Fieldset>
           <Heading level={2}>Account Status</Heading>
-          <Text className="mt-1">Control the user's account status and access.</Text>
+          <Text className="mt-1">Control the user&apos;s account status and access.</Text>
           
           <div className="mt-6">
             <div className="flex items-center justify-between">

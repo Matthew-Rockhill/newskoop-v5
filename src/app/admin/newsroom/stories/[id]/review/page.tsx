@@ -21,7 +21,8 @@ export default function StoryReviewPage() {
     }
 
     const userRole = session.user.staffRole;
-    if (!userRole || !['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+    // Allow journalists to review IN_REVIEW stories, and sub-editors+ to review PENDING_APPROVAL
+    if (!userRole || !['JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
       router.push('/admin');
       return;
     }
@@ -43,7 +44,7 @@ export default function StoryReviewPage() {
   }
 
   const userRole = session.user.staffRole;
-  if (!userRole || !['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+  if (!userRole || !['JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
     return null; // Will redirect to admin
   }
 

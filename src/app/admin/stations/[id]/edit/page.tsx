@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Container } from '@/components/ui/container';
 import { RadioIcon } from '@heroicons/react/24/outline';
 import StationEditForm from '@/components/admin/StationEditForm';
@@ -24,7 +24,6 @@ type Station = {
 
 export default function StationEditPage() {
   const params = useParams();
-  const router = useRouter();
   const [station, setStation] = useState<Station | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

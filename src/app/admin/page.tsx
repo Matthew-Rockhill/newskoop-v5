@@ -8,7 +8,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatsCard } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { useUsers } from '@/hooks/use-users';
-import { useStations } from '@/hooks/use-stations';
 import { useStories } from '@/hooks/use-stories';
 import { UserActivityChart } from '@/components/admin/UserActivityChart';
 import { UserDashboard } from '@/components/admin/InternDashboard';
@@ -25,9 +24,6 @@ export default function AdminDashboard() {
   
   // Fetch data for stats - get more data to show actual counts
   const { users: allUsers, pagination: usersPagination } = useUsers({ page: 1, perPage: 100 });
-  const { users: activeUsers, pagination: activeUsersPagination } = useUsers({ isActive: true, page: 1, perPage: 100 });
-  const { stations: allStations, pagination: stationsPagination } = useStations({ page: 1, perPage: 100 });
-  const { stations: activeStations, pagination: activeStationsPagination } = useStations({ isActive: true, page: 1, perPage: 100 });
   
   // Newsroom stats
   const { data: allStoriesData } = useStories({ page: 1, perPage: 1 });
@@ -48,9 +44,8 @@ export default function AdminDashboard() {
     if (!isAdmin) return [];
     
     const totalUsers = usersPagination?.total || 0;
-    const activeUserCount = activeUsersPagination?.total || 0;
-    const totalStations = stationsPagination?.total || 0;
-    const activeStationCount = activeStationsPagination?.total || 0;
+    const activeUserCount = usersPagination?.total || 0;
+    const totalStations = allStations.filter(station => station.isActive).length;
     
     // Count staff vs radio users from the actual data
     const staffUsers = allUsers.filter(user => user.userType === 'STAFF').length;

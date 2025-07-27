@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -11,11 +11,8 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   PencilIcon,
-  EyeIcon,
   DocumentTextIcon,
   TagIcon,
-  CheckIcon,
-  XMarkIcon,
   PlusIcon,
   MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
@@ -24,10 +21,9 @@ import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Label, ErrorMessage, Description } from '@/components/ui/fieldset';
+import { Label, Description } from '@/components/ui/fieldset';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
-import { Divider } from '@/components/ui/divider';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Checkbox, CheckboxGroup, CheckboxField } from '@/components/ui/checkbox';
@@ -79,7 +75,7 @@ interface StoryReviewFormProps {
 // Helper to build breadcrumb path for a category
 function getCategoryBreadcrumb(category: Category | undefined): string {
   if (!category) return '';
-  let path = [category.name];
+  const path = [category.name];
   let current = category.parent;
   while (current) {
     path.unshift(current.name);
@@ -103,8 +99,14 @@ function canShowApproveButton(status: string) {
   return status === 'PENDING_APPROVAL';
 }
 // Helper: should show request revision button
-function canShowRequestRevisionButton(status: string) {
-  return status === 'PENDING_APPROVAL';
+function canShowRequestRevisionButton(userRole: string | null, status: string) {
+  if (!userRole) return false;
+  if (userRole === 'JOURNALIST' && status === 'IN_REVIEW') return true;
+  if (
+    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) &&
+    status === 'PENDING_APPROVAL'
+  ) return true;
+  return false;
 }
 // Helper: should show edit button
 function canShowEditButton(status: string) {
@@ -117,8 +119,6 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'approve' | 'revision' | null>(null);
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [fieldInteractions, setFieldInteractions] = useState<Record<string, boolean>>({});
   
   // Audio state
@@ -146,8 +146,6 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   const updateStoryStatusMutation = useUpdateStoryStatus();
 
   const {
-    register,
-    handleSubmit,
     watch,
     setValue,
     trigger,
@@ -173,7 +171,6 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   // Helper function to handle checkbox changes
   const handleCheckboxChange = (field: keyof ReviewChecklistData, checked: boolean) => {
     setValue(field, checked);
-    setHasInteracted(true);
     setFieldInteractions(prev => ({ ...prev, [field]: true }));
     // Only trigger validation for the specific field that was changed
     setTimeout(() => trigger(field), 0);
@@ -236,7 +233,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       
       toast.success('Story approved successfully');
       router.push(`/admin/newsroom/stories/${storyId}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to approve story');
     } finally {
       setIsSubmitting(false);
@@ -244,7 +241,6 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   };
 
   const handleRequestRevision = () => {
-    setPendingAction('revision');
     setShowRevisionModal(true);
   };
 
@@ -252,7 +248,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
     router.push(`/admin/newsroom/stories/${storyId}/edit`);
   };
 
-  const handleRevisionRequested = async (revisionNotes: any[]) => {
+  const handleRevisionRequested = async (revisionNotes: string[]) => {
     if (!canUpdateStoryStatus(session?.user?.staffRole as StaffRole | null, story?.status || 'DRAFT', 'NEEDS_REVISION', story?.authorId, session?.user?.id)) {
       toast.error('You do not have permission to request revision');
       return;
@@ -260,6 +256,19 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
 
     setIsSubmitting(true);
     try {
+      // Persist each revision note as a comment
+      for (const note of revisionNotes) {
+        await fetch(`/api/newsroom/stories/${storyId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: note,
+            type: 'REVISION_REQUEST',
+            category: 'REVISION_REQUEST',
+          }),
+        });
+      }
+      // Then update the story status
       await updateStoryStatusMutation.mutateAsync({
         id: storyId,
         data: { status: 'NEEDS_REVISION' },
@@ -267,12 +276,11 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       
       toast.success('Revision requested successfully');
       router.push(`/admin/newsroom/stories/${storyId}/edit`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to request revision');
     } finally {
       setIsSubmitting(false);
       setShowRevisionModal(false);
-      setPendingAction(null);
     }
   };
 
@@ -444,7 +452,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                   Edit
                 </Button>
               )}
-              {canShowRequestRevisionButton(story.status) && (
+              {canShowRequestRevisionButton(session?.user?.staffRole as string | null, story.status) && (
                 <Button
                   color="secondary"
                   onClick={handleRequestRevision}
@@ -457,7 +465,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
               {canShowApproveButton(story.status) && (
                 <Button
                   color="primary"
-                  onClick={handleSubmit(handleApprove)}
+                  onClick={handleApprove}
                   disabled={!isValid || isSubmitting}
                 >
                   <CheckCircleIcon className="h-4 w-4" />
@@ -574,7 +582,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                 <Heading level={4}>Content Review Checklist</Heading>
               </div>
               
-              <form onSubmit={handleSubmit(handleApprove)}>
+              <form onSubmit={handleApprove}>
                 <CheckboxGroup>
                   <CheckboxField>
                     <Checkbox
@@ -904,7 +912,6 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       isOpen={showRevisionModal}
       onClose={() => {
         setShowRevisionModal(false);
-        setPendingAction(null);
       }}
       onConfirm={handleRevisionRequested}
       storyTitle={story?.title || ''}

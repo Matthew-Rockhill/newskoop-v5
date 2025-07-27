@@ -109,13 +109,13 @@ const createUser = createHandler(
         subject,
         html,
       });
-    } catch (error) {
-      console.error('Failed to send welcome email:', error);
+    } catch (error: unknown) {
+      console.error('Failed to send welcome email:', error instanceof Error ? error.message : 'Unknown error');
       // Don't fail the request if email sending fails
     }
 
     // Remove password from response
-    const { password, ...userWithoutPassword } = user;
+    const { password: _, ...userWithoutPassword } = user;
 
     return Response.json(userWithoutPassword, { status: 201 });
   },

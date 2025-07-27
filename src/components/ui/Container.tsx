@@ -1,7 +1,7 @@
 import React from "react";
 
 type ContainerProps = React.PropsWithChildren<{
-  as?: keyof JSX.IntrinsicElements | React.ComponentType<any>;
+  as?: keyof JSX.IntrinsicElements | React.ComponentType<Record<string, unknown>>;
   backgroundless?: boolean;
 }> & React.HTMLAttributes<HTMLDivElement>;
 

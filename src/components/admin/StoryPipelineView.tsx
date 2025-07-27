@@ -12,6 +12,7 @@ import {
   PencilIcon,
   LanguageIcon,
 } from '@heroicons/react/24/outline';
+import { Story } from '@/types/story';
 
 export function StoryPipelineView() {
   // Fetch stories in all stages of the editorial process
@@ -85,9 +86,9 @@ export function StoryPipelineView() {
   ];
 
   const totalInPipeline = draftCount + inReviewCount + needsRevisionCount + pendingApprovalCount + approvedCount + pendingTranslationCount + readyToPublishCount;
-  const publishedToday = publishedData?.stories?.filter(s => {
+  const publishedToday = publishedData?.stories?.filter((story: Story) => {
     const today = new Date().toDateString();
-    return new Date(s.publishedAt || s.updatedAt).toDateString() === today;
+    return new Date(story.publishedAt || story.updatedAt).toDateString() === today;
   }).length || 0;
 
   return (
@@ -107,7 +108,7 @@ export function StoryPipelineView() {
               <div className="flex flex-col items-center space-y-2">
                 <stage.icon className={`h-6 w-6 text-${stage.color}-600`} />
                 <div className="text-sm font-medium text-gray-900">{stage.name}</div>
-                <Badge color={stage.color as any} className="text-lg font-bold">
+                <Badge color={stage.color as string} className="text-lg font-bold">
                   {stage.count}
                 </Badge>
               </div>

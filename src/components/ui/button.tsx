@@ -94,7 +94,7 @@ export const Button = forwardRef(function Button(
   { color = 'primary', outline, plain, className, children, ...props }: ButtonProps,
   ref: React.ForwardedRef<HTMLElement>
 ) {
-  let classes = clsx(
+  const classes = clsx(
     className,
     styles.base,
     outline ? styles.outline : plain ? styles.plain : clsx(styles.solid, styles.colors[color])

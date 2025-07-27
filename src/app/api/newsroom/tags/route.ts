@@ -35,7 +35,7 @@ function generateSlug(name: string): string {
 // GET /api/newsroom/tags - List tags
 const getTags = createHandler(
   async (req: NextRequest) => {
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasTagPermission(user.staffRole, 'read')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -47,7 +47,7 @@ const getTags = createHandler(
     const page = parseInt(url.searchParams.get('page') || '1');
     const perPage = parseInt(url.searchParams.get('perPage') || '50');
 
-    const where: any = {};
+    const where: { OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; slug?: { contains: string; mode: 'insensitive' } }>; category?: string } = {};
     
     if (query) {
       where.OR = [
@@ -94,8 +94,8 @@ const getTags = createHandler(
 // POST /api/newsroom/tags - Create a new tag
 const createTag = createHandler(
   async (req: NextRequest) => {
-    const user = (req as any).user;
-    const data = (req as any).validatedData;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const data = (req as { validatedData: { name: string; category?: string; color?: string; description?: string } }).validatedData;
 
     if (!hasTagPermission(user.staffRole, 'create')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -138,7 +138,7 @@ const createTag = createHandler(
 const deleteTag = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasTagPermission(user.staffRole, 'delete')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });

@@ -18,7 +18,7 @@ function hasTagPermission(userRole: string | null, action: 'delete') {
 const deleteTag = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasTagPermission(user.staffRole, 'delete')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
