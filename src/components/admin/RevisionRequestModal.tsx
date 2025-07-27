@@ -173,7 +173,7 @@ export function RevisionRequestModal({
               </Text>
               
               <div className="bg-gray-50 p-3 rounded-lg">
-                <Text className="font-medium text-gray-900">"{storyTitle}"</Text>
+                <Text className="font-medium text-gray-900">&ldquo;{storyTitle}&rdquo;</Text>
               </div>
 
               {errors.general && (

@@ -130,7 +130,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
         {/* Basic Information */}
         <Fieldset>
           <Heading level={2}>Basic Information</Heading>
-          <Text className="mt-1">Update the user's basic information and contact details.</Text>
+          <Text className="mt-1">Update the user&apos;s basic information and contact details.</Text>
           
           <div className="mt-6 flex items-center gap-4">
             <Avatar 
@@ -215,7 +215,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
         {/* Role Information */}
         <Fieldset>
           <Heading level={2}>Role & Permissions</Heading>
-          <Text className="mt-1">Configure the user's role and access permissions.</Text>
+          <Text className="mt-1">Configure the user&apos;s role and access permissions.</Text>
           
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
@@ -313,7 +313,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
         {/* Account Status */}
         <Fieldset>
           <Heading level={2}>Account Status</Heading>
-          <Text className="mt-1">Control the user's account status and access.</Text>
+          <Text className="mt-1">Control the user&apos;s account status and access.</Text>
           
           <div className="mt-6">
             <div className="flex items-center justify-between">

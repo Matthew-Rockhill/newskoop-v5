@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -11,11 +11,8 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   PencilIcon,
-  EyeIcon,
   DocumentTextIcon,
   TagIcon,
-  CheckIcon,
-  XMarkIcon,
   PlusIcon,
   MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
@@ -236,7 +233,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       
       toast.success('Story approved successfully');
       router.push(`/admin/newsroom/stories/${storyId}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to approve story');
     } finally {
       setIsSubmitting(false);
@@ -279,7 +276,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       
       toast.success('Revision requested successfully');
       router.push(`/admin/newsroom/stories/${storyId}/edit`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to request revision');
     } finally {
       setIsSubmitting(false);

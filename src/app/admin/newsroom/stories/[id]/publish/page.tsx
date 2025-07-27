@@ -110,7 +110,7 @@ export default function PublishStoryPage() {
         throw new Error(errorData.error || 'Failed to publish story');
       }
 
-      const result = await response.json();
+      await response.json();
       
       if (formData.publishImmediately) {
         toast.success("Story and translations published successfully!");
@@ -119,8 +119,9 @@ export default function PublishStoryPage() {
       }
       
       router.push("/admin/newsroom/stories");
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to publish story");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to publish story";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

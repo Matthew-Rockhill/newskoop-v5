@@ -29,6 +29,32 @@ import {
 } from '@/lib/permissions';
 import { StoryStatus } from '@prisma/client';
 
+// Story type interface
+interface Story {
+  id: string;
+  title: string;
+  content: string | null;
+  status: StoryStatus;
+  priority: string;
+  categoryId: string | null;
+  authorId: string;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  audioClips?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    filename: string;
+    duration?: number;
+    createdAt: string;
+  }>;
+}
+
 // Simplified schema for interns - only title and content
 const internStoryEditSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
@@ -64,22 +90,13 @@ interface InternEditFormProps {
 }
 
 export function InternEditForm({ storyId }: InternEditFormProps) {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
 
-  // Show loading while session is loading
-  if (status === 'loading') {
-    return (
-      <Container>
-        <div className="text-center py-12">
-          <p>Loading...</p>
-        </div>
-      </Container>
-    );
-  }
+  // All hooks must be called before any conditional returns
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [story, setStory] = useState<any>(null);
+  const [story, setStory] = useState<Story | null>(null);
   const [content, setContent] = useState('');
   const [showReviewerModal, setShowReviewerModal] = useState(false);
   const [showSubEditorModal, setShowSubEditorModal] = useState(false);
@@ -115,7 +132,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
           title: storyData.title,
           content: storyData.content,
         });
-      } catch (error) {
+      } catch {
         toast.error('Failed to load story');
         router.push('/admin');
       } finally {
@@ -136,8 +153,8 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update story');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update story');
       }
 
       toast.success('Story updated successfully!');
@@ -465,7 +482,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
               {statusActions.map((action) => (
                 <Button
                   key={action.status}
-                  color={action.color as any}
+                  color={action.color}
                   size="sm"
                   onClick={() => handleSubmitForReview()}
                   disabled={isSubmitting}

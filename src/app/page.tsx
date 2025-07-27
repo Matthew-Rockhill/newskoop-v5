@@ -42,7 +42,7 @@ export default function Homepage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
               {/* Quote mark */}
-              <div className="text-8xl text-gray-200 font-serif mb-4">"</div>
+              <div className="text-8xl text-gray-200 font-serif mb-4">&ldquo;</div>
               <blockquote className="text-3xl md:text-4xl font-light text-[#272727] mb-4 leading-relaxed">
                 Credible news not only builds trust with listeners, it empowers communities.
               </blockquote>

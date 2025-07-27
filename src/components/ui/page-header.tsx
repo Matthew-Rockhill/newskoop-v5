@@ -2,8 +2,6 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { Input, InputGroup } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
-import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
 
 interface MetadataItem {
   label: string;
@@ -102,7 +100,7 @@ export function PageHeader({
                     {item.label}:
                   </span>
                   {item.type === 'badge' ? (
-                    <Badge color={item.color as any} size="sm">
+                    <Badge color={item.color} size="sm">
                       {item.value}
                     </Badge>
                   ) : item.type === 'avatar' ? (

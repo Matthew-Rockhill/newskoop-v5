@@ -27,7 +27,7 @@ function hasStoryPermission(userRole: string | null, action: 'create' | 'read' |
 // GET /api/newsroom/stories - List stories with filtering and pagination
 const getStories = createHandler(
   async (req: NextRequest) => {
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasStoryPermission(user.staffRole, 'read')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -236,7 +236,7 @@ const getStories = createHandler(
 // POST /api/newsroom/stories - Create a new story
 const createStory = createHandler(
   async (req: NextRequest) => {
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'create')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -274,7 +274,7 @@ const createStory = createHandler(
     
     // Handle role-based validation
     let validatedData;
-    let reviewerId = storyData.reviewerId; // Extract reviewer ID if provided
+    const reviewerId = storyData.reviewerId; // Extract reviewer ID if provided
     
     if (user.staffRole === 'INTERN' || user.staffRole === 'JOURNALIST') {
       // Interns and journalists can create stories without a category

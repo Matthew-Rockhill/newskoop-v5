@@ -39,7 +39,7 @@ export default function LoginPage() {
         router.push(callbackUrl);
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error('An error occurred during sign in');
     } finally {
       setIsLoading(false);

@@ -57,7 +57,7 @@ async function canEditStory(userId: string, userRole: string, storyId: string) {
 const getStory = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'read')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -207,8 +207,18 @@ const getStory = createHandler(
 const updateStory = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const user = (req as any).user;
-    const data = (req as any).validatedData;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const data = (req as { validatedData: { 
+      status?: string; 
+      categoryId?: string; 
+      tagIds?: string[]; 
+      title?: string;
+      content?: string;
+      priority?: string;
+      assignedToId?: string;
+      reviewerId?: string;
+      [key: string]: unknown;
+    } }).validatedData;
 
     const canEdit = await canEditStory(user.id, user.staffRole, id);
     if (!canEdit) {
@@ -304,7 +314,7 @@ const updateStory = createHandler(
 const deleteStory = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'delete')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });

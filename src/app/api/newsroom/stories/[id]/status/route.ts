@@ -14,8 +14,8 @@ function canUpdateStatus(userRole: string, currentStatus: StoryStatus, newStatus
 const updateStoryStatus = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const user = (req as any).user;
-    const { status, assignedToId, reviewerId, categoryId, language, tagIds } = (req as any).validatedData;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const { status, assignedToId, reviewerId, categoryId, language, tagIds } = (req as { validatedData: { status: string; assignedToId?: string; reviewerId?: string; categoryId?: string; language?: string; tagIds?: string[] } }).validatedData;
 
     // Get current story
     const story = await prisma.story.findUnique({

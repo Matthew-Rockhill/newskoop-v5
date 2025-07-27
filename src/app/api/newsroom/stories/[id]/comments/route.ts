@@ -26,7 +26,7 @@ function hasCommentPermission(userRole: string | null, action: 'create' | 'read'
 const getComments = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id: storyId } = await params;
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
     
     // Get query parameters
     const { searchParams } = new URL(req.url);
@@ -65,7 +65,7 @@ const getComments = createHandler(
       }
     }
 
-    const whereClause: any = {
+    const whereClause: { storyId: string; parentId: null; type?: string } = {
       storyId,
       parentId: null, // Only get top-level comments
     };
@@ -135,8 +135,8 @@ const getComments = createHandler(
 const createComment = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id: storyId } = await params;
-    const user = (req as any).user;
-    const data = (req as any).validatedData;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const data = (req as { validatedData: { content: string; type: string; category?: string; parentId?: string } }).validatedData;
 
     if (!hasCommentPermission(user.staffRole, 'create')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
-import { logActivity } from '@/lib/audit';
+import { logAudit } from '@/lib/audit';
 import { canPublishStory, canUpdateStoryStatus } from '@/lib/permissions';
 
 const publishSchema = z.object({
@@ -94,31 +94,39 @@ export async function POST(
     if (!validatedData.publishImmediately && validatedData.scheduledPublishAt) {
       // In a real implementation, you might use a job queue like Bull or a cron job
       // For now, we'll just log it for manual handling
-      await logActivity({
+      await logAudit({
         userId: session.user.id,
         action: 'SCHEDULE_PUBLISH',
-        entityType: 'STORY',
-        entityId: params.id,
-        metadata: {
+        details: {
+          entityType: 'STORY',
+          entityId: params.id,
           scheduledFor: validatedData.scheduledPublishAt,
           followUpDate: validatedData.followUpDate,
           followUpNote: validatedData.followUpNote,
-        }
+        },
+        ipAddress: request.ip || 'unknown',
+        userAgent: request.headers.get('user-agent') || 'unknown',
+        targetId: params.id,
+        targetType: 'STORY'
       });
     }
 
     // Log the publish activity
-    await logActivity({
+    await logAudit({
       userId: session.user.id,
       action: validatedData.publishImmediately ? 'PUBLISH_STORY' : 'SCHEDULE_STORY',
-      entityType: 'STORY',
-      entityId: params.id,
-      metadata: {
+      details: {
+        entityType: 'STORY',
+        entityId: params.id,
         storyTitle: story.title,
         publishDate: publishDate,
         followUpDate: validatedData.followUpDate,
         translationsCount: story.translations.length,
-      }
+      },
+      ipAddress: request.ip || 'unknown',
+      userAgent: request.headers.get('user-agent') || 'unknown',
+      targetId: params.id,
+      targetType: 'STORY'
     });
 
     // Also mark all approved translations as published
@@ -144,7 +152,7 @@ export async function POST(
       followUpDate: validatedData.followUpDate,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error publishing story:', error);
     
     if (error instanceof z.ZodError) {
@@ -154,8 +162,9 @@ export async function POST(
       }, { status: 400 });
     }
 
+    const errorMessage = error instanceof Error ? error.message : 'Failed to publish story';
     return NextResponse.json({ 
-      error: 'Failed to publish story' 
+      error: errorMessage 
     }, { status: 500 });
   }
 }
@@ -212,10 +221,11 @@ export async function GET(
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error checking publish status:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to check publish status';
     return NextResponse.json({ 
-      error: 'Failed to check publish status' 
+      error: errorMessage 
     }, { status: 500 });
   }
 }

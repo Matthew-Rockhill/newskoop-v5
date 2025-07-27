@@ -3,8 +3,9 @@
 ## Prerequisites
 
 1. A Vercel account
-2. A PostgreSQL database (e.g., Supabase, Neon, or Vercel Postgres)
-3. The repository pushed to GitHub/GitLab/Bitbucket
+2. A Neon PostgreSQL database
+3. A Cloudinary account for file storage
+4. The repository pushed to GitHub/GitLab/Bitbucket
 
 ## Environment Variables
 
@@ -13,7 +14,10 @@ Set the following environment variables in your Vercel project settings:
 ### Required Variables
 
 ```
-DATABASE_URL=your-postgresql-connection-string
+DATABASE_URL=postgresql://username:password@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 NEXTAUTH_SECRET=generate-a-secure-random-string
 NEXTAUTH_URL=https://your-domain.vercel.app
 ```
@@ -30,7 +34,11 @@ EMAIL_PASSWORD=your-email-password
 
 ## Deployment Steps
 
-### 1. Prepare the Database
+### 1. Set up Neon Database and Cloudinary
+
+Follow the setup guides:
+- **Database**: See `NEON_CLOUDINARY_SETUP.md` for detailed Neon setup
+- **File Storage**: Configure Cloudinary account and get API credentials
 
 Run the Prisma migrations on your production database:
 
@@ -65,11 +73,13 @@ vercel
 
 1. **Update NEXTAUTH_URL**: Set this to your production URL (e.g., `https://your-app.vercel.app`)
 
-2. **Configure Database**: Ensure your database allows connections from Vercel's IP addresses
+2. **Verify Neon Connection**: Neon automatically allows Vercel connections
 
-3. **Set up Email (if using)**: Configure your email provider settings
+3. **Test Cloudinary**: Upload a test file to verify storage is working
 
-4. **Create Admin User**: Use the API or database directly to create the first admin user
+4. **Set up Email (if using)**: Configure your email provider settings
+
+5. **Create Admin User**: Use the API or database directly to create the first admin user
 
 ## Build Configuration
 

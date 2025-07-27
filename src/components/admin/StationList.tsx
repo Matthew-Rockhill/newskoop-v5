@@ -10,21 +10,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RadioIcon } from '@heroicons/react/24/outline';
 
-// Define Station type locally since it's not exported from types
-type Station = {
-  id: string;
-  name: string;
-  description?: string | null;
-  logoUrl?: string | null;
-  province: string;
-  contactNumber?: string | null;
-  contactEmail?: string | null;
-  website?: string | null;
-  isActive: boolean;
-  hasContentAccess: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 // Helper function to format province names
 const formatProvince = (province: string) => {
@@ -42,7 +27,6 @@ export function StationList() {
     pagination,
     isLoading,
     setFilters,
-    updateStation,
   } = useStations({
     perPage: 10,
   });

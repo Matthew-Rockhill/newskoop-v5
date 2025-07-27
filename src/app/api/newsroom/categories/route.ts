@@ -35,7 +35,7 @@ function generateSlug(name: string): string {
 // GET /api/newsroom/categories - List categories with hierarchy
 const getCategories = createHandler(
   async (req: NextRequest) => {
-    const user = (req as any).user;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasCategoryPermission(user.staffRole, 'read')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -48,7 +48,7 @@ const getCategories = createHandler(
 
     if (flat) {
       // Return flat list of categories
-      const whereClause: any = {};
+      const whereClause: { level?: number; OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; description?: { contains: string; mode: 'insensitive' } }> } = {};
       
       if (level) {
         whereClause.level = parseInt(level);
@@ -128,8 +128,8 @@ const getCategories = createHandler(
 // POST /api/newsroom/categories - Create a new category
 const createCategory = createHandler(
   async (req: NextRequest) => {
-    const user = (req as any).user;
-    const data = (req as any).validatedData;
+    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const data = (req as { validatedData: { name: string; parentId?: string; description?: string } }).validatedData;
 
     if (!hasCategoryPermission(user.staffRole, 'create')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });

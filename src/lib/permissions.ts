@@ -104,7 +104,7 @@ export function hasStoryPermission(userRole: StaffRole | null, action: Permissio
   return storyPermissions[userRole]?.actions.includes(action) || false;
 }
 
-export function canUpdateStoryStatus(userRole: StaffRole | null, currentStatus: StoryStatus, newStatus: StoryStatus, storyAuthorId?: string, currentUserId?: string): boolean {
+export function canUpdateStoryStatus(userRole: StaffRole | null, currentStatus: StoryStatus, newStatus: StoryStatus): boolean {
   if (!userRole) return false;
   const transitions = storyPermissions[userRole]?.statusTransitions[currentStatus];
   

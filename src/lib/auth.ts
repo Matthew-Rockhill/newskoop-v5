@@ -3,7 +3,6 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { User } from '@/types';
 import { randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
 
@@ -137,7 +136,7 @@ export function verifyResetToken(token: string): string | null {
   try {
     const payload = jwt.verify(token, RESET_TOKEN_SECRET) as { userId: string };
     return payload.userId;
-  } catch (err) {
+  } catch {
     return null;
   }
 } 

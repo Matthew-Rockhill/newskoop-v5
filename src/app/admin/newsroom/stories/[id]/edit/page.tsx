@@ -85,7 +85,7 @@ export default function EditStoryPage() {
           title: storyData.title,
           content: storyData.content,
         });
-      } catch (error: any) {
+      } catch {
         toast.error('Failed to load story');
         router.push('/admin/newsroom/stories');
       } finally {

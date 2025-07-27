@@ -114,7 +114,7 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
     }
   };
 
-  const canResolveRevision = (revision: RevisionNote) => {
+  const canResolveRevision = () => {
     if (!session?.user) return false;
     
     const userRole = session.user.staffRole;

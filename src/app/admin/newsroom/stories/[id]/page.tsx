@@ -127,8 +127,9 @@ export default function StoryDetailPage() {
       toast.success('Story sent for translation');
       setShowTranslationModal(false);
       router.refresh?.();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to send for translation');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send for translation';
+      toast.error(errorMessage);
     } finally {
       setIsTranslating(false);
     }
@@ -148,8 +149,9 @@ export default function StoryDetailPage() {
       await deleteStoryMutation.mutateAsync(storyId);
       toast.success('Story deleted successfully');
       router.push('/admin/newsroom/stories');
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to delete story');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete story';
+      toast.error(errorMessage);
     } finally {
       setIsDeleting(false);
     }
