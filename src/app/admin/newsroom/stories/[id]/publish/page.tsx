@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 import { Container } from "@/components/ui/container";
@@ -23,6 +24,8 @@ import { useStory } from "@/hooks/use-stories";
 const publishSchema = z.object({
   followUpDate: z.string().min(1, "Follow-up date is required"),
   followUpNote: z.string().optional(),
+  publishImmediately: z.boolean().default(true),
+  scheduledPublishAt: z.string().optional(),
   checklistConfirmed: z.boolean().refine(val => val, "You must confirm the checklist before publishing."),
 });
 
@@ -35,6 +38,19 @@ export default function PublishStoryPage() {
   const storyId = params.id as string;
   const { data: story, isLoading, error } = useStory(storyId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if story can be published
+  const { data: publishStatus, isLoading: isCheckingStatus } = useQuery({
+    queryKey: ['publishStatus', storyId],
+    queryFn: async () => {
+      const response = await fetch(`/api/newsroom/stories/${storyId}/publish`);
+      if (!response.ok) {
+        throw new Error('Failed to check publish status');
+      }
+      return response.json();
+    },
+    enabled: !!storyId && !!story,
+  });
 
   // Check permissions
   useEffect(() => {
@@ -56,23 +72,52 @@ export default function PublishStoryPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<PublishFormData>({
     resolver: zodResolver(publishSchema),
     defaultValues: {
       checklistConfirmed: false,
+      publishImmediately: true,
     },
   });
 
+  const watchPublishImmediately = watch('publishImmediately');
+  
   // Stub: translations and their statuses
   const translations = story?.translations || [];
-  const allTranslationsApproved = translations.length === 0 || translations.every((t: Translation) => t.status === "APPROVED");
+  const canPublish = publishStatus?.canPublish || false;
+  const publishIssues = publishStatus?.issues || [];
 
-  const onSubmit = async (_formData: PublishFormData) => {
+  const onSubmit = async (formData: PublishFormData) => {
+    if (!canPublish) {
+      toast.error("Story cannot be published. Please check the requirements.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // TODO: Call API to publish story and translations, and save follow-up date/note
-      toast.success("Story and translations published!");
+      const response = await fetch(`/api/newsroom/stories/${storyId}/publish`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to publish story');
+      }
+
+      const result = await response.json();
+      
+      if (formData.publishImmediately) {
+        toast.success("Story and translations published successfully!");
+      } else {
+        toast.success("Story scheduled for publishing!");
+      }
+      
       router.push("/admin/newsroom/stories");
     } catch (error: any) {
       toast.error(error?.message || "Failed to publish story");
@@ -145,6 +190,98 @@ export default function PublishStoryPage() {
             )}
           </Card>
 
+          {/* Publish Status Checks */}
+          <Card className="p-6">
+            <Heading level={2} className="mb-6">Publication Requirements</Heading>
+            {isCheckingStatus ? (
+              <div className="text-gray-500">Checking publication requirements...</div>
+            ) : (
+              <div className="space-y-4">
+                {publishIssues.length > 0 ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 className="font-medium text-red-800 mb-2">Issues preventing publication:</h4>
+                    <ul className="text-red-700 space-y-1">
+                      {publishIssues.map((issue: string, index: number) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                          {issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-medium text-green-800 mb-2">✓ Story is ready for publication</h4>
+                    <p className="text-green-700">All requirements have been met.</p>
+                  </div>
+                )}
+                
+                {publishStatus?.checks && (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className={`flex items-center gap-2 ${publishStatus.checks.hasPermission ? 'text-green-600' : 'text-red-600'}`}>
+                      <span>{publishStatus.checks.hasPermission ? '✓' : '✗'}</span>
+                      User has publish permission
+                    </div>
+                    <div className={`flex items-center gap-2 ${publishStatus.checks.correctStatus ? 'text-green-600' : 'text-red-600'}`}>
+                      <span>{publishStatus.checks.correctStatus ? '✓' : '✗'}</span>
+                      Story status allows publishing
+                    </div>
+                    <div className={`flex items-center gap-2 ${publishStatus.checks.hasCategory ? 'text-green-600' : 'text-red-600'}`}>
+                      <span>{publishStatus.checks.hasCategory ? '✓' : '✗'}</span>
+                      Story has category assigned
+                    </div>
+                    <div className={`flex items-center gap-2 ${publishStatus.checks.translationsApproved ? 'text-green-600' : 'text-red-600'}`}>
+                      <span>{publishStatus.checks.translationsApproved ? '✓' : '✗'}</span>
+                      All translations approved ({publishStatus.checks.approvedTranslations}/{publishStatus.checks.translationsCount})
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+
+          {/* Publishing Options */}
+          <Card className="p-6">
+            <Heading level={2} className="mb-6">Publishing Options</Heading>
+            <Fieldset>
+              <FieldGroup>
+                <Field>
+                  <Label>
+                    <input
+                      type="radio"
+                      {...register("publishImmediately")}
+                      value="true"
+                      className="mr-2"
+                    />
+                    Publish immediately
+                  </Label>
+                </Field>
+                <Field>
+                  <Label>
+                    <input
+                      type="radio"
+                      {...register("publishImmediately")}
+                      value="false"
+                      className="mr-2"
+                    />
+                    Schedule for later
+                  </Label>
+                  {!watchPublishImmediately && (
+                    <div className="mt-2 ml-6">
+                      <Label htmlFor="scheduledPublishAt">Scheduled Publish Date & Time</Label>
+                      <Input
+                        id="scheduledPublishAt"
+                        type="datetime-local"
+                        {...register("scheduledPublishAt")}
+                        className="max-w-sm"
+                      />
+                    </div>
+                  )}
+                </Field>
+              </FieldGroup>
+            </Fieldset>
+          </Card>
+
           {/* Associated Translations */}
           <Card className="p-6">
             <Heading level={2} className="mb-6">Associated Translations</Heading>
@@ -207,12 +344,14 @@ export default function PublishStoryPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !allTranslationsApproved}>
-              {isSubmitting ? "Publishing..." : "Publish Story & Translations"}
+            <Button type="submit" disabled={isSubmitting || !canPublish}>
+              {isSubmitting ? (watchPublishImmediately ? "Publishing..." : "Scheduling...") : (watchPublishImmediately ? "Publish Story & Translations" : "Schedule for Publishing")}
             </Button>
           </div>
-          {!allTranslationsApproved && (
-            <div className="text-red-600 mt-4">All translations must be approved before publishing.</div>
+          {!canPublish && publishIssues.length > 0 && (
+            <div className="text-red-600 mt-4">
+              Please resolve the issues listed above before publishing.
+            </div>
           )}
         </form>
       </div>

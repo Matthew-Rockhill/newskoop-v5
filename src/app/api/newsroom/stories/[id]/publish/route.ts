@@ -1,0 +1,221 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
+import { logActivity } from '@/lib/audit';
+import { canPublishStory, canUpdateStoryStatus } from '@/lib/permissions';
+
+const publishSchema = z.object({
+  followUpDate: z.string().transform(str => new Date(str)),
+  followUpNote: z.string().optional(),
+  scheduledPublishAt: z.string().transform(str => new Date(str)).optional(),
+  publishImmediately: z.boolean().default(true),
+});
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userRole = session.user.staffRole;
+    if (!canPublishStory(userRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    // Parse and validate request body
+    const body = await request.json();
+    const validatedData = publishSchema.parse(body);
+
+    // Get the story
+    const story = await prisma.story.findUnique({
+      where: { id: params.id },
+      include: {
+        author: true,
+        category: true,
+        translations: {
+          include: {
+            assignedTo: true,
+          }
+        },
+        audioClips: true,
+      }
+    });
+
+    if (!story) {
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
+    }
+
+    // Verify story can be published
+    if (!canUpdateStoryStatus(userRole, story.status, 'PUBLISHED')) {
+      return NextResponse.json({ 
+        error: `Cannot publish story with status: ${story.status}` 
+      }, { status: 400 });
+    }
+
+    // Check if all required translations are approved
+    const pendingTranslations = story.translations.filter(t => t.status !== 'APPROVED');
+    if (pendingTranslations.length > 0) {
+      return NextResponse.json({ 
+        error: 'All translations must be approved before publishing',
+        pendingTranslations: pendingTranslations.length
+      }, { status: 400 });
+    }
+
+    // Determine publish date
+    const publishDate = validatedData.publishImmediately 
+      ? new Date() 
+      : validatedData.scheduledPublishAt || new Date();
+
+    // Update story status and metadata
+    const updatedStory = await prisma.story.update({
+      where: { id: params.id },
+      data: {
+        status: validatedData.publishImmediately ? 'PUBLISHED' : 'READY_TO_PUBLISH',
+        publishedAt: validatedData.publishImmediately ? publishDate : null,
+        publishedBy: session.user.id,
+        followUpDate: validatedData.followUpDate,
+        followUpNote: validatedData.followUpNote,
+        updatedAt: new Date(),
+      },
+      include: {
+        author: true,
+        category: true,
+        publisher: true,
+      }
+    });
+
+    // If scheduled for later, store the scheduled date
+    if (!validatedData.publishImmediately && validatedData.scheduledPublishAt) {
+      // In a real implementation, you might use a job queue like Bull or a cron job
+      // For now, we'll just log it for manual handling
+      await logActivity({
+        userId: session.user.id,
+        action: 'SCHEDULE_PUBLISH',
+        entityType: 'STORY',
+        entityId: params.id,
+        metadata: {
+          scheduledFor: validatedData.scheduledPublishAt,
+          followUpDate: validatedData.followUpDate,
+          followUpNote: validatedData.followUpNote,
+        }
+      });
+    }
+
+    // Log the publish activity
+    await logActivity({
+      userId: session.user.id,
+      action: validatedData.publishImmediately ? 'PUBLISH_STORY' : 'SCHEDULE_STORY',
+      entityType: 'STORY',
+      entityId: params.id,
+      metadata: {
+        storyTitle: story.title,
+        publishDate: publishDate,
+        followUpDate: validatedData.followUpDate,
+        translationsCount: story.translations.length,
+      }
+    });
+
+    // Also mark all approved translations as published
+    if (validatedData.publishImmediately) {
+      await prisma.translation.updateMany({
+        where: {
+          originalStoryId: params.id,
+          status: 'APPROVED'
+        },
+        data: {
+          status: 'PUBLISHED',
+          approvedAt: new Date(),
+        }
+      });
+    }
+
+    return NextResponse.json({
+      message: validatedData.publishImmediately 
+        ? 'Story published successfully' 
+        : 'Story scheduled for publishing',
+      story: updatedStory,
+      publishedAt: publishDate,
+      followUpDate: validatedData.followUpDate,
+    });
+
+  } catch (error: any) {
+    console.error('Error publishing story:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ 
+        error: 'Invalid request data',
+        details: error.errors 
+      }, { status: 400 });
+    }
+
+    return NextResponse.json({ 
+      error: 'Failed to publish story' 
+    }, { status: 500 });
+  }
+}
+
+// GET endpoint to check if story can be published
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const story = await prisma.story.findUnique({
+      where: { id: params.id },
+      include: {
+        translations: true,
+        category: true,
+        audioClips: true,
+      }
+    });
+
+    if (!story) {
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
+    }
+
+    const userRole = session.user.staffRole;
+    const canPublish = canPublishStory(userRole);
+    const canChangeStatus = canUpdateStoryStatus(userRole, story.status, 'PUBLISHED');
+    const allTranslationsApproved = story.translations.every(t => t.status === 'APPROVED');
+    const hasCategory = !!story.categoryId;
+
+    const readyToPublish = canPublish && canChangeStatus && allTranslationsApproved && hasCategory;
+
+    const issues = [];
+    if (!canPublish) issues.push('User does not have publish permissions');
+    if (!canChangeStatus) issues.push(`Cannot publish story with status: ${story.status}`);
+    if (!allTranslationsApproved) issues.push('Some translations are not approved');
+    if (!hasCategory) issues.push('Story must have a category assigned');
+
+    return NextResponse.json({
+      canPublish: readyToPublish,
+      issues,
+      checks: {
+        hasPermission: canPublish,
+        correctStatus: canChangeStatus,
+        translationsApproved: allTranslationsApproved,
+        hasCategory,
+        currentStatus: story.status,
+        translationsCount: story.translations.length,
+        approvedTranslations: story.translations.filter(t => t.status === 'APPROVED').length,
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Error checking publish status:', error);
+    return NextResponse.json({ 
+      error: 'Failed to check publish status' 
+    }, { status: 500 });
+  }
+}
