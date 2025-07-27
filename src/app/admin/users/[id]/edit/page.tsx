@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Container } from '@/components/ui/container';
 import { UserEditForm } from '@/components/admin/UserEditForm';
 import { UsersIcon } from '@heroicons/react/24/outline';
@@ -30,7 +30,6 @@ type User = {
 
 export default function UserEditPage() {
   const params = useParams();
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
+import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { storyCreateSchema, storySearchSchema } from '@/lib/validations';
-import { Prisma, StoryStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 
 // Helper function to check permissions
@@ -242,29 +242,36 @@ const createStory = createHandler(
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // Handle FormData for file uploads
-    const formData = await req.formData();
-    
-    // Extract story data from FormData
-    const storyData: any = {};
+    let storyData: Record<string, unknown> = {};
     const audioFiles: File[] = [];
     const audioDescriptions: string[] = [];
-    
-    for (const [key, value] of formData.entries()) {
-      if (key.startsWith('audioFile_')) {
-        audioFiles.push(value as File);
-      } else if (key.startsWith('audioDescription_')) {
-        const index = parseInt(key.split('_')[1]);
-        audioDescriptions[index] = value as string;
-      } else if (key !== 'audioFilesCount') {
-        if (key === 'tagIds') {
-          storyData[key] = JSON.parse(value as string);
-        } else {
-          storyData[key] = value as string;
+
+    // Support both JSON and FormData
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      // Handle JSON body (no file uploads)
+      storyData = await req.json();
+    } else if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
+      // Handle FormData for file uploads
+      const formData = await req.formData();
+      for (const [key, value] of formData.entries()) {
+        if (key.startsWith('audioFile_')) {
+          audioFiles.push(value as File);
+        } else if (key.startsWith('audioDescription_')) {
+          const index = parseInt(key.split('_')[1]);
+          audioDescriptions[index] = value as string;
+        } else if (key !== 'audioFilesCount') {
+          if (key === 'tagIds') {
+            storyData[key] = JSON.parse(value as string);
+          } else {
+            storyData[key] = value as string;
+          }
         }
       }
+    } else {
+      return Response.json({ error: 'Unsupported Content-Type' }, { status: 415 });
     }
-
+    
     // Handle role-based validation
     let validatedData;
     let reviewerId = storyData.reviewerId; // Extract reviewer ID if provided

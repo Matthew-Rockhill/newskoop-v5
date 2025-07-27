@@ -21,6 +21,7 @@ import { useSession } from "next-auth/react";
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { TrashIcon } from '@heroicons/react/24/outline';
+import { Category } from '@/types';
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
@@ -41,7 +42,7 @@ export default function EditCategoryPage() {
   const deleteCategory = useDeleteCategory();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const category = categories.find((cat: any) => cat.id === categoryId);
+  const category = categories.find((cat: Category) => cat.id === categoryId);
 
   // Permission check: only allow edit if user can edit this category
   const userRole = session?.user?.staffRole;
@@ -52,7 +53,6 @@ export default function EditCategoryPage() {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
     reset,
   } = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -74,8 +74,12 @@ export default function EditCategoryPage() {
       await updateCategory.mutateAsync({ id: categoryId, data: formData });
       toast.success("Category updated successfully!");
       router.push("/admin/newsroom/categories");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update category");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to update category");
+      } else {
+        toast.error("Failed to update category");
+      }
     }
   };
 
@@ -86,8 +90,12 @@ export default function EditCategoryPage() {
       await deleteCategory.mutateAsync(categoryId);
       toast.success("Category deleted successfully!");
       router.push("/admin/newsroom/categories");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete category");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to delete category");
+      } else {
+        toast.error("Failed to delete category");
+      }
     }
   };
 
@@ -162,8 +170,8 @@ export default function EditCategoryPage() {
                   >
                     <option value="">No parent (Level 1)</option>
                     {categories
-                      .filter((cat: any) => (cat.level === 1 || cat.level === 2) && cat.id !== categoryId)
-                      .map((cat: any) => (
+                      .filter((cat: Category) => (cat.level === 1 || cat.level === 2) && cat.id !== categoryId)
+                      .map((cat: Category) => (
                         <option key={cat.id} value={cat.id}>
                           {cat.level === 1 ? `Level 1: ${cat.name}` : `Level 2: ${cat.name}`}
                         </option>

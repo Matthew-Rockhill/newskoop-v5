@@ -1,6 +1,6 @@
 import React from "react";
 
-type CardProps = React.PropsWithChildren<{}> & React.HTMLAttributes<HTMLDivElement>;
+type CardProps = React.PropsWithChildren<unknown> & React.HTMLAttributes<HTMLDivElement>;
 
 export function Card({ children, className, ...props }: CardProps) {
   return (

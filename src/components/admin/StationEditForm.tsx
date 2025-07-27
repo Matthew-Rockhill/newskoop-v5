@@ -115,7 +115,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
     resolver: zodResolver(stationEditSchema),
     defaultValues: {
       name: station.name,
-      province: station.province as any,
+      province: station.province as string,
       contactEmail: station.contactEmail || '',
       contactNumber: station.contactNumber || '',
       isActive: station.isActive,
@@ -139,7 +139,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
     const primaryContact = station.users.find(user => user.isPrimaryContact);
     reset({
       name: station.name,
-      province: station.province as any,
+      province: station.province as string,
       contactEmail: station.contactEmail || '',
       contactNumber: station.contactNumber || '',
       isActive: station.isActive,

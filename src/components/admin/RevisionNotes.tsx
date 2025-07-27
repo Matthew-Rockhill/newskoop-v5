@@ -118,7 +118,6 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
     if (!session?.user) return false;
     
     const userRole = session.user.staffRole;
-    const userId = session.user.id;
     
     // Admins and editors can always resolve revision notes
     if (userRole === 'ADMIN' || userRole === 'SUPERADMIN' || userRole === 'EDITOR') {

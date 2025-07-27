@@ -103,7 +103,7 @@ export default function StationCreationForm() {
   const hasContentAccess = watch('hasContentAccess');
 
   const validateAndProceed = async () => {
-    let fieldsToValidate: any[] = [];
+    let fieldsToValidate: string[] = [];
     
     switch (currentStep) {
       case 1:

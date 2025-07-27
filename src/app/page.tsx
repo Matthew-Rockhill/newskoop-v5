@@ -1,21 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ArrowRight, Menu } from 'lucide-react';
-import Logo from '@/components/shared/Logo';
-import { Button } from '@/components/ui/button';
-import { Link } from '@/components/ui/link';
+import { useEffect } from 'react';
+import { ArrowRight } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 
 export default function Homepage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // This should come from your auth system
-  const [isScrolled, setIsScrolled] = useState(false);
-
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 50);
+      // setIsScrolled(scrollPosition > 50); // This line was removed as per the edit hint.
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -57,9 +51,11 @@ export default function Homepage() {
                 the interests of their communities and provides them with programming that is fresh and innovative.
               </p>
               <div className="flex items-center gap-4">
-                <img
+                <Image
                   src="/images/kim-nobg.png"
                   alt="Kim du Plessis"
+                  width={80}
+                  height={80}
                   className="h-20 w-20 rounded-lg object-cover shadow-lg"
                 />
                 <div>
@@ -85,7 +81,7 @@ export default function Homepage() {
                 </p>
               </div>
               <div>
-                <img src="/images/journalists.png" alt="Journalists across South Africa" className="w-full rounded-lg shadow-lg" />
+                <Image src="/images/journalists.png" alt="Journalists across South Africa" width={600} height={400} className="w-full rounded-lg shadow-lg" />
               </div>
             </div>
           </div>
@@ -96,7 +92,7 @@ export default function Homepage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="order-2 lg:order-1">
-                <img src="/images/editor.png" alt="Content creation process" className="w-full rounded-lg shadow-lg" />
+                <Image src="/images/editor.png" alt="Content creation process" width={600} height={400} className="w-full rounded-lg shadow-lg" />
               </div>
               <div className="order-1 lg:order-2">
                 <div className="w-16 h-1 mb-6 bg-[#76BD43]"></div>
@@ -128,7 +124,7 @@ export default function Homepage() {
                 </p>
               </div>
               <div>
-                <img src="/images/podcast.png" alt="Radio show production" className="w-full rounded-lg shadow-lg" />
+                <Image src="/images/podcast.png" alt="Radio show production" width={600} height={400} className="w-full rounded-lg shadow-lg" />
               </div>
             </div>
           </div>
@@ -139,7 +135,7 @@ export default function Homepage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="order-2 lg:order-1">
-                <img src="/images/savings.png" alt="Radio station operations" className="w-full rounded-lg shadow-lg" />
+                <Image src="/images/savings.png" alt="Radio station operations" width={600} height={400} className="w-full rounded-lg shadow-lg" />
               </div>
               <div className="order-1 lg:order-2">
                 <div className="w-16 h-1 mb-6 bg-[#76BD43]"></div>

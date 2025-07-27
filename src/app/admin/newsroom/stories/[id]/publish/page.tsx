@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,16 +31,32 @@ type PublishFormData = z.infer<typeof publishSchema>;
 export default function PublishStoryPage() {
   const router = useRouter();
   const params = useParams();
+  const { data: session, status } = useSession();
   const storyId = params.id as string;
   const { data: story, isLoading, error } = useStory(storyId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check permissions
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    if (!session?.user) {
+      router.push('/login');
+      return;
+    }
+
+    const userRole = session.user.staffRole;
+    // Only SUB_EDITOR and above can publish
+    if (!userRole || !['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      router.push('/admin');
+      return;
+    }
+  }, [session, status, router]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
-    watch,
   } = useForm<PublishFormData>({
     resolver: zodResolver(publishSchema),
     defaultValues: {
@@ -49,29 +66,33 @@ export default function PublishStoryPage() {
 
   // Stub: translations and their statuses
   const translations = story?.translations || [];
-  const allTranslationsApproved = translations.length === 0 || translations.every((t: any) => t.status === "APPROVED");
+  const allTranslationsApproved = translations.length === 0 || translations.every((t: Translation) => t.status === "APPROVED");
 
-  const onSubmit = async (formData: PublishFormData) => {
+  const onSubmit = async (_formData: PublishFormData) => {
     setIsSubmitting(true);
     try {
       // TODO: Call API to publish story and translations, and save follow-up date/note
       toast.success("Story and translations published!");
       router.push("/admin/newsroom/stories");
     } catch (error: any) {
-      toast.error(error.message || "Failed to publish story");
+      toast.error(error?.message || "Failed to publish story");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (status === 'loading' || isLoading) {
     return (
       <Container>
         <div className="text-center py-12">
-          <p>Loading story...</p>
+          <p>Loading...</p>
         </div>
       </Container>
     );
+  }
+
+  if (!session?.user) {
+    return null; // Will redirect to login
   }
 
   if (error || !story) {
@@ -115,7 +136,7 @@ export default function PublishStoryPage() {
             <Heading level={2} className="mb-6">Audio Clips</Heading>
             {story.audioClips && story.audioClips.length > 0 ? (
               <div className="space-y-4">
-                {story.audioClips.map((clip: any) => (
+                {story.audioClips.map((clip: AudioClip) => (
                   <CustomAudioPlayer key={clip.id} clip={clip} />
                 ))}
               </div>
@@ -129,7 +150,7 @@ export default function PublishStoryPage() {
             <Heading level={2} className="mb-6">Associated Translations</Heading>
             {translations.length > 0 ? (
               <ul className="space-y-2">
-                {translations.map((t: any) => (
+                {translations.map((t: Translation) => (
                   <li key={t.id} className="flex items-center gap-2">
                     <span className="font-medium">{t.targetLanguage}</span>
                     <Badge color={t.status === "APPROVED" ? "green" : "amber"}>{t.status}</Badge>

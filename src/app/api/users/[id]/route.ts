@@ -28,7 +28,7 @@ const getUser = createHandler(
 const updateUser = createHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const data = (req as any).validatedData;
+    const data = (req as NextRequest).validatedData;
 
     // Check if email is being changed and if it's already taken
     if (data.email) {

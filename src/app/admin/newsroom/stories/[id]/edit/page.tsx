@@ -14,26 +14,41 @@ import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card } from '@/components/ui/card';
-import { Field, FieldGroup, Fieldset, Label, Description, ErrorMessage } from '@/components/ui/fieldset';
-import { Heading } from '@/components/ui/heading';
-import { Divider } from '@/components/ui/divider';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Badge } from '@/components/ui/badge';
 import { MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { Card } from '@/components/ui/card';
+import { Heading } from '@/components/ui/heading';
+import { Fieldset, FieldGroup, Field, Label, Description, ErrorMessage } from '@/components/ui/fieldset';
+import { Divider } from '@/components/ui/divider';
 
-import { useCategories } from '@/hooks/use-categories';
-import { useTags } from '@/hooks/use-tags';
-import { storyUpdateSchema } from '@/lib/validations';
-import { StoryPriority } from '@prisma/client';
 import { InternEditForm } from '@/components/admin/InternEditForm';
 
+// Define the story update schema
+const storyUpdateSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
+  content: z.string().min(1, 'Content is required'),
+});
+
 type StoryFormData = z.infer<typeof storyUpdateSchema>;
+
+// Define types used in the component
+interface AudioClip {
+  id: string;
+  url: string;
+  originalName: string;
+  description?: string;
+  duration?: number;
+}
+
+interface Story {
+  id: string;
+  title: string;
+  content: string;
+  audioClips?: AudioClip[];
+}
 
 export default function EditStoryPage() {
   const { data: session, status } = useSession();
@@ -44,9 +59,8 @@ export default function EditStoryPage() {
   // All hooks must be called unconditionally
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [story, setStory] = useState<any>(null);
+  const [story, setStory] = useState<Story | null>(null);
   const [content, setContent] = useState('');
-  const [audioFiles, setAudioFiles] = useState<any[]>([]); // For new uploads
   const [removedAudioIds, setRemovedAudioIds] = useState<string[]>([]); // For removals
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
@@ -64,14 +78,14 @@ export default function EditStoryPage() {
         if (!response.ok) {
           throw new Error('Failed to load story');
         }
-        const storyData = await response.json();
+        const storyData: Story = await response.json();
         setStory(storyData);
         setContent(storyData.content || '');
         reset({
           title: storyData.title,
           content: storyData.content,
         });
-      } catch (error) {
+      } catch (error: any) {
         toast.error('Failed to load story');
         router.push('/admin/newsroom/stories');
       } finally {
@@ -90,13 +104,13 @@ export default function EditStoryPage() {
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        const error = await response.json();
+        const error: { error: string } = await response.json();
         throw new Error(error.error || 'Failed to update story');
       }
       toast.success('Story updated successfully!');
       router.push(`/admin/newsroom/stories/${storyId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update story');
+      toast.error(error?.message || 'Failed to update story');
     } finally {
       setIsSubmitting(false);
     }
@@ -205,7 +219,7 @@ export default function EditStoryPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {story.audioClips.filter((clip: any) => !removedAudioIds.includes(clip.id)).map((clip: any) => (
+                {story.audioClips.filter((clip: AudioClip) => !removedAudioIds.includes(clip.id)).map((clip: AudioClip) => (
                   <div key={clip.id} className="relative">
                     <CustomAudioPlayer
                       clip={{
@@ -218,12 +232,12 @@ export default function EditStoryPage() {
                       isPlaying={playingAudioId === clip.id}
                       currentTime={audioProgress[clip.id] || 0}
                       duration={audioDuration[clip.id] || 0}
-                      onPlay={id => setPlayingAudioId(id)}
-                      onStop={id => setPlayingAudioId(null)}
-                      onRestart={id => setAudioProgress(prev => ({ ...prev, [id]: 0 }))}
-                      onSeek={(id, t) => setAudioProgress(prev => ({ ...prev, [id]: t }))}
-                      onTimeUpdate={(id, t) => setAudioProgress(prev => ({ ...prev, [id]: t }))}
-                      onLoadedMetadata={(id, d) => setAudioDuration(prev => ({ ...prev, [id]: d }))}
+                      onPlay={() => setPlayingAudioId(clip.id)}
+                      onStop={() => setPlayingAudioId(null)}
+                      onRestart={() => setAudioProgress(prev => ({ ...prev, [clip.id]: 0 }))}
+                      onSeek={(_, t) => setAudioProgress(prev => ({ ...prev, [clip.id]: t }))}
+                      onTimeUpdate={(_, t) => setAudioProgress(prev => ({ ...prev, [clip.id]: t }))}
+                      onLoadedMetadata={(_, d) => setAudioDuration(prev => ({ ...prev, [clip.id]: d }))}
                       onEnded={() => setPlayingAudioId(null)}
                       onError={() => setPlayingAudioId(null)}
                     />
@@ -243,7 +257,10 @@ export default function EditStoryPage() {
             {/* Upload new audio files */}
             <div className="mt-6">
               <FileUpload
-                onFilesChange={setAudioFiles}
+                onFilesChange={() => {
+                  // Note: Audio file handling would need to be implemented
+                  toast.info('Audio file upload functionality needs to be implemented');
+                }}
                 maxFiles={5}
                 maxFileSize={50}
               />

@@ -42,11 +42,11 @@ interface CategoryModalProps {
 
 // Helper to build breadcrumb path
 function getCategoryBreadcrumb(category: Category): string {
-  let path = [category.name];
-  let current = category.parent;
+  const path = [category.name];
+  let current: Category | undefined = category.parent;
   while (current) {
     path.unshift(current.name);
-    current = (current as any).parent; // parent may be undefined or partial
+    current = current.parent;
   }
   return path.join(' > ');
 }

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
+import { createHandler, withAuth, withErrorHandling, withValidation } from '@/lib/api-handler';
 import { commentCreateSchema } from '@/lib/validations';
 
 // Helper function to check permissions
@@ -31,8 +31,6 @@ const getComments = createHandler(
     // Get query parameters
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');
-    const page = parseInt(searchParams.get('page') || '1');
-    const perPage = parseInt(searchParams.get('perPage') || '100');
 
     if (!hasCommentPermission(user.staffRole, 'read')) {
       return Response.json({ error: 'Insufficient permissions' }, { status: 403 });

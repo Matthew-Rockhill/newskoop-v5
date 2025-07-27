@@ -23,7 +23,6 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const rememberMe = formData.get('remember-me') === 'on';
 
     try {
       const result = await signIn('credentials', {

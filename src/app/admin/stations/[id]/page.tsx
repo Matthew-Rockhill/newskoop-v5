@@ -44,17 +44,6 @@ const formatProvince = (province: string) => {
     .join(' ');
 };
 
-// Helper function to format dates
-const formatDate = (date: Date) => {
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(date));
-};
-
 export default function StationDetailPage() {
   const params = useParams();
   const router = useRouter();

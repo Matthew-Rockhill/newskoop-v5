@@ -28,7 +28,7 @@ export function InternStoryForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [content, setContent] = useState('');
-  const [audioFiles, setAudioFiles] = useState<any[]>([]);
+  const [audioFiles, setAudioFiles] = useState<File[]>([]);
 
   const {
     register,
@@ -53,9 +53,9 @@ export function InternStoryForm() {
       
       // Add audio files
       audioFiles.forEach((audioFile, index) => {
-        formData.append(`audioFile_${index}`, audioFile.file);
-        if (audioFile.description) {
-          formData.append(`audioDescription_${index}`, audioFile.description);
+        formData.append(`audioFile_${index}`, audioFile);
+        if (audioFiles[index].description) {
+          formData.append(`audioDescription_${index}`, audioFiles[index].description);
         }
       });
       formData.append('audioFilesCount', String(audioFiles.length));

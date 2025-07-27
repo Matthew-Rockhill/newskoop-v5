@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { User } from '@/types';
 import { randomBytes } from 'crypto';
+import jwt from 'jsonwebtoken';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -123,4 +124,20 @@ export function generatePassword(length: number = 12): string {
     password += charset.charAt(Math.floor(Math.random() * charset.length));
   }
   return password;
+}
+
+const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || process.env.NEXTAUTH_SECRET || 'changeme';
+const RESET_TOKEN_EXPIRY = '1h';
+
+export function generateResetToken(userId: string): string {
+  return jwt.sign({ userId }, RESET_TOKEN_SECRET, { expiresIn: RESET_TOKEN_EXPIRY });
+}
+
+export function verifyResetToken(token: string): string | null {
+  try {
+    const payload = jwt.verify(token, RESET_TOKEN_SECRET) as { userId: string };
+    return payload.userId;
+  } catch (err) {
+    return null;
+  }
 } 

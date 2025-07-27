@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
@@ -10,10 +10,9 @@ import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useStory } from "@/hooks/use-stories";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 const translationSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -25,15 +24,21 @@ type TranslationFormData = z.infer<typeof translationSchema>;
 export default function TranslationWorkPage() {
   const router = useRouter();
   const params = useParams();
-  const storyId = params.id as string;
-  const { data: storyData, isLoading, error } = useStory(storyId);
+  const translationId = params.id as string;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [translation, setTranslation] = useState<Translation | null>(null);
+  const [originalStory, setOriginalStory] = useState<Story | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [content, setContent] = useState("");
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
+    setValue,
+    trigger,
+    control,
   } = useForm<TranslationFormData>({
     resolver: zodResolver(translationSchema),
     defaultValues: {
@@ -42,51 +47,92 @@ export default function TranslationWorkPage() {
     },
   });
 
+  useEffect(() => {
+    const fetchTranslation = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/newsroom/translations/${translationId}`);
+        if (!res.ok) throw new Error("Failed to fetch translation assignment");
+        const data = await res.json();
+        setTranslation(data.translation);
+        setOriginalStory(data.translation.originalStory);
+        // Optionally prefill content if needed
+      } catch (err: Error) {
+        setError(err.message || "Failed to load translation");
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (translationId) fetchTranslation();
+  }, [translationId]);
+
+  // Sync RTE content with react-hook-form
+  useEffect(() => {
+    setValue("content", content);
+    // Only trigger validation if content changes after mount
+    if (content !== "") trigger("content");
+  }, [content, setValue, trigger]);
+
   const onSubmit = async (data: TranslationFormData) => {
     setIsSubmitting(true);
     try {
-      // Call API to create translation story and update translation assignment
+      // 1. Create the translated story
       const response = await fetch(`/api/newsroom/stories`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: data.title,
-          content: data.content,
-          priority: storyData?.priority || "MEDIUM",
-          categoryId: storyData?.category?.id,
-          originalStoryId: storyId,
+          content: content, // Use RTE content
+          priority: originalStory?.priority || "MEDIUM",
+          categoryId: originalStory?.category?.id,
+          originalStoryId: originalStory?.id,
           isTranslation: true,
-          language: storyData?.language === "AFRIKAANS" ? "XHOSA" : "AFRIKAANS", // Example: flip language
+          language: translation?.targetLanguage,
         }),
       });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to create translation");
       }
+      const newStory = await response.json();
+      // 2. Update the Translation record with translatedStoryId and status
+      const updateRes = await fetch(`/api/newsroom/translations/${translationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          translatedStoryId: newStory.id,
+          status: "IN_PROGRESS",
+        }),
+      });
+      if (!updateRes.ok) {
+        const error = await updateRes.json();
+        throw new Error(error.error || "Failed to update translation assignment");
+      }
       toast.success("Translation submitted!");
       router.push("/admin");
-    } catch (error: any) {
+    } catch (error: Error) {
       toast.error(error.message || "Failed to submit translation");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <Container>
         <div className="text-center py-12">
-          <p>Loading original story...</p>
+          <p>Loading translation assignment...</p>
         </div>
       </Container>
     );
   }
 
-  if (error || !storyData) {
+  if (error || !translation || !originalStory) {
     return (
       <Container>
         <div className="text-center py-12">
-          <p className="text-red-600">Error loading story: {error?.message || "Story not found"}</p>
+          <p className="text-red-600">Error loading translation: {error || "Not found"}</p>
           <Button onClick={() => router.push("/admin")} className="mt-4">
             Back to Dashboard
           </Button>
@@ -112,10 +158,20 @@ export default function TranslationWorkPage() {
             </div>
             <div>
               <label htmlFor="content" className="block text-sm font-medium text-gray-700">Translation</label>
-              <Textarea id="content" {...register("content")}
-                rows={12}
-                placeholder="Write your translation here..."
-                invalid={!!errors.content}
+              <Controller
+                name="content"
+                control={control}
+                render={({ field }) => (
+                  <RichTextEditor
+                    content={field.value}
+                    onChange={(val) => {
+                      setContent(val);
+                      field.onChange(val);
+                    }}
+                    placeholder="Write your translation here..."
+                    className={!!errors.content ? 'border-red-500' : ''}
+                  />
+                )}
               />
               {errors.content && <p className="text-sm text-red-600 mt-1">{errors.content.message}</p>}
             </div>
@@ -129,15 +185,15 @@ export default function TranslationWorkPage() {
         <Card className="p-6 bg-gray-50">
           <Heading level={2} className="mb-4">Original Story</Heading>
           <div className="mb-2">
-            <Badge color="zinc">{storyData.status}</Badge>
-            <Badge color="blue" className="ml-2">{storyData.language}</Badge>
+            <Badge color="zinc">{originalStory.status}</Badge>
+            <Badge color="blue" className="ml-2">{originalStory.language}</Badge>
           </div>
-          <Heading level={3} className="mb-2">{storyData.title}</Heading>
-          <Text className="mb-4 text-gray-700">By {storyData.author.firstName} {storyData.author.lastName}</Text>
+          <Heading level={3} className="mb-2">{originalStory.title}</Heading>
+          <Text className="mb-4 text-gray-700">By {originalStory.author.firstName} {originalStory.author.lastName}</Text>
           <div className="prose max-w-none">
             <div
               className="text-gray-900 leading-relaxed space-y-4"
-              dangerouslySetInnerHTML={{ __html: storyData.content }}
+              dangerouslySetInnerHTML={{ __html: originalStory.content }}
             />
           </div>
         </Card>

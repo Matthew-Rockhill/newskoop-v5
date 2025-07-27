@@ -23,13 +23,9 @@ import { ReviewerSelectionModal } from './ReviewerSelectionModal';
 import { SubEditorSelectionModal } from './SubEditorSelectionModal';
 import { RevisionNotes } from './RevisionNotes';
 import { 
-  canUpdateStoryStatus, 
-  canEditStory, 
-  canDeleteStory, 
   canApproveStory, 
   canPublishStory,
   getAvailableStatusTransitions,
-  getEditLockReason
 } from '@/lib/permissions';
 import { StoryStatus } from '@prisma/client';
 
@@ -87,8 +83,6 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
   const [content, setContent] = useState('');
   const [showReviewerModal, setShowReviewerModal] = useState(false);
   const [showSubEditorModal, setShowSubEditorModal] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<StoryStatus | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
   const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
@@ -474,7 +468,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
                   color={action.color as any}
                   size="sm"
                   onClick={() => handleSubmitForReview()}
-                  disabled={isUpdatingStatus}
+                  disabled={isSubmitting}
                 >
                   {action.label}
                 </Button>

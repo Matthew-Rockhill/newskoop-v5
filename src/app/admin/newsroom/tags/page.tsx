@@ -4,9 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   TagIcon,
-  PencilIcon,
   DocumentTextIcon,
-  GlobeAltIcon,
   LanguageIcon,
   MapPinIcon,
 } from '@heroicons/react/24/outline';
@@ -70,7 +68,7 @@ export default function TagsPage() {
   };
 
   // Check if user can edit a specific tag
-  const canEditTag = (tag: any) => {
+  const canEditTag = (tag: Tag) => {
     const userRole = session?.user?.staffRole;
     if (!userRole) return false;
     

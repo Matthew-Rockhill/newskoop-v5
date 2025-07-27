@@ -6,7 +6,6 @@ import {
   DocumentTextIcon,
   ChatBubbleLeftRightIcon,
   ClockIcon,
-  UserIcon,
   TagIcon,
   CheckCircleIcon,
   PencilIcon,
@@ -23,7 +22,6 @@ import { Pagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/empty-state';
 
 import { useStories, type StoryFilters } from '@/hooks/use-stories';
-import { useCategories } from '@/hooks/use-categories';
 import { useSession } from 'next-auth/react';
 import { StoryStatus } from '@prisma/client';
 
@@ -73,13 +71,11 @@ export default function StoriesPage() {
   }, [searchParams]);
   
   const { data, isLoading, error } = useStories(filters);
-  const { data: categoriesData } = useCategories(true); // Flat list for filter dropdown
 
   const stories = data?.stories || [];
   const pagination = data?.pagination;
-  const categories = categoriesData?.categories || [];
 
-  const handleFilterChange = (key: keyof StoryFilters, value: any) => {
+  const handleFilterChange = (key: keyof StoryFilters, value: string | number | undefined) => {
     setFilters(prev => ({
       ...prev,
       [key]: value,
@@ -167,6 +163,20 @@ export default function StoriesPage() {
           >
             <EyeIcon className="h-4 w-4" />
             In Review
+          </Button>
+          <Button
+            onClick={() => handleFilterChange('status', 'NEEDS_REVISION')}
+            color={filters.status === 'NEEDS_REVISION' ? 'primary' : 'white'}
+            className="text-sm"
+          >
+            Needs Revision
+          </Button>
+          <Button
+            onClick={() => handleFilterChange('status', 'PENDING_APPROVAL')}
+            color={filters.status === 'PENDING_APPROVAL' ? 'primary' : 'white'}
+            className="text-sm"
+          >
+            Pending Approval
           </Button>
           <Button
             onClick={() => handleFilterChange('status', 'APPROVED')}
@@ -265,9 +275,11 @@ export default function StoriesPage() {
                         View
                       </Button>
                       
-                      {/* Review Button for Sub-Editors */}
-                      {session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && 
-                       story.status === 'PENDING_APPROVAL' && (
+                      {/* Review Button - For Journalists reviewing IN_REVIEW stories or Sub-Editors reviewing PENDING_APPROVAL */}
+                      {session?.user?.staffRole && (
+                        (session.user.staffRole === 'JOURNALIST' && story.status === 'IN_REVIEW' && story.reviewerId === session.user.id) ||
+                        (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && story.status === 'PENDING_APPROVAL')
+                      ) && (
                         <Button
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();

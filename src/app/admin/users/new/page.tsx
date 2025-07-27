@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { UserForm } from '@/components/admin/UserForm';
+import { User } from '@/types/user';
 
 export default function NewUserPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: User) => {
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/users', {

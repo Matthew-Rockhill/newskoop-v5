@@ -8,7 +8,6 @@ import { Avatar } from '@/components/ui/avatar';
 import { Pagination } from '@/components/ui/pagination';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import type { StationFormData } from '@/types';
 import { RadioIcon } from '@heroicons/react/24/outline';
 
 // Define Station type locally since it's not exported from types
@@ -42,10 +41,8 @@ export function StationList() {
     stations,
     pagination,
     isLoading,
-    filters,
     setFilters,
     updateStation,
-    isUpdating,
   } = useStations({
     perPage: 10,
   });
@@ -59,13 +56,6 @@ export function StationList() {
 
   const handlePageChange = (page: number) => {
     setFilters((prev) => ({ ...prev, page }));
-  };
-
-  const handleToggleActive = async (station: Station) => {
-    await updateStation({ 
-      id: station.id, 
-      data: { isActive: !station.isActive } 
-    });
   };
 
   const handleRowClick = (stationId: string) => {

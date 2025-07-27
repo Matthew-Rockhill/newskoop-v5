@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
+import { createHandler, withAuth, withErrorHandling, withValidation } from '@/lib/api-handler';
 import { storyStatusUpdateSchema } from '@/lib/validations';
 import { StoryStatus } from '@prisma/client';
 import { canUpdateStoryStatus } from '@/lib/permissions';
 
 // Helper function to check workflow permissions
 function canUpdateStatus(userRole: string, currentStatus: StoryStatus, newStatus: StoryStatus, storyAuthorId?: string, currentUserId?: string) {
-  return canUpdateStoryStatus(userRole as any, currentStatus, newStatus, storyAuthorId, currentUserId);
+  return canUpdateStoryStatus(userRole as string, currentStatus, newStatus, storyAuthorId, currentUserId);
 }
 
 // PATCH /api/newsroom/stories/[id]/status - Update story status
@@ -56,7 +56,7 @@ const updateStoryStatus = createHandler(
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       status,
       ...(assignedToId && { assignedToId }),
       ...(reviewerId && { reviewerId }),

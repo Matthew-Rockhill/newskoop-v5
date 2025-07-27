@@ -20,8 +20,6 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
-import { Text } from '@/components/ui/text';
-import { Divider } from '@/components/ui/divider';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 
@@ -29,7 +27,6 @@ import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { TranslationSelectionModal } from '@/components/admin/TranslationSelectionModal';
 
 import { useStory, useDeleteStory } from '@/hooks/use-stories';
-import { StoryStatus } from '@prisma/client';
 import { 
   canEditStory, 
   canDeleteStory, 
@@ -60,7 +57,7 @@ const priorityColors = {
 } as const;
 
 // Helper: should show review button
-function canShowReviewButton(userRole, status) {
+function canShowReviewButton(userRole: string | null, status: string) {
   if (!userRole) return false;
   // Only show for sub-editor and above, and only for PENDING_APPROVAL
   return (
@@ -70,14 +67,14 @@ function canShowReviewButton(userRole, status) {
 }
 
 // Helper: should show edit button
-function canShowEditButton(userRole, authorId, userId, status) {
+function canShowEditButton(userRole: string | null, authorId: string, userId: string | null, status: string) {
   // Only allow edit for DRAFT, IN_REVIEW, NEEDS_REVISION
   const editableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
   return canEditStory(userRole, authorId, userId, status) && editableStatuses.includes(status);
 }
 
 // Helper: should show delete button
-function canShowDeleteButton(userRole, status) {
+function canShowDeleteButton(userRole: string | null, status: string) {
   // Only allow delete for DRAFT, IN_REVIEW, NEEDS_REVISION
   const deletableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
   return canDeleteStory(userRole) && deletableStatuses.includes(status);
@@ -98,7 +95,7 @@ export default function StoryDetailPage() {
   const [isTranslating, setIsTranslating] = useState(false);
 
   // Fetch single story
-  const { data: story, isLoading, error } = useStory(storyId);
+  const { data: story, isLoading } = useStory(storyId);
 
   // Mutations
   const deleteStoryMutation = useDeleteStory();
@@ -113,10 +110,15 @@ export default function StoryDetailPage() {
   const handleTranslationConfirm = async ({ language, translatorId }: { language: string; translatorId: string }) => {
     setIsTranslating(true);
     try {
-      const response = await fetch(`/api/newsroom/stories/${storyId}/status`, {
-        method: 'PATCH',
+      // Create a Translation record for this story
+      const response = await fetch(`/api/newsroom/translations`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'PENDING_TRANSLATION', translationLanguage: language, translatorId }),
+        body: JSON.stringify({
+          originalStoryId: storyId,
+          assignedToId: translatorId,
+          targetLanguage: language,
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -125,8 +127,8 @@ export default function StoryDetailPage() {
       toast.success('Story sent for translation');
       setShowTranslationModal(false);
       router.refresh?.();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send for translation');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to send for translation');
     } finally {
       setIsTranslating(false);
     }
@@ -146,8 +148,8 @@ export default function StoryDetailPage() {
       await deleteStoryMutation.mutateAsync(storyId);
       toast.success('Story deleted successfully');
       router.push('/admin/newsroom/stories');
-    } catch (error) {
-      toast.error('Failed to delete story');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete story');
     } finally {
       setIsDeleting(false);
     }
@@ -206,11 +208,11 @@ export default function StoryDetailPage() {
     );
   }
 
-  if (error || !story) {
+  if (!story) {
     return (
       <Container>
         <div className="text-center py-12">
-          <p className="text-red-600">Error loading story: {error?.message || 'Story not found'}</p>
+          <p className="text-red-600">Error loading story: Story not found</p>
           <Button asChild className="mt-4">
             <Link href="/admin/newsroom/stories">Back to Stories</Link>
           </Button>
@@ -400,8 +402,8 @@ export default function StoryDetailPage() {
         {/* Sidebar */}
         <div className="space-y-6">
 
-          {/* Category & Tags - Only show for editors and admins */}
-          {session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
+          {/* Category & Tags - Show for journalists and above */}
+          {session?.user?.staffRole && ['JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
             <Card className="p-6">
               <Heading level={3} className="mb-4">Organization</Heading>
               
@@ -430,7 +432,7 @@ export default function StoryDetailPage() {
                     <DescriptionTerm>Tags</DescriptionTerm>
                     <DescriptionDetails>
                       <div className="flex flex-wrap gap-1">
-                        {story.tags.map((storyTag: any) => (
+                        {story.tags.map((storyTag: { tag: { id: string; name: string } }) => (
                           <Badge 
                             key={storyTag.tag.id} 
                             color="gray" 
@@ -469,7 +471,7 @@ export default function StoryDetailPage() {
           <Card className="p-6">
             <Heading level={3} className="mb-4">Associated Translations</Heading>
             <div className="space-y-3">
-              {story.translations.map((translation: any) => (
+              {story.translations.map((translation: { id: string; title: string; language: string; status: string; assignedTo: { firstName: string; lastName: string } }) => (
                 <div key={translation.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">{translation.title}</h4>

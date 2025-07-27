@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       // 2) Hash & create primary contact
       //    - pull off `confirmPassword` & `password`
       //    - everything else is in `primaryContactData`
-      const { confirmPassword, password, ...primaryContactData } = data.primaryContact;
+      const { password, ...primaryContactData } = data.primaryContact;
       const hashedPrimaryPassword = await bcrypt.hash(password, 10);
       const primaryUser = await tx.user.create({
         data: {
