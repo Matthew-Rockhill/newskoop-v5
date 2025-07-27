@@ -13,7 +13,7 @@
 
 1. In your Neon dashboard, go to the **Connection Details** tab
 2. Copy the **Connection string** 
-3. It will look like: `postgresql://username:password@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require`
+3. It will look like: `postgresql://neondb_owner:npg_q7N1owMIiWnp@ep-lingering-sun-abx8zkr7-pooler.eu-west-2.aws.neon.tech/newskoopdb?sslmode=require`
 
 ### Configure Environment Variables
 
@@ -21,14 +21,25 @@ Update your `.env` file:
 
 ```env
 # Neon Database
-DATABASE_URL="postgresql://username:password@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL="postgresql://neondb_owner:npg_q7N1owMIiWnp@ep-lingering-sun-abx8zkr7-pooler.eu-west-2.aws.neon.tech/newskoopdb?sslmode=require"
 ```
 
 ### Run Database Migrations
 
+**Important**: Neon provides two connection strings:
+- **Pooled connection**: For your application (with `-pooler` in the hostname)
+- **Direct connection**: For migrations (without `-pooler` in the hostname)
+
+For migrations, you might need to temporarily use the direct connection string. Check your Neon dashboard for both connection strings.
+
 ```bash
-npx prisma migrate deploy
+# Generate Prisma client
 npx prisma generate
+
+# Deploy migrations (you may need to use the direct connection string)
+npx prisma migrate deploy
+
+# Seed the database with initial data
 npx prisma db seed
 ```
 
