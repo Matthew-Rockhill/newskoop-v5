@@ -260,7 +260,7 @@ function StoriesPageContent() {
                           </div>
                           <div className="flex items-center gap-1">
                             <ClockIcon className="h-3 w-3" />
-                            {formatRelativeTime(story.updatedAt.toISOString())}
+                            {formatRelativeTime(typeof story.updatedAt === 'string' ? story.updatedAt : story.updatedAt.toISOString())}
                           </div>
                         </div>
                       </div>
