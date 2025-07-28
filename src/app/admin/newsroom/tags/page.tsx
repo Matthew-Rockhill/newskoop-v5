@@ -134,7 +134,7 @@ export default function TagsPage() {
     return (
       <Container>
         <div className="text-center py-12">
-          <p className="text-red-600">Error loading tags: {error.message}</p>
+          <p className="text-red-600">Error loading tags: {error instanceof Error ? error.message : 'Unknown error'}</p>
         </div>
       </Container>
     );

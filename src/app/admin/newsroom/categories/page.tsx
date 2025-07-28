@@ -135,7 +135,7 @@ export default function CategoriesPage() {
     return (
       <Container>
         <div className="text-center py-12">
-          <p className="text-red-600">Error loading categories: {error.message}</p>
+          <p className="text-red-600">Error loading categories: {error instanceof Error ? error.message : 'Unknown error'}</p>
         </div>
       </Container>
     );
