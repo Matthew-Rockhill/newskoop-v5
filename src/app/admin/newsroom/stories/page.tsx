@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   DocumentTextIcon,
@@ -47,7 +47,7 @@ const statusColors = {
   ARCHIVED: 'zinc',
 } as const;
 
-export default function StoriesPage() {
+function StoriesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -319,5 +319,13 @@ export default function StoriesPage() {
         )}
       </div>
     </Container>
+  );
+}
+
+export default function StoriesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <StoriesPageContent />
+    </Suspense>
   );
 } 

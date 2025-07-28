@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input, InputGroup } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
+type BadgeColor = "red" | "blue" | "cyan" | "fuchsia" | "green" | "indigo" | "lime" | "orange" | "pink" | "purple" | "teal" | "violet" | "yellow" | "amber" | "emerald" | "sky" | "rose" | "zinc";
+
 interface MetadataItem {
   label: string;
   value: React.ReactNode;
@@ -100,7 +102,7 @@ export function PageHeader({
                     {item.label}:
                   </span>
                   {item.type === 'badge' ? (
-                    <Badge color={item.color} size="sm">
+                    <Badge color={item.color as BadgeColor}>
                       {item.value}
                     </Badge>
                   ) : item.type === 'avatar' ? (

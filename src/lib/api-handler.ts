@@ -85,7 +85,7 @@ export const withAudit = (action: string): ApiMiddleware => {
         await logAudit({
           userId: token.sub,
           action,
-          ipAddress: req.ip || 'unknown',
+          ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
           userAgent: req.headers.get('user-agent') || 'unknown',
         });
       }

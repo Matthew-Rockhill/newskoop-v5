@@ -27,11 +27,11 @@ export async function logAudit({
     data: {
       userId,
       action,
-      details: sanitizedDetails,
+      metadata: sanitizedDetails as any,
       ipAddress,
       userAgent,
-      targetId,
-      targetType,
+      entityId: targetId,
+      entityType: targetType,
     },
   });
 }
@@ -118,7 +118,7 @@ function sanitizeAuditDetails(details: Record<string, unknown>): Record<string, 
 
     // Handle nested objects
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-      acc[key] = sanitizeAuditDetails(value);
+      acc[key] = sanitizeAuditDetails(value as Record<string, unknown>);
       return acc;
     }
 

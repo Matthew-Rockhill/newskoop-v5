@@ -160,7 +160,6 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
               {/* Reply Button */}
               <div className="mt-2">
                 <Button
-                  size="sm"
                   color="white"
                   onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                 >
@@ -181,14 +180,12 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
                   />
                   <div className="flex justify-end space-x-2 mt-2">
                     <Button
-                      size="sm"
                       color="white"
                       onClick={() => setReplyingTo(null)}
                     >
                       Cancel
                     </Button>
                     <Button
-                      size="sm"
                       disabled={isSubmittingReply || !replyContent.trim()}
                       onClick={() => handleReply(comment.id)}
                     >

@@ -106,7 +106,8 @@ export function hasStoryPermission(userRole: StaffRole | null, action: Permissio
 
 export function canUpdateStoryStatus(userRole: StaffRole | null, currentStatus: StoryStatus, newStatus: StoryStatus): boolean {
   if (!userRole) return false;
-  const transitions = storyPermissions[userRole]?.statusTransitions?.[currentStatus];
+  const permissions = storyPermissions[userRole];
+  const transitions = (permissions?.statusTransitions as any)?.[currentStatus];
   
   // Check if the transition is generally allowed
   if (!transitions?.includes(newStatus)) return false;
@@ -165,7 +166,8 @@ export function canPublishStory(userRole: StaffRole | null): boolean {
 
 export function getAvailableStatusTransitions(userRole: StaffRole | null, currentStatus: StoryStatus): StoryStatus[] {
   if (!userRole) return [];
-  return storyPermissions[userRole]?.statusTransitions?.[currentStatus] || [];
+  const permissions = storyPermissions[userRole];
+  return (permissions?.statusTransitions as any)?.[currentStatus] || [];
 }
 
 export function getEditLockReason(storyStatus: StoryStatus): string | null {

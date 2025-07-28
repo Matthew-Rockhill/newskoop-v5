@@ -38,10 +38,9 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
       {visiblePages.map((page) => (
         <Button
           key={page}
-          outline={page !== currentPage}
           onClick={() => onPageChange(page)}
           className={clsx(
-            page === currentPage && 'bg-primary text-white'
+            page === currentPage ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
           )}
         >
           {page}

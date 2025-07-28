@@ -177,8 +177,6 @@ export function FileUpload({
                   </p>
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     onClick={() => removeFile(audioFile.id)}
                     className="text-gray-400 hover:text-red-500 ml-2"
                   >

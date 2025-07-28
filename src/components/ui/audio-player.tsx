@@ -55,16 +55,19 @@ export function CustomAudioPlayer({
     onError?.(clip.id);
   }, [onError, clip.id]);
 
-  const handleLoadedMetadata = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
-    onLoadedMetadata?.(clip.id, e.currentTarget.duration);
+  const handleLoadedMetadata = useCallback((e: Event) => {
+    const target = e.target as HTMLAudioElement;
+    onLoadedMetadata?.(clip.id, target.duration);
   }, [onLoadedMetadata, clip.id]);
 
-  const handleTimeUpdate = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
-    onTimeUpdate?.(clip.id, e.currentTarget.currentTime);
+  const handleTimeUpdate = useCallback((e: Event) => {
+    const target = e.target as HTMLAudioElement;
+    onTimeUpdate?.(clip.id, target.currentTime);
   }, [onTimeUpdate, clip.id]);
 
-  const handleSeeked = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
-    onSeek?.(clip.id, e.currentTarget.currentTime);
+  const handleSeeked = useCallback((e: Event) => {
+    const target = e.target as HTMLAudioElement;
+    onSeek?.(clip.id, target.currentTime);
   }, [onSeek, clip.id]);
 
   const formatTime = (seconds: number) => {
@@ -100,29 +103,11 @@ export function CustomAudioPlayer({
           onPlay={handlePlay}
           onPause={handlePause}
           onEnded={handleEnded}
-          onError={handleError}
-          onLoadedMetadata={handleLoadedMetadata}
-          onTimeUpdate={handleTimeUpdate}
-          onSeeked={handleSeeked}
           showJumpControls={false}
-          showFilledProgress={true}
           showDownloadProgress={false}
           showSkipControls={false}
           showFilledVolume={false}
           layout="horizontal"
-          customProgressBarSection={[
-            'CURRENT_TIME',
-            'PROGRESS_BAR',
-            'DURATION',
-          ]}
-          customControlsSection={[
-            'MAIN_CONTROLS',
-          ]}
-          customVolumeControls={[]} // This removes volume controls
-          customIcons={{
-            play: <PlayIcon className="h-5 w-5" />,
-            pause: <PauseIcon className="h-5 w-5" />,
-          }}
         />
       </div>
 

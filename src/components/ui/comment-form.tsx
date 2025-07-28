@@ -71,7 +71,6 @@ export function CommentForm({
         <Button
           type="submit"
           disabled={isSubmitting || !content.trim()}
-          size="sm"
         >
           {isSubmitting ? 'Adding...' : buttonText}
         </Button>

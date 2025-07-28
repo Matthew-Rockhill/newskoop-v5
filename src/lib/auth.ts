@@ -4,10 +4,11 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
+// @ts-ignore
 import jwt from 'jsonwebtoken';
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   session: {
     strategy: 'jwt',
   },
@@ -73,8 +74,8 @@ export const authOptions: NextAuthOptions = {
           firstName: user.firstName,
           lastName: user.lastName,
           userType: user.userType,
-          staffRole: user.staffRole,
-          radioStationId: user.radioStationId,
+          staffRole: user.staffRole || undefined,
+          radioStationId: user.radioStationId || undefined,
         };
       },
     }),
