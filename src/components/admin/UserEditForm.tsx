@@ -25,7 +25,7 @@ type User = {
   mobileNumber?: string | null;
   userType: 'STAFF' | 'RADIO';
   staffRole?: 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'SUB_EDITOR' | 'JOURNALIST' | 'INTERN' | null;
-  translationLanguages?: ('AFRIKAANS' | 'XHOSA')[];
+  translationLanguage?: 'AFRIKAANS' | 'XHOSA' | null;
   isActive: boolean;
   isPrimaryContact: boolean;
   radioStationId?: string | null;
@@ -43,7 +43,7 @@ const userEditSchema = z.object({
   mobileNumber: z.string().optional(),
   userType: z.enum(['STAFF', 'RADIO']),
   staffRole: z.enum(['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN']).optional(),
-  translationLanguages: z.array(z.enum(['AFRIKAANS', 'XHOSA'])).max(1).optional(),
+  translationLanguage: z.enum(['AFRIKAANS', 'XHOSA']).optional().nullable(),
   isActive: z.boolean(),
 });
 
@@ -72,7 +72,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
       mobileNumber: user.mobileNumber || '',
       userType: user.userType,
       staffRole: user.staffRole || undefined,
-      translationLanguages: user.translationLanguages || [],
+      translationLanguage: user.translationLanguage || null,
       isActive: user.isActive,
     },
   });
@@ -85,7 +85,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
       // Remove translation language for radio users
       const submitData = { ...data };
       if (data.userType === 'RADIO') {
-        delete submitData.translationLanguages;
+        delete submitData.translationLanguage;
         delete submitData.staffRole;
       }
 
@@ -263,22 +263,21 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
             {userType === 'STAFF' && (
               <div>
-                <label htmlFor="translationLanguages" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="translationLanguage" className="block text-sm font-medium text-gray-700">
                   Translation Language
                 </label>
                 <Select
-                  id="translationLanguages"
-                  value={watch('translationLanguages')?.[0] || ''}
-                  onChange={e => setValue('translationLanguages', e.target.value ? [e.target.value as "AFRIKAANS" | "XHOSA"] : [])}
+                  {...register('translationLanguage')}
+                  id="translationLanguage"
                   className="mt-1"
-                  invalid={!!errors.translationLanguages}
+                  invalid={!!errors.translationLanguage}
                 >
                   <option value="">None</option>
-                  <option value="AFRIKAANS">Afrikaans</option>
-                  <option value="XHOSA">Xhosa</option>
+                  <option value="AFRIKAANS">Can translate to Afrikaans</option>
+                  <option value="XHOSA">Can translate to Xhosa</option>
                 </Select>
-                {errors.translationLanguages && (
-                  <p className="mt-1 text-sm text-red-600">{errors.translationLanguages.message}</p>
+                {errors.translationLanguage && (
+                  <p className="mt-1 text-sm text-red-600">{errors.translationLanguage.message}</p>
                 )}
               </div>
             )}

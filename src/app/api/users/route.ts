@@ -42,7 +42,7 @@ const getUsers = createHandler(
       ...(staffRole && { staffRole }),
       ...(radioStationId && { radioStationId }),
       ...(typeof isActive === 'boolean' && { isActive }),
-      ...(translationLanguage && { translationLanguages: { has: translationLanguage } }),
+      ...(translationLanguage && { translationLanguage }),
     };
 
     // Get total count
@@ -91,14 +91,9 @@ const createUser = createHandler(
     // Generate a secure temporary password
     const temporaryPassword = generatePassword();
 
-    // Extract translationLanguage and convert to array for Prisma
-    const { translationLanguage, ...restData } = data;
-    const translationLanguages = translationLanguage ? [translationLanguage] : [];
-
     const user = await prisma.user.create({
       data: {
-        ...restData,
-        translationLanguages,
+        ...data,
         password: temporaryPassword,
         mustChangePassword: true,
       },

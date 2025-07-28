@@ -205,8 +205,8 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
                 invalid={!!errors.translationLanguage}
               >
                 <option value="">None</option>
-                <option value="AFRIKAANS">Afrikaans</option>
-                <option value="XHOSA">Xhosa</option>
+                <option value="AFRIKAANS">Can translate to Afrikaans</option>
+                <option value="XHOSA">Can translate to Xhosa</option>
               </Select>
               {errors.translationLanguage && (
                 <p className="mt-1 text-sm text-red-600">{errors.translationLanguage.message}</p>
