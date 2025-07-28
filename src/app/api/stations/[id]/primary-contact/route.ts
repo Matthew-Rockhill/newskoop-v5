@@ -4,9 +4,10 @@ import { prisma } from '@/lib/prisma';
 // PATCH /api/stations/[id]/primary-contact - Update primary contact
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const data = await request.json();
     const { primaryContactId } = data;
 
@@ -19,7 +20,7 @@ export async function PATCH(
 
     // Check if station exists
     const station = await prisma.station.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!station) {
@@ -33,7 +34,7 @@ export async function PATCH(
     const newPrimaryContact = await prisma.user.findFirst({
       where: { 
         id: primaryContactId,
-        radioStationId: params.id
+        radioStationId: id
       }
     });
 
@@ -46,7 +47,7 @@ export async function PATCH(
 
     // Update all users to remove primary contact status
     await prisma.user.updateMany({
-      where: { radioStationId: params.id },
+      where: { radioStationId: id },
       data: { isPrimaryContact: false }
     });
 

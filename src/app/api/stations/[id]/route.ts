@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma';
 // GET /api/stations/[id] - Get a single station
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const station = await prisma.station.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         users: {
           select: { 
@@ -46,14 +47,15 @@ export async function GET(
 // PATCH /api/stations/[id] - Update a station
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const data = await request.json();
 
     // Check if station exists
     const existingStation = await prisma.station.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingStation) {
@@ -82,7 +84,7 @@ export async function PATCH(
 
     // Update station
     const updatedStation = await prisma.station.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: data.name,
         province: data.province,
@@ -122,12 +124,13 @@ export async function PATCH(
 // DELETE /api/stations/[id] - Delete a station
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if station exists and has users
     const station = await prisma.station.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: { users: true },
@@ -151,7 +154,7 @@ export async function DELETE(
 
     // Delete the station
     await prisma.station.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return new NextResponse(null, { status: 204 });

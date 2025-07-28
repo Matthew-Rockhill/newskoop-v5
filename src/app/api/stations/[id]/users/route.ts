@@ -5,9 +5,10 @@ import bcrypt from 'bcryptjs';
 // POST /api/stations/[id]/users - Add new users to station
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const data = await request.json();
     const { users } = data;
 
@@ -20,7 +21,7 @@ export async function POST(
 
     // Check if station exists
     const station = await prisma.station.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!station) {
@@ -57,7 +58,7 @@ export async function POST(
           password: hashedPassword,
           userType: 'RADIO',
           isPrimaryContact: false,
-          radioStationId: params.id,
+          radioStationId: id,
           isActive: station.isActive, // Match station's active status
         },
       });
@@ -102,7 +103,7 @@ export async function DELETE(
 
     // Check if station exists
     const station = await prisma.station.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!station) {
