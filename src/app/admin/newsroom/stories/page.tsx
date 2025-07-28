@@ -11,7 +11,15 @@ import {
   PencilIcon,
   EyeIcon,
 } from '@heroicons/react/24/outline';
-import { Story } from '@prisma/client';
+import { Story, User, Category } from '@prisma/client';
+
+type StoryWithRelations = Story & {
+  author: User;
+  category?: Category | null;
+  _count?: {
+    comments?: number;
+  };
+};
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -220,7 +228,7 @@ export default function StoriesPage() {
               </tr>
             </thead>
             <tbody>
-              {stories.map((story: Story) => (
+              {stories.map((story: StoryWithRelations) => (
                 <tr
                   key={story.id}
                   onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}

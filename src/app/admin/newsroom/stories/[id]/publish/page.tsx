@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
@@ -24,10 +24,10 @@ import { useStory } from "@/hooks/use-stories";
 
 const publishSchema = z.object({
   followUpDate: z.string().min(1, "Follow-up date is required"),
-  followUpNote: z.string().optional(),
-  publishImmediately: z.boolean().default(true),
-  scheduledPublishAt: z.string().optional(),
+  publishImmediately: z.boolean(),
   checklistConfirmed: z.boolean().refine(val => val, "You must confirm the checklist before publishing."),
+  followUpNote: z.string().optional(),
+  scheduledPublishAt: z.string().optional(),
 });
 
 type PublishFormData = z.infer<typeof publishSchema>;
@@ -90,7 +90,7 @@ export default function PublishStoryPage() {
   const canPublish = publishStatus?.canPublish || false;
   const publishIssues = publishStatus?.issues || [];
 
-  const onSubmit: SubmitHandler<PublishFormData> = async (formData) => {
+  const onSubmit: SubmitHandler<PublishFormData> = async (formData: PublishFormData) => {
     if (!canPublish) {
       toast.error("Story cannot be published. Please check the requirements.");
       return;

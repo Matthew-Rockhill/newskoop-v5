@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
@@ -47,14 +47,18 @@ export default function NewTagPage() {
     },
   });
 
-  const onSubmit = async (formData: TagFormData) => {
+  const onSubmit: SubmitHandler<TagFormData> = async (formData) => {
     setIsSubmitting(true);
     try {
       await createTag.mutateAsync(formData);
       toast.success("Tag created successfully!");
       router.push("/admin/newsroom/tags");
-    } catch (error: Error) {
-      toast.error(error.message || "Failed to create tag");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to create tag");
+      } else {
+        toast.error("Failed to create tag");
+      }
     } finally {
       setIsSubmitting(false);
     }
