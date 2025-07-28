@@ -60,10 +60,9 @@ export function InternStoryForm() {
       formData.append('priority', 'MEDIUM'); // Default priority for interns
       formData.append('status', 'DRAFT'); // Interns always start with draft
       
-      // Add audio files and descriptions
+      // Add audio files (no descriptions needed)
       audioFiles.forEach((audioFile, index) => {
         formData.append(`audioFile_${index}`, audioFile.file);
-        formData.append(`audioDescription_${index}`, audioFile.description || '');
       });
       formData.append('audioFilesCount', String(audioFiles.length));
 
