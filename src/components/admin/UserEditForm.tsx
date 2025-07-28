@@ -43,7 +43,11 @@ const userEditSchema = z.object({
   mobileNumber: z.string().optional(),
   userType: z.enum(['STAFF', 'RADIO']),
   staffRole: z.enum(['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN']).optional(),
-  translationLanguage: z.enum(['AFRIKAANS', 'XHOSA']).optional().nullable(),
+  translationLanguage: z.union([
+    z.literal(''),
+    z.enum(['AFRIKAANS', 'XHOSA']),
+    z.undefined()
+  ]).optional(),
   isActive: z.boolean(),
 });
 
@@ -72,7 +76,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
       mobileNumber: user.mobileNumber || '',
       userType: user.userType,
       staffRole: user.staffRole || undefined,
-      translationLanguage: user.translationLanguage || null,
+      translationLanguage: user.translationLanguage || '',
       isActive: user.isActive,
     },
   });
@@ -82,11 +86,22 @@ export function UserEditForm({ user }: UserEditFormProps) {
   const onSubmit = async (data: UserEditFormData) => {
     setIsSubmitting(true);
     try {
-      // Remove translation language for radio users
+      // Clean up data before sending
       const submitData = { ...data };
+      
+      // Convert empty string to undefined for mobile number
+      if (submitData.mobileNumber === '') {
+        submitData.mobileNumber = undefined;
+      }
+      
       if (data.userType === 'RADIO') {
         delete submitData.translationLanguage;
         delete submitData.staffRole;
+      } else {
+        // Convert empty string to undefined for translation language
+        if (submitData.translationLanguage === '') {
+          submitData.translationLanguage = undefined;
+        }
       }
 
       const response = await fetch(`/api/users/${user.id}`, {
