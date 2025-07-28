@@ -24,7 +24,7 @@ import { useStory } from "@/hooks/use-stories";
 const publishSchema = z.object({
   followUpDate: z.string().min(1, "Follow-up date is required"),
   followUpNote: z.string().optional(),
-  publishImmediately: z.boolean().default(true),
+  publishImmediately: z.boolean().optional().default(true),
   scheduledPublishAt: z.string().optional(),
   checklistConfirmed: z.boolean().refine(val => val, "You must confirm the checklist before publishing."),
 });
@@ -182,7 +182,7 @@ export default function PublishStoryPage() {
             <Heading level={2} className="mb-6">Audio Clips</Heading>
             {story.audioClips && story.audioClips.length > 0 ? (
               <div className="space-y-4">
-                {story.audioClips.map((clip: AudioClip) => (
+                {story.audioClips.map((clip: any) => (
                   <CustomAudioPlayer key={clip.id} clip={clip} />
                 ))}
               </div>
@@ -288,7 +288,7 @@ export default function PublishStoryPage() {
             <Heading level={2} className="mb-6">Associated Translations</Heading>
             {translations.length > 0 ? (
               <ul className="space-y-2">
-                {translations.map((t: Translation) => (
+                {translations.map((t: any) => (
                   <li key={t.id} className="flex items-center gap-2">
                     <span className="font-medium">{t.targetLanguage}</span>
                     <Badge color={t.status === "APPROVED" ? "green" : "amber"}>{t.status}</Badge>

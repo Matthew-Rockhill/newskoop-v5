@@ -32,7 +32,7 @@ import {
   getEditLockReason,
   canUpdateStoryStatus
 } from '@/lib/permissions';
-import { StaffRole } from '@prisma/client';
+import { StaffRole, StoryStatus } from '@prisma/client';
 
 // Status badge colors
 const statusColors = {
@@ -44,12 +44,12 @@ const statusColors = {
   PENDING_TRANSLATION: 'purple',
   READY_TO_PUBLISH: 'emerald',
   PUBLISHED: 'emerald',
-  ARCHIVED: 'gray',
+  ARCHIVED: 'zinc',
 } as const;
 
 // Priority badge colors
 const priorityColors = {
-  LOW: 'gray',
+  LOW: 'zinc',
   MEDIUM: 'blue',
   HIGH: 'amber',
   URGENT: 'red',
@@ -70,7 +70,7 @@ function canShowReviewButton(userRole: StaffRole | null, status: string) {
 function canShowEditButton(userRole: StaffRole | null, authorId: string, userId: string | null, status: string) {
   // Only allow edit for DRAFT, IN_REVIEW, NEEDS_REVISION
   const editableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
-  return canEditStory(userRole, authorId, userId ?? '', status) && editableStatuses.includes(status);
+  return canEditStory(userRole, authorId, userId ?? '', status as StoryStatus) && editableStatuses.includes(status);
 }
 
 // Helper: should show delete button
@@ -232,13 +232,13 @@ export default function StoryDetailPage() {
           <div className="flex items-center gap-4 mt-1">
             <div className="flex items-center gap-2">
               <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
-              <Badge color={statusColors[story.status]}>
+              <Badge color={(statusColors as any)[story.status] || 'zinc'}>
                 {story.status.replace('_', ' ')}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
-              <Badge color={priorityColors[story.priority]}>
+              <Badge color={(priorityColors as any)[story.priority] || 'zinc'}>
                 {story.priority}
               </Badge>
             </div>
