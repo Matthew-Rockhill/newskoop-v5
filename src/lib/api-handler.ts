@@ -99,20 +99,12 @@ export const withValidation = <T>(schema: { parse: (data: unknown) => T }): ApiM
   return (handler) => {
     return async (req, context) => {
       const body = await req.json();
-      console.log('🔍 User Update - Raw request body:', JSON.stringify(body, null, 2));
+      const validated = schema.parse(body);
       
-      try {
-        const validated = schema.parse(body);
-        console.log('✅ User Update - Validation successful:', JSON.stringify(validated, null, 2));
-        
-        // Attach validated data to the request
-        (req as NextRequest & { validatedData: T }).validatedData = validated;
-        
-        return handler(req, context);
-      } catch (error) {
-        console.error('❌ User Update - Validation failed:', error);
-        throw error;
-      }
+      // Attach validated data to the request
+      (req as NextRequest & { validatedData: T }).validatedData = validated;
+      
+      return handler(req, context);
     };
   };
 };

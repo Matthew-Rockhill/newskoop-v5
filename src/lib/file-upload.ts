@@ -1,4 +1,4 @@
-import { uploadAudioFile, validateAudioFile as cloudinaryValidateAudioFile, CloudinaryFile } from './cloudinary';
+import { uploadAudioFile, validateAudioFile as blobValidateAudioFile, BlobFile } from './vercel-blob';
 
 export interface UploadedFile {
   filename: string;
@@ -20,24 +20,24 @@ export async function saveUploadedFile(
   }
 
   try {
-    // Upload to Cloudinary
-    const cloudinaryFile: CloudinaryFile = await uploadAudioFile(file, uploadDir);
+    // Upload to Vercel Blob
+    const blobFile: BlobFile = await uploadAudioFile(file, uploadDir);
     
     return {
-      filename: cloudinaryFile.public_id,
-      originalName: cloudinaryFile.original_filename,
-      url: cloudinaryFile.secure_url,
-      size: cloudinaryFile.bytes,
+      filename: blobFile.pathname,
+      originalName: blobFile.originalFilename,
+      url: blobFile.url,
+      size: blobFile.size,
       mimeType: file.type,
-      duration: cloudinaryFile.duration,
+      duration: blobFile.duration,
     };
   } catch (error) {
-    console.error('Error uploading file to Cloudinary:', error);
+    console.error('Error uploading file to Vercel Blob:', error);
     throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 export function validateAudioFile(file: File): { valid: boolean; error?: string } {
-  // Use the Cloudinary validation function
-  return cloudinaryValidateAudioFile(file);
+  // Use the Vercel Blob validation function
+  return blobValidateAudioFile(file);
 } 
