@@ -14,7 +14,7 @@ type UserFormData = {
   isActive: boolean;
   mobileNumber?: string;
   staffRole?: 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'SUB_EDITOR' | 'JOURNALIST' | 'INTERN';
-  translationLanguage?: 'AFRIKAANS' | 'ENGLISH' | 'XHOSA';
+  translationLanguage?: 'AFRIKAANS' | 'XHOSA' | '';
 };
 
 export default function NewUserPage() {
@@ -24,12 +24,18 @@ export default function NewUserPage() {
   const handleSubmit = async (data: UserFormData) => {
     setIsSubmitting(true);
     try {
+      // Clean up the data - convert empty string to undefined
+      const submitData = {
+        ...data,
+        translationLanguage: data.translationLanguage === '' ? undefined : data.translationLanguage
+      };
+      
       const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
