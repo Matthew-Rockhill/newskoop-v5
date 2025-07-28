@@ -385,44 +385,45 @@ const createStory = createHandler(
     try {
       const story = await prisma.story.create({
         data: createData as any,
-      include: {
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+        include: {
+          author: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              color: true,
+            },
           },
-        },
-        tags: {
-          include: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                color: true,
+          tags: {
+            include: {
+              tag: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  color: true,
+                },
               },
             },
           },
-        },
-        audioClips: {
-          select: {
-            id: true,
-            filename: true,
-            originalName: true,
-            url: true,
-            fileSize: true,
-            mimeType: true,
-            description: true,
+          audioClips: {
+            select: {
+              id: true,
+              filename: true,
+              originalName: true,
+              url: true,
+              fileSize: true,
+              mimeType: true,
+              description: true,
+            },
           },
         },
       });
