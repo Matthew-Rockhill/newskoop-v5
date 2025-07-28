@@ -75,7 +75,6 @@ export interface StationFormData {
   isActive: boolean;
 }
 
-export type { UserType, StaffRole, Province, TranslationLanguage };
 
 export interface AuditLog {
   id: string;

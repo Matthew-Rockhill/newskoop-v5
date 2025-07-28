@@ -32,6 +32,7 @@ import {
   getEditLockReason,
   canUpdateStoryStatus
 } from '@/lib/permissions';
+import { StaffRole } from '@prisma/client';
 
 // Status badge colors
 const statusColors = {
@@ -56,7 +57,7 @@ const priorityColors = {
 } as const;
 
 // Helper: should show review button
-function canShowReviewButton(userRole: string | null, status: string) {
+function canShowReviewButton(userRole: StaffRole | null, status: string) {
   if (!userRole) return false;
   // Only show for sub-editor and above, and only for PENDING_APPROVAL
   return (
@@ -66,14 +67,14 @@ function canShowReviewButton(userRole: string | null, status: string) {
 }
 
 // Helper: should show edit button
-function canShowEditButton(userRole: string | null, authorId: string, userId: string | null, status: string) {
+function canShowEditButton(userRole: StaffRole | null, authorId: string, userId: string | null, status: string) {
   // Only allow edit for DRAFT, IN_REVIEW, NEEDS_REVISION
   const editableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
   return canEditStory(userRole, authorId, userId, status) && editableStatuses.includes(status);
 }
 
 // Helper: should show delete button
-function canShowDeleteButton(userRole: string | null, status: string) {
+function canShowDeleteButton(userRole: StaffRole | null, status: string) {
   // Only allow delete for DRAFT, IN_REVIEW, NEEDS_REVISION
   const deletableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
   return canDeleteStory(userRole) && deletableStatuses.includes(status);
@@ -231,13 +232,13 @@ export default function StoryDetailPage() {
           <div className="flex items-center gap-4 mt-1">
             <div className="flex items-center gap-2">
               <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
-              <Badge color={statusColors[story.status]} size="sm">
+              <Badge color={statusColors[story.status]}>
                 {story.status.replace('_', ' ')}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
-              <Badge color={priorityColors[story.priority]} size="sm">
+              <Badge color={priorityColors[story.priority]}>
                 {story.priority}
               </Badge>
             </div>
@@ -279,7 +280,6 @@ export default function StoryDetailPage() {
           <div className="flex items-center space-x-3">
             {/* Back to Stories */}
             <Button
-              size="sm"
               color="white"
               onClick={() => router.push('/admin/newsroom/stories')}
             >
@@ -289,7 +289,6 @@ export default function StoryDetailPage() {
             {/* Review Button for Sub-Editors - Only for PENDING_APPROVAL */}
             {canShowReviewButton(session?.user?.staffRole, story.status) && (
               <Button
-                size="sm"
                 color="primary"
                 onClick={() => router.push(`/admin/newsroom/stories/${storyId}/review`)}
               >
@@ -301,7 +300,6 @@ export default function StoryDetailPage() {
             {/* Edit Button - Only show if user can edit this story and status is editable */}
             {canShowEditButton(session?.user?.staffRole, story.authorId, session?.user?.id || '', story.status) ? (
               <Button 
-                size="sm" 
                 color="secondary" 
                 onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
               >
@@ -321,7 +319,6 @@ export default function StoryDetailPage() {
             {/* Delete Button - Only show if user can delete stories and status is deletable */}
             {canShowDeleteButton(session?.user?.staffRole, story.status) && (
               <Button
-                size="sm"
                 color="red"
                 onClick={() => setShowDeleteModal(true)}
                 disabled={isDeleting}
