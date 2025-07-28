@@ -47,10 +47,13 @@ interface Story {
   };
   audioClips?: Array<{
     id: string;
-    title: string;
-    description?: string;
     filename: string;
-    duration?: number;
+    originalName: string;
+    url: string;
+    duration?: number | null;
+    fileSize: number;
+    mimeType: string;
+    description?: string | null;
     createdAt: string;
   }>;
 }
@@ -561,8 +564,8 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
                         key={clip.id}
                         clip={{
                           ...clip,
-                          url: `/api/audio/${clip.id}`, // or however the URL is constructed
-                          originalName: clip.filename,
+                          url: clip.url, // Use the direct URL from storage
+                          originalName: clip.originalName || clip.filename,
                           duration: clip.duration ?? null,
                           description: clip.description ?? null
                         }}

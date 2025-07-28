@@ -16,6 +16,15 @@ import { Divider } from '@/components/ui/divider';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { FileUpload } from '@/components/ui/file-upload';
 
+interface AudioFile {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  duration?: number;
+  description?: string;
+}
+
 // Simplified schema for interns - only title, content, and audio
 const internStorySchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
@@ -28,7 +37,7 @@ export function InternStoryForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [content, setContent] = useState('');
-  const [audioFiles, setAudioFiles] = useState<File[]>([]);
+  const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
 
   const {
     register,
@@ -51,9 +60,10 @@ export function InternStoryForm() {
       formData.append('priority', 'MEDIUM'); // Default priority for interns
       formData.append('status', 'DRAFT'); // Interns always start with draft
       
-      // Add audio files
+      // Add audio files and descriptions
       audioFiles.forEach((audioFile, index) => {
-        formData.append(`audioFile_${index}`, audioFile);
+        formData.append(`audioFile_${index}`, audioFile.file);
+        formData.append(`audioDescription_${index}`, audioFile.description || '');
       });
       formData.append('audioFilesCount', String(audioFiles.length));
 
@@ -141,12 +151,9 @@ export function InternStoryForm() {
             </p>
             
             <FileUpload
-              onFilesChange={(audioFiles) => {
-                // Extract just the File objects from AudioFile array
-                setAudioFiles(audioFiles.map(af => af.file));
-              }}
+              onFilesChange={setAudioFiles}
               maxFiles={5}
-              maxFileSize={50}
+              maxFileSize={100}
             />
           </Card>
 

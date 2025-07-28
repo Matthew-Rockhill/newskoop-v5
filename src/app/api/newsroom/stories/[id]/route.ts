@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { storyUpdateSchema } from '@/lib/validations';
+import { deleteAudioFile } from '@/lib/vercel-blob';
 
 // Helper function to check permissions
 function hasStoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -298,6 +299,19 @@ const updateStory = createHandler(
             },
           },
         },
+        audioClips: {
+          select: {
+            id: true,
+            filename: true,
+            originalName: true,
+            url: true,
+            duration: true,
+            fileSize: true,
+            mimeType: true,
+            description: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
@@ -321,10 +335,19 @@ const deleteStory = createHandler(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // Check if story exists and get its status
+    // Check if story exists and get its status and audio clips
     const story = await prisma.story.findUnique({
       where: { id },
-      select: { status: true, authorId: true },
+      select: { 
+        status: true, 
+        authorId: true,
+        audioClips: {
+          select: {
+            id: true,
+            url: true,
+          },
+        },
+      },
     });
 
     if (!story) {
@@ -334,6 +357,16 @@ const deleteStory = createHandler(
     // Don't allow deletion of published stories unless you're an admin
     if (story.status === 'PUBLISHED' && (!user.staffRole || !['ADMIN', 'SUPERADMIN'].includes(user.staffRole))) {
       return NextResponse.json({ error: 'Cannot delete published stories' }, { status: 400 });
+    }
+
+    // Delete audio files from storage before deleting story
+    for (const audioClip of story.audioClips) {
+      try {
+        await deleteAudioFile(audioClip.url);
+      } catch (error) {
+        console.error(`Failed to delete audio file ${audioClip.url}:`, error);
+        // Continue with deletion even if some files fail
+      }
     }
 
     await prisma.story.delete({
