@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { CheckIcon, UserIcon, ClockIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
@@ -39,7 +39,7 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
   const [resolvingNotes, setResolvingNotes] = useState<Set<string>>(new Set());
   const [showHistory, setShowHistory] = useState(false);
 
-  const fetchRevisionNotes = async () => {
+  const fetchRevisionNotes = useCallback(async () => {
     try {
       const response = await fetch(`/api/newsroom/stories/${storyId}/comments?type=REVISION_REQUEST`);
       if (!response.ok) {
@@ -54,11 +54,11 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [storyId]);
 
   useEffect(() => {
     fetchRevisionNotes();
-  }, [storyId]);
+  }, [fetchRevisionNotes]);
 
   const handleResolveToggle = async (revisionId: string, resolved: boolean) => {
     if (!session?.user) return;

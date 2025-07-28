@@ -16,6 +16,17 @@ import { UsersIcon, UserIcon, BuildingOfficeIcon } from '@heroicons/react/24/out
 type UserType = 'STAFF' | 'RADIO';
 type StaffRole = 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'SUB_EDITOR' | 'JOURNALIST' | 'INTERN';
 
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  userType: UserType;
+  staffRole?: StaffRole | null;
+  isActive: boolean;
+  radioStation?: { name: string } | null;
+  createdAt: string;
+}
 
 type UserFilter = 'all' | 'radio' | 'staff';
 
@@ -54,7 +65,7 @@ export function UserList() {
   };
 
   // Filter users based on selected user type
-  const filteredUsers = users.filter((user: any) => {
+  const filteredUsers = users.filter((user: User) => {
     if (userTypeFilter === 'all') return true;
     if (userTypeFilter === 'radio') return user.userType === 'RADIO';
     if (userTypeFilter === 'staff') return user.userType === 'STAFF';
@@ -131,7 +142,7 @@ export function UserList() {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user: any) => (
+              filteredUsers.map((user: User) => (
                 <tr 
                   key={user.id}
                   onClick={() => handleRowClick(user.id)}

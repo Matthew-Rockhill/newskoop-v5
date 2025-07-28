@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Checkbox, CheckboxGroup, CheckboxField } from '@/components/ui/checkbox';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
+import type { AudioClip as PrismaAudioClip } from '@prisma/client';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
 import { RevisionRequestModal } from './RevisionRequestModal';
 import { CategoryModal } from './CategoryModal';
@@ -79,7 +80,7 @@ function getCategoryBreadcrumb(category: Category | undefined): string {
   let current = category.parent;
   while (current) {
     path.unshift(current.name);
-    current = (current as any).parent;
+    current = current.parent;
   }
   return path.join(' > ');
 }
@@ -534,7 +535,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {story.audioClips.map((clip: any) => (
+                  {story.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'description' | 'duration'>) => (
                     <CustomAudioPlayer
                       key={clip.id}
                       clip={clip}

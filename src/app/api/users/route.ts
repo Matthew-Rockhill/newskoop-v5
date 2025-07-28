@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { userCreateSchema, userSearchSchema } from '@/lib/validations';
@@ -74,7 +75,7 @@ const getUsers = createHandler(
 // POST /api/users - Create a new user
 const createUser = createHandler(
   async (req: NextRequest) => {
-    const data = (req as any).validatedData;
+    const data = (req as NextRequest & { validatedData: z.infer<typeof userCreateSchema> }).validatedData;
 
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
@@ -115,7 +116,8 @@ const createUser = createHandler(
     }
 
     // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
 
     return Response.json(userWithoutPassword, { status: 201 });
   },

@@ -1,5 +1,6 @@
 import * as Headless from '@headlessui/react'
 import clsx from 'clsx'
+import Image from 'next/image'
 import React, { forwardRef } from 'react'
 import { TouchTarget } from './button'
 import { Link } from './link'
@@ -73,10 +74,12 @@ export function Avatar({
         </span>
       )}
       {src && (
-        <img 
+        <Image 
           className="size-full object-cover" 
           src={src} 
-          alt={alt || name || 'Avatar'} 
+          alt={alt || name || 'Avatar'}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
       )}
     </span>

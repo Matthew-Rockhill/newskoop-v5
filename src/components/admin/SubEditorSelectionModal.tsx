@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -33,14 +33,7 @@ export function SubEditorSelectionModal({
   const [selectedSubEditorId, setSelectedSubEditorId] = useState<string>('');
   const [isLoadingSubEditors, setIsLoadingSubEditors] = useState(false);
 
-  // Fetch available sub-editors
-  useEffect(() => {
-    if (isOpen) {
-      fetchSubEditors();
-    }
-  }, [isOpen]);
-
-  const fetchSubEditors = async () => {
+  const fetchSubEditors = useCallback(async () => {
     setIsLoadingSubEditors(true);
     try {
       // Fetch only sub-editors who can approve stories
@@ -63,7 +56,14 @@ export function SubEditorSelectionModal({
     } finally {
       setIsLoadingSubEditors(false);
     }
-  };
+  }, [selectedSubEditorId]);
+
+  // Fetch available sub-editors
+  useEffect(() => {
+    if (isOpen) {
+      fetchSubEditors();
+    }
+  }, [isOpen, fetchSubEditors]);
 
   const handleConfirm = () => {
     if (selectedSubEditorId) {

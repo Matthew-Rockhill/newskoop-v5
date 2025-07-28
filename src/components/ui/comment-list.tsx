@@ -3,7 +3,7 @@
 import { Avatar } from './avatar';
 import { Button } from './button';
 import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 interface Comment {
@@ -45,7 +45,7 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
   const [replyContent, setReplyContent] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const response = await fetch(`/api/newsroom/stories/${storyId}/comments`);
       if (!response.ok) {
@@ -59,18 +59,18 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [storyId]);
 
   useEffect(() => {
     fetchComments();
-  }, [storyId, refreshKey]);
+  }, [fetchComments, refreshKey]);
 
   // Refresh comments when onCommentAdded is called
   useEffect(() => {
     if (onCommentAdded) {
       fetchComments();
     }
-  }, [onCommentAdded]);
+  }, [onCommentAdded, fetchComments]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

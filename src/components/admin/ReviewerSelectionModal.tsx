@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -33,14 +33,7 @@ export function ReviewerSelectionModal({
   const [selectedReviewerId, setSelectedReviewerId] = useState<string>('');
   const [isLoadingReviewers, setIsLoadingReviewers] = useState(false);
 
-  // Fetch available journalists/reviewers
-  useEffect(() => {
-    if (isOpen) {
-      fetchReviewers();
-    }
-  }, [isOpen]);
-
-  const fetchReviewers = async () => {
+  const fetchReviewers = useCallback(async () => {
     setIsLoadingReviewers(true);
     try {
       // Fetch only journalists who can review stories
@@ -63,7 +56,14 @@ export function ReviewerSelectionModal({
     } finally {
       setIsLoadingReviewers(false);
     }
-  };
+  }, [selectedReviewerId]);
+
+  // Fetch available journalists/reviewers
+  useEffect(() => {
+    if (isOpen) {
+      fetchReviewers();
+    }
+  }, [isOpen, fetchReviewers]);
 
   const handleConfirm = () => {
     if (selectedReviewerId) {

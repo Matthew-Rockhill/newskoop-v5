@@ -33,15 +33,7 @@ export function FileUpload({
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    handleFiles(droppedFiles);
-  }, []);
-
-  const handleFiles = (newFiles: File[]) => {
+  const handleFiles = useCallback((newFiles: File[]) => {
     setError(null);
     
     // Validate files
@@ -79,7 +71,15 @@ export function FileUpload({
       setFiles(updatedFiles);
       onFilesChange(updatedFiles);
     }
-  };
+  }, [acceptedTypes, files, maxFileSize, maxFiles, onFilesChange]);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    handleFiles(droppedFiles);
+  }, [handleFiles]);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {

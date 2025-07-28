@@ -6,7 +6,7 @@ import { logAudit } from './audit';
 
 export type ApiHandler = (
   req: NextRequest,
-  context: { params: Promise<any> }
+  context: { params: Promise<Record<string, string>> }
 ) => Promise<NextResponse> | NextResponse;
 
 type ApiMiddleware = (handler: ApiHandler) => ApiHandler;
@@ -69,7 +69,7 @@ export const withAuth: ApiMiddleware = (handler) => {
     }
 
     // Attach user to request
-    (req as any).user = user;
+    (req as NextRequest & { user: typeof user }).user = user;
 
     return handler(req, context);
   };
@@ -95,14 +95,14 @@ export const withAudit = (action: string): ApiMiddleware => {
   };
 };
 
-export const withValidation = <T>(schema: any): ApiMiddleware => {
+export const withValidation = <T>(schema: { parse: (data: unknown) => T }): ApiMiddleware => {
   return (handler) => {
     return async (req, context) => {
       const body = await req.json();
       const validated = schema.parse(body);
       
       // Attach validated data to the request
-      (req as any).validatedData = validated;
+      (req as NextRequest & { validatedData: T }).validatedData = validated;
       
       return handler(req, context);
     };

@@ -4,7 +4,7 @@ import type { AuditLog } from '@prisma/client';
 interface CreateAuditLogParams {
   userId: string;
   action: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ipAddress: string;
   userAgent: string;
   targetId?: string;
@@ -107,7 +107,7 @@ export async function getAuditLogs({
 }
 
 // Helper function to sanitize audit details
-function sanitizeAuditDetails(details: Record<string, any>): Record<string, any> {
+function sanitizeAuditDetails(details: Record<string, unknown>): Record<string, unknown> {
   const sensitiveFields = ['password', 'token', 'secret', 'key', 'authorization'];
   
   return Object.entries(details).reduce((acc, [key, value]) => {
@@ -133,7 +133,7 @@ function sanitizeAuditDetails(details: Record<string, any>): Record<string, any>
     // Include non-sensitive fields
     acc[key] = value;
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, unknown>);
 }
 
 // Constants for audit actions

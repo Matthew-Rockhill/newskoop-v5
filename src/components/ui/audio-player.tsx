@@ -30,15 +30,11 @@ interface CustomAudioPlayerProps {
 export function CustomAudioPlayer({
   clip,
   onPlay,
-  onStop,
-  onRestart,
   onSeek,
   onTimeUpdate,
   onLoadedMetadata,
   onEnded,
   onError,
-  isPlaying = false,
-  currentTime = 0,
   duration = 0,
 }: CustomAudioPlayerProps) {
   const playerRef = useRef<AudioPlayer>(null);

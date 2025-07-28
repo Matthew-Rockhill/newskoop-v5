@@ -48,13 +48,25 @@ export function UserActivityChart() {
 
   if (!data) return null;
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipEntry {
+    value: number;
+    name: string;
+    color: string;
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipEntry[];
+    label?: string;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
-      const total = payload.reduce((sum: number, entry: any) => sum + entry.value, 0);
+      const total = payload.reduce((sum: number, entry: TooltipEntry) => sum + entry.value, 0);
       return (
         <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-medium text-gray-900 mb-2">{`Time: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry: TooltipEntry, index: number) => (
             <div key={index} className="flex items-center justify-between mb-1">
               <div className="flex items-center">
                 <div 

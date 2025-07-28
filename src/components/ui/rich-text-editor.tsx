@@ -15,7 +15,6 @@ import {
   Heading2,
   Heading3,
 } from 'lucide-react';
-import { Button } from './button';
 import clsx from 'clsx';
 
 interface RichTextEditorProps {
