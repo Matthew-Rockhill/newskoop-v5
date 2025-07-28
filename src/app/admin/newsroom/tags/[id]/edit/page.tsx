@@ -164,9 +164,9 @@ export default function EditTagPage() {
           <div className="flex justify-between items-center space-x-4">
             <div>
               {canDelete && (
-                <Button type="button" color="red" onClick={() => setShowDeleteModal(true)} disabled={deleteTag.isLoading} className="font-bold flex items-center gap-2">
+                <Button type="button" color="red" onClick={() => setShowDeleteModal(true)} disabled={deleteTag.isPending} className="font-bold flex items-center gap-2">
                   <TrashIcon className="h-5 w-5 text-red-600" />
-                  {deleteTag.isLoading ? "Deleting..." : "Delete Tag"}
+                  {deleteTag.isPending ? "Deleting..." : "Delete Tag"}
                 </Button>
               )}
             </div>
@@ -178,8 +178,8 @@ export default function EditTagPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!canEdit || updateTag.isLoading}>
-                {updateTag.isLoading ? "Saving..." : "Save Changes"}
+              <Button type="submit" disabled={!canEdit || updateTag.isPending}>
+                {updateTag.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>
@@ -194,9 +194,9 @@ export default function EditTagPage() {
             <Button color="white" onClick={() => setShowDeleteModal(false)}>
               Cancel
             </Button>
-            <Button color="red" onClick={handleDelete} disabled={deleteTag.isLoading} className="font-bold flex items-center gap-2">
+            <Button color="red" onClick={handleDelete} disabled={deleteTag.isPending} className="font-bold flex items-center gap-2">
               <TrashIcon className="h-5 w-5 text-red-600" />
-              {deleteTag.isLoading ? "Deleting..." : "Delete"}
+              {deleteTag.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogActions>
         </Dialog>
