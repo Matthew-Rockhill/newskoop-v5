@@ -8,7 +8,9 @@ import {
   LanguageIcon,
   MapPinIcon,
 } from '@heroicons/react/24/outline';
-import { Tag, TagCategory } from '@prisma/client';
+import { Tag, $Enums } from '@prisma/client';
+
+type TagCategory = $Enums.TagCategory;
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
