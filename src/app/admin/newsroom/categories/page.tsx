@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { useCategories } from '@/hooks/use-categories';
 import { useSession } from 'next-auth/react';
+import { Category } from '@/types';
 
 export default function CategoriesPage() {
   const router = useRouter();
