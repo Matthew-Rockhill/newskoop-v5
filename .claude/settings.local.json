@@ -5,7 +5,10 @@
       "Bash(npx tsc:*)",
       "Bash(dir *ontainer*)",
       "Bash(ls:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
