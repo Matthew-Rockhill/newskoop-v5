@@ -65,7 +65,7 @@ export function UserList() {
   };
 
   // Filter users based on selected user type
-  const filteredUsers = users.filter((user: User) => {
+  const filteredUsers = users.filter((user) => {
     if (userTypeFilter === 'all') return true;
     if (userTypeFilter === 'radio') return user.userType === 'RADIO';
     if (userTypeFilter === 'staff') return user.userType === 'STAFF';
@@ -142,7 +142,7 @@ export function UserList() {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user: User) => (
+              filteredUsers.map((user) => (
                 <tr 
                   key={user.id}
                   onClick={() => handleRowClick(user.id)}

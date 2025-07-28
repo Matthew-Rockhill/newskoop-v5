@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 // PATCH /api/stations/[id]/primary-contact - Update primary contact
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { id } = await params;

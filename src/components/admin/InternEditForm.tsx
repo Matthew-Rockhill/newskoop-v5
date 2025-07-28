@@ -73,12 +73,12 @@ const statusColors = {
   PENDING_TRANSLATION: 'purple',
   READY_TO_PUBLISH: 'emerald',
   PUBLISHED: 'emerald',
-  ARCHIVED: 'gray',
+  ARCHIVED: 'zinc',
 } as const;
 
 // Priority badge colors
 const priorityColors = {
-  LOW: 'gray',
+  LOW: 'zinc',
   MEDIUM: 'blue',
   HIGH: 'amber',
   URGENT: 'red',
@@ -187,7 +187,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
     try {
       // First save the current changes
       const formData = {
-        title: document.querySelector<HTMLInputElement>('#title')?.value || story.title,
+        title: document.querySelector<HTMLInputElement>('#title')?.value || story?.title || '',
         content: content,
       };
 
@@ -231,7 +231,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
     try {
       // First save the current changes
       const formData = {
-        title: document.querySelector<HTMLInputElement>('#title')?.value || story.title,
+        title: document.querySelector<HTMLInputElement>('#title')?.value || story?.title || '',
         content: content,
       };
 
@@ -279,7 +279,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
   };
 
   const getStatusActions = (currentStatus: StoryStatus) => {
-    const actions = [];
+    const actions: Array<{ label: string; status: string; color: "primary" | "secondary" | "white" | "red" }> = [];
     const userRole = session?.user?.staffRole;
     const userId = session?.user?.id;
     
@@ -308,14 +308,14 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
               actions.push({
                 label: 'Submit for Approval',
                 status: newStatus,
-                color: 'emerald' as const,
+                color: 'primary',
               });
             } else {
               // Journalists submit intern stories for sub-editor approval
               actions.push({
                 label: 'Submit for Approval',
                 status: newStatus,
-                color: 'emerald' as const,
+                color: 'primary',
               });
             }
           }
@@ -325,7 +325,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
             actions.push({
               label: 'Approve',
               status: newStatus,
-              color: 'emerald' as const,
+              color: 'primary',
             });
           }
           break;
@@ -341,7 +341,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
             actions.push({
               label: 'Send for Translation',
               status: newStatus,
-              color: 'purple' as const,
+              color: 'secondary',
             });
           }
           break;
@@ -350,7 +350,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
             actions.push({
               label: 'Mark Ready to Publish',
               status: newStatus,
-              color: 'emerald' as const,
+              color: 'primary',
             });
           }
           break;
@@ -359,7 +359,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
             actions.push({
               label: 'Publish',
               status: newStatus,
-              color: 'emerald' as const,
+              color: 'primary',
             });
           }
           break;
@@ -432,13 +432,13 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
             <div className="flex items-center gap-4 mt-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
-                <Badge color={statusColors[story.status]} size="sm">
+                <Badge color={statusColors[story.status] || 'zinc'}>
                   {story.status.replace('_', ' ')}
                 </Badge>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
-                <Badge color={priorityColors[story.priority]} size="sm">
+                <Badge color={priorityColors[story.priority as keyof typeof priorityColors] || 'zinc'}>
                   {story.priority}
                 </Badge>
               </div>
@@ -483,7 +483,6 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
                 <Button
                   key={action.status}
                   color={action.color}
-                  size="sm"
                   onClick={() => handleSubmitForReview()}
                   disabled={isSubmitting}
                 >
@@ -492,7 +491,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
               ))}
               
               {/* Back to Story Button */}
-              <Button size="sm" color="secondary" href={`/admin/newsroom/stories/${storyId}`}>
+              <Button color="secondary" href={`/admin/newsroom/stories/${storyId}`}>
                 Back to Story
               </Button>
             </div>
@@ -545,7 +544,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <Heading level={3}>Audio Clips</Heading>
-                  <Badge color="zinc" size="sm">
+                  <Badge color="zinc">
                     {story.audioClips?.length || 0} clips
                   </Badge>
                 </div>
@@ -560,7 +559,13 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
                     {story.audioClips.map((clip) => (
                       <CustomAudioPlayer
                         key={clip.id}
-                        clip={clip}
+                        clip={{
+                          ...clip,
+                          url: `/api/audio/${clip.id}`, // or however the URL is constructed
+                          originalName: clip.filename,
+                          duration: clip.duration ?? null,
+                          description: clip.description ?? null
+                        }}
                         isPlaying={playingAudioId === clip.id}
                         currentTime={audioProgress[clip.id] || 0}
                         duration={audioDuration[clip.id] || 0}

@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 // POST /api/stations/[id]/users - Add new users to station
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { id } = await params;
@@ -88,7 +88,7 @@ export async function POST(
 // DELETE /api/stations/[id]/users - Remove users from station
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { id } = await params;

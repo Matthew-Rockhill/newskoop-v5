@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { storyCreateSchema, storySearchSchema } from '@/lib/validations';
@@ -27,7 +27,7 @@ function hasStoryPermission(userRole: string | null, action: 'create' | 'read' |
 // GET /api/newsroom/stories - List stories with filtering and pagination
 const getStories = createHandler(
   async (req: NextRequest) => {
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasStoryPermission(user.staffRole, 'read')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -236,7 +236,7 @@ const getStories = createHandler(
 // POST /api/newsroom/stories - Create a new story
 const createStory = createHandler(
   async (req: NextRequest) => {
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'create')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -317,29 +317,34 @@ const createStory = createHandler(
       });
     }
 
+    // Prepare create data
+    const createData: Record<string, unknown> = {
+      ...cleanStoryData,
+      authorId: user.id,
+      slug: generateSlug(validatedData.title),
+    };
+
+    if (reviewerId) {
+      createData.reviewerId = reviewerId;
+    }
+
+    if (tagIds && tagIds.length > 0) {
+      createData.tags = {
+        create: tagIds.map((tagId: string) => ({
+          tag: { connect: { id: tagId } }
+        }))
+      };
+    }
+
+    if (uploadedAudioFiles.length > 0) {
+      createData.audioClips = {
+        create: uploadedAudioFiles
+      };
+    }
+
     // Create story with audio files
     const story = await prisma.story.create({
-      data: {
-        ...cleanStoryData,
-        authorId: user.id,
-        slug: generateSlug(validatedData.title),
-        // Assign reviewer if provided
-        ...(reviewerId && { reviewerId }),
-        // Connect tags if provided
-        ...(tagIds && tagIds.length > 0 && {
-          tags: {
-            create: tagIds.map((tagId: string) => ({
-              tag: { connect: { id: tagId } }
-            }))
-          }
-        }),
-        // Create audio clips
-        ...(uploadedAudioFiles.length > 0 && {
-          audioClips: {
-            create: uploadedAudioFiles
-          }
-        })
-      },
+      data: createData as any,
       include: {
         author: {
           select: {

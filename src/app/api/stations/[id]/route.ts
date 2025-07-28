@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 // GET /api/stations/[id] - Get a single station
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { id } = await params;
@@ -47,7 +47,7 @@ export async function GET(
 // PATCH /api/stations/[id] - Update a station
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { id } = await params;
@@ -70,7 +70,7 @@ export async function PATCH(
       const stationWithSameName = await prisma.station.findFirst({
         where: {
           name: data.name,
-          NOT: { id: params.id },
+          NOT: { id },
         },
       });
 
@@ -124,7 +124,7 @@ export async function PATCH(
 // DELETE /api/stations/[id] - Delete a station
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { id } = await params;

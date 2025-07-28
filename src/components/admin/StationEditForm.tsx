@@ -39,8 +39,8 @@ const stationEditSchema = z.object({
   province: z.enum(provinces, { required_error: 'Province is required' }),
   contactEmail: z.string().email('Invalid email address').optional().or(z.literal('')),
   contactNumber: z.string().optional(),
-  isActive: z.boolean().default(true),
-  hasContentAccess: z.boolean().default(true),
+  isActive: z.boolean(),
+  hasContentAccess: z.boolean(),
   
   // Primary Contact (existing user)
   primaryContactId: z.string().min(1, 'Primary contact is required'),
@@ -52,7 +52,7 @@ const stationEditSchema = z.object({
     email: z.string().email('Invalid email address'),
     mobileNumber: z.string().optional(),
     password: z.string().min(8, 'Password must be at least 8 characters'),
-  })).default([])
+  }))
 });
 
 type StationEditFormData = z.infer<typeof stationEditSchema>;
@@ -115,7 +115,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
     resolver: zodResolver(stationEditSchema),
     defaultValues: {
       name: station.name,
-      province: station.province as string,
+      province: station.province as typeof provinces[number],
       contactEmail: station.contactEmail || '',
       contactNumber: station.contactNumber || '',
       isActive: station.isActive,
@@ -139,7 +139,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
     const primaryContact = station.users.find(user => user.isPrimaryContact);
     reset({
       name: station.name,
-      province: station.province as string,
+      province: station.province as typeof provinces[number],
       contactEmail: station.contactEmail || '',
       contactNumber: station.contactNumber || '',
       isActive: station.isActive,
@@ -410,7 +410,6 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                     <Button
                       type="button"
                       onClick={() => undoRemoveUser(user.id)}
-                      outline
                       className="text-sm"
                     >
                       Undo Remove
@@ -420,7 +419,6 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                       type="button"
                       onClick={() => removeUser(user.id)}
                       color="red"
-                      outline
                       className="text-sm"
                       disabled={user.id === selectedPrimaryContactId}
                     >
@@ -448,7 +446,6 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                     type="button"
                     onClick={() => remove(index)}
                     color="red"
-                    outline
                     className="text-sm"
                   >
                     <TrashIcon className="h-4 w-4" />
@@ -524,7 +521,6 @@ export default function StationEditForm({ station }: StationEditFormProps) {
             <Button
               type="button"
               onClick={addNewUser}
-              outline
               className="w-full"
             >
               <PlusIcon className="h-4 w-4 mr-2" />

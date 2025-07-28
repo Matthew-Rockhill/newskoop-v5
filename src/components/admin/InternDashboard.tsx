@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
-import { useStories } from '@/hooks/use-stories';
+import { useStories, type Story } from '@/hooks/use-stories';
 import { useQuery } from '@tanstack/react-query';
 import { StoryPipelineView } from './StoryPipelineView';
 import { 
@@ -291,7 +291,7 @@ export function UserDashboard() {
               
               {pendingApprovalStories.length > 0 ? (
                 <div className="space-y-3">
-                  {pendingApprovalStories.slice(0, 5).map((story) => (
+                  {pendingApprovalStories.slice(0, 5).map((story: Story) => (
                     <div key={story.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900">{story.title}</h4>
@@ -343,7 +343,7 @@ export function UserDashboard() {
               
               {approvedForPublishingStories.length > 0 ? (
                 <div className="space-y-3">
-                  {approvedForPublishingStories.slice(0, 5).map((story) => (
+                  {approvedForPublishingStories.slice(0, 5).map((story: Story) => (
                     <div key={story.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900">{story.title}</h4>
@@ -405,7 +405,7 @@ export function UserDashboard() {
             
             {reviewCount > 0 ? (
               <div className="space-y-3">
-                {reviewStories.slice(0, 5).map((story) => (
+                {reviewStories.slice(0, 5).map((story: Story) => (
                   <div key={story.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">{story.title}</h4>
@@ -459,7 +459,7 @@ export function UserDashboard() {
           
           {rejectedCount > 0 ? (
             <div className="space-y-3">
-              {rejectedStories.slice(0, 5).map((story) => (
+              {rejectedStories.slice(0, 5).map((story: Story) => (
                 <div key={story.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">{story.title}</h4>
@@ -523,7 +523,7 @@ export function UserDashboard() {
           
           {draftStories.length > 0 ? (
             <div className="space-y-3">
-              {draftStories.slice(0, 5).map((story) => (
+              {draftStories.slice(0, 5).map((story: Story) => (
                 <div key={story.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">{story.title}</h4>
@@ -577,7 +577,7 @@ export function UserDashboard() {
           
           {submittedStories.length > 0 ? (
             <div className="space-y-3">
-              {submittedStories.slice(0, 5).map((story) => (
+              {submittedStories.slice(0, 5).map((story: Story) => (
                 <div key={story.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">{story.title}</h4>
@@ -628,7 +628,7 @@ export function UserDashboard() {
             
             {approvedStories.length > 0 ? (
               <div className="space-y-3">
-                {approvedStories.slice(0, 5).map((story) => (
+                {approvedStories.slice(0, 5).map((story: Story) => (
                   <div key={story.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">{story.title}</h4>
@@ -668,7 +668,7 @@ export function UserDashboard() {
       )}
 
       {/* Assigned Translations Section - Translators Only */}
-      {session?.user?.isTranslator && assignedTranslationStories.length > 0 && (
+      {false && assignedTranslationStories.length > 0 && (
         <div className="mt-8">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -679,15 +679,15 @@ export function UserDashboard() {
               Stories assigned to you for translation
             </Text>
             <div className="space-y-3">
-              {assignedTranslationStories.slice(0, 5).map((translation) => (
+              {assignedTranslationStories.slice(0, 5).map((translation: Story) => (
                 <div key={translation.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{translation.originalStory?.title || 'Untitled'}</h4>
+                    <h4 className="font-medium text-gray-900">{translation.title || 'Untitled'}</h4>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <ClockIcon className="h-4 w-4" />
                       <span>Assigned {formatDate(translation.createdAt)}</span>
-                      {translation.originalStory?.author && (
-                        <span>• Author: {translation.originalStory.author.firstName} {translation.originalStory.author.lastName}</span>
+                      {translation.author && (
+                        <span>• Author: {translation.author.firstName} {translation.author.lastName}</span>
                       )}
                     </div>
                   </div>

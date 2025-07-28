@@ -293,7 +293,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <Button
               onClick={() => signOut({ callbackUrl: '/login' })}
               color="white"
-              size="sm"
               className="lg:hidden"
             >
               <ArrowRightOnRectangleIcon className="h-4 w-4" />

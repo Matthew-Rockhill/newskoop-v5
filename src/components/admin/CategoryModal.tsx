@@ -43,10 +43,10 @@ interface CategoryModalProps {
 // Helper to build breadcrumb path
 function getCategoryBreadcrumb(category: Category): string {
   const path = [category.name];
-  let current: Category | undefined = category.parent;
+  let current: Category | undefined = category.parent as Category | undefined;
   while (current) {
     path.unshift(current.name);
-    current = current.parent;
+    current = current.parent as Category | undefined;
   }
   return path.join(' > ');
 }
@@ -162,7 +162,7 @@ export function CategoryModal({
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Text className="font-medium">{getCategoryBreadcrumb(category)}</Text>
-                          <Badge color="zinc" size="sm">
+                          <Badge color="zinc">
                             Level {category.level}
                           </Badge>
                         </div>

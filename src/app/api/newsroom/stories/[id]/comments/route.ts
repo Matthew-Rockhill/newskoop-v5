@@ -1,7 +1,8 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation } from '@/lib/api-handler';
 import { commentCreateSchema } from '@/lib/validations';
+import { CommentType } from '@prisma/client';
 
 // Helper function to check permissions
 function hasCommentPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -24,9 +25,9 @@ function hasCommentPermission(userRole: string | null, action: 'create' | 'read'
 
 // GET /api/newsroom/stories/[id]/comments - Get comments for a story
 const getComments = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id: storyId } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     
     // Get query parameters
     const { searchParams } = new URL(req.url);
@@ -65,14 +66,14 @@ const getComments = createHandler(
       }
     }
 
-    const whereClause: { storyId: string; parentId: null; type?: string } = {
+    const whereClause: { storyId: string; parentId: null; type?: CommentType } = {
       storyId,
       parentId: null, // Only get top-level comments
     };
 
     // Filter by type if specified
     if (type) {
-      whereClause.type = type;
+      whereClause.type = type as CommentType;
     }
 
     const comments = await prisma.comment.findMany({
@@ -133,10 +134,10 @@ const getComments = createHandler(
 
 // POST /api/newsroom/stories/[id]/comments - Create a new comment
 const createComment = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id: storyId } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
-    const data = (req as { validatedData: { content: string; type: string; category?: string; parentId?: string } }).validatedData;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const data = (req as NextRequest & { validatedData: { content: string; type: string; category?: string; parentId?: string } }).validatedData;
 
     if (!hasCommentPermission(user.staffRole, 'create')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -187,7 +188,7 @@ const createComment = createHandler(
     const comment = await prisma.comment.create({
       data: {
         content: data.content,
-        type: data.type,
+        type: data.type as CommentType,
         category: data.category,
         storyId,
         authorId: user.id,

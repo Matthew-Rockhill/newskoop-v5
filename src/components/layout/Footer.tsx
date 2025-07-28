@@ -15,36 +15,36 @@ export default function Footer() {
             </Link>
           </div>
           <div className="col-span-1">
-            <Text variant="title-sm" className="flex items-center gap-2 text-[#272727]">
+            <Text className="flex items-center gap-2 text-[#272727] font-medium">
               <Phone className="h-5 w-5" />
               Contact Us
             </Text>
             <div className="mt-2">
-              <Link href="tel:0218305238" variant="secondary" className="hover:text-[#76BD43]">
+              <Link href="tel:0218305238" className="hover:text-[#76BD43] text-blue-600 underline">
                 021 830 5238
               </Link>
             </div>
           </div>
           <div className="col-span-1">
-            <Text variant="title-sm" className="flex items-center gap-2 text-[#272727]">
+            <Text className="flex items-center gap-2 text-[#272727] font-medium">
               <Mail className="h-5 w-5" />
               Email
             </Text>
             <div className="mt-2 space-y-1">
-              <Link href="mailto:info@newskoop.com" variant="secondary" className="hover:text-[#76BD43] block">
+              <Link href="mailto:info@newskoop.com" className="hover:text-[#76BD43] block text-blue-600 underline">
                 info@newskoop.com
               </Link>
-              <Link href="mailto:support@newskoop.com" variant="secondary" className="hover:text-[#76BD43] block">
+              <Link href="mailto:support@newskoop.com" className="hover:text-[#76BD43] block text-blue-600 underline">
                 support@newskoop.com
               </Link>
             </div>
           </div>
           <div className="col-span-1">
-            <Text variant="title-sm" className="flex items-center gap-2 text-[#272727]">
+            <Text className="flex items-center gap-2 text-[#272727] font-medium">
               <MapPin className="h-5 w-5" />
               Address
             </Text>
-            <Text variant="sm" className="mt-2 text-gray-600">
+            <Text className="mt-2 text-gray-600 text-sm">
               No. 1 Bridgeways, Bridgeways Precinct<br />
               Century City, Cape Town, 7441<br />
               P.O Box 51152, V & A Waterfront<br />
@@ -53,7 +53,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-[#76BD43]/10">
-          <Text variant="sm" className="text-center text-gray-600">
+          <Text className="text-center text-gray-600 text-sm">
             © {new Date().getFullYear()} Newskoop. All rights reserved.
           </Text>
         </div>

@@ -1,7 +1,8 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { tagCreateSchema } from '@/lib/validations';
+import { TagCategory } from '@prisma/client';
 
 // Helper function to check permissions
 function hasTagPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -35,7 +36,7 @@ function generateSlug(name: string): string {
 // GET /api/newsroom/tags - List tags
 const getTags = createHandler(
   async (req: NextRequest) => {
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasTagPermission(user.staffRole, 'read')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -47,7 +48,7 @@ const getTags = createHandler(
     const page = parseInt(url.searchParams.get('page') || '1');
     const perPage = parseInt(url.searchParams.get('perPage') || '50');
 
-    const where: { OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; slug?: { contains: string; mode: 'insensitive' } }>; category?: string } = {};
+    const where: { OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; slug?: { contains: string; mode: 'insensitive' } }>; category?: TagCategory } = {};
     
     if (query) {
       where.OR = [
@@ -57,7 +58,7 @@ const getTags = createHandler(
     }
     
     if (category) {
-      where.category = category;
+      where.category = category as TagCategory;
     }
 
     // Get total count
@@ -94,8 +95,8 @@ const getTags = createHandler(
 // POST /api/newsroom/tags - Create a new tag
 const createTag = createHandler(
   async (req: NextRequest) => {
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
-    const data = (req as { validatedData: { name: string; category?: string; color?: string; description?: string } }).validatedData;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const data = (req as NextRequest & { validatedData: { name: string; category?: string; color?: string; description?: string } }).validatedData;
 
     if (!hasTagPermission(user.staffRole, 'create')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -113,8 +114,10 @@ const createTag = createHandler(
 
     const tag = await prisma.tag.create({
       data: {
-        ...data,
+        name: data.name,
         slug,
+        category: data.category as TagCategory,
+        color: data.color,
       },
       include: {
         _count: {
@@ -136,9 +139,9 @@ const createTag = createHandler(
 );
 
 const deleteTag = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasTagPermission(user.staffRole, 'delete')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });

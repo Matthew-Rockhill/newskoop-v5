@@ -54,9 +54,6 @@ export function InternStoryForm() {
       // Add audio files
       audioFiles.forEach((audioFile, index) => {
         formData.append(`audioFile_${index}`, audioFile);
-        if (audioFiles[index].description) {
-          formData.append(`audioDescription_${index}`, audioFiles[index].description);
-        }
       });
       formData.append('audioFilesCount', String(audioFiles.length));
 
@@ -144,7 +141,10 @@ export function InternStoryForm() {
             </p>
             
             <FileUpload
-              onFilesChange={setAudioFiles}
+              onFilesChange={(audioFiles) => {
+                // Extract just the File objects from AudioFile array
+                setAudioFiles(audioFiles.map(af => af.file));
+              }}
               maxFiles={5}
               maxFileSize={50}
             />

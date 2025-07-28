@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { storyUpdateSchema } from '@/lib/validations';
@@ -23,7 +23,8 @@ function hasStoryPermission(userRole: string | null, action: 'create' | 'read' |
 }
 
 // Helper function to check if user can edit specific story
-async function canEditStory(userId: string, userRole: string, storyId: string) {
+async function canEditStory(userId: string, userRole: string | null, storyId: string) {
+  if (!userRole) return false;
   if (!hasStoryPermission(userRole, 'update')) {
     return false;
   }
@@ -55,9 +56,9 @@ async function canEditStory(userId: string, userRole: string, storyId: string) {
 
 // GET /api/newsroom/stories/[id] - Get a single story
 const getStory = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'read')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -205,10 +206,10 @@ const getStory = createHandler(
 
 // PATCH /api/newsroom/stories/[id] - Update a story
 const updateStory = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
-    const data = (req as { validatedData: { 
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const data = (req as NextRequest & { validatedData: { 
       status?: string; 
       categoryId?: string; 
       tagIds?: string[]; 
@@ -238,20 +239,20 @@ const updateStory = createHandler(
       storyData.slug = generateSlug(storyData.title);
     }
 
+    const updateData: Record<string, unknown> = { ...storyData };
+    
+    if (tagIds !== undefined) {
+      updateData.tags = {
+        deleteMany: {}, // Remove all existing tags
+        create: tagIds.map((tagId: string) => ({
+          tag: { connect: { id: tagId } }
+        }))
+      };
+    }
+
     const story = await prisma.story.update({
       where: { id },
-      data: {
-        ...storyData,
-        // Handle tags update if provided
-        ...(tagIds !== undefined && {
-          tags: {
-            deleteMany: {}, // Remove all existing tags
-            create: tagIds.map((tagId: string) => ({
-              tag: { connect: { id: tagId } }
-            }))
-          }
-        })
-      },
+      data: updateData,
       include: {
         author: {
           select: {
@@ -312,9 +313,9 @@ const updateStory = createHandler(
 
 // DELETE /api/newsroom/stories/[id] - Delete a story
 const deleteStory = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'delete')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -331,7 +332,7 @@ const deleteStory = createHandler(
     }
 
     // Don't allow deletion of published stories unless you're an admin
-    if (story.status === 'PUBLISHED' && !['ADMIN', 'SUPERADMIN'].includes(user.staffRole)) {
+    if (story.status === 'PUBLISHED' && (!user.staffRole || !['ADMIN', 'SUPERADMIN'].includes(user.staffRole))) {
       return NextResponse.json({ error: 'Cannot delete published stories' }, { status: 400 });
     }
 

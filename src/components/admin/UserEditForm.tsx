@@ -269,7 +269,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
                 <Select
                   id="translationLanguages"
                   value={watch('translationLanguages')?.[0] || ''}
-                  onChange={e => setValue('translationLanguages', e.target.value ? [e.target.value] : [])}
+                  onChange={e => setValue('translationLanguages', e.target.value ? [e.target.value as "AFRIKAANS" | "XHOSA"] : [])}
                   className="mt-1"
                   invalid={!!errors.translationLanguages}
                 >

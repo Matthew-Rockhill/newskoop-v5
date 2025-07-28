@@ -1,4 +1,4 @@
-import { useStories } from '@/hooks/use-stories';
+import { useStories, type Story } from '@/hooks/use-stories';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Text } from '@/components/ui/text';
@@ -12,7 +12,8 @@ import {
   PencilIcon,
   LanguageIcon,
 } from '@heroicons/react/24/outline';
-import { Story } from '@/types/story';
+
+type BadgeColor = "red" | "blue" | "cyan" | "fuchsia" | "green" | "indigo" | "lime" | "orange" | "pink" | "purple" | "teal" | "violet" | "yellow" | "amber" | "emerald" | "sky" | "rose" | "zinc";
 
 export function StoryPipelineView() {
   // Fetch stories in all stages of the editorial process
@@ -38,7 +39,7 @@ export function StoryPipelineView() {
     {
       name: 'Draft',
       icon: PencilIcon,
-      color: 'gray',
+      color: 'zinc',
       count: draftCount,
     },
     {
@@ -108,7 +109,7 @@ export function StoryPipelineView() {
               <div className="flex flex-col items-center space-y-2">
                 <stage.icon className={`h-6 w-6 text-${stage.color}-600`} />
                 <div className="text-sm font-medium text-gray-900">{stage.name}</div>
-                <Badge color={stage.color as string} className="text-lg font-bold">
+                <Badge color={stage.color as BadgeColor} className="text-lg font-bold">
                   {stage.count}
                 </Badge>
               </div>

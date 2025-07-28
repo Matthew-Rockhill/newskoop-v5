@@ -38,7 +38,7 @@ const stationSchema = z.object({
   contactNumber: z.string().optional(),
   
   // Content Access
-  hasContentAccess: z.boolean().default(true),
+  hasContentAccess: z.boolean(),
   
   // Primary Contact
   primaryContact: z.object({
@@ -60,7 +60,7 @@ const stationSchema = z.object({
     email: z.string().email('Invalid email address'),
     mobileNumber: z.string().optional(),
     password: z.string().min(8, 'Password must be at least 8 characters'),
-  })).default([])
+  }))
 });
 
 type StationFormData = z.infer<typeof stationSchema>;
@@ -103,24 +103,19 @@ export default function StationCreationForm() {
   const hasContentAccess = watch('hasContentAccess');
 
   const validateAndProceed = async () => {
-    let fieldsToValidate: string[] = [];
-    
     switch (currentStep) {
       case 1:
-        fieldsToValidate = ['name', 'province', 'contactEmail', 'contactNumber'];
+        const step1Valid = await trigger(['name', 'province', 'contactEmail', 'contactNumber']);
+        if (step1Valid) setCurrentStep(currentStep + 1);
         break;
       case 2:
         // Content access step - no validation needed as it's just a checkbox
         setCurrentStep(currentStep + 1);
-        return;
-      case 3:
-        fieldsToValidate = ['primaryContact.firstName', 'primaryContact.lastName', 'primaryContact.email', 'primaryContact.mobileNumber', 'primaryContact.password', 'primaryContact.confirmPassword'];
         break;
-    }
-
-    const isValid = await trigger(fieldsToValidate);
-    if (isValid && currentStep < 4) {
-      setCurrentStep(currentStep + 1);
+      case 3:
+        const step3Valid = await trigger(['primaryContact.firstName', 'primaryContact.lastName', 'primaryContact.email', 'primaryContact.mobileNumber', 'primaryContact.password', 'primaryContact.confirmPassword']);
+        if (step3Valid) setCurrentStep(currentStep + 1);
+        break;
     }
   };
 

@@ -31,6 +31,12 @@ import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import type { AudioClip as PrismaAudioClip } from '@prisma/client';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
 import { RevisionRequestModal } from './RevisionRequestModal';
+
+interface RevisionNote {
+  id: string;
+  content: string;
+  category?: string;
+}
 import { CategoryModal } from './CategoryModal';
 import { TagModal } from './TagModal';
 
@@ -80,7 +86,8 @@ function getCategoryBreadcrumb(category: Category | undefined): string {
   let current = category.parent;
   while (current) {
     path.unshift(current.name);
-    current = current.parent;
+    // Note: parent objects nested don't have parent property
+    current = undefined;
   }
   return path.join(' > ');
 }
@@ -150,6 +157,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
     watch,
     setValue,
     trigger,
+    handleSubmit,
     formState: { errors, isValid },
   } = useForm<ReviewChecklistData>({
     resolver: zodResolver(reviewChecklistSchema),
@@ -202,7 +210,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   }, [watchedValues.categoryId, watchedValues.languageTagIds, watchedValues.religionTagIds, trigger]);
 
   const handleApprove = async (data: ReviewChecklistData) => {
-    if (!canUpdateStoryStatus(session?.user?.staffRole as StaffRole | null, story?.status || 'DRAFT', 'APPROVED', story?.authorId, session?.user?.id)) {
+    if (!canUpdateStoryStatus(session?.user?.staffRole as StaffRole | null, story?.status || 'DRAFT', 'APPROVED')) {
       toast.error('You do not have permission to approve this story');
       return;
     }
@@ -249,8 +257,8 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
     router.push(`/admin/newsroom/stories/${storyId}/edit`);
   };
 
-  const handleRevisionRequested = async (revisionNotes: string[]) => {
-    if (!canUpdateStoryStatus(session?.user?.staffRole as StaffRole | null, story?.status || 'DRAFT', 'NEEDS_REVISION', story?.authorId, session?.user?.id)) {
+  const handleRevisionRequested = async (revisionNotes: RevisionNote[]) => {
+    if (!canUpdateStoryStatus(session?.user?.staffRole as StaffRole | null, story?.status || 'DRAFT', 'NEEDS_REVISION')) {
       toast.error('You do not have permission to request revision');
       return;
     }
@@ -263,9 +271,9 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content: note,
+            content: note.content,
             type: 'REVISION_REQUEST',
-            category: 'REVISION_REQUEST',
+            category: note.category || 'REVISION_REQUEST',
           }),
         });
       }
@@ -466,7 +474,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
               {canShowApproveButton(story.status) && (
                 <Button
                   color="primary"
-                  onClick={handleApprove}
+                  onClick={() => handleApprove(watch())}
                   disabled={!isValid || isSubmitting}
                 >
                   <CheckCircleIcon className="h-4 w-4" />
@@ -583,7 +591,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                 <Heading level={4}>Content Review Checklist</Heading>
               </div>
               
-              <form onSubmit={handleApprove}>
+              <form onSubmit={handleSubmit(handleApprove)}>
                 <CheckboxGroup>
                   <CheckboxField>
                     <Checkbox

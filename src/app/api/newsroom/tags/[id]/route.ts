@@ -1,10 +1,10 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 
 function hasTagPermission(userRole: string | null, action: 'delete') {
   if (!userRole) return false;
-  const permissions = {
+  const permissions: Record<string, string[]> = {
     INTERN: [],
     JOURNALIST: [],
     SUB_EDITOR: [],
@@ -12,13 +12,13 @@ function hasTagPermission(userRole: string | null, action: 'delete') {
     ADMIN: ['delete'],
     SUPERADMIN: ['delete'],
   };
-  return permissions[userRole as keyof typeof permissions]?.includes(action) || false;
+  return permissions[userRole]?.includes(action) || false;
 }
 
 const deleteTag = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasTagPermission(user.staffRole, 'delete')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });

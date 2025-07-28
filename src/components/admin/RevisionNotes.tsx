@@ -197,7 +197,7 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
                   checked={revision.isResolved}
                   onChange={(checked) => handleResolveToggle(revision.id, checked)}
                   className="mt-1"
-                  disabled={!canResolveRevision(revision) || resolvingNotes.has(revision.id)}
+                  disabled={!canResolveRevision() || resolvingNotes.has(revision.id)}
                 />
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
@@ -222,7 +222,7 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
                       <span className="text-blue-600">• Updating...</span>
                     )}
                   </div>
-                  {!canResolveRevision(revision) && (
+                  {!canResolveRevision() && (
                     <Text className="text-xs text-gray-500 mt-1">
                       Only editors can resolve revision notes
                     </Text>

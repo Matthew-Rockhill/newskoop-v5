@@ -5,7 +5,7 @@ import { userUpdateSchema } from '@/lib/validations';
 
 // GET /api/users/[id] - Get a single user
 const getUser = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
     const user = await prisma.user.findUnique({
       where: { id },
@@ -26,9 +26,9 @@ const getUser = createHandler(
 
 // PATCH /api/users/[id] - Update a user
 const updateUser = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const data = (req as { validatedData: { email?: string; firstName?: string; lastName?: string; staffRole?: string } }).validatedData;
+    const data = (req as NextRequest & { validatedData: { email?: string; firstName?: string; lastName?: string; staffRole?: string } }).validatedData;
 
     // Check if email is being changed and if it's already taken
     if (data.email) {
@@ -50,7 +50,12 @@ const updateUser = createHandler(
     try {
       const user = await prisma.user.update({
         where: { id },
-        data,
+        data: {
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          staffRole: data.staffRole as any,
+        },
         include: { radioStation: true },
       });
 
@@ -75,14 +80,14 @@ const updateUser = createHandler(
 
 // DELETE /api/users/[id] - Delete a user
 const deleteUser = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
     try {
       await prisma.user.delete({
         where: { id },
       });
 
-      return new Response(null, { status: 204 });
+      return new NextResponse(null, { status: 204 });
     } catch (error: unknown) {
       if ((error as { code?: string }).code === 'P2025') {
         return NextResponse.json(

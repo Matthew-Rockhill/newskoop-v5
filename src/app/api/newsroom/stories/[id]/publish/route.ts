@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
 import { canPublishStory, canUpdateStoryStatus } from '@/lib/permissions';
+import { TranslationStatus } from '@prisma/client';
 
 const publishSchema = z.object({
   followUpDate: z.string().transform(str => new Date(str)),
@@ -15,7 +16,7 @@ const publishSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { id } = await params;
@@ -24,7 +25,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userRole = session.user.staffRole;
+    const userRole = session.user.staffRole ?? null;
     if (!canPublishStory(userRole)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
@@ -105,7 +106,7 @@ export async function POST(
           followUpDate: validatedData.followUpDate,
           followUpNote: validatedData.followUpNote,
         },
-        ipAddress: request.ip || 'unknown',
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
         targetId: id,
         targetType: 'STORY'
@@ -124,9 +125,9 @@ export async function POST(
         followUpDate: validatedData.followUpDate,
         translationsCount: story.translations.length,
       },
-      ipAddress: request.ip || 'unknown',
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown',
-      targetId: params.id,
+      targetId: id,
       targetType: 'STORY'
     });
 
@@ -138,7 +139,7 @@ export async function POST(
           status: 'APPROVED'
         },
         data: {
-          status: 'PUBLISHED',
+          status: TranslationStatus.APPROVED,
           approvedAt: new Date(),
         }
       });
@@ -173,7 +174,7 @@ export async function POST(
 // GET endpoint to check if story can be published
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
     const { id } = await params;
@@ -195,7 +196,7 @@ export async function GET(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
-    const userRole = session.user.staffRole;
+    const userRole = session.user.staffRole ?? null;
     const canPublish = canPublishStory(userRole);
     const canChangeStatus = canUpdateStoryStatus(userRole, story.status, 'PUBLISHED');
     const allTranslationsApproved = story.translations.every(t => t.status === 'APPROVED');

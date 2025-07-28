@@ -1,21 +1,22 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation } from '@/lib/api-handler';
 import { storyStatusUpdateSchema } from '@/lib/validations';
-import { StoryStatus } from '@prisma/client';
+import { StoryStatus, StaffRole } from '@prisma/client';
 import { canUpdateStoryStatus } from '@/lib/permissions';
 
 // Helper function to check workflow permissions
-function canUpdateStatus(userRole: string, currentStatus: StoryStatus, newStatus: StoryStatus, storyAuthorId?: string, currentUserId?: string) {
-  return canUpdateStoryStatus(userRole as string, currentStatus, newStatus, storyAuthorId, currentUserId);
+function canUpdateStatus(userRole: string | null, currentStatus: StoryStatus, newStatus: StoryStatus, storyAuthorId?: string, currentUserId?: string) {
+  if (!userRole) return false;
+  return canUpdateStoryStatus(userRole as StaffRole, currentStatus, newStatus);
 }
 
 // PATCH /api/newsroom/stories/[id]/status - Update story status
 const updateStoryStatus = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
-    const { status, assignedToId, reviewerId, categoryId, language, tagIds } = (req as { validatedData: { status: string; assignedToId?: string; reviewerId?: string; categoryId?: string; language?: string; tagIds?: string[] } }).validatedData;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const { status, assignedToId, reviewerId, categoryId, language, tagIds } = (req as NextRequest & { validatedData: { status: string; assignedToId?: string; reviewerId?: string; categoryId?: string; language?: string; tagIds?: string[] } }).validatedData;
 
     // Get current story
     const story = await prisma.story.findUnique({
@@ -35,7 +36,7 @@ const updateStoryStatus = createHandler(
     }
 
     // Check if user can update this story's status
-    if (!canUpdateStatus(user.staffRole, story.status, status, story.authorId, user.id)) {
+    if (!canUpdateStatus(user.staffRole, story.status, status as StoryStatus, story.authorId, user.id)) {
       return NextResponse.json({ 
         error: `Cannot transition from ${story.status} to ${status}` 
       }, { status: 403 });

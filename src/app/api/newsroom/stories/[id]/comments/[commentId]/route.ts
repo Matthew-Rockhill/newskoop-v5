@@ -1,11 +1,13 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation } from '@/lib/api-handler';
 import { commentUpdateSchema } from '@/lib/validations';
 import { hasCommentPermission } from '@/lib/permissions'; // ← Import hasCommentPermission from permissions file
+import { StaffRole } from '@prisma/client';
 
 // Helper function to check if user can resolve revision notes
-function canResolveRevisionNote(userRole: string, storyAuthorId: string, userId: string, storyAssignedToId: string | null, storyReviewerId: string | null) {
+function canResolveRevisionNote(userRole: string | null, storyAuthorId: string, userId: string, storyAssignedToId: string | null, storyReviewerId: string | null) {
+  if (!userRole) return false;
   // Admins and editors can always resolve revision notes
   if (userRole === 'ADMIN' || userRole === 'SUPERADMIN' || userRole === 'EDITOR') {
     return true;
@@ -31,10 +33,10 @@ function canResolveRevisionNote(userRole: string, storyAuthorId: string, userId:
 
 // PATCH /api/newsroom/stories/[id]/comments/[commentId] - Update a comment
 const updateComment = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string; commentId: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id: storyId, commentId } = await params;
-    const user = req.user;
-    const data = req.validatedData;
+    const user = (req as NextRequest & { user: { id: string; staffRole: StaffRole | null } }).user;
+    const data = (req as NextRequest & { validatedData: { content?: string; isResolved?: boolean } }).validatedData;
 
     console.log('PATCH comment request:', {
       storyId,
@@ -145,7 +147,7 @@ const updateComment = createHandler(
     else if (data.content !== undefined) {
       // Only check if the user is the comment author or has higher permissions
       const isCommentAuthor = comment.author.id === user.id;
-      const hasHigherRole = ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(user.staffRole);
+      const hasHigherRole = user.staffRole ? ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(user.staffRole) : false;
       
       if (!isCommentAuthor && !hasHigherRole) {
         return NextResponse.json({ error: 'You can only edit your own comments' }, { status: 403 });
