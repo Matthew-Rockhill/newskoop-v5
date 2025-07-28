@@ -70,7 +70,7 @@ function canShowReviewButton(userRole: StaffRole | null, status: string) {
 function canShowEditButton(userRole: StaffRole | null, authorId: string, userId: string | null, status: string) {
   // Only allow edit for DRAFT, IN_REVIEW, NEEDS_REVISION
   const editableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
-  return canEditStory(userRole, authorId, userId, status) && editableStatuses.includes(status);
+  return canEditStory(userRole, authorId, userId ?? '', status) && editableStatuses.includes(status);
 }
 
 // Helper: should show delete button
@@ -138,7 +138,7 @@ export default function StoryDetailPage() {
 
   const handleDelete = async () => {
     // Check permissions before attempting delete
-    if (!canDeleteStory(session?.user?.staffRole)) {
+    if (!canDeleteStory(session?.user?.staffRole ?? null)) {
       toast.error('You do not have permission to delete stories');
       return;
     }
@@ -287,7 +287,7 @@ export default function StoryDetailPage() {
             </Button>
 
             {/* Review Button for Sub-Editors - Only for PENDING_APPROVAL */}
-            {canShowReviewButton(session?.user?.staffRole, story.status) && (
+            {canShowReviewButton(session?.user?.staffRole ?? null, story.status) && (
               <Button
                 color="primary"
                 onClick={() => router.push(`/admin/newsroom/stories/${storyId}/review`)}
@@ -298,7 +298,7 @@ export default function StoryDetailPage() {
             )}
 
             {/* Edit Button - Only show if user can edit this story and status is editable */}
-            {canShowEditButton(session?.user?.staffRole, story.authorId, session?.user?.id || '', story.status) ? (
+            {canShowEditButton(session?.user?.staffRole ?? null, story.authorId, session?.user?.id || '', story.status) ? (
               <Button 
                 color="secondary" 
                 onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
@@ -317,7 +317,7 @@ export default function StoryDetailPage() {
             )}
 
             {/* Delete Button - Only show if user can delete stories and status is deletable */}
-            {canShowDeleteButton(session?.user?.staffRole, story.status) && (
+            {canShowDeleteButton(session?.user?.staffRole ?? null, story.status) && (
               <Button
                 color="red"
                 onClick={() => setShowDeleteModal(true)}
@@ -331,8 +331,7 @@ export default function StoryDetailPage() {
             {/* Send for Translation Button - Only for APPROVED status and with permission */}
             {story.status === 'APPROVED' && canSendForTranslation && (
               <Button
-                size="sm"
-                color="purple"
+                color="secondary"
                 onClick={handleSendForTranslation}
                 disabled={isTranslating}
               >
@@ -360,7 +359,7 @@ export default function StoryDetailPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <Heading level={3}>Audio Clips</Heading>
-              <Badge color="zinc" size="sm">
+              <Badge color="zinc">
                 {story.audioClips?.length || 0} clips
               </Badge>
             </div>
@@ -372,7 +371,7 @@ export default function StoryDetailPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {story.audioClips.map((clip) => (
+                {story.audioClips.map((clip: any) => (
                   <CustomAudioPlayer
                     key={clip.id}
                     clip={clip}
@@ -420,7 +419,7 @@ export default function StoryDetailPage() {
 
                 <DescriptionTerm>Language</DescriptionTerm>
                 <DescriptionDetails>
-                  <Badge color="blue" size="sm">
+                  <Badge color="blue">
                     {story.language}
                   </Badge>
                 </DescriptionDetails>
@@ -433,8 +432,7 @@ export default function StoryDetailPage() {
                         {story.tags.map((storyTag: { tag: { id: string; name: string } }) => (
                           <Badge 
                             key={storyTag.tag.id} 
-                            color="zinc" 
-                            size="sm"
+                            color="zinc"
                           >
                             {storyTag.tag.name}
                           </Badge>
@@ -474,7 +472,7 @@ export default function StoryDetailPage() {
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">{translation.title}</h4>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Badge color="purple">{translation.language || translation.targetLanguage}</Badge>
+                      <Badge color="purple">{translation.language}</Badge>
                       <Badge color={translation.status === 'APPROVED' ? 'green' : 'amber'}>{translation.status}</Badge>
                       {translation.assignedTo && (
                         <span>• Translator: {translation.assignedTo.firstName} {translation.assignedTo.lastName}</span>
