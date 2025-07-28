@@ -260,7 +260,7 @@ export default function StoriesPage() {
                           </div>
                           <div className="flex items-center gap-1">
                             <ClockIcon className="h-3 w-3" />
-                            {formatRelativeTime(story.updatedAt)}
+                            {formatRelativeTime(story.updatedAt.toISOString())}
                           </div>
                         </div>
                       </div>

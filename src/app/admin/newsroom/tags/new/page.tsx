@@ -40,7 +40,7 @@ export default function NewTagPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<TagFormData>({
+  } = useForm({
     resolver: zodResolver(tagSchema),
     defaultValues: {
       category: "GENERAL",

@@ -52,7 +52,7 @@ export default function EditTagPage() {
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<TagFormData>({
+  } = useForm({
     resolver: zodResolver(tagSchema),
   });
 

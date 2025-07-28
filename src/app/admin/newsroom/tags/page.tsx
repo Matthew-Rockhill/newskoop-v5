@@ -8,6 +8,7 @@ import {
   LanguageIcon,
   MapPinIcon,
 } from '@heroicons/react/24/outline';
+import { Tag } from '@prisma/client';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -48,13 +49,13 @@ export default function TagsPage() {
   const tags = data?.tags || [];
 
   // Add category information to tags
-  const tagsWithCategories = tags.map(tag => ({
+  const tagsWithCategories = tags.map((tag: Tag) => ({
     ...tag,
     category: getTagCategory(tag.name)
   }));
 
   // Filter tags based on search and category
-  const filteredTags = tagsWithCategories.filter(tag => {
+  const filteredTags = tagsWithCategories.filter((tag: Tag & { category: string }) => {
     const matchesSearch = tag.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === undefined || tag.category === categoryFilter;
     
@@ -219,7 +220,7 @@ export default function TagsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredTags.map((tag) => {
+              {filteredTags.map((tag: Tag & { category: string }) => {
                 const CategoryIcon = getCategoryIcon(tag.category);
                 
                 return (

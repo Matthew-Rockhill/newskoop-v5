@@ -5,6 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
+import { Translation, Story } from "@prisma/client";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
@@ -58,8 +59,12 @@ export default function TranslationWorkPage() {
         setTranslation(data.translation);
         setOriginalStory(data.translation.originalStory);
         // Optionally prefill content if needed
-      } catch (err: Error) {
-        setError(err.message || "Failed to load translation");
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message || "Failed to load translation");
+        } else {
+          setError("Failed to load translation");
+        }
       } finally {
         setLoading(false);
       }
@@ -111,8 +116,12 @@ export default function TranslationWorkPage() {
       }
       toast.success("Translation submitted!");
       router.push("/admin");
-    } catch (error: Error) {
-      toast.error(error.message || "Failed to submit translation");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to submit translation");
+      } else {
+        toast.error("Failed to submit translation");
+      }
     } finally {
       setIsSubmitting(false);
     }
