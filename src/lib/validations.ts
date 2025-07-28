@@ -18,11 +18,14 @@ export const userCreateSchema = z.object({
   mobileNumber: z.string().optional(),
   userType: z.nativeEnum(UserType),
   staffRole: z.nativeEnum(StaffRole).optional(),
-  translationLanguage: z.string().optional().transform((val) => {
-    // Convert empty string to undefined for optional enum validation
-    if (val === '' || val === undefined) return undefined;
-    return val;
-  }).pipe(z.nativeEnum(TranslationLanguage).optional()),
+  translationLanguage: z.union([
+    z.literal(''),
+    z.nativeEnum(TranslationLanguage),
+    z.undefined()
+  ]).optional().transform((val) => {
+    // Convert empty string to undefined
+    return val === '' ? undefined : val;
+  }),
   isActive: z.boolean().default(true),
 }).refine((data) => {
   // For STAFF users, staffRole is required

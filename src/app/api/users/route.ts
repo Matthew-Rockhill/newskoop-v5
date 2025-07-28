@@ -91,9 +91,14 @@ const createUser = createHandler(
     // Generate a secure temporary password
     const temporaryPassword = generatePassword();
 
+    // Extract translationLanguage and convert to array for Prisma
+    const { translationLanguage, ...restData } = data;
+    const translationLanguages = translationLanguage ? [translationLanguage] : [];
+
     const user = await prisma.user.create({
       data: {
-        ...data,
+        ...restData,
+        translationLanguages,
         password: temporaryPassword,
         mustChangePassword: true,
       },
