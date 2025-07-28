@@ -54,7 +54,7 @@ export default function NewCategoryPage() {
       router.push("/admin/newsroom/categories");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast.error(error instanceof Error ? error.message || "Failed to create category");
+        toast.error(error.message || "Failed to create category");
       } else {
         toast.error("Failed to create category");
       }
