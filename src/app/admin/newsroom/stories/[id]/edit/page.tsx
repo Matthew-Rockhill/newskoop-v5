@@ -257,7 +257,7 @@ export default function EditStoryPage() {
               <FileUpload
                 onFilesChange={() => {
                   // Note: Audio file handling would need to be implemented
-                  toast.info('Audio file upload functionality needs to be implemented');
+                  toast('Audio file upload functionality needs to be implemented');
                 }}
                 maxFiles={5}
                 maxFileSize={50}
