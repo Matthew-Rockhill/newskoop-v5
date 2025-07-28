@@ -92,7 +92,7 @@ export default function EditCategoryPage() {
       router.push("/admin/newsroom/categories");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast.error(error instanceof Error ? error.message || "Failed to delete category");
+        toast.error(error.message || "Failed to delete category");
       } else {
         toast.error("Failed to delete category");
       }
