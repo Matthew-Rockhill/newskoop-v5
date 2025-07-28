@@ -110,7 +110,7 @@ export default function EditStoryPage() {
       toast.success('Story updated successfully!');
       router.push(`/admin/newsroom/stories/${storyId}`);
     } catch (error) {
-      toast.error(error?.message || 'Failed to update story');
+      toast.error(error instanceof Error ? error.message : 'Failed to update story');
     } finally {
       setIsSubmitting(false);
     }
