@@ -25,7 +25,7 @@ import { useStory } from "@/hooks/use-stories";
 const publishSchema = z.object({
   followUpDate: z.string().min(1, "Follow-up date is required"),
   followUpNote: z.string().optional(),
-  publishImmediately: z.boolean().optional().default(true),
+  publishImmediately: z.boolean().default(true),
   scheduledPublishAt: z.string().optional(),
   checklistConfirmed: z.boolean().refine(val => val, "You must confirm the checklist before publishing."),
 });
