@@ -242,7 +242,6 @@ export default function EditStoryPage() {
                     />
                     <Button
                       type="button"
-                      size="sm"
                       color="red"
                       className="absolute top-2 right-2"
                       onClick={() => setRemovedAudioIds(ids => [...ids, clip.id])}
