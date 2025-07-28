@@ -46,8 +46,8 @@ export default function EditCategoryPage() {
 
   // Permission check: only allow edit if user can edit this category
   const userRole = session?.user?.staffRole;
-  const canEdit = userRole === "SUPERADMIN" || (["ADMIN", "EDITOR"].includes(userRole) && category?.level > 1);
-  const canDelete = userRole === "SUPERADMIN" || (["ADMIN", "EDITOR"].includes(userRole) && category?.level > 1);
+  const canEdit = userRole === "SUPERADMIN" || (userRole && ["ADMIN", "EDITOR"].includes(userRole) && category?.level && category.level > 1);
+  const canDelete = userRole === "SUPERADMIN" || (userRole && ["ADMIN", "EDITOR"].includes(userRole) && category?.level && category.level > 1);
 
   const {
     register,
