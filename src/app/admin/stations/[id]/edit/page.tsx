@@ -6,7 +6,7 @@ import { Container } from '@/components/ui/container';
 import { RadioIcon } from '@heroicons/react/24/outline';
 import StationEditForm from '@/components/admin/StationEditForm';
 
-// Define Station type locally
+// Define Station type with relations
 type Station = {
   id: string;
   name: string;
@@ -20,6 +20,17 @@ type Station = {
   hasContentAccess: boolean;
   createdAt: Date;
   updatedAt: Date;
+  users: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobileNumber?: string | null;
+    isPrimaryContact: boolean;
+  }>;
+  _count: {
+    users: number;
+  };
 };
 
 export default function StationEditPage() {

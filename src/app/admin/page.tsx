@@ -45,14 +45,18 @@ export default function AdminDashboard() {
     
     const totalUsers = usersPagination?.total || 0;
     const activeUserCount = usersPagination?.total || 0;
-    const totalStations = allStations.filter(station => station.isActive).length;
+    const totalStations = 0; // TODO: Implement stations query
+    const activeStationCount = 0; // TODO: Implement stations query
     
     // Count staff vs radio users from the actual data
-    const staffUsers = allUsers.filter(user => user.userType === 'STAFF').length;
-    const radioUsers = allUsers.filter(user => user.userType === 'RADIO').length;
+    const staffUsers = (allUsers || []).filter(user => user.userType === 'STAFF').length;
+    const radioUsers = (allUsers || []).filter(user => user.userType === 'RADIO').length;
     
     const activeUserPercentage = totalUsers > 0 ? Math.round((activeUserCount / totalUsers) * 100) : 0;
     const activeStationPercentage = totalStations > 0 ? Math.round((activeStationCount / totalStations) * 100) : 0;
+    
+    const userChangeType: 'positive' | 'neutral' | 'negative' = activeUserPercentage >= 80 ? 'positive' : activeUserPercentage >= 60 ? 'neutral' : 'negative';
+    const stationChangeType: 'positive' | 'neutral' | 'negative' = activeStationPercentage >= 80 ? 'positive' : activeStationPercentage >= 60 ? 'neutral' : 'negative';
     
     return [
       {
@@ -60,14 +64,14 @@ export default function AdminDashboard() {
         value: totalUsers,
         description: `${activeUserCount} active users`,
         change: `${activeUserPercentage}% active`,
-        changeType: activeUserPercentage >= 80 ? 'positive' : activeUserPercentage >= 60 ? 'neutral' : 'negative' as const,
+        changeType: userChangeType,
       },
       {
         name: 'Radio Stations',
         value: totalStations,
         description: `${activeStationCount} active stations`,
         change: `${activeStationPercentage}% active`,
-        changeType: activeStationPercentage >= 80 ? 'positive' : activeStationPercentage >= 60 ? 'neutral' : 'negative' as const,
+        changeType: stationChangeType,
       },
       {
         name: 'Staff Users',

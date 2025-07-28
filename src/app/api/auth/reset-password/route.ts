@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     // Send password reset email
     try {
-      const { subject, html } = generatePasswordResetEmail(user.name, resetToken);
+      const { subject, html } = generatePasswordResetEmail(`${user.firstName} ${user.lastName}`, resetToken);
       await sendEmail({
         to: user.email,
         subject,
@@ -83,7 +83,7 @@ export async function PATCH(req: NextRequest) {
       where: { id: userId },
     });
 
-    if (!user || !user.resetToken || user.resetToken !== token || user.resetTokenExpiresAt < new Date()) {
+    if (!user || !user.resetToken || user.resetToken !== token || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < new Date()) {
       return NextResponse.json(
         { error: 'Invalid or expired reset token' },
         { status: 400 }

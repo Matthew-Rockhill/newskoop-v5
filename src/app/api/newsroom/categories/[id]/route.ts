@@ -1,10 +1,10 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 
 function hasCategoryPermission(userRole: string | null, action: 'delete') {
   if (!userRole) return false;
-  const permissions = {
+  const permissions: Record<string, string[]> = {
     INTERN: [],
     JOURNALIST: [],
     SUB_EDITOR: [],
@@ -12,11 +12,14 @@ function hasCategoryPermission(userRole: string | null, action: 'delete') {
     ADMIN: ['delete'],
     SUPERADMIN: ['delete'],
   };
-  return permissions[userRole as keyof typeof permissions]?.includes(action) || false;
+  return permissions[userRole]?.includes(action) || false;
 }
 
 async function getDefaultCategory() {
-  let defaultCategory = await prisma.category.findFirst({ where: { isDefault: true } });
+  // Find any category to use as default (or first created one)
+  let defaultCategory = await prisma.category.findFirst({ 
+    where: { name: 'Uncategorised' } 
+  });
   if (!defaultCategory) {
     // Create the default category if it doesn't exist
     defaultCategory = await prisma.category.create({
@@ -26,7 +29,6 @@ async function getDefaultCategory() {
         level: 1,
         isParent: true,
         isEditable: false,
-        isDefault: true,
         description: 'Default category for uncategorised stories',
       },
     });
@@ -35,26 +37,23 @@ async function getDefaultCategory() {
 }
 
 const deleteCategory = createHandler(
-  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasCategoryPermission(user.staffRole, 'delete')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Check if category exists
     const category = await prisma.category.findUnique({ where: { id } });
     if (!category) {
-      return Response.json({ error: 'Category not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
-    // Prevent deletion of the default category unless another is set as default
-    if (category.isDefault) {
-      const otherDefault = await prisma.category.findFirst({ where: { isDefault: true, id: { not: id } } });
-      if (!otherDefault) {
-        return Response.json({ error: 'Cannot delete the default category. Please set another category as default first.' }, { status: 400 });
-      }
+    // Prevent deletion of the Uncategorised category
+    if (category.name === 'Uncategorised') {
+      return NextResponse.json({ error: 'Cannot delete the default Uncategorised category.' }, { status: 400 });
     }
 
     // Get or create the default category
@@ -68,7 +67,7 @@ const deleteCategory = createHandler(
 
     // Delete the category
     await prisma.category.delete({ where: { id } });
-    return Response.json({ success: true });
+    return NextResponse.json({ success: true });
   },
   [withErrorHandling, withAuth, withAudit('category.delete')]
 );

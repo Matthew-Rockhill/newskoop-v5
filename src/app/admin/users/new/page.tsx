@@ -5,13 +5,23 @@ import { useRouter } from 'next/navigation';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { UserForm } from '@/components/admin/UserForm';
-import { User } from '@/types/user';
+// Define the UserFormData type based on the form schema
+type UserFormData = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  userType: 'STAFF' | 'RADIO';
+  isActive: boolean;
+  mobileNumber?: string;
+  staffRole?: 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'SUB_EDITOR' | 'JOURNALIST' | 'INTERN';
+  translationLanguage?: 'AFRIKAANS' | 'ENGLISH' | 'XHOSA';
+};
 
 export default function NewUserPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (data: User) => {
+  const handleSubmit = async (data: UserFormData) => {
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/users', {

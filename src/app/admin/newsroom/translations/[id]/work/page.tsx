@@ -5,7 +5,11 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { Translation, Story } from "@prisma/client";
+import { Translation, Story, User } from "@prisma/client";
+
+type StoryWithAuthor = Story & {
+  author: User;
+};
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
@@ -28,7 +32,7 @@ export default function TranslationWorkPage() {
   const translationId = params.id as string;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [translation, setTranslation] = useState<Translation | null>(null);
-  const [originalStory, setOriginalStory] = useState<Story | null>(null);
+  const [originalStory, setOriginalStory] = useState<StoryWithAuthor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState("");
@@ -90,7 +94,7 @@ export default function TranslationWorkPage() {
           title: data.title,
           content: content, // Use RTE content
           priority: originalStory?.priority || "MEDIUM",
-          categoryId: originalStory?.category?.id,
+          categoryId: originalStory?.categoryId,
           originalStoryId: originalStory?.id,
           isTranslation: true,
           language: translation?.targetLanguage,

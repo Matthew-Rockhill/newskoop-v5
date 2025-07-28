@@ -10,8 +10,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { Tag, $Enums } from '@prisma/client';
 
-type TagCategory = $Enums.TagCategory;
-
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -51,13 +49,13 @@ export default function TagsPage() {
   const tags = data?.tags || [];
 
   // Add category information to tags
-  const tagsWithCategories = tags.map((tag: Tag) => ({
+  const tagsWithCategories = tags.map((tag: Tag & { _count?: { stories?: number } }) => ({
     ...tag,
     category: getTagCategory(tag.name)
   }));
 
   // Filter tags based on search and category
-  const filteredTags = tagsWithCategories.filter((tag: Tag & { category: TagCategory }) => {
+  const filteredTags = tagsWithCategories.filter((tag: Tag & { category: TagCategory; _count?: { stories?: number } }) => {
     const matchesSearch = tag.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === undefined || tag.category === categoryFilter;
     
@@ -222,7 +220,7 @@ export default function TagsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredTags.map((tag: Tag & { category: TagCategory }) => {
+              {filteredTags.map((tag: Tag & { category: TagCategory; _count?: { stories?: number } }) => {
                 const CategoryIcon = getCategoryIcon(tag.category);
                 
                 return (
@@ -258,7 +256,7 @@ export default function TagsPage() {
                       {tag._count?.stories || 0} stories
                     </div>
                             <div className="flex items-center gap-1">
-                              <span>Created {formatDate(tag.createdAt)}</span>
+                              <span>Created {formatDate(tag.createdAt.toISOString())}</span>
                             </div>
                           </div>
                         </div>
