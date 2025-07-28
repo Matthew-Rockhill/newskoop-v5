@@ -76,6 +76,7 @@ const getUsers = createHandler(
 const createUser = createHandler(
   async (req: NextRequest) => {
     const data = (req as NextRequest & { validatedData: z.infer<typeof userCreateSchema> }).validatedData;
+    console.log('User creation data:', JSON.stringify(data, null, 2));
 
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
