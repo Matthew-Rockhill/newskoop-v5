@@ -162,7 +162,7 @@ export function CategoryModal({
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Text className="font-medium">{getCategoryBreadcrumb(category)}</Text>
-                          <Badge color="gray" size="sm">
+                          <Badge color="zinc" size="sm">
                             Level {category.level}
                           </Badge>
                         </div>

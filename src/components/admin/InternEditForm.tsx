@@ -545,7 +545,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <Heading level={3}>Audio Clips</Heading>
-                  <Badge color="gray" size="sm">
+                  <Badge color="zinc" size="sm">
                     {story.audioClips?.length || 0} clips
                   </Badge>
                 </div>

@@ -206,7 +206,7 @@ export default function EditStoryPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <Heading level={2}>Audio Files</Heading>
-              <Badge color="gray" size="sm">
+              <Badge color="zinc">
                 {story.audioClips?.length || 0} clips
               </Badge>
             </div>

@@ -169,7 +169,7 @@ export function TagModal({
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Text className="font-medium">{tag.name}</Text>
-                          <Badge color="gray" size="sm">
+                          <Badge color="zinc" size="sm">
                             {tag.category}
                           </Badge>
                         </div>

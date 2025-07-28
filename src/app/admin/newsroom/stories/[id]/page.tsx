@@ -363,7 +363,7 @@ export default function StoryDetailPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <Heading level={3}>Audio Clips</Heading>
-              <Badge color="gray" size="sm">
+              <Badge color="zinc" size="sm">
                 {story.audioClips?.length || 0} clips
               </Badge>
             </div>
@@ -436,7 +436,7 @@ export default function StoryDetailPage() {
                         {story.tags.map((storyTag: { tag: { id: string; name: string } }) => (
                           <Badge 
                             key={storyTag.tag.id} 
-                            color="gray" 
+                            color="zinc" 
                             size="sm"
                           >
                             {storyTag.tag.name}
