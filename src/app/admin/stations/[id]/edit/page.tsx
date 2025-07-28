@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Container } from '@/components/ui/Container';
+import { Container } from '@/components/ui/container';
 import { RadioIcon } from '@heroicons/react/24/outline';
 import StationEditForm from '@/components/admin/StationEditForm';
 

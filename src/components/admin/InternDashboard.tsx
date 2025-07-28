@@ -1,7 +1,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-import { Container } from '@/components/ui/Container';
+import { Container } from '@/components/ui/container';
 import { StatsCard } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';

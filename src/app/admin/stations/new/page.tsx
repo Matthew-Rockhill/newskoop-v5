@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
-import { Container } from '@/components/ui/Container';
+import { Container } from '@/components/ui/container';
 import StationCreationForm from '@/components/admin/StationCreationForm';
 
 export default function NewStationPage() {

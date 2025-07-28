@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Container } from '@/components/ui/Container';
+import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { UserForm } from '@/components/admin/UserForm';
 import { User } from '@/types/user';
