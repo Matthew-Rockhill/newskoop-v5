@@ -31,19 +31,19 @@ const updateStoryStatus = createHandler(
     });
 
     if (!story) {
-      return Response.json({ error: 'Story not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
     // Check if user can update this story's status
     if (!canUpdateStatus(user.staffRole, story.status, status, story.authorId, user.id)) {
-      return Response.json({ 
+      return NextResponse.json({ 
         error: `Cannot transition from ${story.status} to ${status}` 
       }, { status: 403 });
     }
 
     // Role-based access control for story ownership
     if (user.staffRole === 'INTERN' && story.authorId !== user.id) {
-      return Response.json({ error: 'Can only update own stories' }, { status: 403 });
+      return NextResponse.json({ error: 'Can only update own stories' }, { status: 403 });
     }
 
     if (user.staffRole === 'JOURNALIST') {
@@ -51,7 +51,7 @@ const updateStoryStatus = createHandler(
                        story.assignedToId === user.id || 
                        story.reviewerId === user.id;
       if (!hasAccess) {
-        return Response.json({ error: 'Access denied' }, { status: 403 });
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
 
@@ -168,7 +168,7 @@ const updateStoryStatus = createHandler(
       },
     });
 
-    return Response.json(updatedStory);
+    return NextResponse.json(updatedStory);
   },
   [
     withErrorHandling,

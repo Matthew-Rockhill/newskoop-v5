@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
@@ -59,7 +59,7 @@ const getUsers = createHandler(
       take: perPage,
     });
 
-    return Response.json({
+    return NextResponse.json({
       users,
       pagination: {
         total,
@@ -82,7 +82,7 @@ const createUser = createHandler(
     });
 
     if (existingUser) {
-      return Response.json(
+      return NextResponse.json(
         { error: 'User with this email already exists' },
         { status: 400 }
       );
@@ -119,7 +119,7 @@ const createUser = createHandler(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
-    return Response.json(userWithoutPassword, { status: 201 });
+    return NextResponse.json(userWithoutPassword, { status: 201 });
   },
   [
     withErrorHandling,

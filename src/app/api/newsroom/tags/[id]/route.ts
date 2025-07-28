@@ -21,22 +21,22 @@ const deleteTag = createHandler(
     const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasTagPermission(user.staffRole, 'delete')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Check if tag exists
     const tag = await prisma.tag.findUnique({ where: { id }, include: { stories: true } });
     if (!tag) {
-      return Response.json({ error: 'Tag not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Tag not found' }, { status: 404 });
     }
 
     // Prevent deletion if tag is in use and is LANGUAGE or RELIGION
     if ((tag.category === 'LANGUAGE' || tag.category === 'RELIGION') && tag.stories.length > 0) {
-      return Response.json({ error: 'Cannot delete a language or religion tag that is in use by stories.' }, { status: 400 });
+      return NextResponse.json({ error: 'Cannot delete a language or religion tag that is in use by stories.' }, { status: 400 });
     }
 
     await prisma.tag.delete({ where: { id } });
-    return Response.json({ success: true });
+    return NextResponse.json({ success: true });
   },
   [withErrorHandling, withAuth, withAudit('tag.delete')]
 );

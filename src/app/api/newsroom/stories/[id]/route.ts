@@ -60,7 +60,7 @@ const getStory = createHandler(
     const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'read')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const story = await prisma.story.findUnique({
@@ -181,12 +181,12 @@ const getStory = createHandler(
     });
 
     if (!story) {
-      return Response.json({ error: 'Story not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
     // Role-based access control
     if (user.staffRole === 'INTERN' && story.authorId !== user.id) {
-      return Response.json({ error: 'Access denied' }, { status: 403 });
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     if (user.staffRole === 'JOURNALIST') {
@@ -194,11 +194,11 @@ const getStory = createHandler(
                        story.assignedToId === user.id || 
                        story.reviewerId === user.id;
       if (!hasAccess) {
-        return Response.json({ error: 'Access denied' }, { status: 403 });
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
 
-    return Response.json(story);
+    return NextResponse.json(story);
   },
   [withErrorHandling, withAuth]
 );
@@ -222,12 +222,12 @@ const updateStory = createHandler(
 
     const canEdit = await canEditStory(user.id, user.staffRole, id);
     if (!canEdit) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // When updating to APPROVED or READY_TO_PUBLISH, require categoryId
     if ((data.status === 'APPROVED' || data.status === 'READY_TO_PUBLISH') && !data.categoryId) {
-      return Response.json({ error: 'Category is required to approve or publish a story.' }, { status: 400 });
+      return NextResponse.json({ error: 'Category is required to approve or publish a story.' }, { status: 400 });
     }
 
     // Extract tag IDs from the data
@@ -300,7 +300,7 @@ const updateStory = createHandler(
       },
     });
 
-    return Response.json(story);
+    return NextResponse.json(story);
   },
   [
     withErrorHandling,
@@ -317,7 +317,7 @@ const deleteStory = createHandler(
     const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'delete')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Check if story exists and get its status
@@ -327,19 +327,19 @@ const deleteStory = createHandler(
     });
 
     if (!story) {
-      return Response.json({ error: 'Story not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
     // Don't allow deletion of published stories unless you're an admin
     if (story.status === 'PUBLISHED' && !['ADMIN', 'SUPERADMIN'].includes(user.staffRole)) {
-      return Response.json({ error: 'Cannot delete published stories' }, { status: 400 });
+      return NextResponse.json({ error: 'Cannot delete published stories' }, { status: 400 });
     }
 
     await prisma.story.delete({
       where: { id },
     });
 
-    return Response.json({ message: 'Story deleted successfully' });
+    return NextResponse.json({ message: 'Story deleted successfully' });
   },
   [withErrorHandling, withAuth, withAudit('story.delete')]
 );

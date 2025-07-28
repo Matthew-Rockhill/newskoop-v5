@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
 
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     console.log('🔍 Debug Token:', token);
     
     if (!token) {
-      return Response.json({ 
+      return NextResponse.json({ 
         error: 'No token found',
         debug: 'User not authenticated' 
       }, { status: 401 });
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    return Response.json({
+    return NextResponse.json({
       tokenPresent: !!token,
       tokenSub: token?.sub,
       userFound: !!user,
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('🔍 Debug Error:', error);
-    return Response.json({ 
+    return NextResponse.json({ 
       error: 'Debug failed', 
       details: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });

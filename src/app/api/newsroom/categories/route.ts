@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { categoryCreateSchema } from '@/lib/validations';
@@ -35,10 +35,10 @@ function generateSlug(name: string): string {
 // GET /api/newsroom/categories - List categories with hierarchy
 const getCategories = createHandler(
   async (req: NextRequest) => {
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasCategoryPermission(user.staffRole, 'read')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const url = new URL(req.url);
@@ -84,7 +84,7 @@ const getCategories = createHandler(
         ],
       });
 
-      return Response.json({ categories });
+      return NextResponse.json({ categories });
     }
 
     // Return hierarchical structure
@@ -120,7 +120,7 @@ const getCategories = createHandler(
       orderBy: { name: 'asc' },
     });
 
-    return Response.json({ categories });
+    return NextResponse.json({ categories });
   },
   [withErrorHandling, withAuth]
 );
@@ -128,11 +128,11 @@ const getCategories = createHandler(
 // POST /api/newsroom/categories - Create a new category
 const createCategory = createHandler(
   async (req: NextRequest) => {
-    const user = (req as { user: { id: string; staffRole: string | null } }).user;
-    const data = (req as { validatedData: { name: string; parentId?: string; description?: string } }).validatedData;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const data = (req as NextRequest & { validatedData: { name: string; parentId?: string; description?: string } }).validatedData;
 
     if (!hasCategoryPermission(user.staffRole, 'create')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Determine level based on parent
@@ -146,14 +146,14 @@ const createCategory = createHandler(
       });
 
       if (!parent) {
-        return Response.json({ error: 'Parent category not found' }, { status: 400 });
+        return NextResponse.json({ error: 'Parent category not found' }, { status: 400 });
       }
 
       level = parent.level + 1;
 
       // Enforce 3-level hierarchy
       if (level > 3) {
-        return Response.json({ error: 'Maximum category depth is 3 levels' }, { status: 400 });
+        return NextResponse.json({ error: 'Maximum category depth is 3 levels' }, { status: 400 });
       }
     } else {
       isParent = true;
@@ -194,7 +194,7 @@ const createCategory = createHandler(
       },
     });
 
-    return Response.json(category, { status: 201 });
+    return NextResponse.json(category, { status: 201 });
   },
   [
     withErrorHandling,

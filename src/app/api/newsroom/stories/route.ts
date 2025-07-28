@@ -30,7 +30,7 @@ const getStories = createHandler(
     const user = (req as { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasStoryPermission(user.staffRole, 'read')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const url = new URL(req.url);
@@ -220,7 +220,7 @@ const getStories = createHandler(
       console.log('🔍 Stories returned:', stories.map(s => ({ id: s.id, title: s.title })));
     }
 
-    return Response.json({
+    return NextResponse.json({
       stories,
       pagination: {
         total,
@@ -239,7 +239,7 @@ const createStory = createHandler(
     const user = (req as { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasStoryPermission(user.staffRole, 'create')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     let storyData: Record<string, unknown> = {};
@@ -269,7 +269,7 @@ const createStory = createHandler(
         }
       }
     } else {
-      return Response.json({ error: 'Unsupported Content-Type' }, { status: 415 });
+      return NextResponse.json({ error: 'Unsupported Content-Type' }, { status: 415 });
     }
     
     // Handle role-based validation
@@ -301,7 +301,7 @@ const createStory = createHandler(
       // Validate audio file
       const validation = validateAudioFile(file);
       if (!validation.valid) {
-        return Response.json({ error: validation.error }, { status: 400 });
+        return NextResponse.json({ error: validation.error }, { status: 400 });
       }
       
       // Save file and get file info
@@ -383,7 +383,7 @@ const createStory = createHandler(
       },
     });
 
-    return Response.json(story, { status: 201 });
+    return NextResponse.json(story, { status: 201 });
   },
   [
     withErrorHandling,

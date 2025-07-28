@@ -33,7 +33,7 @@ const getComments = createHandler(
     const type = searchParams.get('type');
 
     if (!hasCommentPermission(user.staffRole, 'read')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Check if user has access to the story
@@ -48,12 +48,12 @@ const getComments = createHandler(
     });
 
     if (!story) {
-      return Response.json({ error: 'Story not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
     // Role-based access control
     if (user.staffRole === 'INTERN' && story.authorId !== user.id) {
-      return Response.json({ error: 'Access denied' }, { status: 403 });
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     if (user.staffRole === 'JOURNALIST') {
@@ -61,7 +61,7 @@ const getComments = createHandler(
                        story.assignedToId === user.id || 
                        story.reviewerId === user.id;
       if (!hasAccess) {
-        return Response.json({ error: 'Access denied' }, { status: 403 });
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
 
@@ -126,7 +126,7 @@ const getComments = createHandler(
       orderBy: { createdAt: 'desc' },
     });
 
-    return Response.json({ comments });
+    return NextResponse.json({ comments });
   },
   [withErrorHandling, withAuth]
 );
@@ -139,7 +139,7 @@ const createComment = createHandler(
     const data = (req as { validatedData: { content: string; type: string; category?: string; parentId?: string } }).validatedData;
 
     if (!hasCommentPermission(user.staffRole, 'create')) {
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Check if user has access to the story
@@ -155,12 +155,12 @@ const createComment = createHandler(
     });
 
     if (!story) {
-      return Response.json({ error: 'Story not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
     // Role-based access control
     if (user.staffRole === 'INTERN' && story.authorId !== user.id) {
-      return Response.json({ error: 'Access denied' }, { status: 403 });
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     if (user.staffRole === 'JOURNALIST') {
@@ -168,7 +168,7 @@ const createComment = createHandler(
                        story.assignedToId === user.id || 
                        story.reviewerId === user.id;
       if (!hasAccess) {
-        return Response.json({ error: 'Access denied' }, { status: 403 });
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
 
@@ -180,7 +180,7 @@ const createComment = createHandler(
       });
 
       if (!parentComment || parentComment.storyId !== storyId) {
-        return Response.json({ error: 'Invalid parent comment' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid parent comment' }, { status: 400 });
       }
     }
 
@@ -241,7 +241,7 @@ const createComment = createHandler(
       },
     });
 
-    return Response.json(comment, { status: 201 });
+    return NextResponse.json(comment, { status: 201 });
   },
   [
     withErrorHandling,

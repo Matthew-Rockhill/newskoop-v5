@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { userUpdateSchema } from '@/lib/validations';
@@ -13,13 +13,13 @@ const getUser = createHandler(
     });
 
     if (!user) {
-      return Response.json(
+      return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    return Response.json(user);
+    return NextResponse.json(user);
   },
   [withErrorHandling, withAuth]
 );
@@ -40,7 +40,7 @@ const updateUser = createHandler(
       });
 
       if (existingUser) {
-        return Response.json(
+        return NextResponse.json(
           { error: 'Email is already taken' },
           { status: 400 }
         );
@@ -54,10 +54,10 @@ const updateUser = createHandler(
         include: { radioStation: true },
       });
 
-      return Response.json(user);
+      return NextResponse.json(user);
     } catch (error: unknown) {
       if ((error as { code?: string }).code === 'P2025') {
-        return Response.json(
+        return NextResponse.json(
           { error: 'User not found' },
           { status: 404 }
         );
@@ -85,7 +85,7 @@ const deleteUser = createHandler(
       return new Response(null, { status: 204 });
     } catch (error: unknown) {
       if ((error as { code?: string }).code === 'P2025') {
-        return Response.json(
+        return NextResponse.json(
           { error: 'User not found' },
           { status: 404 }
         );

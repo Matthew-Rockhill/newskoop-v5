@@ -19,9 +19,9 @@ const getTranslation = createHandler(
       },
     });
     if (!translation) {
-      return Response.json({ error: 'Translation not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Translation not found' }, { status: 404 });
     }
-    return Response.json({ translation });
+    return NextResponse.json({ translation });
   },
   [withErrorHandling, withAuth]
 );
@@ -35,7 +35,7 @@ const updateTranslation = createHandler(
       where: { id },
       data,
     });
-    return Response.json({ translation });
+    return NextResponse.json({ translation });
   },
   [withErrorHandling, withAuth]
 );

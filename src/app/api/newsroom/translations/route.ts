@@ -23,7 +23,7 @@ const getTranslations = createHandler(
       orderBy: { createdAt: 'desc' },
     });
 
-    return Response.json({ translations });
+    return NextResponse.json({ translations });
   },
   [withErrorHandling, withAuth]
 );
@@ -32,7 +32,7 @@ const createTranslation = createHandler(
   async (req: NextRequest) => {
     const { originalStoryId, assignedToId, targetLanguage } = await req.json();
     if (!originalStoryId || !assignedToId || !targetLanguage) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     const translation = await prisma.translation.create({
       data: {
@@ -42,7 +42,7 @@ const createTranslation = createHandler(
         status: 'PENDING',
       },
     });
-    return Response.json(translation, { status: 201 });
+    return NextResponse.json(translation, { status: 201 });
   },
   [withErrorHandling, withAuth]
 );

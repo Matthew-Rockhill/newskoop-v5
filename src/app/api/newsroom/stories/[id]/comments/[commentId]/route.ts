@@ -51,7 +51,7 @@ const updateComment = createHandler(
     });
 
     if (!hasCommentPermission(user.staffRole, 'update')) { // ← Use imported function
-      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Get the comment and verify it exists and belongs to the story
@@ -90,11 +90,11 @@ const updateComment = createHandler(
     });
 
     if (!comment) {
-      return Response.json({ error: 'Comment not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
 
     if (comment.story.id !== storyId) {
-      return Response.json({ error: 'Comment does not belong to this story' }, { status: 400 });
+      return NextResponse.json({ error: 'Comment does not belong to this story' }, { status: 400 });
     }
 
     // Check if user has access to the story
@@ -102,7 +102,7 @@ const updateComment = createHandler(
     
     // Role-based access control
     if (user.staffRole === 'INTERN' && story.authorId !== user.id) {
-      return Response.json({ error: 'Access denied' }, { status: 403 });
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     if (user.staffRole === 'JOURNALIST') {
@@ -110,7 +110,7 @@ const updateComment = createHandler(
                        story.assignedToId === user.id || 
                        story.reviewerId === user.id;
       if (!hasAccess) {
-        return Response.json({ error: 'Access denied' }, { status: 403 });
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
 
@@ -136,7 +136,7 @@ const updateComment = createHandler(
       console.log('Can resolve revision note:', canResolve);
       
       if (!canResolve) {
-        return Response.json({ 
+        return NextResponse.json({ 
           error: 'You do not have permission to resolve this revision note. Only story authors, assigned editors, reviewers, and administrators can resolve revision notes.' 
         }, { status: 403 });
       }
@@ -148,7 +148,7 @@ const updateComment = createHandler(
       const hasHigherRole = ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(user.staffRole);
       
       if (!isCommentAuthor && !hasHigherRole) {
-        return Response.json({ error: 'You can only edit your own comments' }, { status: 403 });
+        return NextResponse.json({ error: 'You can only edit your own comments' }, { status: 403 });
       }
     }
 
@@ -202,7 +202,7 @@ const updateComment = createHandler(
       resolvedBy: updatedComment.resolvedBy
     });
 
-    return Response.json(updatedComment);
+    return NextResponse.json(updatedComment);
   },
   [withErrorHandling, withAuth, withValidation(commentUpdateSchema)]
 );
