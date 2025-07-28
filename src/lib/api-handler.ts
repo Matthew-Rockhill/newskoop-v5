@@ -99,11 +99,7 @@ export const withValidation = <T>(schema: { parse: (data: unknown) => T }): ApiM
   return (handler) => {
     return async (req, context) => {
       const body = await req.json();
-      console.log('Raw request body:', JSON.stringify(body, null, 2));
-      console.log('Translation language value:', body.translationLanguage, typeof body.translationLanguage);
-      
       const validated = schema.parse(body);
-      console.log('Validated data:', JSON.stringify(validated, null, 2));
       
       // Attach validated data to the request
       (req as NextRequest & { validatedData: T }).validatedData = validated;

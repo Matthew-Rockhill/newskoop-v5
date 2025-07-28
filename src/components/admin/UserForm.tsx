@@ -18,7 +18,13 @@ const userSchema = z.object({
   mobileNumber: z.string().optional(),
   userType: z.enum(['STAFF', 'RADIO']),
   staffRole: z.enum(['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN']).optional(),
-  translationLanguage: z.enum(['AFRIKAANS', 'XHOSA']).optional(),
+  translationLanguage: z.union([
+    z.literal(''),
+    z.enum(['AFRIKAANS', 'XHOSA']),
+    z.undefined()
+  ]).optional().transform((val) => {
+    return val === '' ? undefined : val;
+  }),
   isActive: z.boolean(),
 }).refine((data) => {
   // For STAFF users, staffRole is required
