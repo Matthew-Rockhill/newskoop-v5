@@ -4,7 +4,8 @@ import {
   StaffRole as PrismaStaffRole, 
   Province as PrismaProvince,
   TranslationLanguage as PrismaTranslationLanguage,
-  Station
+  Station,
+  Category as PrismaCategory
 } from '@prisma/client';
 
 export type UserType = PrismaUserType;
@@ -13,6 +14,15 @@ export type Province = PrismaProvince;
 export type TranslationLanguage = PrismaTranslationLanguage;
 
 export type User = Omit<PrismaUser, 'password'>;
+
+export interface Category extends PrismaCategory {
+  parent?: Category | null;
+  children?: Category[];
+  _count?: {
+    stories?: number;
+    children?: number;
+  };
+}
 
 export interface UserWithStation extends User {
   station?: Station;
