@@ -22,9 +22,7 @@ const userSchema = z.object({
     z.literal(''),
     z.enum(['AFRIKAANS', 'XHOSA']),
     z.undefined()
-  ]).optional().transform((val) => {
-    return val === '' ? undefined : val;
-  }),
+  ]).optional(),
   isActive: z.boolean(),
 }).refine((data) => {
   // For STAFF users, staffRole is required
@@ -69,11 +67,16 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
   const userType = watch('userType');
 
   const handleFormSubmit = async (data: UserFormData) => {
-    // Remove translation language for radio users
+    // Remove translation language for radio users and handle empty string
     const submitData = { ...data };
     if (data.userType === 'RADIO') {
       delete submitData.translationLanguage;
       delete submitData.staffRole;
+    } else {
+      // Convert empty string to undefined for translation language
+      if (submitData.translationLanguage === '') {
+        submitData.translationLanguage = undefined;
+      }
     }
     await onSubmit(submitData);
   };
