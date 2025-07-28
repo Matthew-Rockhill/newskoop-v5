@@ -185,8 +185,8 @@ export default function EditCategoryPage() {
           <div className="flex justify-between items-center space-x-4">
             <div>
               {canDelete && (
-                <Button type="button" color="red" onClick={() => setShowDeleteModal(true)} disabled={deleteCategory.isLoading}>
-                  {deleteCategory.isLoading ? "Deleting..." : "Delete Category"}
+                <Button type="button" color="red" onClick={() => setShowDeleteModal(true)} disabled={deleteCategory.isPending}>
+                  {deleteCategory.isPending ? "Deleting..." : "Delete Category"}
                 </Button>
               )}
             </div>
@@ -198,8 +198,8 @@ export default function EditCategoryPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!canEdit || updateCategory.isLoading}>
-                {updateCategory.isLoading ? "Saving..." : "Save Changes"}
+              <Button type="submit" disabled={!canEdit || updateCategory.isPending}>
+                {updateCategory.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>
@@ -214,9 +214,9 @@ export default function EditCategoryPage() {
             <Button color="white" onClick={() => setShowDeleteModal(false)}>
               Cancel
             </Button>
-            <Button color="red" onClick={handleDelete} disabled={deleteCategory.isLoading} className="font-bold flex items-center gap-2">
+            <Button color="red" onClick={handleDelete} disabled={deleteCategory.isPending} className="font-bold flex items-center gap-2">
               <TrashIcon className="h-5 w-5 text-red-600" />
-              {deleteCategory.isLoading ? "Deleting..." : "Delete"}
+              {deleteCategory.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogActions>
         </Dialog>
