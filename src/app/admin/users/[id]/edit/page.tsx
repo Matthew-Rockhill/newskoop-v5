@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Container } from '@/components/ui/container';
+import { Container } from '@/components/ui/Container';
 import { UserEditForm } from '@/components/admin/UserEditForm';
 import { UsersIcon } from '@heroicons/react/24/outline';
 

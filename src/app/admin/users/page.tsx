@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { UserList } from '@/components/admin/UserList';
-import { Container } from '@/components/ui/container';
+import { Container } from '@/components/ui/Container';
 
 export const metadata = {
   title: 'User Management - Newskoop Admin',

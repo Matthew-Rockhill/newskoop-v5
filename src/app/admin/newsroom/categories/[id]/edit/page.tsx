@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
 
-import { Container } from "@/components/ui/container";
+import { Container } from '@/components/ui/Container';
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Fieldset, FieldGroup, Field, Label, ErrorMessage } from "@/components/ui/fieldset";

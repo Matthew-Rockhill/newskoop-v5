@@ -1,7 +1,7 @@
 'use client';
 
 import { StationList } from './StationList';
-import { Container } from '@/components/ui/container';
+import { Container } from '@/components/ui/Container';
 
 export function StationsContent() {
   return (

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 
-import { Container } from '@/components/ui/container';
+import { Container } from '@/components/ui/Container';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatsCard } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
