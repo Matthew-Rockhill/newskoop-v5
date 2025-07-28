@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
+import { Tag } from "@prisma/client";
 
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -39,7 +40,7 @@ export default function EditTagPage() {
   const deleteTag = useDeleteTag();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const tag = tags.find((t: any) => t.id === tagId);
+  const tag = tags.find((t: Tag) => t.id === tagId);
 
   // Permission check: only allow edit if user can edit this tag
   const userRole = session?.user?.staffRole;

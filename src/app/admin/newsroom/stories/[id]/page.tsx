@@ -32,7 +32,7 @@ import {
   getEditLockReason,
   canUpdateStoryStatus
 } from '@/lib/permissions';
-import { StaffRole, StoryStatus } from '@prisma/client';
+import { StaffRole, StoryStatus, AudioClip } from '@prisma/client';
 
 // Status badge colors
 const statusColors = {
@@ -232,13 +232,13 @@ export default function StoryDetailPage() {
           <div className="flex items-center gap-4 mt-1">
             <div className="flex items-center gap-2">
               <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
-              <Badge color={(statusColors as any)[story.status] || 'zinc'}>
+              <Badge color={statusColors[story.status as keyof typeof statusColors] || 'zinc'}>
                 {story.status.replace('_', ' ')}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
-              <Badge color={(priorityColors as any)[story.priority] || 'zinc'}>
+              <Badge color={priorityColors[story.priority as keyof typeof priorityColors] || 'zinc'}>
                 {story.priority}
               </Badge>
             </div>
@@ -371,7 +371,7 @@ export default function StoryDetailPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {story.audioClips.map((clip: any) => (
+                {story.audioClips.map((clip: AudioClip & { description: string | null }) => (
                   <CustomAudioPlayer
                     key={clip.id}
                     clip={clip}

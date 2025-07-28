@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { AudioClip, Translation } from "@prisma/client";
 
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -182,7 +183,7 @@ export default function PublishStoryPage() {
             <Heading level={2} className="mb-6">Audio Clips</Heading>
             {story.audioClips && story.audioClips.length > 0 ? (
               <div className="space-y-4">
-                {story.audioClips.map((clip: any) => (
+                {story.audioClips.map((clip: AudioClip & { description: string | null }) => (
                   <CustomAudioPlayer key={clip.id} clip={clip} />
                 ))}
               </div>
@@ -288,7 +289,7 @@ export default function PublishStoryPage() {
             <Heading level={2} className="mb-6">Associated Translations</Heading>
             {translations.length > 0 ? (
               <ul className="space-y-2">
-                {translations.map((t: any) => (
+                {translations.map((t: Translation) => (
                   <li key={t.id} className="flex items-center gap-2">
                     <span className="font-medium">{t.targetLanguage}</span>
                     <Badge color={t.status === "APPROVED" ? "green" : "amber"}>{t.status}</Badge>
