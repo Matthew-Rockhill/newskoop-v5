@@ -28,7 +28,7 @@ const getUser = createHandler(
 const updateUser = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const data = (req as NextRequest & { validatedData: { email?: string; firstName?: string; lastName?: string; staffRole?: string } }).validatedData;
+    const data = (req as NextRequest & { validatedData: any }).validatedData;
 
     // Check if email is being changed and if it's already taken
     if (data.email) {
@@ -54,7 +54,13 @@ const updateUser = createHandler(
           email: data.email,
           firstName: data.firstName,
           lastName: data.lastName,
-          staffRole: data.staffRole as any,
+          mobileNumber: data.mobileNumber,
+          userType: data.userType,
+          staffRole: data.staffRole,
+          translationLanguage: data.translationLanguage,
+          radioStationId: data.radioStationId,
+          isPrimaryContact: data.isPrimaryContact,
+          isActive: data.isActive,
         },
         include: { radioStation: true },
       });

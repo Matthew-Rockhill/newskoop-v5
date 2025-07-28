@@ -66,8 +66,13 @@ export const userUpdateSchema = z.object({
   mobileNumber: z.string().optional(),
   userType: z.nativeEnum(UserType).optional(),
   staffRole: z.nativeEnum(StaffRole).optional(),
-  translationLanguage: z.nativeEnum(TranslationLanguage).optional(),
-  translationLanguages: z.array(z.nativeEnum(TranslationLanguage)).optional(),
+  translationLanguage: z.union([
+    z.literal(''),
+    z.nativeEnum(TranslationLanguage),
+    z.undefined()
+  ]).optional().transform((val) => {
+    return val === '' ? undefined : val;
+  }),
   radioStationId: z.string().optional(),
   isPrimaryContact: z.boolean().optional(),
   isActive: z.boolean().optional(),
