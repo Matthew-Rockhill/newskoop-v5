@@ -6,8 +6,8 @@ import { logAudit } from './audit';
 
 export type ApiHandler = (
   req: NextRequest,
-  context: { params: Record<string, string | string[]> }
-) => Promise<NextResponse>;
+  context: { params: Promise<any> }
+) => Promise<NextResponse> | NextResponse;
 
 type ApiMiddleware = (handler: ApiHandler) => ApiHandler;
 

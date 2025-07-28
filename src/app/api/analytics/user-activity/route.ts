@@ -1,10 +1,16 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createHandler, withAuth, withErrorHandling } from '@/lib/api-handler';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // GET /api/analytics/user-activity - Get user activity by time of day
-const getUserActivity = createHandler(
-  async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const url = new URL(req.url);
     const days = parseInt(url.searchParams.get('days') || '7'); // Default to last 7 days
 
@@ -87,7 +93,7 @@ const getUserActivity = createHandler(
       data.total = data.staffUsers + data.radioUsers;
     });
 
-    return Response.json({
+    return NextResponse.json({
       activityData,
       metadata: {
         dateRange: {
@@ -100,8 +106,11 @@ const getUserActivity = createHandler(
         ),
       }
     });
-  },
-  [withErrorHandling, withAuth]
-);
-
-export { getUserActivity as GET }; 
+  } catch (error) {
+    console.error('Error in user activity endpoint:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+} 

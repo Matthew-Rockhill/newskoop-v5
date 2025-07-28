@@ -1,13 +1,12 @@
-import { NextRequest } from 'next/server';
-import { createHandler, withErrorHandling } from '@/lib/api-handler';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail, generatePasswordResetEmail } from '@/lib/email';
 import { generateResetToken, verifyResetToken } from '@/lib/auth';
 import { z } from 'zod';
 
 // POST /api/auth/reset-password/request - Request a password reset
-export const POST = createHandler(
-  async (req: NextRequest) => {
+export async function POST(req: NextRequest) {
+  try {
     const schema = z.object({
       email: z.string().email(),
     });
@@ -20,7 +19,7 @@ export const POST = createHandler(
 
     if (!user) {
       // Return success even if user doesn't exist to prevent email enumeration
-      return Response.json({ message: 'If an account exists, you will receive a password reset email' });
+      return NextResponse.json({ message: 'If an account exists, you will receive a password reset email' });
     }
 
     const resetToken = generateResetToken(user.id);
@@ -44,20 +43,25 @@ export const POST = createHandler(
       });
     } catch (error) {
       console.error('Failed to send password reset email:', error);
-      return Response.json(
+      return NextResponse.json(
         { error: 'Failed to send password reset email' },
         { status: 500 }
       );
     }
 
-    return Response.json({ message: 'If an account exists, you will receive a password reset email' });
-  },
-  [withErrorHandling]
-);
+    return NextResponse.json({ message: 'If an account exists, you will receive a password reset email' });
+  } catch (error) {
+    console.error('Error in password reset request:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 
 // PATCH /api/auth/reset-password - Reset password with token
-export const PATCH = createHandler(
-  async (req: NextRequest) => {
+export async function PATCH(req: NextRequest) {
+  try {
     const schema = z.object({
       token: z.string(),
       newPassword: z.string().min(8),
@@ -68,7 +72,7 @@ export const PATCH = createHandler(
     // Verify the reset token
     const userId = verifyResetToken(token);
     if (!userId) {
-      return Response.json(
+      return NextResponse.json(
         { error: 'Invalid or expired reset token' },
         { status: 400 }
       );
@@ -80,7 +84,7 @@ export const PATCH = createHandler(
     });
 
     if (!user || !user.resetToken || user.resetToken !== token || user.resetTokenExpiresAt < new Date()) {
-      return Response.json(
+      return NextResponse.json(
         { error: 'Invalid or expired reset token' },
         { status: 400 }
       );
@@ -97,7 +101,12 @@ export const PATCH = createHandler(
       },
     });
 
-    return Response.json({ message: 'Password reset successfully' });
-  },
-  [withErrorHandling]
-); 
+    return NextResponse.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error in password reset:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+} 

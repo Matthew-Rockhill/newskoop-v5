@@ -15,9 +15,10 @@ const publishSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -34,7 +35,7 @@ export async function POST(
 
     // Get the story
     const story = await prisma.story.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         author: true,
         category: true,
@@ -74,7 +75,7 @@ export async function POST(
 
     // Update story status and metadata
     const updatedStory = await prisma.story.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: validatedData.publishImmediately ? 'PUBLISHED' : 'READY_TO_PUBLISH',
         publishedAt: validatedData.publishImmediately ? publishDate : null,
@@ -99,14 +100,14 @@ export async function POST(
         action: 'SCHEDULE_PUBLISH',
         details: {
           entityType: 'STORY',
-          entityId: params.id,
+          entityId: id,
           scheduledFor: validatedData.scheduledPublishAt,
           followUpDate: validatedData.followUpDate,
           followUpNote: validatedData.followUpNote,
         },
         ipAddress: request.ip || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
-        targetId: params.id,
+        targetId: id,
         targetType: 'STORY'
       });
     }
@@ -117,7 +118,7 @@ export async function POST(
       action: validatedData.publishImmediately ? 'PUBLISH_STORY' : 'SCHEDULE_STORY',
       details: {
         entityType: 'STORY',
-        entityId: params.id,
+        entityId: id,
         storyTitle: story.title,
         publishDate: publishDate,
         followUpDate: validatedData.followUpDate,
@@ -133,7 +134,7 @@ export async function POST(
     if (validatedData.publishImmediately) {
       await prisma.translation.updateMany({
         where: {
-          originalStoryId: params.id,
+          originalStoryId: id,
           status: 'APPROVED'
         },
         data: {
@@ -172,16 +173,17 @@ export async function POST(
 // GET endpoint to check if story can be published
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const story = await prisma.story.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         translations: true,
         category: true,
