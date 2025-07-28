@@ -371,7 +371,7 @@ export default function StoryDetailPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {story.audioClips.map((clip: AudioClip & { description: string | null }) => (
+                {story.audioClips.map((clip: AudioClip) => (
                   <CustomAudioPlayer
                     key={clip.id}
                     clip={clip}

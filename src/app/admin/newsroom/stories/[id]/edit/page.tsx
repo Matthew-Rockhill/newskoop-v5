@@ -225,8 +225,8 @@ export default function EditStoryPage() {
                         id: clip.id,
                         url: clip.url,
                         originalName: clip.originalName,
-                        description: clip.description,
-                        duration: clip.duration,
+                        description: clip.description ?? null,
+                        duration: clip.duration ?? null,
                       }}
                       isPlaying={playingAudioId === clip.id}
                       currentTime={audioProgress[clip.id] || 0}

@@ -8,14 +8,9 @@ import {
 } from '@heroicons/react/24/outline';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
+import { AudioClip as PrismaAudioClip } from '@prisma/client';
 
-interface AudioClip {
-  id: string;
-  url: string;
-  originalName: string;
-  description?: string;
-  duration?: number;
-}
+type AudioClip = Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'description' | 'duration'>;
 
 interface CustomAudioPlayerProps {
   clip: AudioClip;

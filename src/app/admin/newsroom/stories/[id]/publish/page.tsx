@@ -183,7 +183,7 @@ export default function PublishStoryPage() {
             <Heading level={2} className="mb-6">Audio Clips</Heading>
             {story.audioClips && story.audioClips.length > 0 ? (
               <div className="space-y-4">
-                {story.audioClips.map((clip: AudioClip & { description: string | null }) => (
+                {story.audioClips.map((clip: AudioClip) => (
                   <CustomAudioPlayer key={clip.id} clip={clip} />
                 ))}
               </div>
