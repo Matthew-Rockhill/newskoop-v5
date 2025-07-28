@@ -88,9 +88,10 @@ export async function POST(
 // DELETE /api/stations/[id]/users - Remove users from station
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const data = await request.json();
     const { userIds } = data;
 
@@ -116,7 +117,7 @@ export async function DELETE(
     // Check if any of the users to be deleted is the primary contact
     const primaryContact = await prisma.user.findFirst({
       where: { 
-        radioStationId: params.id,
+        radioStationId: id,
         isPrimaryContact: true,
         id: { in: userIds }
       }
@@ -133,7 +134,7 @@ export async function DELETE(
     const usersToDelete = await prisma.user.findMany({
       where: { 
         id: { in: userIds },
-        radioStationId: params.id
+        radioStationId: id
       }
     });
 
@@ -148,7 +149,7 @@ export async function DELETE(
     await prisma.user.deleteMany({
       where: { 
         id: { in: userIds },
-        radioStationId: params.id
+        radioStationId: id
       }
     });
 
