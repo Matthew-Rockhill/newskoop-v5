@@ -100,10 +100,10 @@ export default function CategoriesPage() {
                   <DocumentTextIcon className="h-3 w-3" />
             {category._count?.stories || 0} stories
                 </div>
-                {category._count?.children > 0 && (
+                {(category._count?.children || 0) > 0 && (
                   <div className="flex items-center gap-1">
                     <FolderIcon className="h-3 w-3" />
-                    {category._count.children} subcategories
+                    {category._count?.children || 0} subcategories
                   </div>
                 )}
               </div>
