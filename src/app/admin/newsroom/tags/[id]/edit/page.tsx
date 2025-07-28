@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
@@ -44,7 +44,7 @@ export default function EditTagPage() {
 
   // Permission check: only allow edit if user can edit this tag
   const userRole = session?.user?.staffRole;
-  const canEdit = userRole === "SUPERADMIN" || (["ADMIN", "EDITOR"].includes(userRole) && tag?.category === "GENERAL");
+  const canEdit = userRole === "SUPERADMIN" || (userRole && ["ADMIN", "EDITOR"].includes(userRole) && tag?.category === "GENERAL");
   const canDelete = canEdit;
 
   const {
@@ -65,7 +65,7 @@ export default function EditTagPage() {
     }
   }, [tag, reset]);
 
-  const onSubmit = async (formData: TagFormData) => {
+  const onSubmit: SubmitHandler<TagFormData> = async (formData) => {
     if (!canEdit) return;
     try {
       await updateTag.mutateAsync({ id: tagId, data: formData });

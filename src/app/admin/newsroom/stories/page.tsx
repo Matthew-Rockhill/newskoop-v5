@@ -11,6 +11,7 @@ import {
   PencilIcon,
   EyeIcon,
 } from '@heroicons/react/24/outline';
+import { Story } from '@prisma/client';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -219,7 +220,7 @@ export default function StoriesPage() {
               </tr>
             </thead>
             <tbody>
-              {stories.map((story) => (
+              {stories.map((story: Story) => (
                 <tr
                   key={story.id}
                   onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
@@ -258,7 +259,7 @@ export default function StoriesPage() {
                     </div>
                   </td>
                   <td className="py-4">
-                    <Badge color={statusColors[story.status]}>
+                    <Badge color={statusColors[story.status as keyof typeof statusColors] || 'zinc'}>
                       {story.status.replace('_', ' ')}
                     </Badge>
                   </td>

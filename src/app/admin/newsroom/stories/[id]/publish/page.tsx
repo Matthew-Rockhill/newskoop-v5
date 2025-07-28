@@ -90,7 +90,7 @@ export default function PublishStoryPage() {
   const canPublish = publishStatus?.canPublish || false;
   const publishIssues = publishStatus?.issues || [];
 
-  const onSubmit = async (formData: PublishFormData) => {
+  const onSubmit: SubmitHandler<PublishFormData> = async (formData) => {
     if (!canPublish) {
       toast.error("Story cannot be published. Please check the requirements.");
       return;
