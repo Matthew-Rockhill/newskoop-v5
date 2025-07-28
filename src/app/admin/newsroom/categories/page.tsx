@@ -184,7 +184,7 @@ export default function CategoriesPage() {
               </tr>
             </thead>
             <tbody>
-              {categories.map((category) => renderCategoryRow(category))}
+              {categories.map((category: Category) => renderCategoryRow(category))}
             </tbody>
           </Table>
         )}
