@@ -113,12 +113,6 @@ function LoginForm() {
             </div>
           </form>
         </div>
-        <p className="mt-10 text-center text-sm text-gray-500">
-          Not a member?{' '}
-          <Link href="/register" className="font-semibold text-[#76BD43] hover:underline">
-            Register for Newskoop
-          </Link>
-        </p>
       </div>
     </div>
   )

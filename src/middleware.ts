@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 // Paths that don't require authentication
-const publicPaths = ['/login', '/password-reset', '/register'];
+const publicPaths = ['/', '/login', '/password-reset'];
 
 // Paths that require specific roles
 const roleBasedPaths = {
