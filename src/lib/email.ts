@@ -1,11 +1,10 @@
 import sgMail from '@sendgrid/mail';
 import { generateMagicLink } from './auth';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error('SENDGRID_API_KEY environment variable is not set');
+// Initialize SendGrid only if API key is available
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 interface SendEmailOptions {
   to: string;
@@ -14,6 +13,11 @@ interface SendEmailOptions {
 }
 
 export async function sendEmail({ to, subject, html }: SendEmailOptions) {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('SENDGRID_API_KEY not configured, email not sent');
+    throw new Error('Email service not configured');
+  }
+  
   try {
     await sgMail.send({
       from: 'Newskoop <no-reply@newskoop.co.za>',
@@ -97,6 +101,11 @@ interface SendMagicLinkParams {
 }
 
 export async function sendMagicLink({ email, token, name, isPrimary }: SendMagicLinkParams) {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('SENDGRID_API_KEY not configured, magic link email not sent');
+    throw new Error('Email service not configured');
+  }
+  
   const magicLink = generateMagicLink(token);
   
   const msg = {
