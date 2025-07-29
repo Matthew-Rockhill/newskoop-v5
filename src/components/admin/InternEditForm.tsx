@@ -566,8 +566,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
                           ...clip,
                           url: clip.url, // Use the direct URL from storage
                           originalName: clip.originalName || clip.filename,
-                          duration: clip.duration ?? null,
-                          description: clip.description ?? null
+                          duration: clip.duration ?? null
                         }}
                         isPlaying={playingAudioId === clip.id}
                         currentTime={audioProgress[clip.id] || 0}

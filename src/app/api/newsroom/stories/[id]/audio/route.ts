@@ -81,7 +81,6 @@ const addAudioClip = createHandler(
         url: uploadedFile.url,
         fileSize: uploadedFile.size,
         mimeType: uploadedFile.mimeType,
-        description,
         duration: uploadedFile.duration,
         storyId,
         uploadedBy: user.id,

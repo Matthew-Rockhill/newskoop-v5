@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { stationSearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
+import { createAndSendMagicLink } from '@/lib/magic-link';
+import { generatePassword } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
@@ -20,8 +22,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate required primary contact fields
-    const requiredFields = ['firstName', 'lastName', 'email', 'password'];
+    // Validate required primary contact fields (no password needed anymore)
+    const requiredFields = ['firstName', 'lastName', 'email'];
     const missingFields = requiredFields.filter(field => !data.primaryContact[field]);
     
     if (missingFields.length > 0) {
@@ -46,34 +48,34 @@ export async function POST(request: Request) {
         },
       });
 
-      // 2) Hash & create primary contact
-      //    - pull off `confirmPassword` & `password`
-      //    - everything else is in `primaryContactData`
-      const { password, ...primaryContactData } = data.primaryContact;
-      const hashedPrimaryPassword = await bcrypt.hash(password, 10);
+      // 2) Create primary contact with temporary password
+      const tempPassword = generatePassword();
+      const hashedPrimaryPassword = await bcrypt.hash(tempPassword, 10);
       const primaryUser = await tx.user.create({
         data: {
-          ...primaryContactData,
+          ...data.primaryContact,
           password: hashedPrimaryPassword,
           userType: 'RADIO',
           isPrimaryContact: true,
           radioStationId: station.id,
+          mustChangePassword: true,
         },
       });
 
-      // 3) Hash & create any additional users
+      // 3) Create any additional users with temporary passwords
       const additionalUsers = [];
       if (Array.isArray(data.additionalUsers) && data.additionalUsers.length) {
         for (const userData of data.additionalUsers) {
-          const { password: userPassword, ...userDataWithoutPassword } = userData;
-          const hashed = await bcrypt.hash(userPassword, 10);
+          const tempUserPassword = generatePassword();
+          const hashedUserPassword = await bcrypt.hash(tempUserPassword, 10);
           const u = await tx.user.create({
             data: {
-              ...userDataWithoutPassword,
-              password: hashed,
+              ...userData,
+              password: hashedUserPassword,
               userType: 'RADIO',
               isPrimaryContact: false,
               radioStationId: station.id,
+              mustChangePassword: true,
             },
           });
           additionalUsers.push(u);
@@ -83,16 +85,50 @@ export async function POST(request: Request) {
       return { station, primaryUser, additionalUsers };
     });
 
-    // 4) Revalidate the stations listing so your new station shows up
+    // 4) Send magic link emails to all users
+    const emailResults = [];
+    
+    // Send to primary user
+    const primaryEmailResult = await createAndSendMagicLink({
+      userId: result.primaryUser.id,
+      email: result.primaryUser.email,
+      name: `${result.primaryUser.firstName} ${result.primaryUser.lastName}`,
+      isPrimary: true,
+    });
+    emailResults.push({
+      email: result.primaryUser.email,
+      sent: primaryEmailResult.sent,
+      error: primaryEmailResult.error,
+    });
+    
+    // Send to additional users
+    for (const user of result.additionalUsers) {
+      const emailResult = await createAndSendMagicLink({
+        userId: user.id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        isPrimary: false,
+      });
+      emailResults.push({
+        email: user.email,
+        sent: emailResult.sent,
+        error: emailResult.error,
+      });
+    }
+    
+    // 5) Revalidate the stations listing
     revalidatePath('/admin/stations');
 
-    console.log(`Station created: ${result.station.name}`); 
+    console.log(`Station created: ${result.station.name}`);
+    console.log('Email results:', emailResults);
+    
     return NextResponse.json({
       success: true,
       data: {
         stationId: result.station.id,
         stationName: result.station.name,
         userCount: result.additionalUsers.length + 1,
+        emailResults,
       },
     });
   } catch (error) {

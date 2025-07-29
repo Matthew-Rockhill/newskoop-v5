@@ -35,11 +35,13 @@ export async function POST(req: NextRequest) {
 
     // Send password reset email
     try {
-      const { subject, html } = generatePasswordResetEmail(`${user.firstName} ${user.lastName}`, resetToken);
+      const { subject, html, type } = generatePasswordResetEmail(`${user.firstName} ${user.lastName}`, resetToken);
       await sendEmail({
         to: user.email,
         subject,
         html,
+        type,
+        userId: user.id,
       });
     } catch (error) {
       console.error('Failed to send password reset email:', error);

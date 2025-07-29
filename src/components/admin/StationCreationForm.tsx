@@ -14,7 +14,7 @@ import { Heading, Subheading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Divider } from '@/components/ui/divider';
 import toast from 'react-hot-toast';
-import { TrashIcon, PlusIcon } from 'lucide-react';
+import { TrashIcon, PlusIcon, InfoIcon } from 'lucide-react';
 
 // Province enum matching Prisma schema
 const provinces = [
@@ -486,6 +486,20 @@ export default function StationCreationForm() {
                 ))
               )}
             </div>
+            
+            {fields.length > 0 && (
+              <div className="mt-6 p-4 bg-white-smoke border border-kelly-green rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <InfoIcon className="h-5 w-5 text-kelly-green mt-0.5" />
+                  <div>
+                    <strong className="text-black-custom">User Access</strong>
+                    <p className="text-sm mt-1 text-black-custom">
+                      Each user will receive an email with instructions to set up their password.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </Fieldset>
         )}
 

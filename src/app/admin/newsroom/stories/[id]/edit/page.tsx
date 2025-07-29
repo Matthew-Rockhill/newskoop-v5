@@ -225,7 +225,6 @@ export default function EditStoryPage() {
                         id: clip.id,
                         url: clip.url,
                         originalName: clip.originalName,
-                        description: clip.description ?? null,
                         duration: clip.duration ?? null,
                       }}
                       isPlaying={playingAudioId === clip.id}

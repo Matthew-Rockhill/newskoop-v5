@@ -1,5 +1,8 @@
 import sgMail from '@sendgrid/mail';
-import { generateMagicLink } from './auth';
+import { generateMagicLink, generateToken } from './auth';
+import { getEmailConfig, isEmailAllowed } from './email-config';
+import { logEmail } from './email-logger';
+import { EmailType } from '@prisma/client';
 
 // Initialize SendGrid only if API key is available
 if (process.env.SENDGRID_API_KEY) {
@@ -10,30 +13,120 @@ interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
+  type?: EmailType;
+  userId?: string;
 }
 
-export async function sendEmail({ to, subject, html }: SendEmailOptions) {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn('SENDGRID_API_KEY not configured, email not sent');
-    throw new Error('Email service not configured');
+export async function sendEmail({ to, subject, html, type = 'SYSTEM', userId }: SendEmailOptions) {
+  const config = getEmailConfig();
+  
+  // Check if email is allowed based on environment
+  const isAllowed = isEmailAllowed(to, config);
+  let actualRecipient = to;
+  let actualSubject = subject;
+  
+  if (!isAllowed && config.catchAllEmail) {
+    // Redirect to catch-all with original recipient in subject
+    actualSubject = `[Originally to: ${to}] ${subject}`;
+    actualRecipient = config.catchAllEmail;
   }
   
-  try {
-    await sgMail.send({
-      from: 'Newskoop <no-reply@newskoop.co.za>',
-      to,
-      subject,
-      html,
-    });
-  } catch (error) {
-    console.error('Failed to send email:', error);
-    throw new Error('Failed to send email');
+  // Handle based on email mode
+  switch (config.mode) {
+    case 'console':
+      console.log('\n📧 Email (Console Mode)');
+      console.log('To:', actualRecipient);
+      console.log('Subject:', actualSubject);
+      console.log('---');
+      // Extract and log any links
+      const linkMatch = html.match(/href="([^"]+)"/);
+      if (linkMatch) {
+        console.log('🔗 Link:', linkMatch[1]);
+      }
+      console.log('---\n');
+      
+      // Log email even in console mode
+      await logEmail({
+        to: actualRecipient,
+        subject: actualSubject,
+        type,
+        userId,
+        status: 'SENT',
+        metadata: { mode: 'console', originalRecipient: to !== actualRecipient ? to : undefined },
+      });
+      
+      return; // Success in console mode
+      
+    case 'sendgrid-restricted':
+    case 'sendgrid':
+      if (!process.env.SENDGRID_API_KEY) {
+        console.warn('SENDGRID_API_KEY not configured, falling back to console mode');
+        console.log('\n📧 Email (Fallback Console Mode)');
+        console.log('To:', actualRecipient);
+        console.log('Subject:', actualSubject);
+        return;
+      }
+      
+      try {
+        // Log email attempt
+        const emailLog = await logEmail({
+          to: actualRecipient,
+          from: process.env.SENDGRID_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
+          subject: actualSubject,
+          type,
+          userId,
+          status: 'PENDING',
+          metadata: { originalRecipient: to !== actualRecipient ? to : undefined },
+        });
+        
+        const [response] = await sgMail.send({
+          from: process.env.SENDGRID_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
+          to: actualRecipient,
+          subject: actualSubject,
+          html,
+        });
+        
+        // Update email log with success
+        if (emailLog) {
+          await logEmail({
+            to: actualRecipient,
+            from: process.env.SENDGRID_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
+            subject: actualSubject,
+            type,
+            userId,
+            status: 'SENT',
+            providerId: response.headers['x-message-id'],
+            metadata: { originalRecipient: to !== actualRecipient ? to : undefined },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to send email:', error);
+        
+        // Log email failure
+        await logEmail({
+          to: actualRecipient,
+          from: process.env.SENDGRID_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
+          subject: actualSubject,
+          type,
+          userId,
+          status: 'FAILED',
+          failureReason: error instanceof Error ? error.message : 'Unknown error',
+          metadata: { error: error instanceof Error ? error.stack : error },
+        });
+        
+        throw new Error('Failed to send email');
+      }
+      break;
+      
+    default:
+      throw new Error(`Unknown email mode: ${config.mode}`);
   }
 }
 
 export function generateWelcomeEmail(name: string, temporaryPassword: string) {
   return {
     subject: 'Welcome to Newskoop',
+    type: 'WELCOME' as EmailType,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a365d;">Welcome to Newskoop!</h1>
@@ -68,6 +161,7 @@ export function generateWelcomeEmail(name: string, temporaryPassword: string) {
 export function generatePasswordResetEmail(name: string, resetToken: string) {
   return {
     subject: 'Reset Your Newskoop Password',
+    type: 'PASSWORD_RESET' as EmailType,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a365d;">Reset Your Password</h1>
@@ -101,20 +195,13 @@ interface SendMagicLinkParams {
 }
 
 export async function sendMagicLink({ email, token, name, isPrimary }: SendMagicLinkParams) {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn('SENDGRID_API_KEY not configured, magic link email not sent');
-    throw new Error('Email service not configured');
-  }
-  
   const magicLink = generateMagicLink(token);
   
-  const msg = {
-    to: email,
-    from: process.env.SENDGRID_FROM_EMAIL!,
-    subject: isPrimary 
-      ? 'Welcome to NewsKoop - Set Up Your Primary Account'
-      : 'Welcome to NewsKoop - Set Up Your Account',
-    html: `
+  const subject = isPrimary 
+    ? 'Welcome to NewsKoop - Set Up Your Primary Account'
+    : 'Welcome to NewsKoop - Set Up Your Account';
+    
+  const html = `
       <div>
         <h1>Welcome to NewsKoop${isPrimary ? ' as Primary Contact' : ''}!</h1>
         <p>Hello ${name},</p>
@@ -137,11 +224,16 @@ export async function sendMagicLink({ email, token, name, isPrimary }: SendMagic
         <p>If you did not request this, please ignore this email.</p>
         <p>Best regards,<br>The NewsKoop Team</p>
       </div>
-    `,
-  };
-
+    `;
+  
   try {
-    await sgMail.send(msg);
+    await sendEmail({ 
+      to: email, 
+      subject, 
+      html,
+      type: 'MAGIC_LINK',
+      userId: undefined, // We don't have userId in this context
+    });
   } catch (error) {
     console.error('Error sending magic link email:', error);
     throw new Error('Failed to send magic link email');

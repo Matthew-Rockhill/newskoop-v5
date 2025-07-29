@@ -90,6 +90,23 @@ enum StoryLanguage {
   XHOSA
 }
 
+// Email tracking enums
+enum EmailType {
+  WELCOME
+  PASSWORD_RESET
+  MAGIC_LINK
+  NOTIFICATION
+  SYSTEM
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
+  DELIVERED
+}
+
 model User {
   id                    String                @id @default(cuid())
   email                 String                @unique
@@ -115,6 +132,7 @@ model User {
   
   sessions              Session[]
   auditLogs             AuditLog[]
+  emailLogs             EmailLog[]
   
   // Newsroom relationships
   authoredStories       Story[]               @relation("AuthoredStories")
@@ -308,7 +326,6 @@ model AudioClip {
   duration    Int?
   fileSize    Int?
   mimeType    String
-  description String?
   
   storyId     String
   story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -411,6 +428,44 @@ model StoryGroup {
   
   @@index([publishTogether])
   @@index([scheduledPublishAt])
+}
+
+// Email tracking model
+model EmailLog {
+  id              String       @id @default(cuid())
+  to              String
+  from            String?
+  subject         String
+  type            EmailType
+  status          EmailStatus  @default(PENDING)
+  
+  // User relationship (optional - system emails might not have a user)
+  userId          String?
+  user            User?        @relation(fields: [userId], references: [id])
+  
+  // Email provider details
+  providerId      String?      // SendGrid message ID or similar
+  
+  // Additional metadata
+  metadata        Json?        // Store email content, error details, etc.
+  
+  // Status tracking
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  failedAt        DateTime?
+  failureReason   String?
+  
+  // Environment info
+  environment     String?      // development, staging, production
+  
+  // Timestamps
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
 }
 
  

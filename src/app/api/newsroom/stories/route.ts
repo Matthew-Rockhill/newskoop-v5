@@ -201,7 +201,6 @@ const getStories = createHandler(
             originalName: true,
             url: true,
             duration: true,
-            description: true,
           },
         },
         _count: {
@@ -422,7 +421,6 @@ const createStory = createHandler(
               url: true,
               fileSize: true,
               mimeType: true,
-              description: true,
             },
           },
         },

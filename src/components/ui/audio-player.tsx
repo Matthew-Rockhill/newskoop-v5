@@ -10,7 +10,7 @@ import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import { AudioClip as PrismaAudioClip } from '@prisma/client';
 
-type AudioClip = Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'description' | 'duration'>;
+type AudioClip = Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>;
 
 interface CustomAudioPlayerProps {
   clip: AudioClip;
@@ -84,9 +84,6 @@ export function CustomAudioPlayer({
           <MusicalNoteIcon className="h-5 w-5 text-kelly-green" />
           <div>
             <p className="font-medium text-gray-900">{clip.originalName}</p>
-            {clip.description && (
-              <p className="text-sm text-gray-500">{clip.description}</p>
-            )}
           </div>
         </div>
         <div className="text-sm text-gray-500">

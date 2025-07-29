@@ -4,8 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { userCreateSchema, userSearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
-import { sendEmail, generateWelcomeEmail } from '@/lib/email';
+import { createAndSendMagicLink } from '@/lib/magic-link';
 import { generatePassword } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 // GET /api/users - List users with filtering and pagination
 const getUsers = createHandler(
@@ -90,11 +91,12 @@ const createUser = createHandler(
 
     // Generate a secure temporary password
     const temporaryPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
     const user = await prisma.user.create({
       data: {
         ...data,
-        password: temporaryPassword,
+        password: hashedPassword,
         mustChangePassword: true,
       },
       include: {
@@ -102,24 +104,29 @@ const createUser = createHandler(
       },
     });
 
-    // Send welcome email
+    // Send magic link email
+    let emailResult: { sent: boolean; error?: string } = { sent: false, error: 'Email not attempted' };
     try {
-      const { subject, html } = generateWelcomeEmail(`${user.firstName} ${user.lastName}`, temporaryPassword);
-      await sendEmail({
-        to: user.email,
-        subject,
-        html,
+      emailResult = await createAndSendMagicLink({
+        userId: user.id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        isPrimary: false,
       });
     } catch (error: unknown) {
-      console.error('Failed to send welcome email:', error instanceof Error ? error.message : 'Unknown error');
-      // Don't fail the request if email sending fails
+      console.error('Failed to send magic link email:', error instanceof Error ? error.message : 'Unknown error');
+      emailResult = { sent: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 
     // Remove password from response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
-    return NextResponse.json(userWithoutPassword, { status: 201 });
+    return NextResponse.json({
+      user: userWithoutPassword,
+      emailSent: emailResult.sent,
+      emailError: emailResult.error,
+    }, { status: 201 });
   },
   [
     withErrorHandling,

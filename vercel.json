@@ -12,5 +12,22 @@
     "src/app/api/newsroom/translations/route.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "staging": true
+    }
+  },
+  "github": {
+    "autoJobCancelation": false
+  },
+  "regions": ["cpt1"],
+  "redirects": [
+    {
+      "source": "/admin",
+      "destination": "/admin/newsroom/stories",
+      "permanent": false
+    }
+  ]
 }
