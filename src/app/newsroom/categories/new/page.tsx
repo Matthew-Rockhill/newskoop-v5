@@ -51,7 +51,7 @@ export default function NewCategoryPage() {
     try {
       await createCategory.mutateAsync(formData);
       toast.success("Category created successfully!");
-      router.push("/admin/newsroom/categories");
+      router.push("/newsroom/categories");
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message || "Failed to create category");
@@ -70,7 +70,7 @@ export default function NewCategoryPage() {
           title="Create Category"
           action={{
             label: "Back to Categories",
-            onClick: () => router.push("/admin/newsroom/categories"),
+            onClick: () => router.push("/newsroom/categories"),
           }}
         />
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -124,7 +124,7 @@ export default function NewCategoryPage() {
             <Button
               type="button"
               color="white"
-              onClick={() => router.push("/admin/newsroom/categories")}
+              onClick={() => router.push("/newsroom/categories")}
             >
               Cancel
             </Button>

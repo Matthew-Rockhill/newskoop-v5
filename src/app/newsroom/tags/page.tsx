@@ -69,7 +69,7 @@ export default function TagsPage() {
   };
 
   // Check if user can edit a specific tag
-  const canEditTag = (tag: Tag) => {
+  const canEditTag = (tag: Tag & { category: TagCategory }) => {
     const userRole = session?.user?.staffRole;
     if (!userRole) return false;
     
@@ -154,7 +154,7 @@ export default function TagsPage() {
           action={
             canCreateTag() ? {
               label: "New Tag",
-              onClick: () => router.push('/admin/newsroom/tags/new')
+              onClick: () => router.push('/newsroom/tags/new')
             } : undefined
           }
         />
@@ -206,7 +206,7 @@ export default function TagsPage() {
           action={
               canCreateTag() ? {
                 label: "New Tag",
-                onClick: () => router.push('/admin/newsroom/tags/new')
+                onClick: () => router.push('/newsroom/tags/new')
               } : undefined
           }
         />
@@ -226,7 +226,7 @@ export default function TagsPage() {
                 return (
                   <tr
                   key={tag.id}
-                    onClick={() => canEditTag(tag) && router.push(`/admin/newsroom/tags/${tag.id}/edit`)}
+                    onClick={() => canEditTag(tag) && router.push(`/newsroom/tags/${tag.id}/edit`)}
                     className={`${canEditTag(tag) ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'} focus:outline-none border-b border-gray-100 last:border-b-0`}
                   >
                     <td className="py-4">
@@ -272,7 +272,7 @@ export default function TagsPage() {
                     <Button
                           onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
-                        router.push(`/admin/newsroom/tags/${tag.id}/edit`);
+                        router.push(`/newsroom/tags/${tag.id}/edit`);
                       }}
                           outline
                           className="text-sm"

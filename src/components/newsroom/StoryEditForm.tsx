@@ -58,13 +58,13 @@ interface Story {
   }>;
 }
 
-// Simplified schema for interns - only title and content
-const internStoryEditSchema = z.object({
+// Story edit schema - works for all roles
+const storyEditSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   content: z.string().min(1, 'Content is required'),
 });
 
-type InternStoryEditFormData = z.infer<typeof internStoryEditSchema>;
+type StoryEditFormData = z.infer<typeof storyEditSchema>;
 
 // Status badge colors
 const statusColors = {
@@ -88,11 +88,11 @@ const priorityColors = {
   BREAKING: 'red',
 } as const;
 
-interface InternEditFormProps {
+interface StoryEditFormProps {
   storyId: string;
 }
 
-export function InternEditForm({ storyId }: InternEditFormProps) {
+export function StoryEditForm({ storyId }: StoryEditFormProps) {
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -113,8 +113,8 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
     formState: { errors },
     setValue,
     reset,
-  } = useForm<InternStoryEditFormData>({
-    resolver: zodResolver(internStoryEditSchema),
+  } = useForm<StoryEditFormData>({
+    resolver: zodResolver(storyEditSchema),
   });
 
   // Load story data
@@ -146,7 +146,7 @@ export function InternEditForm({ storyId }: InternEditFormProps) {
     loadStory();
   }, [storyId, reset, router]);
 
-  const onSubmit: SubmitHandler<InternStoryEditFormData> = async (data) => {
+  const onSubmit: SubmitHandler<StoryEditFormData> = async (data) => {
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/newsroom/stories/${storyId}`, {

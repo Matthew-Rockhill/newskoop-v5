@@ -143,7 +143,7 @@ function StoriesPageContent() {
           }}
           action={{
             label: "New Story",
-            onClick: () => router.push('/admin/newsroom/stories/new')
+            onClick: () => router.push('/newsroom/stories/new')
           }}
         />
 
@@ -215,7 +215,7 @@ function StoriesPageContent() {
             description="Get started by creating your first story."
             action={{
               label: "New Story",
-              onClick: () => router.push('/admin/newsroom/stories/new')
+              onClick: () => router.push('/newsroom/stories/new')
             }}
           />
         ) : (
@@ -231,7 +231,7 @@ function StoriesPageContent() {
               {stories.map((story: StoryWithRelations) => (
                 <tr
                   key={story.id}
-                  onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                  onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                   className="cursor-pointer hover:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
                 >
                   <td className="py-4">
@@ -276,7 +276,7 @@ function StoriesPageContent() {
                       <Button
                         onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
-                          router.push(`/admin/newsroom/stories/${story.id}`);
+                          router.push(`/newsroom/stories/${story.id}`);
                         }}
                         outline
                         className="text-sm"
@@ -292,7 +292,7 @@ function StoriesPageContent() {
                         <Button
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
-                            router.push(`/admin/newsroom/stories/${story.id}/review`);
+                            router.push(`/newsroom/stories/${story.id}/review`);
                           }}
                           color="primary"
                           className="text-sm"

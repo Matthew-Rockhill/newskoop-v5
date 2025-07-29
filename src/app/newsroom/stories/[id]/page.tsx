@@ -148,7 +148,7 @@ export default function StoryDetailPage() {
     try {
       await deleteStoryMutation.mutateAsync(storyId);
       toast.success('Story deleted successfully');
-      router.push('/admin/newsroom/stories');
+      router.push('/newsroom/stories');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete story';
       toast.error(errorMessage);
@@ -215,7 +215,7 @@ export default function StoryDetailPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Error loading story: Story not found</p>
-          <Button href="/admin/newsroom/stories" className="mt-4">
+          <Button href="/newsroom/stories" className="mt-4">
             Back to Stories
           </Button>
         </div>
@@ -281,7 +281,7 @@ export default function StoryDetailPage() {
             {/* Back to Stories */}
             <Button
               color="white"
-              onClick={() => router.push('/admin/newsroom/stories')}
+              onClick={() => router.push('/newsroom/stories')}
             >
               ← Back to Stories
             </Button>
@@ -290,7 +290,7 @@ export default function StoryDetailPage() {
             {canShowReviewButton(session?.user?.staffRole ?? null, story.status) && (
               <Button
                 color="primary"
-                onClick={() => router.push(`/admin/newsroom/stories/${storyId}/review`)}
+                onClick={() => router.push(`/newsroom/stories/${storyId}/review`)}
               >
                 <EyeIcon className="h-4 w-4 mr-2" />
                 Review Story
@@ -301,7 +301,7 @@ export default function StoryDetailPage() {
             {canShowEditButton(session?.user?.staffRole ?? null, story.authorId, session?.user?.id || '', story.status) ? (
               <Button 
                 color="secondary" 
-                onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
               >
                 <PencilSquareIcon className="h-4 w-4 mr-2" />
                 Edit Story
@@ -481,7 +481,7 @@ export default function StoryDetailPage() {
                   </div>
                   <Button
                     color="white"
-                    onClick={() => router.push(`/admin/newsroom/translations/${translation.id}/work`)}
+                    onClick={() => router.push(`/newsroom/translations/${translation.id}/work`)}
                   >
                     View
                   </Button>

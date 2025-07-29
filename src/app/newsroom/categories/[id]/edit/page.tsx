@@ -73,7 +73,7 @@ export default function EditCategoryPage() {
     try {
       await updateCategory.mutateAsync({ id: categoryId, data: formData });
       toast.success("Category updated successfully!");
-      router.push("/admin/newsroom/categories");
+      router.push("/newsroom/categories");
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message || "Failed to update category");
@@ -89,7 +89,7 @@ export default function EditCategoryPage() {
     try {
       await deleteCategory.mutateAsync(categoryId);
       toast.success("Category deleted successfully!");
-      router.push("/admin/newsroom/categories");
+      router.push("/newsroom/categories");
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message || "Failed to delete category");
@@ -114,7 +114,7 @@ export default function EditCategoryPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Category not found</p>
-          <Button onClick={() => router.push("/admin/newsroom/categories")} className="mt-4">
+          <Button onClick={() => router.push("/newsroom/categories")} className="mt-4">
             Back to Categories
           </Button>
         </div>
@@ -129,7 +129,7 @@ export default function EditCategoryPage() {
           title="Edit Category"
           action={{
             label: "Back to Categories",
-            onClick: () => router.push("/admin/newsroom/categories"),
+            onClick: () => router.push("/newsroom/categories"),
           }}
         />
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -194,7 +194,7 @@ export default function EditCategoryPage() {
               <Button
                 type="button"
                 color="white"
-                onClick={() => router.push("/admin/newsroom/categories")}
+                onClick={() => router.push("/newsroom/categories")}
               >
                 Cancel
               </Button>

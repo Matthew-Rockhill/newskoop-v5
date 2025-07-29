@@ -52,7 +52,7 @@ export default function NewTagPage() {
     try {
       await createTag.mutateAsync(formData);
       toast.success("Tag created successfully!");
-      router.push("/admin/newsroom/tags");
+      router.push("/newsroom/tags");
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message || "Failed to create tag");
@@ -81,7 +81,7 @@ export default function NewTagPage() {
           title="Create Tag"
           action={{
             label: "Back to Tags",
-            onClick: () => router.push("/admin/newsroom/tags"),
+            onClick: () => router.push("/newsroom/tags"),
           }}
         />
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -117,7 +117,7 @@ export default function NewTagPage() {
             <Button
               type="button"
               color="white"
-              onClick={() => router.push("/admin/newsroom/tags")}
+              onClick={() => router.push("/newsroom/tags")}
             >
               Cancel
             </Button>

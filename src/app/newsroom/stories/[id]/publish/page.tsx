@@ -119,7 +119,7 @@ export default function PublishStoryPage() {
         toast.success("Story scheduled for publishing!");
       }
       
-      router.push("/admin/newsroom/stories");
+      router.push("/newsroom/stories");
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to publish story";
       toast.error(errorMessage);
@@ -147,7 +147,7 @@ export default function PublishStoryPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Error loading story: {error?.message || 'Story not found'}</p>
-          <Button onClick={() => router.push('/admin/newsroom/stories')} className="mt-4">
+          <Button onClick={() => router.push('/newsroom/stories')} className="mt-4">
             Back to Stories
           </Button>
         </div>
@@ -162,7 +162,7 @@ export default function PublishStoryPage() {
           title="Pre-Publish Checklist"
           action={{
             label: "Back to Story",
-            onClick: () => router.push(`/admin/newsroom/stories/${storyId}`),
+            onClick: () => router.push(`/newsroom/stories/${storyId}`),
           }}
         />
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -342,7 +342,7 @@ export default function PublishStoryPage() {
             <Button
               type="button"
               color="white"
-              onClick={() => router.push(`/admin/newsroom/stories/${storyId}`)}
+              onClick={() => router.push(`/newsroom/stories/${storyId}`)}
             >
               Cancel
             </Button>

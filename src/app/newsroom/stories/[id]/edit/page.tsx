@@ -23,7 +23,7 @@ import { Heading } from '@/components/ui/heading';
 import { Fieldset, FieldGroup, Field, Label, Description, ErrorMessage } from '@/components/ui/fieldset';
 import { Divider } from '@/components/ui/divider';
 
-import { InternEditForm } from '@/components/admin/InternEditForm';
+import { StoryEditForm } from '@/components/newsroom/StoryEditForm';
 
 // Define the story update schema
 const storyUpdateSchema = z.object({
@@ -86,7 +86,7 @@ export default function EditStoryPage() {
         });
       } catch {
         toast.error('Failed to load story');
-        router.push('/admin/newsroom/stories');
+        router.push('/newsroom/stories');
       } finally {
         setIsLoading(false);
       }
@@ -107,7 +107,7 @@ export default function EditStoryPage() {
         throw new Error(error.error || 'Failed to update story');
       }
       toast.success('Story updated successfully!');
-      router.push(`/admin/newsroom/stories/${storyId}`);
+      router.push(`/newsroom/stories/${storyId}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update story');
     } finally {
@@ -128,7 +128,7 @@ export default function EditStoryPage() {
 
   // Show Intern/Journo edit form for those roles
   if (session?.user?.staffRole === 'INTERN' || session?.user?.staffRole === 'JOURNALIST') {
-    return <InternEditForm storyId={storyId} />;
+    return <StoryEditForm storyId={storyId} />;
   }
 
   if (isLoading) {
@@ -146,7 +146,7 @@ export default function EditStoryPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Story not found</p>
-          <Button href="/admin/newsroom/stories" className="mt-4">
+          <Button href="/newsroom/stories" className="mt-4">
             Back to Stories
           </Button>
         </div>
@@ -162,7 +162,7 @@ export default function EditStoryPage() {
           title="Edit Story"
           action={{
             label: "Back to Story",
-            onClick: () => router.push(`/admin/newsroom/stories/${storyId}`)
+            onClick: () => router.push(`/newsroom/stories/${storyId}`)
           }}
         />
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">

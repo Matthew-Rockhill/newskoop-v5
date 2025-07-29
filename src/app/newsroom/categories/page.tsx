@@ -61,7 +61,7 @@ export default function CategoriesPage() {
     return (
       <tr
         key={category.id}
-        onClick={() => canEditCategory(category) && router.push(`/admin/newsroom/categories/${category.id}/edit`)}
+        onClick={() => canEditCategory(category) && router.push(`/newsroom/categories/${category.id}/edit`)}
         className={`${canEditCategory(category) ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'} focus:outline-none border-b border-gray-100 last:border-b-0`}
       >
         <td className="py-4">
@@ -116,7 +116,7 @@ export default function CategoriesPage() {
           <Button
               onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              router.push(`/admin/newsroom/categories/${category.id}/edit`);
+              router.push(`/newsroom/categories/${category.id}/edit`);
             }}
               outline
               className="text-sm"
@@ -154,7 +154,7 @@ export default function CategoriesPage() {
           action={
             canCreateCategory() ? {
               label: "New Category",
-              onClick: () => router.push('/admin/newsroom/categories/new')
+              onClick: () => router.push('/newsroom/categories/new')
             } : undefined
           }
         />
@@ -171,7 +171,7 @@ export default function CategoriesPage() {
           action={
               canCreateCategory() ? {
                 label: "New Category",
-                onClick: () => router.push('/admin/newsroom/categories/new')
+                onClick: () => router.push('/newsroom/categories/new')
               } : undefined
           }
         />

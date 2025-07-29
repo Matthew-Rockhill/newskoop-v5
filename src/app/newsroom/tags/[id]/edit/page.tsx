@@ -70,7 +70,7 @@ export default function EditTagPage() {
     try {
       await updateTag.mutateAsync({ id: tagId, data: formData });
       toast.success("Tag updated successfully!");
-      router.push("/admin/newsroom/tags");
+      router.push("/newsroom/tags");
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message || "Failed to update tag");
@@ -86,7 +86,7 @@ export default function EditTagPage() {
     try {
       await deleteTag.mutateAsync(tagId);
       toast.success("Tag deleted successfully!");
-      router.push("/admin/newsroom/tags");
+      router.push("/newsroom/tags");
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message || "Failed to delete tag");
@@ -111,7 +111,7 @@ export default function EditTagPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Tag not found</p>
-          <Button onClick={() => router.push("/admin/newsroom/tags")} className="mt-4">
+          <Button onClick={() => router.push("/newsroom/tags")} className="mt-4">
             Back to Tags
           </Button>
         </div>
@@ -126,7 +126,7 @@ export default function EditTagPage() {
           title="Edit Tag"
           action={{
             label: "Back to Tags",
-            onClick: () => router.push("/admin/newsroom/tags"),
+            onClick: () => router.push("/newsroom/tags"),
           }}
         />
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -175,7 +175,7 @@ export default function EditTagPage() {
               <Button
                 type="button"
                 color="white"
-                onClick={() => router.push("/admin/newsroom/tags")}
+                onClick={() => router.push("/newsroom/tags")}
               >
                 Cancel
               </Button>

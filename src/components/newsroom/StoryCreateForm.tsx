@@ -25,15 +25,15 @@ interface AudioFile {
   description?: string;
 }
 
-// Simplified schema for interns - only title, content, and audio
-const internStorySchema = z.object({
+// Story creation schema - works for all roles
+const storyCreateSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   content: z.string().min(1, 'Content is required'),
 });
 
-type InternStoryFormData = z.infer<typeof internStorySchema>;
+type StoryCreateFormData = z.infer<typeof storyCreateSchema>;
 
-export function InternStoryForm() {
+export function StoryCreateForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [content, setContent] = useState('');
@@ -44,21 +44,21 @@ export function InternStoryForm() {
     handleSubmit,
     formState: { errors },
     setValue,
-  } = useForm<InternStoryFormData>({
-    resolver: zodResolver(internStorySchema),
+  } = useForm<StoryCreateFormData>({
+    resolver: zodResolver(storyCreateSchema),
   });
 
-  const onSubmit: SubmitHandler<InternStoryFormData> = async (data) => {
+  const onSubmit: SubmitHandler<StoryCreateFormData> = async (data) => {
     setIsSubmitting(true);
     try {
       // Create FormData for file uploads
       const formData = new FormData();
       
-      // Add story data - interns create stories with DRAFT status and MEDIUM priority by default
+      // Add story data - all roles create stories with DRAFT status and MEDIUM priority by default
       formData.append('title', data.title);
       formData.append('content', data.content);
-      formData.append('priority', 'MEDIUM'); // Default priority for interns
-      formData.append('status', 'DRAFT'); // Interns always start with draft
+      formData.append('priority', 'MEDIUM'); // Default priority
+      formData.append('status', 'DRAFT'); // Always start with draft
       
       // Add audio files (no descriptions needed)
       audioFiles.forEach((audioFile, index) => {
