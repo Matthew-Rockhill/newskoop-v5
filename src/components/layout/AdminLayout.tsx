@@ -58,12 +58,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       const newsroomItems: NavigationItem[] = []
       
       // All staff can see stories
-      newsroomItems.push({ name: 'Stories', href: '/admin/newsroom/stories', icon: DocumentTextIcon })
+      newsroomItems.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
       
       // Categories and Tags - SUB_EDITOR and above
       if (session.user.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
-        newsroomItems.push({ name: 'Categories', href: '/admin/newsroom/categories', icon: FolderIcon })
-        newsroomItems.push({ name: 'Tags', href: '/admin/newsroom/tags', icon: TagIcon })
+        newsroomItems.push({ name: 'Categories', href: '/newsroom/categories', icon: FolderIcon })
+        newsroomItems.push({ name: 'Tags', href: '/newsroom/tags', icon: TagIcon })
       }
       
 

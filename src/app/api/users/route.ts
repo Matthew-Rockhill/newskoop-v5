@@ -104,6 +104,8 @@ const createUser = createHandler(
       },
     });
 
+    console.log('Created user with ID:', user.id); // Debug log
+
     // Send magic link email
     let emailResult: { sent: boolean; error?: string } = { sent: false, error: 'Email not attempted' };
     try {

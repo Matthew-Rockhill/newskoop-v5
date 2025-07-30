@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { useUsers } from '@/hooks/use-users';
 import { useStories } from '@/hooks/use-stories';
 import { UserActivityChart } from '@/components/admin/UserActivityChart';
-import { UserDashboard } from '@/components/admin/InternDashboard';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { 
   CogIcon, 
   NewspaperIcon,
@@ -20,6 +21,7 @@ type DashboardSection = 'admin' | 'newsroom';
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState<DashboardSection>('admin');
   
   // Fetch data for stats - get more data to show actual counts
@@ -31,10 +33,12 @@ export default function AdminDashboard() {
   const { data: reviewStoriesData } = useStories({ status: 'IN_REVIEW', page: 1, perPage: 1 });
   const { data: publishedStoriesData } = useStories({ status: 'PUBLISHED', page: 1, perPage: 1 });
   
-  // Role-based dashboard routing - after all hooks
-  if (session?.user?.staffRole === 'INTERN' || session?.user?.staffRole === 'JOURNALIST' || session?.user?.staffRole === 'SUB_EDITOR') {
-    return <UserDashboard />;
-  }
+  // Role-based dashboard routing - redirect editorial staff to newsroom
+  useEffect(() => {
+    if (session?.user?.staffRole === 'INTERN' || session?.user?.staffRole === 'JOURNALIST' || session?.user?.staffRole === 'SUB_EDITOR') {
+      router.push('/newsroom');
+    }
+  }, [session?.user?.staffRole, router]);
 
   const isAdmin = session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole);
   const isEditorialStaff = session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole);

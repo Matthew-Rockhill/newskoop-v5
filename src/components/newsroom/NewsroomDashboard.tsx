@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
+import { PageHeader } from '@/components/ui/page-header';
 import { useStories, type Story } from '@/hooks/use-stories';
 import { useQuery } from '@tanstack/react-query';
 import { StoryPipelineView } from './StoryPipelineView';
@@ -22,7 +23,7 @@ import {
   UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
-export function UserDashboard() {
+export function NewsroomDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
   const userId = session?.user?.id;
@@ -61,8 +62,8 @@ export function UserDashboard() {
   });
   
   // Journalist-specific: stories submitted for approval
+  // For journalists, this will include both their own stories AND stories they reviewed/submitted for approval
   const { data: approvedStoriesData } = useStories({ 
-    authorId: userId, 
     status: 'PENDING_APPROVAL', 
     page: 1, 
     perPage: 100 
@@ -204,27 +205,15 @@ export function UserDashboard() {
 
   return (
     <Container>
-      {/* Custom Header with Quick Actions */}
-      <div className="border-b border-zinc-200 pb-5 sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-lg font-semibold leading-6 text-zinc-900 dark:text-white">
-            My Dashboard
-          </h3>
-          <p className="mt-1 text-sm text-gray-600">
-            Welcome back, {session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here&apos;s your {isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.
-          </p>
-        </div>
-        <div className="mt-3 sm:ml-4 sm:mt-0">
+      <PageHeader
+        title="My Dashboard"
+        description={`Welcome back, ${session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here's your ${isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.`}
+        action={!isSubEditor ? {
+          label: "Create Story",
+          onClick: () => router.push('/newsroom/stories/new')
+        } : undefined}
+        actions={
           <div className="flex flex-wrap gap-3">
-            {!isSubEditor && (
-            <Button
-              onClick={() => router.push('/newsroom/stories/new')}
-              className="flex items-center space-x-2"
-            >
-              <PlusIcon className="h-4 w-4" />
-              <span>Create New Story</span>
-            </Button>
-            )}
             {!isSubEditor && (
             <Button
               color="white"
@@ -262,8 +251,8 @@ export function UserDashboard() {
               </Button>
             )}
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Success Metrics */}
       <div className="mt-8">
@@ -303,7 +292,7 @@ export function UserDashboard() {
                       <div className="flex items-center space-x-2">
                         <Button
                           color="white"
-                          onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                          onClick={() => router.push(`/newsroom/stories/${story.id}/review`)}
                         >
                           <EyeIcon className="h-4 w-4 mr-1" />
                           Review
@@ -417,7 +406,7 @@ export function UserDashboard() {
                     <div className="flex items-center space-x-2">
                       <Button
                         color="white"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onClick={() => router.push(`/newsroom/stories/${story.id}/review`)}
                       >
                         <EyeIcon className="h-4 w-4 mr-1" />
                         Review

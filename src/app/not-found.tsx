@@ -1,8 +1,33 @@
+'use client';
+
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button'
 import { Link } from '@/components/ui/link'
 import Logo from '@/components/shared/Logo'
 
 export default function NotFound() {
+  const { data: session } = useSession();
+  
+  // Determine the appropriate dashboard based on user role
+  const getDashboardPath = () => {
+    if (!session?.user?.staffRole) return '/admin';
+    
+    const role = session.user.staffRole;
+    if (role === 'SUPERADMIN' || role === 'ADMIN') return '/admin';
+    if (role === 'EDITOR' || role === 'SUB_EDITOR') return '/admin';
+    return '/newsroom'; // JOURNALIST, INTERN
+  };
+
+  const getDashboardLabel = () => {
+    if (!session?.user?.staffRole) return 'Go to Dashboard';
+    
+    const role = session.user.staffRole;
+    if (role === 'SUPERADMIN' || role === 'ADMIN' || role === 'EDITOR' || role === 'SUB_EDITOR') {
+      return 'Back to Dashboard';
+    }
+    return 'Back to Dashboard'; // JOURNALIST, INTERN
+  };
+
   return (
     <div className="flex min-h-[100vh] flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8 bg-[#f5f5f5]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
@@ -28,11 +53,8 @@ export default function NotFound() {
             </div>
             
             <div className="space-y-4">
-              <Button href="/" color="primary" className="w-full">
-            Go back home
-          </Button>
-              <Button href="/admin" color="secondary" className="w-full">
-                Go to Admin Dashboard
+              <Button href={getDashboardPath()} color="primary" className="w-full">
+                {getDashboardLabel()}
               </Button>
             </div>
           </div>

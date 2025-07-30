@@ -41,7 +41,17 @@ export async function sendEmail({ to, subject, html, type = 'SYSTEM', userId }: 
       // Extract and log any links
       const linkMatch = html.match(/href="([^"]+)"/);
       if (linkMatch) {
-        console.log('🔗 Link:', linkMatch[1]);
+        const link = linkMatch[1];
+        // Check if this is a magic link or password reset link (both use set-password)
+        if (link.includes('set-password')) {
+          if (link.includes('auth/set-password')) {
+            console.log('🔑 PASSWORD RESET LINK:', link);
+          } else {
+            console.log('✨ MAGIC LINK:', link);
+          }
+        } else {
+          console.log('🔗 Link:', link);
+        }
       }
       console.log('---\n');
       
@@ -172,7 +182,7 @@ export function generatePasswordResetEmail(name: string, resetToken: string) {
         
         <p style="margin: 20px 0;">
           <a 
-            href="${process.env.NEXT_PUBLIC_APP_URL}/password-reset?token=${resetToken}" 
+            href="${process.env.NEXT_PUBLIC_APP_URL}/auth/set-password?token=${resetToken}" 
             style="background-color: #3182ce; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;"
           >
             Reset Password

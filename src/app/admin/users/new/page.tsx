@@ -43,8 +43,16 @@ export default function NewUserPage() {
         throw new Error(error.message || 'Failed to create user');
       }
 
-      const user = await response.json();
-      router.push(`/admin/users/${user.id}`);
+      const result = await response.json();
+      
+      // API returns { user: userData, emailSent: boolean, emailError?: string }
+      if (result.user && result.user.id) {
+        router.push(`/admin/users/${result.user.id}`);
+      } else {
+        // This should not happen with a successful API response
+        console.error('Unexpected API response structure:', result);
+        router.push('/admin/users');
+      }
     } catch (error) {
       console.error('Error creating user:', error);
       alert(error instanceof Error ? error.message : 'Failed to create user');
