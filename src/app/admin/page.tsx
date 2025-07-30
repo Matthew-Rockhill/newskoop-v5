@@ -1,37 +1,18 @@
 'use client';
 
-import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatsCard } from '@/components/ui/stats-card';
-import { Button } from '@/components/ui/button';
 import { useUsers } from '@/hooks/use-users';
-import { useStories } from '@/hooks/use-stories';
 import { UserActivityChart } from '@/components/admin/UserActivityChart';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { 
-  CogIcon, 
-  NewspaperIcon,
-} from '@heroicons/react/24/outline';
-
-type DashboardSection = 'admin' | 'newsroom';
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
-  const router = useRouter();
-  const [activeSection, setActiveSection] = useState<DashboardSection>('admin');
   
-  // Fetch data for stats - get more data to show actual counts
+  // Fetch data for admin stats
   const { users: allUsers, pagination: usersPagination } = useUsers({ page: 1, perPage: 100 });
-  
-  // Newsroom stats
-  const { data: allStoriesData } = useStories({ page: 1, perPage: 1 });
-  const { data: draftStoriesData } = useStories({ status: 'DRAFT', page: 1, perPage: 1 });
-  const { data: reviewStoriesData } = useStories({ status: 'IN_REVIEW', page: 1, perPage: 1 });
-  const { data: publishedStoriesData } = useStories({ status: 'PUBLISHED', page: 1, perPage: 1 });
   
   // This page is now only for admin users
   // Editorial staff are routed to /newsroom via the /dashboard router
@@ -86,41 +67,18 @@ export default function AdminDashboard() {
     ];
   };
 
-  // Newsroom stats (only for SUPERADMIN)
+  // Newsroom stats - removed for simplicity
   const getNewsroomStats = () => {
-    if (!isSuperAdmin) return [];
-    
-    return [
-      {
-        name: 'Total Stories',
-        value: allStoriesData?.pagination?.total || 0,
-        description: 'All stories in the system',
-      },
-      {
-        name: 'Draft Stories',
-        value: draftStoriesData?.pagination?.total || 0,
-        description: 'Stories in draft status',
-      },
-      {
-        name: 'In Review',
-        value: reviewStoriesData?.pagination?.total || 0,
-        description: 'Stories pending review',
-      },
-      {
-        name: 'Published',
-        value: publishedStoriesData?.pagination?.total || 0,
-        description: 'Published stories',
-      },
-    ];
+    return [];
   };
 
   const adminStats = getAdminStats();
   const newsroomStats = getNewsroomStats();
 
-  // Determine which sections to show
+  // Only show admin section - no more toggle
   const showAdminSection = isAdmin && adminStats.length > 0;
-  const showNewsroomSection = isSuperAdmin && newsroomStats.length > 0;
-  const showToggle = showAdminSection && showNewsroomSection;
+  const showNewsroomSection = false;
+  const showToggle = false;
 
   return (
     <Container>
@@ -129,31 +87,9 @@ export default function AdminDashboard() {
         description={`Welcome back, ${session?.user?.firstName || 'User'}!`}
       />
 
-      {/* Section Toggle - Only show if user has access to both sections */}
-      {showToggle && (
-        <div className="mt-8 flex gap-2">
-          <Button
-            onClick={() => setActiveSection('admin')}
-            color={activeSection === 'admin' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <CogIcon className="size-4" />
-            System Administration
-          </Button>
-          <Button
-            onClick={() => setActiveSection('newsroom')}
-            color={activeSection === 'newsroom' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <NewspaperIcon className="size-4" />
-            Newsroom
-          </Button>
-        </div>
-      )}
-
       <div className="mt-8">
         {/* Admin Section */}
-        {showAdminSection && (!showToggle || activeSection === 'admin') && (
+        {showAdminSection && (
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-medium text-gray-900 mb-4">System Administration</h2>
@@ -163,16 +99,6 @@ export default function AdminDashboard() {
             {/* User Activity Chart */}
             <div>
               <UserActivityChart />
-            </div>
-          </div>
-        )}
-
-        {/* Newsroom Section */}
-        {showNewsroomSection && (!showToggle || activeSection === 'newsroom') && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Newsroom Overview</h2>
-              <StatsCard stats={newsroomStats} />
             </div>
           </div>
         )}
