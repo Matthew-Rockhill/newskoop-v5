@@ -218,7 +218,7 @@ export function UserDashboard() {
           <div className="flex flex-wrap gap-3">
             {!isSubEditor && (
             <Button
-              onClick={() => router.push('/admin/newsroom/stories/new')}
+              onClick={() => router.push('/newsroom/stories/new')}
               className="flex items-center space-x-2"
             >
               <PlusIcon className="h-4 w-4" />
@@ -228,7 +228,7 @@ export function UserDashboard() {
             {!isSubEditor && (
             <Button
               color="white"
-              onClick={() => router.push('/admin/newsroom/stories?authorId=' + userId)}
+              onClick={() => router.push('/newsroom/stories?authorId=' + userId)}
             >
               <DocumentTextIcon className="h-4 w-4 mr-2" />
                 View {isJournalist ? 'My' : 'All My'} Stories
@@ -237,7 +237,7 @@ export function UserDashboard() {
             {isSubEditor && pendingApprovalStories.length > 0 && (
               <Button
                 color="white"
-                onClick={() => router.push('/admin/newsroom/stories?status=PENDING_APPROVAL')}
+                onClick={() => router.push('/newsroom/stories?status=PENDING_APPROVAL')}
               >
                 <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
                 Review Pending Approval ({pendingApprovalStories.length})
@@ -246,7 +246,7 @@ export function UserDashboard() {
             {!isJournalist && !isSubEditor && rejectedCount > 0 && (
               <Button
                 color="white"
-                onClick={() => router.push('/admin/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
+                onClick={() => router.push('/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
               >
                 <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
                 Fix Rejected Stories ({rejectedCount})
@@ -255,7 +255,7 @@ export function UserDashboard() {
             {isJournalist && reviewCount > 0 && (
               <Button
                 color="white"
-                onClick={() => router.push('/admin/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
+                onClick={() => router.push('/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
               >
                 <UserGroupIcon className="h-4 w-4 mr-2" />
                 Review Stories ({reviewCount})
@@ -303,7 +303,7 @@ export function UserDashboard() {
                       <div className="flex items-center space-x-2">
                         <Button
                           color="white"
-                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                          onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                         >
                           <EyeIcon className="h-4 w-4 mr-1" />
                           Review
@@ -315,7 +315,7 @@ export function UserDashboard() {
                     <Button
                       color="white"
                       className="w-full"
-                      onClick={() => router.push('/admin/newsroom/stories?status=PENDING_APPROVAL')}
+                      onClick={() => router.push('/newsroom/stories?status=PENDING_APPROVAL')}
                     >
                       View all {pendingApprovalStories.length} pending approval
                     </Button>
@@ -356,13 +356,13 @@ export function UserDashboard() {
                       <div className="flex items-center space-x-2">
                         <Button
                           color="white"
-                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                          onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                         >
                           <EyeIcon className="h-4 w-4 mr-1" />
                           View
                         </Button>
                         <Button
-                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                          onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
                         >
                           <PencilIcon className="h-4 w-4 mr-1" />
                           Pre-Publish
@@ -374,7 +374,7 @@ export function UserDashboard() {
                     <Button
                       color="white"
                       className="w-full"
-                      onClick={() => router.push('/admin/newsroom/stories?status=APPROVED')}
+                      onClick={() => router.push('/newsroom/stories?status=APPROVED')}
                     >
                       View all {approvedForPublishingStories.length} ready for publishing
                     </Button>
@@ -417,7 +417,7 @@ export function UserDashboard() {
                     <div className="flex items-center space-x-2">
                       <Button
                         color="white"
-                        onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                       >
                         <EyeIcon className="h-4 w-4 mr-1" />
                         Review
@@ -429,7 +429,7 @@ export function UserDashboard() {
                   <Button
                     color="white"
                     className="w-full"
-                    onClick={() => router.push('/admin/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
+                    onClick={() => router.push('/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
                   >
                     View all {reviewCount} pending reviews
                   </Button>
@@ -474,13 +474,13 @@ export function UserDashboard() {
                   <div className="flex items-center space-x-2">
                     <Button
                       color="white"
-                      onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                     >
                       <EyeIcon className="h-4 w-4 mr-1" />
                       View
                     </Button>
                                   <Button
-                  onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                  onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
                 >
                     <PencilIcon className="h-4 w-4 mr-1" />
                     Revise
@@ -492,7 +492,7 @@ export function UserDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
+                  onClick={() => router.push('/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
                 >
                   View all {rejectedCount} revision requests
                 </Button>
@@ -533,7 +533,7 @@ export function UserDashboard() {
                   </div>
                   <Button
                     color="white"
-                    onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                    onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
                   >
                     <PencilIcon className="h-4 w-4 mr-1" />
                     Continue
@@ -544,7 +544,7 @@ export function UserDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/stories?status=DRAFT')}
+                  onClick={() => router.push('/newsroom/stories?status=DRAFT')}
                 >
                   View all {draftStories.length} drafts
                 </Button>
@@ -556,7 +556,7 @@ export function UserDashboard() {
               <Text className="text-gray-500">No drafts yet</Text>
                               <Button
                   className="mt-2"
-                  onClick={() => router.push('/admin/newsroom/stories/new')}
+                  onClick={() => router.push('/newsroom/stories/new')}
                 >
                 Create your first story
               </Button>
@@ -591,7 +591,7 @@ export function UserDashboard() {
                   </div>
                   <Button
                     color="white"
-                    onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                    onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                   >
                     <EyeIcon className="h-4 w-4 mr-1" />
                     View
@@ -602,7 +602,7 @@ export function UserDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/stories?status=IN_REVIEW')}
+                  onClick={() => router.push('/newsroom/stories?status=IN_REVIEW')}
                 >
                   View all {submittedStories.length} submitted stories
                 </Button>
@@ -639,7 +639,7 @@ export function UserDashboard() {
                     </div>
                     <Button
                       color="white"
-                      onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                     >
                       <EyeIcon className="h-4 w-4 mr-1" />
                       View
@@ -650,7 +650,7 @@ export function UserDashboard() {
                   <Button
                     color="white"
                     className="w-full"
-                    onClick={() => router.push('/admin/newsroom/stories?status=PENDING_APPROVAL&authorId=' + userId)}
+                    onClick={() => router.push('/newsroom/stories?status=PENDING_APPROVAL&authorId=' + userId)}
                   >
                     View all {approvedStories.length} submitted stories
                   </Button>
@@ -693,7 +693,7 @@ export function UserDashboard() {
                   </div>
                   <Button
                     color="white"
-                    onClick={() => router.push(`/admin/newsroom/translations/${translation.id}/work`)}
+                    onClick={() => router.push(`/newsroom/translations/${translation.id}/work`)}
                   >
                     <PencilIcon className="h-4 w-4 mr-1" />
                     Translate
@@ -704,7 +704,7 @@ export function UserDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/translations?assignedToId=' + userId)}
+                  onClick={() => router.push('/newsroom/translations?assignedToId=' + userId)}
                 >
                   View all {assignedTranslationStories.length} assigned translations
                 </Button>

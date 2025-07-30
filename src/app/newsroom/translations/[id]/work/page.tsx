@@ -119,7 +119,7 @@ export default function TranslationWorkPage() {
         throw new Error(error.error || "Failed to update translation assignment");
       }
       toast.success("Translation submitted!");
-      router.push("/admin");
+      router.push("/newsroom");
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message || "Failed to submit translation");
@@ -146,7 +146,7 @@ export default function TranslationWorkPage() {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Error loading translation: {error || "Not found"}</p>
-          <Button onClick={() => router.push("/admin")} className="mt-4">
+          <Button onClick={() => router.push("/newsroom")} className="mt-4">
             Back to Dashboard
           </Button>
         </div>

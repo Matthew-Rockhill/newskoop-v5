@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
+import { PageHeader } from '@/components/ui/page-header';
 import { useStories, type Story } from '@/hooks/use-stories';
 import { useQuery } from '@tanstack/react-query';
 import { StoryPipelineView } from './StoryPipelineView';
@@ -61,8 +62,8 @@ export function NewsroomDashboard() {
   });
   
   // Journalist-specific: stories submitted for approval
+  // For journalists, this will include both their own stories AND stories they reviewed/submitted for approval
   const { data: approvedStoriesData } = useStories({ 
-    authorId: userId, 
     status: 'PENDING_APPROVAL', 
     page: 1, 
     perPage: 100 
@@ -204,31 +205,19 @@ export function NewsroomDashboard() {
 
   return (
     <Container>
-      {/* Custom Header with Quick Actions */}
-      <div className="border-b border-zinc-200 pb-5 sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-lg font-semibold leading-6 text-zinc-900 dark:text-white">
-            My Dashboard
-          </h3>
-          <p className="mt-1 text-sm text-gray-600">
-            Welcome back, {session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here&apos;s your {isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.
-          </p>
-        </div>
-        <div className="mt-3 sm:ml-4 sm:mt-0">
+      <PageHeader
+        title="My Dashboard"
+        description={`Welcome back, ${session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here's your ${isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.`}
+        action={!isSubEditor ? {
+          label: "Create Story",
+          onClick: () => router.push('/newsroom/stories/new')
+        } : undefined}
+        actions={
           <div className="flex flex-wrap gap-3">
             {!isSubEditor && (
             <Button
-              onClick={() => router.push('/admin/newsroom/stories/new')}
-              className="flex items-center space-x-2"
-            >
-              <PlusIcon className="h-4 w-4" />
-              <span>Create New Story</span>
-            </Button>
-            )}
-            {!isSubEditor && (
-            <Button
               color="white"
-              onClick={() => router.push('/admin/newsroom/stories?authorId=' + userId)}
+              onClick={() => router.push('/newsroom/stories?authorId=' + userId)}
             >
               <DocumentTextIcon className="h-4 w-4 mr-2" />
                 View {isJournalist ? 'My' : 'All My'} Stories
@@ -237,7 +226,7 @@ export function NewsroomDashboard() {
             {isSubEditor && pendingApprovalStories.length > 0 && (
               <Button
                 color="white"
-                onClick={() => router.push('/admin/newsroom/stories?status=PENDING_APPROVAL')}
+                onClick={() => router.push('/newsroom/stories?status=PENDING_APPROVAL')}
               >
                 <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
                 Review Pending Approval ({pendingApprovalStories.length})
@@ -246,7 +235,7 @@ export function NewsroomDashboard() {
             {!isJournalist && !isSubEditor && rejectedCount > 0 && (
               <Button
                 color="white"
-                onClick={() => router.push('/admin/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
+                onClick={() => router.push('/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
               >
                 <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
                 Fix Rejected Stories ({rejectedCount})
@@ -255,15 +244,15 @@ export function NewsroomDashboard() {
             {isJournalist && reviewCount > 0 && (
               <Button
                 color="white"
-                onClick={() => router.push('/admin/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
+                onClick={() => router.push('/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
               >
                 <UserGroupIcon className="h-4 w-4 mr-2" />
                 Review Stories ({reviewCount})
               </Button>
             )}
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Success Metrics */}
       <div className="mt-8">
@@ -303,7 +292,7 @@ export function NewsroomDashboard() {
                       <div className="flex items-center space-x-2">
                         <Button
                           color="white"
-                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                          onClick={() => router.push(`/newsroom/stories/${story.id}/review`)}
                         >
                           <EyeIcon className="h-4 w-4 mr-1" />
                           Review
@@ -315,7 +304,7 @@ export function NewsroomDashboard() {
                     <Button
                       color="white"
                       className="w-full"
-                      onClick={() => router.push('/admin/newsroom/stories?status=PENDING_APPROVAL')}
+                      onClick={() => router.push('/newsroom/stories?status=PENDING_APPROVAL')}
                     >
                       View all {pendingApprovalStories.length} pending approval
                     </Button>
@@ -356,13 +345,13 @@ export function NewsroomDashboard() {
                       <div className="flex items-center space-x-2">
                         <Button
                           color="white"
-                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                          onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                         >
                           <EyeIcon className="h-4 w-4 mr-1" />
                           View
                         </Button>
                         <Button
-                          onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                          onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
                         >
                           <PencilIcon className="h-4 w-4 mr-1" />
                           Pre-Publish
@@ -374,7 +363,7 @@ export function NewsroomDashboard() {
                     <Button
                       color="white"
                       className="w-full"
-                      onClick={() => router.push('/admin/newsroom/stories?status=APPROVED')}
+                      onClick={() => router.push('/newsroom/stories?status=APPROVED')}
                     >
                       View all {approvedForPublishingStories.length} ready for publishing
                     </Button>
@@ -417,7 +406,7 @@ export function NewsroomDashboard() {
                     <div className="flex items-center space-x-2">
                       <Button
                         color="white"
-                        onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                        onClick={() => router.push(`/newsroom/stories/${story.id}/review`)}
                       >
                         <EyeIcon className="h-4 w-4 mr-1" />
                         Review
@@ -429,7 +418,7 @@ export function NewsroomDashboard() {
                   <Button
                     color="white"
                     className="w-full"
-                    onClick={() => router.push('/admin/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
+                    onClick={() => router.push('/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
                   >
                     View all {reviewCount} pending reviews
                   </Button>
@@ -474,13 +463,13 @@ export function NewsroomDashboard() {
                   <div className="flex items-center space-x-2">
                     <Button
                       color="white"
-                      onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                     >
                       <EyeIcon className="h-4 w-4 mr-1" />
                       View
                     </Button>
                                   <Button
-                  onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                  onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
                 >
                     <PencilIcon className="h-4 w-4 mr-1" />
                     Revise
@@ -492,7 +481,7 @@ export function NewsroomDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
+                  onClick={() => router.push('/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
                 >
                   View all {rejectedCount} revision requests
                 </Button>
@@ -533,7 +522,7 @@ export function NewsroomDashboard() {
                   </div>
                   <Button
                     color="white"
-                    onClick={() => router.push(`/admin/newsroom/stories/${story.id}/edit`)}
+                    onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
                   >
                     <PencilIcon className="h-4 w-4 mr-1" />
                     Continue
@@ -544,7 +533,7 @@ export function NewsroomDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/stories?status=DRAFT')}
+                  onClick={() => router.push('/newsroom/stories?status=DRAFT')}
                 >
                   View all {draftStories.length} drafts
                 </Button>
@@ -556,7 +545,7 @@ export function NewsroomDashboard() {
               <Text className="text-gray-500">No drafts yet</Text>
                               <Button
                   className="mt-2"
-                  onClick={() => router.push('/admin/newsroom/stories/new')}
+                  onClick={() => router.push('/newsroom/stories/new')}
                 >
                 Create your first story
               </Button>
@@ -591,7 +580,7 @@ export function NewsroomDashboard() {
                   </div>
                   <Button
                     color="white"
-                    onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                    onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                   >
                     <EyeIcon className="h-4 w-4 mr-1" />
                     View
@@ -602,7 +591,7 @@ export function NewsroomDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/stories?status=IN_REVIEW')}
+                  onClick={() => router.push('/newsroom/stories?status=IN_REVIEW')}
                 >
                   View all {submittedStories.length} submitted stories
                 </Button>
@@ -639,7 +628,7 @@ export function NewsroomDashboard() {
                     </div>
                     <Button
                       color="white"
-                      onClick={() => router.push(`/admin/newsroom/stories/${story.id}`)}
+                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                     >
                       <EyeIcon className="h-4 w-4 mr-1" />
                       View
@@ -650,7 +639,7 @@ export function NewsroomDashboard() {
                   <Button
                     color="white"
                     className="w-full"
-                    onClick={() => router.push('/admin/newsroom/stories?status=PENDING_APPROVAL&authorId=' + userId)}
+                    onClick={() => router.push('/newsroom/stories?status=PENDING_APPROVAL&authorId=' + userId)}
                   >
                     View all {approvedStories.length} submitted stories
                   </Button>
@@ -693,7 +682,7 @@ export function NewsroomDashboard() {
                   </div>
                   <Button
                     color="white"
-                    onClick={() => router.push(`/admin/newsroom/translations/${translation.id}/work`)}
+                    onClick={() => router.push(`/newsroom/translations/${translation.id}/work`)}
                   >
                     <PencilIcon className="h-4 w-4 mr-1" />
                     Translate
@@ -704,7 +693,7 @@ export function NewsroomDashboard() {
                 <Button
                   color="white"
                   className="w-full"
-                  onClick={() => router.push('/admin/newsroom/translations?assignedToId=' + userId)}
+                  onClick={() => router.push('/newsroom/translations?assignedToId=' + userId)}
                 >
                   View all {assignedTranslationStories.length} assigned translations
                 </Button>

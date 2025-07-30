@@ -23,7 +23,7 @@ import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/componen
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
-import { TranslationSelectionModal } from '@/components/admin/TranslationSelectionModal';
+import { TranslationSelectionModal } from '@/components/newsroom/TranslationSelectionModal';
 
 import { useStory, useDeleteStory } from '@/hooks/use-stories';
 import { 
@@ -68,15 +68,14 @@ function canShowReviewButton(userRole: StaffRole | null, status: string) {
 
 // Helper: should show edit button
 function canShowEditButton(userRole: StaffRole | null, authorId: string, userId: string | null, status: string) {
-  // Only allow edit for DRAFT, IN_REVIEW, NEEDS_REVISION
-  const editableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
-  return canEditStory(userRole, authorId, userId ?? '', status as StoryStatus) && editableStatuses.includes(status);
+  // Use the permissions system - it already handles which statuses are editable
+  return canEditStory(userRole, authorId, userId ?? '', status as StoryStatus);
 }
 
 // Helper: should show delete button
 function canShowDeleteButton(userRole: StaffRole | null, status: string) {
-  // Only allow delete for DRAFT, IN_REVIEW, NEEDS_REVISION
-  const deletableStatuses = ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'];
+  // Only allow delete for DRAFT and NEEDS_REVISION (not IN_REVIEW)
+  const deletableStatuses = ['DRAFT', 'NEEDS_REVISION'];
   return canDeleteStory(userRole) && deletableStatuses.includes(status);
 }
 
@@ -278,12 +277,12 @@ export default function StoryDetailPage() {
         }}
         actions={
           <div className="flex items-center space-x-3">
-            {/* Back to Stories */}
+            {/* Back to Dashboard */}
             <Button
               color="white"
-              onClick={() => router.push('/newsroom/stories')}
+              onClick={() => router.push('/newsroom')}
             >
-              ← Back to Stories
+              ← Back to Dashboard
             </Button>
 
             {/* Review Button for Sub-Editors - Only for PENDING_APPROVAL */}

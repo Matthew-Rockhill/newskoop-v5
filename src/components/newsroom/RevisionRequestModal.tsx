@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { useSession } from 'next-auth/react';
 
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
@@ -30,6 +31,7 @@ export function RevisionRequestModal({
   storyTitle,
   isLoading = false,
 }: RevisionRequestModalProps) {
+  const { data: session } = useSession();
   const [revisionNotes, setRevisionNotes] = useState<RevisionNote[]>([
     { id: '1', content: '', category: '' }
   ]);
@@ -110,15 +112,36 @@ export function RevisionRequestModal({
     onClose();
   };
 
-  const predefinedCategories = [
-    'Content',
-    'Grammar & Style',
-    'Structure',
-    'Accuracy',
-    'Sources',
-    'Headlines',
-    'Other'
-  ];
+  // Get role-based revision categories
+  const getPredefinedCategories = () => {
+    const userRole = session?.user?.staffRole;
+    
+    const baseCategories = [
+      'Language & Grammar',
+      'Tone & Style', 
+      'Fact Checking',
+      'Audio Quality',
+      'Content Structure',
+      'Sources & Attribution',
+      'Headlines & Titles',
+      'Other'
+    ];
+    
+    // Only sub-editors and above can request revisions about category/tag assignment
+    if (userRole === 'SUB_EDITOR' || userRole === 'EDITOR' || userRole === 'ADMIN' || userRole === 'SUPERADMIN') {
+      return [
+        ...baseCategories.slice(0, -1), // Insert before 'Other'
+        'Category Assignment',
+        'Tags Assignment',
+        'Other'
+      ];
+    }
+    
+    // Journalists reviewing intern stories shouldn't see category/tag assignment options
+    return baseCategories;
+  };
+  
+  const predefinedCategories = getPredefinedCategories();
 
   return (
     <Dialog open={isOpen} onClose={handleClose} className="relative z-50">

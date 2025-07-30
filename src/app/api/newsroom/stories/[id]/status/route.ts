@@ -35,8 +35,22 @@ const updateStoryStatus = createHandler(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
+    console.log(`🔄 Status Update Request:`, {
+      storyId: id,
+      currentStatus: story.status,
+      newStatus: status,
+      userRole: user.staffRole,
+      userId: user.id,
+      storyAuthorId: story.authorId,
+      reviewerId: reviewerId,
+    });
+
     // Check if user can update this story's status
-    if (!canUpdateStatus(user.staffRole, story.status, status as StoryStatus, story.authorId, user.id)) {
+    const canUpdate = canUpdateStatus(user.staffRole, story.status, status as StoryStatus, story.authorId, user.id);
+    console.log(`🔐 Permission Check:`, { canUpdate, userRole: user.staffRole, currentStatus: story.status, newStatus: status });
+    
+    if (!canUpdate) {
+      console.error(`❌ Permission denied: Cannot transition from ${story.status} to ${status} for role ${user.staffRole}`);
       return NextResponse.json({ 
         error: `Cannot transition from ${story.status} to ${status}` 
       }, { status: 403 });

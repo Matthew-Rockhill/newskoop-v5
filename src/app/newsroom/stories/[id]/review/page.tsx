@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect } from 'react';
-import { StoryReviewForm } from '@/components/admin/StoryReviewForm';
+import { StoryReviewForm } from '@/components/newsroom/StoryReviewForm';
 
 export default function StoryReviewPage() {
   const { data: session, status } = useSession();
@@ -23,7 +23,7 @@ export default function StoryReviewPage() {
     const userRole = session.user.staffRole;
     // Allow journalists to review IN_REVIEW stories, and sub-editors+ to review PENDING_APPROVAL
     if (!userRole || !['JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
-      router.push('/admin');
+      router.push('/newsroom');
       return;
     }
   }, [session, status, router]);
@@ -45,7 +45,7 @@ export default function StoryReviewPage() {
 
   const userRole = session.user.staffRole;
   if (!userRole || !['JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
-    return null; // Will redirect to admin
+    return null; // Will redirect to newsroom
   }
 
   return <StoryReviewForm storyId={storyId} />;

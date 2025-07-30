@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +16,7 @@ import { Heading } from '@/components/ui/heading';
 import { Divider } from '@/components/ui/divider';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { FileUpload } from '@/components/ui/file-upload';
+import { ReviewerSelectionModal } from './ReviewerSelectionModal';
 
 interface AudioFile {
   id: string;
@@ -34,10 +36,15 @@ const storyCreateSchema = z.object({
 type StoryCreateFormData = z.infer<typeof storyCreateSchema>;
 
 export function StoryCreateForm() {
+  const { data: session } = useSession();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [content, setContent] = useState('');
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
+  const [showReviewerModal, setShowReviewerModal] = useState(false);
+  const [showSubEditorModal, setShowSubEditorModal] = useState(false);
+  const [submitAction, setSubmitAction] = useState<'draft' | 'review'>('draft');
+  const [pendingFormData, setPendingFormData] = useState<StoryCreateFormData | null>(null);
 
   const {
     register,
@@ -49,18 +56,44 @@ export function StoryCreateForm() {
   });
 
   const onSubmit: SubmitHandler<StoryCreateFormData> = async (data) => {
+    if (submitAction === 'review') {
+      // For journalists: save story as draft and redirect to review page
+      if (session?.user?.staffRole === 'JOURNALIST') {
+        const story = await createStory(data, 'DRAFT');
+        if (story) {
+          router.push(`/newsroom/stories/${story.id}/review`);
+        }
+        return;
+      }
+      
+      // For interns: show reviewer selection modal
+      setPendingFormData(data);
+      setShowReviewerModal(true);
+      return;
+    }
+
+    // Handle draft creation
+    await createStory(data, 'DRAFT');
+  };
+
+  const createStory = async (data: StoryCreateFormData, status: 'DRAFT' | 'IN_REVIEW', reviewerId?: string) => {
     setIsSubmitting(true);
     try {
       // Create FormData for file uploads
       const formData = new FormData();
       
-      // Add story data - all roles create stories with DRAFT status and MEDIUM priority by default
+      // Add story data
       formData.append('title', data.title);
       formData.append('content', data.content);
       formData.append('priority', 'MEDIUM'); // Default priority
-      formData.append('status', 'DRAFT'); // Always start with draft
+      formData.append('status', status);
       
-      // Add audio files (no descriptions needed)
+      // Add reviewer if submitting for review
+      if (reviewerId) {
+        formData.append('reviewerId', reviewerId);
+      }
+      
+      // Add audio files
       audioFiles.forEach((audioFile, index) => {
         formData.append(`audioFile_${index}`, audioFile.file);
       });
@@ -77,13 +110,37 @@ export function StoryCreateForm() {
       }
 
       const story = await response.json();
-      toast.success('Story created successfully!');
-      router.push(`/admin/newsroom/stories/${story.id}`);
+      
+      if (status === 'DRAFT') {
+        toast.success('Story saved as draft!');
+        // Don't redirect here for journalists using "Review Story" - let caller handle it
+        if (session?.user?.staffRole !== 'JOURNALIST' || submitAction !== 'review') {
+          router.push(`/newsroom/stories/${story.id}/edit`);
+        }
+      } else {
+        toast.success('Story submitted for review!');
+        router.push(`/newsroom/stories/${story.id}`);
+      }
+      
+      return story;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create story');
+      return null;
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleReviewerSelected = async (reviewerId: string) => {
+    setShowReviewerModal(false);
+    
+    if (!pendingFormData) {
+      toast.error('Form data not available');
+      return;
+    }
+    
+    await createStory(pendingFormData, 'IN_REVIEW', reviewerId);
+    setPendingFormData(null);
   };
 
   return (
@@ -93,7 +150,7 @@ export function StoryCreateForm() {
           title="Write New Story"
           action={{
             label: "Back to Dashboard",
-            onClick: () => router.push('/admin')
+            onClick: () => router.push('/newsroom')
           }}
         />
 
@@ -159,24 +216,49 @@ export function StoryCreateForm() {
           <Divider />
 
           {/* Actions */}
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-between">
             <Button
               type="button"
               color="white"
-              onClick={() => router.push('/admin')}
+              onClick={() => router.push('/newsroom')}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Creating...' : 'Create Story'}
-            </Button>
+            
+            <div className="flex space-x-4">
+              <Button
+                type="submit"
+                color="white"
+                disabled={isSubmitting}
+                onClick={() => setSubmitAction('draft')}
+              >
+                {isSubmitting && submitAction === 'draft' ? 'Saving...' : 'Save Draft'}
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                onClick={() => setSubmitAction('review')}
+              >
+                {isSubmitting && submitAction === 'review' 
+                  ? 'Submitting...' 
+                  : session?.user?.staffRole === 'JOURNALIST' 
+                    ? 'Review Story' 
+                    : 'Submit for Review'
+                }
+              </Button>
+            </div>
           </div>
         </form>
       </div>
 
+      {/* Reviewer Selection Modal */}
+      <ReviewerSelectionModal
+        isOpen={showReviewerModal}
+        onClose={() => setShowReviewerModal(false)}
+        onConfirm={handleReviewerSelected}
+        storyTitle={pendingFormData?.title || 'Untitled Story'}
+        isLoading={isSubmitting}
+      />
     </Container>
   );
 } 

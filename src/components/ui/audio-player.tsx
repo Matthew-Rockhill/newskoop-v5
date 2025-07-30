@@ -120,12 +120,13 @@ export function CustomAudioPlayer({
         /* Main controls button styling */
         .custom-audio-player .rhap_main-controls-button {
           color: #71a234;
-          width: 36px;
-          height: 36px;
+          width: 48px;
+          height: 48px;
           display: flex;
           align-items: center;
           justify-content: center;
           margin-right: 12px;
+          font-size: 1.25rem;
         }
         
         .custom-audio-player .rhap_main-controls-button:hover {

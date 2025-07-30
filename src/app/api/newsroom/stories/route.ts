@@ -337,7 +337,6 @@ const createStory = createHandler(
           url: uploadedFile.url,
           fileSize: uploadedFile.size, // Note: database field is fileSize, not size
           mimeType: uploadedFile.mimeType,
-          description: '', // No description needed
           uploadedBy: user.id,
         });
       }

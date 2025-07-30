@@ -106,6 +106,8 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
   const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
+  const [hasUnresolvedRevisions, setHasUnresolvedRevisions] = useState(false);
+  const [activeRevisionCount, setActiveRevisionCount] = useState(0);
 
   const {
     register,
@@ -137,7 +139,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
         });
       } catch {
         toast.error('Failed to load story');
-        router.push('/admin');
+        router.push('/newsroom');
       } finally {
         setIsLoading(false);
       }
@@ -161,12 +163,8 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
       }
 
       toast.success('Story updated successfully!');
-      // Redirect based on user role
-      if (session?.user?.staffRole === 'JOURNALIST') {
-        router.push(`/admin/newsroom/stories/${storyId}`);
-      } else {
-        router.push('/admin');
-      }
+      // Stay on the edit page for continued editing
+      // No redirect needed - user can continue editing or use navigation
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update story');
     } finally {
@@ -183,14 +181,47 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     }
   };
 
+  const handleStatusAction = async (action: { label: string; status: string; color: string }) => {
+    const userRole = session?.user?.staffRole;
+    const userId = session?.user?.id;
+    
+    if (!userRole || !story) return;
+    
+    // Handle different status transitions
+    switch (action.status) {
+      case 'REVIEW_PAGE':
+        // Redirect journalist to review page to complete checklist
+        router.push(`/newsroom/stories/${storyId}/review`);
+        break;
+      case 'IN_REVIEW':
+        handleSubmitForReview();
+        break;
+      case 'PENDING_APPROVAL':
+        // This should no longer be accessible from edit page
+        toast.error('Please use the review page to submit for approval');
+        break;
+      case 'APPROVED':
+      case 'NEEDS_REVISION':
+      case 'PENDING_TRANSLATION':
+      case 'READY_TO_PUBLISH':
+      case 'PUBLISHED':
+        // These actions would require additional handling
+        toast(`${action.label} functionality not yet implemented`);
+        break;
+      default:
+        toast.error('Unknown action');
+    }
+  };
+
   const handleReviewerSelected = async (reviewerId: string) => {
     setIsSubmitting(true);
     setShowReviewerModal(false);
     
     try {
-      // First save the current changes
+      // First save the current changes using form values
+      const titleElement = document.getElementById('title') as HTMLInputElement;
       const formData = {
-        title: document.querySelector<HTMLInputElement>('#title')?.value || story?.title || '',
+        title: titleElement?.value || story?.title || '',
         content: content,
       };
 
@@ -215,11 +246,15 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
       });
 
       if (!statusResponse.ok) {
-        throw new Error('Failed to submit for review');
+        const errorData = await statusResponse.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Status update failed:', errorData);
+        throw new Error(errorData.error || 'Failed to submit for review');
       }
+      
+      console.log('✅ Story status updated to IN_REVIEW successfully');
 
       toast.success('Story submitted for review!');
-      router.push('/admin');
+      router.push(`/newsroom/stories/${storyId}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to submit for review');
     } finally {
@@ -232,9 +267,10 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     setShowSubEditorModal(false);
     
     try {
-      // First save the current changes
+      // First save the current changes using form values
+      const titleElement = document.getElementById('title') as HTMLInputElement;
       const formData = {
-        title: document.querySelector<HTMLInputElement>('#title')?.value || story?.title || '',
+        title: titleElement?.value || story?.title || '',
         content: content,
       };
 
@@ -263,7 +299,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
       }
 
       toast.success('Story submitted for approval!');
-      router.push(`/admin/newsroom/stories/${storyId}`);
+      router.push(`/newsroom/stories/${storyId}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to submit for approval');
     } finally {
@@ -294,34 +330,30 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     // Get available transitions for the current user role and status
     const availableTransitions = getAvailableStatusTransitions(userRole, currentStatus);
     
+    // Add "Review Story" button for journalists who are authors of DRAFT stories
+    if (userRole === 'JOURNALIST' && isAuthor && currentStatus === 'DRAFT') {
+      actions.push({
+        label: 'Review Story',
+        status: 'REVIEW_PAGE',
+        color: 'primary' as const,
+      });
+    }
+    
     // Map transitions to action buttons
     availableTransitions.forEach((newStatus) => {
       switch (newStatus) {
         case 'IN_REVIEW':
-          actions.push({
-            label: currentStatus === 'DRAFT' ? 'Submit for Review' : 'Resubmit for Review',
-            status: newStatus,
-            color: 'primary' as const,
-          });
+          // Only interns submit for review (to journalists)
+          if (userRole === 'INTERN') {
+            actions.push({
+              label: currentStatus === 'DRAFT' ? 'Submit for Review' : 'Resubmit for Review',
+              status: newStatus,
+              color: 'primary' as const,
+            });
+          }
           break;
         case 'PENDING_APPROVAL':
-          if (userRole === 'JOURNALIST') {
-            if (isAuthor) {
-              // Journalists submit their own stories for approval
-              actions.push({
-                label: 'Submit for Approval',
-                status: newStatus,
-                color: 'primary',
-              });
-            } else {
-              // Journalists submit intern stories for sub-editor approval
-              actions.push({
-                label: 'Submit for Approval',
-                status: newStatus,
-                color: 'primary',
-              });
-            }
-          }
+          // This should never appear in edit form - only on review page after checklist
           break;
         case 'APPROVED':
           if (canApproveStory(userRole)) {
@@ -401,6 +433,11 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
   };
 
+  const handleRevisionStatusChanged = (allActiveResolved: boolean, activeCount: number) => {
+    setHasUnresolvedRevisions(!allActiveResolved);
+    setActiveRevisionCount(activeCount);
+  };
+
   if (isLoading) {
     return (
       <Container>
@@ -416,7 +453,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Story not found</p>
-          <Button onClick={() => router.push('/admin')} className="mt-4">
+          <Button onClick={() => router.push('/newsroom')} className="mt-4">
             Back to Dashboard
           </Button>
         </div>
@@ -482,20 +519,27 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
           actions={
             <div className="flex items-center space-x-3">
               {/* Status Actions */}
-              {statusActions.map((action) => (
-                <Button
-                  key={action.status}
-                  color={action.color}
-                  onClick={() => handleSubmitForReview()}
-                  disabled={isSubmitting}
-                >
-                  {action.label}
-                </Button>
-              ))}
+              {statusActions.map((action) => {
+                // Disable submit/resubmit for review if there are unresolved revisions
+                const isReviewAction = action.status === 'IN_REVIEW';
+                const isDisabledByRevisions = isReviewAction && hasUnresolvedRevisions;
+                
+                return (
+                  <Button
+                    key={action.status}
+                    color={action.color}
+                    onClick={() => handleStatusAction(action)}
+                    disabled={isSubmitting || isDisabledByRevisions}
+                    title={isDisabledByRevisions ? `Please resolve all ${activeRevisionCount} revision note${activeRevisionCount !== 1 ? 's' : ''} before resubmitting` : undefined}
+                  >
+                    {action.label}
+                  </Button>
+                );
+              })}
               
-              {/* Back to Story Button */}
-              <Button color="secondary" href={`/admin/newsroom/stories/${storyId}`}>
-                Back to Story
+              {/* Back to Dashboard Button */}
+              <Button color="secondary" href="/newsroom">
+                Back to Dashboard
               </Button>
             </div>
           }
@@ -595,7 +639,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                 <Button
                   type="button"
                   color="white"
-                  onClick={() => router.push(`/admin/newsroom/stories/${storyId}`)}
+                  onClick={() => router.push(`/newsroom/stories/${storyId}`)}
                 >
                   Cancel
                 </Button>
@@ -613,7 +657,10 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Revision Notes */}
-            <RevisionNotes storyId={storyId} />
+            <RevisionNotes 
+              storyId={storyId} 
+              onRevisionStatusChanged={handleRevisionStatusChanged}
+            />
           </div>
         </div>
       </div>

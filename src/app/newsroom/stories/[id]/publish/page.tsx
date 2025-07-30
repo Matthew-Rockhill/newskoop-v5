@@ -65,7 +65,7 @@ export default function PublishStoryPage() {
     const userRole = session.user.staffRole;
     // Only SUB_EDITOR and above can publish
     if (!userRole || !['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
-      router.push('/admin');
+      router.push('/newsroom');
       return;
     }
   }, [session, status, router]);

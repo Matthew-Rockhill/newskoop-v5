@@ -300,6 +300,21 @@ function StoriesPageContent() {
                           Review
                         </Button>
                       )}
+
+                      {/* Edit Button - For authors addressing revision requests */}
+                      {session?.user?.id === story.authorId && story.status === 'NEEDS_REVISION' && (
+                        <Button
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            router.push(`/newsroom/stories/${story.id}/edit`);
+                          }}
+                          color="primary"
+                          className="text-sm"
+                        >
+                          <PencilIcon className="h-4 w-4 mr-1" />
+                          Revise
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

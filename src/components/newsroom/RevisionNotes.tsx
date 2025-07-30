@@ -30,9 +30,10 @@ interface RevisionNote {
 interface RevisionNotesProps {
   storyId: string;
   onRevisionResolved?: (revisionId: string, resolved: boolean) => void;
+  onRevisionStatusChanged?: (allActiveResolved: boolean, activeCount: number) => void;
 }
 
-export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProps) {
+export function RevisionNotes({ storyId, onRevisionResolved, onRevisionStatusChanged }: RevisionNotesProps) {
   const { data: session } = useSession();
   const [revisionNotes, setRevisionNotes] = useState<RevisionNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,14 +48,19 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
       }
       
       const data = await response.json();
-      setRevisionNotes(data.comments || []);
+      const notes = data.comments || [];
+      setRevisionNotes(notes);
+      
+      // Notify parent of initial revision status
+      const activeRevisions = notes.filter((note: RevisionNote) => !note.isResolved);
+      onRevisionStatusChanged?.(activeRevisions.length === 0, activeRevisions.length);
     } catch (error) {
       console.error('Error fetching revision notes:', error);
       toast.error('Failed to load revision notes');
     } finally {
       setIsLoading(false);
     }
-  }, [storyId]);
+  }, [storyId, onRevisionStatusChanged]);
 
   useEffect(() => {
     fetchRevisionNotes();
@@ -86,8 +92,8 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
       }
 
       // Update local state
-      setRevisionNotes(prev => 
-        prev.map(note => 
+      setRevisionNotes(prev => {
+        const updatedNotes = prev.map(note => 
           note.id === revisionId 
             ? { 
                 ...note, 
@@ -96,8 +102,14 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
                 resolvedAt: resolved ? new Date().toISOString() : undefined
               }
             : note
-        )
-      );
+        );
+        
+        // Notify parent of revision status change
+        const activeRevisions = updatedNotes.filter(note => !note.isResolved);
+        onRevisionStatusChanged?.(activeRevisions.length === 0, activeRevisions.length);
+        
+        return updatedNotes;
+      });
 
       toast.success(resolved ? 'Revision marked as resolved' : 'Revision marked as unresolved');
       onRevisionResolved?.(revisionId, resolved);
@@ -199,12 +211,17 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
                   className="mt-1"
                   disabled={!canResolveRevision() || resolvingNotes.has(revision.id)}
                 />
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
+                <div className="flex-1 space-y-2">
+                  {/* Author info row */}
+                  <div className="flex items-center space-x-2">
                     <UserIcon className="h-4 w-4 text-gray-500" />
                     <Text className="text-sm font-medium text-gray-900">
                       {revision.author.firstName} {revision.author.lastName}
                     </Text>
+                  </div>
+                  
+                  {/* Badges row */}
+                  <div className="flex items-center space-x-2">
                     <Badge color="yellow">
                       {getRoleDisplayName(revision.author.staffRole)}
                     </Badge>
@@ -214,16 +231,21 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
                       </Badge>
                     )}
                   </div>
-                  <Text className="text-sm text-gray-700 mb-2">{revision.content}</Text>
+                  
+                  {/* Content */}
+                  <Text className="text-sm text-gray-700">{revision.content}</Text>
+                  
+                  {/* Requested date row */}
                   <div className="flex items-center space-x-2 text-xs text-gray-500">
                     <ClockIcon className="h-3 w-3" />
-                    <span>{formatDate(revision.createdAt)}</span>
+                    <span>Requested: {formatDate(revision.createdAt)}</span>
                     {resolvingNotes.has(revision.id) && (
                       <span className="text-blue-600">• Updating...</span>
                     )}
                   </div>
+                  
                   {!canResolveRevision() && (
-                    <Text className="text-xs text-gray-500 mt-1">
+                    <Text className="text-xs text-gray-500">
                       Only editors can resolve revision notes
                     </Text>
                   )}
@@ -253,12 +275,17 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
                 <div key={revision.id} className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <div className="flex items-start space-x-3">
                     <CheckIcon className="h-4 w-4 text-green-600 mt-1" />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
+                    <div className="flex-1 space-y-2">
+                      {/* Author info row */}
+                      <div className="flex items-center space-x-2">
                         <UserIcon className="h-4 w-4 text-gray-500" />
                         <Text className="text-sm font-medium text-gray-900">
                           {revision.author.firstName} {revision.author.lastName}
                         </Text>
+                      </div>
+                      
+                      {/* Badges row */}
+                      <div className="flex items-center space-x-2">
                         <Badge color="green">
                           {getRoleDisplayName(revision.author.staffRole)}
                         </Badge>
@@ -268,17 +295,23 @@ export function RevisionNotes({ storyId, onRevisionResolved }: RevisionNotesProp
                           </Badge>
                         )}
                       </div>
-                      <Text className="text-sm text-gray-700 mb-2">{revision.content}</Text>
+                      
+                      {/* Content */}
+                      <Text className="text-sm text-gray-700">{revision.content}</Text>
+                      
+                      {/* Requested date row */}
                       <div className="flex items-center space-x-2 text-xs text-gray-500">
                         <ClockIcon className="h-3 w-3" />
                         <span>Requested: {formatDate(revision.createdAt)}</span>
-                        {revision.resolvedAt && (
-                          <>
-                            <span>•</span>
-                            <span>Resolved: {formatDate(revision.resolvedAt)}</span>
-                          </>
-                        )}
                       </div>
+                      
+                      {/* Resolved date row */}
+                      {revision.resolvedAt && (
+                        <div className="flex items-center space-x-2 text-xs text-gray-500">
+                          <CheckIcon className="h-3 w-3" />
+                          <span>Resolved: {formatDate(revision.resolvedAt)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

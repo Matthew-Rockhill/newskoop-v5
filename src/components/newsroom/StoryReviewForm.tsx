@@ -57,15 +57,23 @@ const priorityColors = {
   BREAKING: 'red',
 } as const;
 
-// Review checklist schema - removed the auto-checked fields from validation
-const reviewChecklistSchema = z.object({
-  // Content Review Checklist - only the manually checked items
+// Journalist Content Review Schema (Tier 1) - Mandatory before submission
+const journalistReviewSchema = z.object({
+  storyStructure: z.boolean().refine(val => val, 'Story structure must be checked'),
   languageGrammar: z.boolean().refine(val => val, 'Language & Grammar must be checked'),
-  toneStyle: z.boolean().refine(val => val, 'Tone & Style must be checked'),
   factChecking: z.boolean().refine(val => val, 'Fact Checking must be checked'),
   audioQuality: z.boolean().refine(val => val, 'Audio Quality must be checked'),
+});
+
+// Sub-Editor QA Review Schema (Tier 2) - Full checklist including classification
+const subEditorReviewSchema = z.object({
+  // Content items (inherited from Tier 1, auto-checked)
+  storyStructure: z.boolean().default(true),
+  languageGrammar: z.boolean().default(true),
+  factChecking: z.boolean().default(true),
+  audioQuality: z.boolean().default(true),
   
-  // Classification - these are validated separately
+  // QA Classification items (sub-editor responsibility)
   categoryId: z.string().min(1, 'Category is required'),
   languageTagIds: z.array(z.string()).min(1, 'At least one language tag is required'),
   religionTagIds: z.array(z.string()).min(1, 'At least one religion tag is required'),
@@ -73,7 +81,9 @@ const reviewChecklistSchema = z.object({
   generalTagIds: z.array(z.string()).optional(),
 });
 
-type ReviewChecklistData = z.infer<typeof reviewChecklistSchema>;
+type JournalistReviewData = z.infer<typeof journalistReviewSchema>;
+type SubEditorReviewData = z.infer<typeof subEditorReviewSchema>;
+type ReviewChecklistData = any; // Use flexible type to handle both schemas
 
 interface StoryReviewFormProps {
   storyId: string;
@@ -106,10 +116,12 @@ function mapLanguageTagToStoryLanguage(languageTagName: string): 'ENGLISH' | 'AF
 function canShowApproveButton(status: string) {
   return status === 'PENDING_APPROVAL';
 }
-// Helper: should show request revision button
-function canShowRequestRevisionButton(userRole: string | null, status: string) {
+// Helper: should show request revision button  
+function canShowRequestRevisionButton(userRole: string | null, status: string, isOwnStory: boolean = false) {
   if (!userRole) return false;
-  if (userRole === 'JOURNALIST' && status === 'IN_REVIEW') return true;
+  // Journalists can request revision when reviewing OTHER people's stories
+  if (userRole === 'JOURNALIST' && status === 'IN_REVIEW' && !isOwnStory) return true;
+  // Sub-editors and above can request revision on PENDING_APPROVAL stories
   if (
     ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) &&
     status === 'PENDING_APPROVAL'
@@ -120,6 +132,14 @@ function canShowRequestRevisionButton(userRole: string | null, status: string) {
 function canShowEditButton(status: string) {
   // Only allow edit for DRAFT, IN_REVIEW, NEEDS_REVISION
   return ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'].includes(status);
+}
+// Helper: should show submit for approval button
+function canShowSubmitForApprovalButton(userRole: string | null, status: string) {
+  if (!userRole) return false;
+  // Journalists can submit for approval when:
+  // 1. Reviewing intern stories (IN_REVIEW status)
+  // 2. Reviewing their own stories (DRAFT status) - after completing checklist
+  return userRole === 'JOURNALIST' && (status === 'IN_REVIEW' || status === 'DRAFT');
 }
 
 export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
@@ -153,6 +173,60 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
 
   const updateStoryStatusMutation = useUpdateStoryStatus();
 
+  // Determine user role and appropriate schema
+  const userRole = session?.user?.staffRole;
+  const isJournalistRole = userRole === 'JOURNALIST';
+  const isSubEditorRole = ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole || '');
+  
+  // Determine which UI/schema to use based on role AND story status
+  const isJournalist = isJournalistRole && (story?.status === 'IN_REVIEW' || story?.status === 'DRAFT');
+  const isSubEditor = isSubEditorRole && story?.status === 'PENDING_APPROVAL';
+
+  // Use appropriate schema and default values based on role
+  const getFormConfig = () => {
+    if (isJournalist) {
+      return {
+        resolver: zodResolver(journalistReviewSchema),
+        defaultValues: {
+          storyStructure: false,
+          languageGrammar: false,
+          factChecking: false,
+          audioQuality: false,
+        }
+      };
+    } else if (isSubEditor) {
+      return {
+        resolver: zodResolver(subEditorReviewSchema),
+        defaultValues: {
+          storyStructure: true, // Inherited from Tier 1
+          languageGrammar: true,
+          factChecking: true,
+          audioQuality: true,
+          languageTagIds: [],
+          religionTagIds: [],
+          localityTagIds: [],
+          generalTagIds: [],
+        }
+      };
+    }
+    // Fallback to sub-editor schema
+    return {
+      resolver: zodResolver(subEditorReviewSchema),
+      defaultValues: {
+        storyStructure: false,
+        languageGrammar: false,
+        factChecking: false,
+        audioQuality: false,
+        languageTagIds: [],
+        religionTagIds: [],
+        localityTagIds: [],
+        generalTagIds: [],
+      }
+    };
+  };
+
+  const formConfig = getFormConfig();
+
   const {
     watch,
     setValue,
@@ -160,29 +234,20 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
     handleSubmit,
     formState: { errors, isValid },
   } = useForm<ReviewChecklistData>({
-    resolver: zodResolver(reviewChecklistSchema),
+    resolver: formConfig.resolver,
     mode: 'onChange',
-    defaultValues: {
-      languageGrammar: false,
-      toneStyle: false,
-      factChecking: false,
-      audioQuality: false,
-      languageTagIds: [],
-      religionTagIds: [],
-      localityTagIds: [],
-      generalTagIds: [],
-    },
+    defaultValues: formConfig.defaultValues,
   });
 
   // Watch form values for real-time validation
   const watchedValues = watch();
 
   // Helper function to handle checkbox changes
-  const handleCheckboxChange = (field: keyof ReviewChecklistData, checked: boolean) => {
-    setValue(field, checked);
+  const handleCheckboxChange = (field: string, checked: boolean) => {
+    setValue(field as any, checked);
     setFieldInteractions(prev => ({ ...prev, [field]: true }));
     // Only trigger validation for the specific field that was changed
-    setTimeout(() => trigger(field), 0);
+    setTimeout(() => trigger(field as any), 0);
   };
 
   // Set initial values when story loads
@@ -241,7 +306,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       });
       
       toast.success('Story approved successfully');
-      router.push(`/admin/newsroom/stories/${storyId}`);
+      router.push(`/newsroom/stories/${storyId}`);
     } catch {
       toast.error('Failed to approve story');
     } finally {
@@ -254,7 +319,38 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   };
 
   const handleEdit = () => {
-    router.push(`/admin/newsroom/stories/${storyId}/edit`);
+    router.push(`/newsroom/stories/${storyId}/edit`);
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!canUpdateStoryStatus(session?.user?.staffRole as StaffRole | null, story?.status || 'DRAFT', 'PENDING_APPROVAL')) {
+      toast.error('You do not have permission to submit this story for approval');
+      return;
+    }
+
+    // For journalists, validate the content checklist is complete
+    if (isJournalist && !isValid) {
+      toast.error('Please complete the content review checklist before submitting for approval');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateStoryStatusMutation.mutateAsync({
+        id: storyId,
+        data: { 
+          status: 'PENDING_APPROVAL',
+          reviewerId: session?.user?.id  // Track who submitted for approval
+        },
+      });
+      
+      toast.success('Story submitted for approval successfully');
+      router.push(`/newsroom/stories/${storyId}`);
+    } catch {
+      toast.error('Failed to submit story for approval');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleRevisionRequested = async (revisionNotes: RevisionNote[]) => {
@@ -284,7 +380,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       });
       
       toast.success('Revision requested successfully');
-      router.push(`/admin/newsroom/stories/${storyId}/edit`);
+      router.push(`/newsroom/stories/${storyId}/edit`);
     } catch {
       toast.error('Failed to request revision');
     } finally {
@@ -375,7 +471,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       <Container>
         <div className="text-center py-12">
           <p className="text-red-600">Error loading story: {storyError?.message || 'Story not found'}</p>
-          <Button onClick={() => router.push('/admin/newsroom/stories')} className="mt-4">
+          <Button onClick={() => router.push('/newsroom/stories')} className="mt-4">
             Back to Stories
           </Button>
         </div>
@@ -461,7 +557,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                   Edit
                 </Button>
               )}
-              {canShowRequestRevisionButton(session?.user?.staffRole as string | null, story.status) && (
+              {canShowRequestRevisionButton(session?.user?.staffRole as string | null, story.status, story.authorId === session?.user?.id) && (
                 <Button
                   color="secondary"
                   onClick={handleRequestRevision}
@@ -469,6 +565,16 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                 >
                   <ExclamationTriangleIcon className="h-4 w-4" />
                   Request Revision
+                </Button>
+              )}
+              {canShowSubmitForApprovalButton(session?.user?.staffRole as string | null, story.status) && (
+                <Button
+                  color="primary"
+                  onClick={handleSubmitForApproval}
+                  disabled={isSubmitting || (isJournalist && !isValid)}
+                >
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Submit for Approval
                 </Button>
               )}
               {canShowApproveButton(story.status) && (
@@ -495,8 +601,9 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                   Review Checklist Incomplete
                 </Heading>
                 <Text className="text-sm text-yellow-700">
-                  This story cannot be approved until all required review checklist items are completed. 
-                  Please review the content, audio quality, and ensure proper classification before proceeding.
+                  {isJournalist 
+                    ? 'Please complete all content review items before submitting for approval.'
+                    : 'Please ensure proper category and tag classification before approving.'}
                 </Text>
               </div>
             </div>
@@ -584,119 +691,147 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
               </Card>
             )}
 
-            {/* Content Review Checklist */}
+            {/* Role-Based Review Checklist */}
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-6">
                 <DocumentTextIcon className="h-6 w-6 text-kelly-green" />
-                <Heading level={4}>Content Review Checklist</Heading>
+                <Heading level={4}>
+                  {isJournalist ? 'Content Review Checklist' : 'QA Review Checklist'}
+                </Heading>
               </div>
               
-              <form onSubmit={handleSubmit(handleApprove)}>
+              {isJournalist && !isValid && (
+                <div className="mb-4 p-3 border-amber-200 bg-amber-50 rounded-lg">
+                  <Text className="text-sm text-amber-700">
+                    <strong>Required:</strong> Complete all content review items before submitting for approval.
+                  </Text>
+                </div>
+              )}
+              
+              <form onSubmit={handleSubmit(isJournalist ? handleSubmitForApproval : handleApprove)}>
                 <CheckboxGroup>
+                  {/* Story Structure - Only for journalists */}
+                  {isJournalist && (
+                    <CheckboxField>
+                      <Checkbox
+                        id="storyStructure"
+                        checked={watchedValues.storyStructure || false}
+                        onChange={(checked) => handleCheckboxChange('storyStructure', checked)}
+                      />
+                      <Label htmlFor="storyStructure">
+                        Story Structure & Flow
+                      </Label>
+                      <Description>
+                        Verify logical flow, clear introduction, body, and conclusion
+                      </Description>
+                      {fieldInteractions.storyStructure && errors.storyStructure && (
+                        <Text className="text-sm text-red-600 mt-1">{(errors.storyStructure as any)?.message}</Text>
+                      )}
+                    </CheckboxField>
+                  )}
+
+                  {/* Language & Grammar */}
                   <CheckboxField>
                     <Checkbox
                       id="languageGrammar"
-                      checked={watchedValues.languageGrammar}
+                      checked={watchedValues.languageGrammar || false}
                       onChange={(checked) => handleCheckboxChange('languageGrammar', checked)}
+                      disabled={isSubEditor} // Auto-checked for sub-editors
                     />
                     <Label htmlFor="languageGrammar">
                       Language & Grammar
+                      {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
                     <Description>
                       Check for spelling, grammar, punctuation, and language clarity
                     </Description>
                     {fieldInteractions.languageGrammar && errors.languageGrammar && (
-                      <Text className="text-sm text-red-600 mt-1">{errors.languageGrammar?.message}</Text>
+                      <Text className="text-sm text-red-600 mt-1">{(errors.languageGrammar as any)?.message}</Text>
                     )}
                   </CheckboxField>
 
-                  <CheckboxField>
-                    <Checkbox
-                      id="toneStyle"
-                      checked={watchedValues.toneStyle}
-                      onChange={(checked) => handleCheckboxChange('toneStyle', checked)}
-                    />
-                    <Label htmlFor="toneStyle">
-                      Tone & Style
-                    </Label>
-                    <Description>
-                      Verify appropriate tone, style consistency, and audience appropriateness
-                    </Description>
-                    {fieldInteractions.toneStyle && errors.toneStyle && (
-                      <Text className="text-sm text-red-600 mt-1">{errors.toneStyle?.message}</Text>
-                    )}
-                  </CheckboxField>
-
+                  {/* Fact Checking */}
                   <CheckboxField>
                     <Checkbox
                       id="factChecking"
-                      checked={watchedValues.factChecking}
+                      checked={watchedValues.factChecking || false}
                       onChange={(checked) => handleCheckboxChange('factChecking', checked)}
+                      disabled={isSubEditor} // Auto-checked for sub-editors
                     />
                     <Label htmlFor="factChecking">
                       Fact Checking
+                      {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
                     <Description>
                       Verify accuracy of facts, dates, names, and statistics
                     </Description>
                     {fieldInteractions.factChecking && errors.factChecking && (
-                      <Text className="text-sm text-red-600 mt-1">{errors.factChecking?.message}</Text>
+                      <Text className="text-sm text-red-600 mt-1">{(errors.factChecking as any)?.message}</Text>
                     )}
                   </CheckboxField>
 
+                  {/* Audio Quality */}
                   <CheckboxField>
                     <Checkbox
                       id="audioQuality"
-                      checked={watchedValues.audioQuality}
+                      checked={watchedValues.audioQuality || false}
                       onChange={(checked) => handleCheckboxChange('audioQuality', checked)}
+                      disabled={isSubEditor} // Auto-checked for sub-editors
                     />
                     <Label htmlFor="audioQuality">
                       Audio Quality
+                      {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
                     <Description>
                       Review audio clarity, volume, and technical quality
                     </Description>
                     {fieldInteractions.audioQuality && errors.audioQuality && (
-                      <Text className="text-sm text-red-600 mt-1">{errors.audioQuality?.message}</Text>
+                      <Text className="text-sm text-red-600 mt-1">{(errors.audioQuality as any)?.message}</Text>
                     )}
                   </CheckboxField>
 
-                  <CheckboxField>
-                    <Checkbox
-                      id="categoryAssigned"
-                      checked={isCategoryAssigned}
-                      disabled
-                    />
-                    <Label htmlFor="categoryAssigned">
-                      Category Assigned
-                    </Label>
-                    <Description>
-                      {selectedCategory ? `Assigned: ${getCategoryBreadcrumb(selectedCategory)}` : 'No category assigned'}
-                    </Description>
-                  </CheckboxField>
+                  {/* Sub-Editor Only Items */}
+                  {isSubEditor && (
+                    <>
+                      <CheckboxField>
+                        <Checkbox
+                          id="categoryAssigned"
+                          checked={isCategoryAssigned}
+                          disabled
+                        />
+                        <Label htmlFor="categoryAssigned">
+                          Category Assigned
+                        </Label>
+                        <Description>
+                          {selectedCategory ? `Assigned: ${getCategoryBreadcrumb(selectedCategory)}` : 'No category assigned'}
+                        </Description>
+                      </CheckboxField>
 
-                  <CheckboxField>
-                    <Checkbox
-                      id="tagsAssigned"
-                      checked={areRequiredTagsAssigned}
-                      disabled
-                    />
-                    <Label htmlFor="tagsAssigned">
-                      Required Tags Assigned
-                    </Label>
-                    <Description>
-                      {areRequiredTagsAssigned 
-                        ? `Language and Religion tags assigned`
-                        : 'Language and Religion tags required'}
-                    </Description>
-                  </CheckboxField>
+                      <CheckboxField>
+                        <Checkbox
+                          id="tagsAssigned"
+                          checked={areRequiredTagsAssigned}
+                          disabled
+                        />
+                        <Label htmlFor="tagsAssigned">
+                          Required Tags Assigned
+                        </Label>
+                        <Description>
+                          {areRequiredTagsAssigned 
+                            ? `Language and Religion tags assigned`
+                            : 'Language and Religion tags required'}
+                        </Description>
+                      </CheckboxField>
+                    </>
+                  )}
                 </CheckboxGroup>
               </form>
             </Card>
           </div>
         </div>
 
-        {/* Category Section - Full Width */}
+        {/* Category Section - Full Width - Sub-Editors and above only */}
+        {isSubEditor && (
         <Card className="p-6 mt-8">
           <div className="flex items-center gap-2 mb-6">
             <TagIcon className="h-6 w-6 text-kelly-green" />
@@ -723,11 +858,13 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
             </div>
           )}
           {errors.categoryId && (
-            <Text className="text-sm text-red-600 mt-2">{errors.categoryId.message}</Text>
+            <Text className="text-sm text-red-600 mt-2">{(errors.categoryId as any)?.message}</Text>
           )}
         </Card>
+        )}
 
-        {/* Tags Section - Full Width */}
+        {/* Tags Section - Full Width - Sub-Editors and above only */}
+        {isSubEditor && (
         <Card className="p-6 mt-6">
           <div className="flex items-center gap-2 mb-6">
             <TagIcon className="h-6 w-6 text-kelly-green" />
@@ -839,15 +976,16 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
         {/* Error messages */}
         {errors.languageTagIds && (
           <div className="mt-2">
-            <Text className="text-sm text-red-600">{errors.languageTagIds.message}</Text>
+            <Text className="text-sm text-red-600">{(errors.languageTagIds as any)?.message}</Text>
           </div>
         )}
         {errors.religionTagIds && (
           <div className="mt-2">
-            <Text className="text-sm text-red-600">{errors.religionTagIds.message}</Text>
+            <Text className="text-sm text-red-600">{(errors.religionTagIds as any)?.message}</Text>
           </div>
         )}
       </Card>
+      )}
     </Container>
 
     {/* Modals */}

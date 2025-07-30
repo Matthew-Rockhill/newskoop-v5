@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { UsersIcon } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 
 // Define User type locally
 type User = {
@@ -52,9 +53,16 @@ export default function UserDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
+      if (!params.id) {
+        setError('User ID is missing from URL');
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       
@@ -76,6 +84,32 @@ export default function UserDetailPage() {
       fetchUser();
     }
   }, [params.id]);
+
+  const handleSendPasswordReset = async () => {
+    if (!user?.email || isSendingReset) return;
+    
+    setIsSendingReset(true);
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: user.email }),
+      });
+
+      if (response.ok) {
+        toast.success('Password reset email sent successfully!');
+      } else {
+        throw new Error('Failed to send password reset email');
+      }
+    } catch (error) {
+      console.error('Error sending password reset:', error);
+      toast.error('Failed to send password reset email. Please try again.');
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -182,7 +216,17 @@ export default function UserDetailPage() {
         {/* Account Information Section */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-base/7 font-semibold text-gray-900 mb-3">Account Information</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base/7 font-semibold text-gray-900">Account Information</h3>
+              <Button
+                onClick={handleSendPasswordReset}
+                disabled={isSendingReset}
+                outline
+                className="text-sm"
+              >
+                {isSendingReset ? 'Sending...' : 'Send Password Reset'}
+              </Button>
+            </div>
             <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
               <div>
                 <dt className="text-sm font-medium text-gray-500">Created</dt>
