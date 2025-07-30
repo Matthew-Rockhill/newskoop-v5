@@ -6,7 +6,7 @@ import { getToken } from 'next-auth/jwt';
 const publicPaths = ['/', '/login', '/password-reset', '/dashboard'];
 
 // Paths that require specific roles
-const roleBasedPaths = {
+const roleBasedPaths: Record<string, string[]> = {
   '/admin/newsroom': [], // Block this path explicitly - it shouldn't exist
   '/admin': ['SUPERADMIN', 'ADMIN'],
   '/admin/users': ['SUPERADMIN', 'ADMIN'],
