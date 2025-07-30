@@ -84,9 +84,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       ]
 
       // Reports - SUPERADMIN only for now
-      if (session.user.staffRole === 'SUPERADMIN') {
-        adminItems.push({ name: 'Reports', href: '/admin/reports', icon: ChartBarIcon })
-      }
+      // TODO: Implement reports page
+      // if (session.user.staffRole === 'SUPERADMIN') {
+      //   adminItems.push({ name: 'Reports', href: '/admin/reports', icon: ChartBarIcon })
+      // }
 
       navigation.push({
         name: 'System Administration',
@@ -168,7 +169,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="-mx-6 mt-auto">
           <div className="flex flex-col gap-y-4">
             {/* Settings - only for ADMIN and SUPERADMIN */}
-            {session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole) && (
+            {/* TODO: Implement settings page */}
+            {/* {session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole) && (
               <Link
                 href="/admin/settings"
                 className={classNames(
@@ -187,7 +189,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 />
                 Settings
               </Link>
-            )}
+            )} */}
 
             {session?.user && (
               <div className="border-t border-gray-200 px-6 py-3">
