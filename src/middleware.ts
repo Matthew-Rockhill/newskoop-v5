@@ -65,6 +65,7 @@ export async function middleware(request: NextRequest) {
           return new NextResponse('Unauthorized', { status: 403 });
         } else {
           console.log('🛡️ Middleware - Role allowed for path');
+          break;
         }
       }
     }
