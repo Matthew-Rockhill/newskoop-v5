@@ -50,8 +50,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const getNavigation = (): (NavigationItem | NavigationSection)[] => {
     const navigation: (NavigationItem | NavigationSection)[] = []
 
-    // Dashboard - always visible to authenticated users
-    navigation.push({ name: 'Dashboard', href: '/admin', icon: HomeIcon })
+    // Dashboard - context-aware based on current path
+    const dashboardHref = pathname.startsWith('/newsroom') && session?.user?.staffRole && 
+      ['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole) 
+      ? '/newsroom' 
+      : '/admin';
+    navigation.push({ name: 'Dashboard', href: dashboardHref, icon: HomeIcon })
 
     // Newsroom section - available to all staff users
     if (session?.user?.userType === 'STAFF') {
