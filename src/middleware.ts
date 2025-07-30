@@ -9,6 +9,7 @@ const publicPaths = ['/', '/login', '/password-reset'];
 const roleBasedPaths = {
   '/admin/users': ['SUPERADMIN', 'ADMIN'],
   '/admin/stations': ['SUPERADMIN', 'ADMIN', 'EDITOR'],
+  '/newsroom': ['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'],
 };
 
 export async function middleware(request: NextRequest) {
@@ -31,12 +32,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Check role-based access for admin routes
-  if (pathname.startsWith('/admin')) {
+  // Check role-based access for admin and newsroom routes
+  if (pathname.startsWith('/admin') || pathname.startsWith('/newsroom')) {
     const userType = token.userType as string;
     const staffRole = token.staffRole as string;
 
-    // Only staff users can access admin routes
+    // Only staff users can access admin and newsroom routes
     if (userType !== 'STAFF') {
       return new NextResponse('Unauthorized', { status: 403 });
     }
