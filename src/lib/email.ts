@@ -34,10 +34,13 @@ export async function sendEmail({ to, subject, html, type = 'SYSTEM', userId }: 
   // Handle based on email mode
   switch (config.mode) {
     case 'console':
-      console.log('\n📧 Email (Console Mode)');
-      console.log('To:', actualRecipient);
-      console.log('Subject:', actualSubject);
-      console.log('---');
+      const emailLog = [
+        '\n📧 Email (Console Mode)',
+        `To: ${actualRecipient}`,
+        `Subject: ${actualSubject}`,
+        '---'
+      ];
+      
       // Extract and log any links
       const linkMatch = html.match(/href="([^"]+)"/);
       if (linkMatch) {
@@ -45,15 +48,30 @@ export async function sendEmail({ to, subject, html, type = 'SYSTEM', userId }: 
         // Check if this is a magic link or password reset link (both use set-password)
         if (link.includes('set-password')) {
           if (link.includes('auth/set-password')) {
-            console.log('🔑 PASSWORD RESET LINK:', link);
+            emailLog.push(`🔑 PASSWORD RESET LINK: ${link}`);
           } else {
-            console.log('✨ MAGIC LINK:', link);
+            emailLog.push(`✨ MAGIC LINK: ${link}`);
           }
         } else {
-          console.log('🔗 Link:', link);
+          emailLog.push(`🔗 Link: ${link}`);
         }
       }
-      console.log('---\n');
+      emailLog.push('---\n');
+      
+      // Log to console and also as a single log entry for Vercel
+      const logMessage = emailLog.join('\n');
+      console.log(logMessage);
+      
+      // Also log as JSON for better Vercel log parsing
+      if (process.env.VERCEL) {
+        console.log(JSON.stringify({
+          type: 'email_console_mode',
+          to: actualRecipient,
+          subject: actualSubject,
+          link: linkMatch ? linkMatch[1] : null,
+          timestamp: new Date().toISOString()
+        }));
+      }
       
       // Log email even in console mode
       await logEmail({
