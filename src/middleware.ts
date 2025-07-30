@@ -7,6 +7,7 @@ const publicPaths = ['/', '/login', '/password-reset', '/dashboard'];
 
 // Paths that require specific roles
 const roleBasedPaths = {
+  '/admin/newsroom': [], // Block this path explicitly - it shouldn't exist
   '/admin': ['SUPERADMIN', 'ADMIN'],
   '/admin/users': ['SUPERADMIN', 'ADMIN'],
   '/admin/stations': ['SUPERADMIN', 'ADMIN'],
@@ -64,6 +65,7 @@ export async function middleware(request: NextRequest) {
           return new NextResponse('Unauthorized', { status: 403 });
         } else {
           console.log('🛡️ Middleware - Role allowed for path');
+          break;
         }
       }
     }
