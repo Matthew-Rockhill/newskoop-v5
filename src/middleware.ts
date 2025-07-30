@@ -16,6 +16,13 @@ const roleBasedPaths = {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   console.log('🛡️ Middleware - Checking path:', pathname);
+  
+  // Special debugging for the problematic path
+  if (pathname.includes('/admin/newsroom/stories')) {
+    console.log('🚨 FOUND IT! Request to /admin/newsroom/stories detected');
+    console.log('🚨 Request URL:', request.url);
+    console.log('🚨 Request headers:', Object.fromEntries(request.headers.entries()));
+  }
 
   // Allow public paths
   if (publicPaths.includes(pathname)) {
