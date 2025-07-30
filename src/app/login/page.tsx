@@ -29,7 +29,7 @@ function LoginForm() {
         email,
         password,
         redirect: false,
-        callbackUrl,
+        callbackUrl: callbackUrl || undefined,
       });
 
       if (result?.error) {
