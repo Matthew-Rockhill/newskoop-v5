@@ -69,17 +69,18 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
       items: adminItems
     })
 
-    // Newsroom Management section - SUPERADMIN can manage newsroom from admin perspective
-    const newsroomManagementItems: NavigationItem[] = [
-      { name: 'Stories Overview', href: '/newsroom/stories', icon: DocumentTextIcon },
-      { name: 'Categories', href: '/newsroom/categories', icon: FolderIcon },
-      { name: 'Tags', href: '/newsroom/tags', icon: TagIcon },
-    ]
+    // Newsroom Management section - temporarily disabled to avoid path confusion
+    // TODO: Re-enable once path issues are fully resolved
+    // const newsroomManagementItems: NavigationItem[] = [
+    //   { name: 'Stories Overview', href: '/newsroom/stories', icon: DocumentTextIcon },
+    //   { name: 'Categories', href: '/newsroom/categories', icon: FolderIcon },
+    //   { name: 'Tags', href: '/newsroom/tags', icon: TagIcon },
+    // ]
 
-    navigation.push({
-      name: 'Newsroom Management',
-      items: newsroomManagementItems
-    })
+    // navigation.push({
+    //   name: 'Newsroom Management',
+    //   items: newsroomManagementItems
+    // })
 
     return navigation
   }
