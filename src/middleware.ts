@@ -15,9 +15,11 @@ const roleBasedPaths = {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  console.log('🛡️ Middleware - Checking path:', pathname);
 
   // Allow public paths
   if (publicPaths.includes(pathname)) {
+    console.log('🛡️ Middleware - Public path allowed:', pathname);
     return NextResponse.next();
   }
 
@@ -28,6 +30,7 @@ export async function middleware(request: NextRequest) {
 
   // Redirect to login if not authenticated
   if (!token) {
+    console.log('🛡️ Middleware - No token, redirecting to login with callback:', pathname);
     const url = new URL('/login', request.url);
     url.searchParams.set('callbackUrl', encodeURI(request.url));
     return NextResponse.redirect(url);
@@ -37,20 +40,29 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/admin') || pathname.startsWith('/newsroom')) {
     const userType = token.userType as string;
     const staffRole = token.staffRole as string;
+    console.log('🛡️ Middleware - Protected route check:', { pathname, userType, staffRole });
 
     // Only staff users can access admin and newsroom routes
     if (userType !== 'STAFF') {
+      console.log('🛡️ Middleware - Not STAFF user, blocking access');
       return new NextResponse('Unauthorized', { status: 403 });
     }
 
     // Check specific path permissions
     for (const [path, allowedRoles] of Object.entries(roleBasedPaths)) {
-      if (pathname.startsWith(path) && !allowedRoles.includes(staffRole)) {
-        return new NextResponse('Unauthorized', { status: 403 });
+      if (pathname.startsWith(path)) {
+        console.log('🛡️ Middleware - Checking path permission:', { path, allowedRoles, staffRole });
+        if (!allowedRoles.includes(staffRole)) {
+          console.log('🛡️ Middleware - Role not allowed for path, blocking access');
+          return new NextResponse('Unauthorized', { status: 403 });
+        } else {
+          console.log('🛡️ Middleware - Role allowed for path');
+        }
       }
     }
   }
 
+  console.log('🛡️ Middleware - Request allowed, proceeding to route:', pathname);
   return NextResponse.next();
 }
 
