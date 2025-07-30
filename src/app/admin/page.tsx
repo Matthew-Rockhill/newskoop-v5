@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   // Editorial staff are routed to /newsroom via the /dashboard router
 
   const isAdmin = session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole);
-  const isEditorialStaff = session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole);
+  const isSuperAdmin = session?.user?.staffRole === 'SUPERADMIN';
 
   // Admin stats (for SUPERADMIN and ADMIN only)
   const getAdminStats = () => {
@@ -86,9 +86,9 @@ export default function AdminDashboard() {
     ];
   };
 
-  // Newsroom stats (for editorial staff)
+  // Newsroom stats (only for SUPERADMIN)
   const getNewsroomStats = () => {
-    if (!isEditorialStaff && !isAdmin) return [];
+    if (!isSuperAdmin) return [];
     
     return [
       {
@@ -119,7 +119,7 @@ export default function AdminDashboard() {
 
   // Determine which sections to show
   const showAdminSection = isAdmin && adminStats.length > 0;
-  const showNewsroomSection = (isEditorialStaff || isAdmin) && newsroomStats.length > 0;
+  const showNewsroomSection = isSuperAdmin && newsroomStats.length > 0;
   const showToggle = showAdminSection && showNewsroomSection;
 
   return (

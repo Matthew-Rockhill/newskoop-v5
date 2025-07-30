@@ -19,16 +19,16 @@ export default function DashboardRouter() {
     // Route based on user role
     const staffRole = session.user.staffRole;
     
-    // Editorial staff go to newsroom
-    if (staffRole === 'INTERN' || staffRole === 'JOURNALIST' || staffRole === 'SUB_EDITOR') {
+    // Editorial staff (including EDITOR) go to newsroom
+    if (staffRole === 'INTERN' || staffRole === 'JOURNALIST' || staffRole === 'SUB_EDITOR' || staffRole === 'EDITOR') {
       router.push('/newsroom');
     } 
-    // EDITOR can choose, but default to newsroom
-    else if (staffRole === 'EDITOR') {
-      router.push('/newsroom');
+    // ADMIN goes to admin dashboard only
+    else if (staffRole === 'ADMIN') {
+      router.push('/admin');
     }
-    // Admin staff go to admin dashboard
-    else if (staffRole === 'ADMIN' || staffRole === 'SUPERADMIN') {
+    // SUPERADMIN goes to admin dashboard (they can access both from there)
+    else if (staffRole === 'SUPERADMIN') {
       router.push('/admin');
     }
     // Default fallback

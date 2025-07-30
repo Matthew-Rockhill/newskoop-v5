@@ -57,20 +57,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       : '/admin';
     navigation.push({ name: 'Dashboard', href: dashboardHref, icon: HomeIcon })
 
-    // Newsroom section - available to all staff users
-    if (session?.user?.userType === 'STAFF') {
+    // Newsroom section - only for editorial staff and SUPERADMIN
+    if (session?.user?.userType === 'STAFF' && 
+        session?.user?.staffRole && 
+        ['INTERN', 'JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'SUPERADMIN'].includes(session.user.staffRole)) {
       const newsroomItems: NavigationItem[] = []
       
-      // All staff can see stories
+      // All editorial staff can see stories
       newsroomItems.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
       
-      // Categories and Tags - SUB_EDITOR and above
-      if (session.user.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
+      // Categories and Tags - SUB_EDITOR and above (including SUPERADMIN)
+      if (session.user.staffRole && ['EDITOR', 'SUB_EDITOR', 'SUPERADMIN'].includes(session.user.staffRole)) {
         newsroomItems.push({ name: 'Categories', href: '/newsroom/categories', icon: FolderIcon })
         newsroomItems.push({ name: 'Tags', href: '/newsroom/tags', icon: TagIcon })
       }
-      
-
 
       if (newsroomItems.length > 0) {
         navigation.push({
