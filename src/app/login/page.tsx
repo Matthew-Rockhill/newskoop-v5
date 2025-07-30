@@ -15,6 +15,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
   const [isLoading, setIsLoading] = useState(false);
+  
+  console.log('🔐 Login Form - Callback URL from search params:', callbackUrl);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,8 +41,10 @@ function LoginForm() {
         
         // If there's a callback URL, use it
         if (callbackUrl) {
+          console.log('🔐 Login Success - Using callback URL:', callbackUrl);
           router.push(callbackUrl);
         } else {
+          console.log('🔐 Login Success - No callback URL, redirecting to /dashboard');
           // Otherwise, redirect to a generic dashboard that will handle role-based routing
           router.push('/dashboard');
         }

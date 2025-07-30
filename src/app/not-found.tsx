@@ -14,7 +14,7 @@ export default function NotFound() {
     
     const role = session.user.staffRole;
     if (role === 'SUPERADMIN' || role === 'ADMIN') return '/admin';
-    if (role === 'EDITOR' || role === 'SUB_EDITOR') return '/admin';
+    if (role === 'EDITOR' || role === 'SUB_EDITOR') return '/newsroom';
     return '/newsroom'; // JOURNALIST, INTERN
   };
 
