@@ -7,9 +7,10 @@ const publicPaths = ['/', '/login', '/password-reset', '/dashboard'];
 
 // Paths that require specific roles
 const roleBasedPaths = {
+  '/admin': ['SUPERADMIN', 'ADMIN'],
   '/admin/users': ['SUPERADMIN', 'ADMIN'],
-  '/admin/stations': ['SUPERADMIN', 'ADMIN', 'EDITOR'],
-  '/newsroom': ['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'],
+  '/admin/stations': ['SUPERADMIN', 'ADMIN'],
+  '/newsroom': ['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'],
 };
 
 export async function middleware(request: NextRequest) {
