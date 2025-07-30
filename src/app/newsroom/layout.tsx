@@ -1,9 +1,9 @@
-import { AdminLayout } from '@/components/layout/AdminLayout'
+import { NewsroomLayout } from '@/components/layout/NewsroomLayout'
 
-export default function NewsroomLayout({
+export default function NewsroomLayoutWrapper({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <AdminLayout>{children}</AdminLayout>
+  return <NewsroomLayout>{children}</NewsroomLayout>
 }

@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel } from '@headlessui/react'
 import {
   Bars3Icon,
-  UsersIcon,
-  RadioIcon,
   XMarkIcon,
+  DocumentTextIcon,
+  FolderIcon,
+  TagIcon,
   HomeIcon,
   ArrowRightOnRectangleIcon,
+  NewspaperIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -21,7 +23,7 @@ function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
 }
 
-interface AdminLayoutProps {
+interface NewsroomLayoutProps {
   children: React.ReactNode
 }
 
@@ -31,21 +33,26 @@ interface NavigationItem {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function NewsroomLayout({ children }: NewsroomLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { data: session } = useSession()
 
-  // Simplified navigation for regular ADMIN users only
+  // Newsroom navigation for editorial staff
   const getNavigation = (): NavigationItem[] => {
     const navigation: NavigationItem[] = []
 
-    // Dashboard - always admin for ADMIN users
-    navigation.push({ name: 'Dashboard', href: '/admin', icon: HomeIcon })
+    // Dashboard - always newsroom for editorial staff
+    navigation.push({ name: 'Dashboard', href: '/newsroom', icon: HomeIcon })
 
-    // Admin functions
-    navigation.push({ name: 'Radio Stations', href: '/admin/stations', icon: RadioIcon })
-    navigation.push({ name: 'Users', href: '/admin/users', icon: UsersIcon })
+    // All editorial staff can see stories
+    navigation.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
+    
+    // Categories and Tags - SUB_EDITOR and above
+    if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR'].includes(session.user.staffRole)) {
+      navigation.push({ name: 'Categories', href: '/newsroom/categories', icon: FolderIcon })
+      navigation.push({ name: 'Tags', href: '/newsroom/tags', icon: TagIcon })
+    }
 
     return navigation
   }
@@ -53,7 +60,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const navigation = getNavigation()
 
   const renderNavigationItem = (item: NavigationItem) => {
-    const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
+    const isActive = pathname === item.href || (item.href !== '/newsroom' && pathname.startsWith(item.href))
     
     return (
       <li key={item.name}>
@@ -88,7 +95,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
           <li>
             <div className="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider mb-2">
-              Administration
+              Newsroom
             </div>
             <ul role="list" className="-mx-2 space-y-1">
               {navigation.map((item) => renderNavigationItem(item))}
@@ -109,7 +116,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     {`${session.user.firstName} ${session.user.lastName}`}
                   </p>
                   <p className="truncate text-xs text-gray-500">
-                    Administrator
+                    {session.user.staffRole}
                   </p>
                 </div>
               </div>
@@ -131,9 +138,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   // Get current page name for mobile header
   const getCurrentPageName = () => {
     const found = navigation.find(item => 
-      pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
+      pathname === item.href || (item.href !== '/newsroom' && pathname.startsWith(item.href))
     )
-    return found?.name || 'Dashboard'
+    return found?.name || 'Newsroom'
   }
 
   return (
