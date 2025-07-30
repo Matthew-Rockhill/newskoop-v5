@@ -33,12 +33,8 @@ export default function AdminDashboard() {
   const { data: reviewStoriesData } = useStories({ status: 'IN_REVIEW', page: 1, perPage: 1 });
   const { data: publishedStoriesData } = useStories({ status: 'PUBLISHED', page: 1, perPage: 1 });
   
-  // Role-based dashboard routing - redirect editorial staff to newsroom
-  useEffect(() => {
-    if (session?.user?.staffRole === 'INTERN' || session?.user?.staffRole === 'JOURNALIST' || session?.user?.staffRole === 'SUB_EDITOR') {
-      router.push('/newsroom');
-    }
-  }, [session?.user?.staffRole, router]);
+  // This page is now only for admin users
+  // Editorial staff are routed to /newsroom via the /dashboard router
 
   const isAdmin = session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole);
   const isEditorialStaff = session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole);

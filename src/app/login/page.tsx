@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/admin';
+  const callbackUrl = searchParams.get('callbackUrl');
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -36,7 +36,14 @@ function LoginForm() {
         toast.error(result.error);
       } else {
         toast.success('Successfully signed in!');
-        router.push(callbackUrl);
+        
+        // If there's a callback URL, use it
+        if (callbackUrl) {
+          router.push(callbackUrl);
+        } else {
+          // Otherwise, redirect to a generic dashboard that will handle role-based routing
+          router.push('/dashboard');
+        }
         router.refresh();
       }
     } catch {
