@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel } from '@headlessui/react'
 import {
   Bars3Icon,
+  XMarkIcon,
   UsersIcon,
   RadioIcon,
-  XMarkIcon,
   HomeIcon,
   ArrowRightOnRectangleIcon,
+  CogIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -36,16 +37,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
 
-  // Simplified navigation for regular ADMIN users only
+  // Clean admin navigation for both ADMIN and SUPERADMIN
   const getNavigation = (): NavigationItem[] => {
     const navigation: NavigationItem[] = []
 
-    // Dashboard - always admin for ADMIN users
+    // Dashboard - always admin dashboard
     navigation.push({ name: 'Dashboard', href: '/admin', icon: HomeIcon })
 
-    // Admin functions
-    navigation.push({ name: 'Radio Stations', href: '/admin/stations', icon: RadioIcon })
+    // Core admin functions
     navigation.push({ name: 'Users', href: '/admin/users', icon: UsersIcon })
+    navigation.push({ name: 'Radio Stations', href: '/admin/stations', icon: RadioIcon })
 
     return navigation
   }
@@ -88,7 +89,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
           <li>
             <div className="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider mb-2">
-              Administration
+              System Administration
             </div>
             <ul role="list" className="-mx-2 space-y-1">
               {navigation.map((item) => renderNavigationItem(item))}
@@ -109,7 +110,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     {`${session.user.firstName} ${session.user.lastName}`}
                   </p>
                   <p className="truncate text-xs text-gray-500">
-                    Administrator
+                    {session.user.staffRole === 'SUPERADMIN' ? 'Super Administrator' : 'Administrator'}
                   </p>
                 </div>
               </div>

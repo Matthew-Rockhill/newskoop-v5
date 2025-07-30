@@ -1,108 +1,178 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 import { Container } from '@/components/ui/container';
-import { PageHeader } from '@/components/ui/page-header';
 import { StatsCard } from '@/components/ui/stats-card';
-import { useUsers } from '@/hooks/use-users';
-import { UserActivityChart } from '@/components/admin/UserActivityChart';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Heading } from '@/components/ui/heading';
+import { Text } from '@/components/ui/text';
+import { PageHeader } from '@/components/ui/page-header';
+import { 
+  UsersIcon,
+  RadioIcon,
+  CogIcon,
+  PlusIcon,
+  EyeIcon,
+} from '@heroicons/react/24/outline';
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
-  
-  // Fetch data for admin stats
-  const { users: allUsers, pagination: usersPagination } = useUsers({ page: 1, perPage: 100 });
-  
-  // This page is now only for admin users
-  // Editorial staff are routed to /newsroom via the /dashboard router
+  const router = useRouter();
 
   const isAdmin = session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole);
   const isSuperAdmin = session?.user?.staffRole === 'SUPERADMIN';
 
-  // Admin stats (for SUPERADMIN and ADMIN only)
-  const getAdminStats = () => {
-    if (!isAdmin) return [];
-    
-    const totalUsers = usersPagination?.total || 0;
-    const activeUserCount = usersPagination?.total || 0;
-    const totalStations = 0; // TODO: Implement stations query
-    const activeStationCount = 0; // TODO: Implement stations query
-    
-    // Count staff vs radio users from the actual data
-    const staffUsers = (allUsers || []).filter(user => user.userType === 'STAFF').length;
-    const radioUsers = (allUsers || []).filter(user => user.userType === 'RADIO').length;
-    
-    const activeUserPercentage = totalUsers > 0 ? Math.round((activeUserCount / totalUsers) * 100) : 0;
-    const activeStationPercentage = totalStations > 0 ? Math.round((activeStationCount / totalStations) * 100) : 0;
-    
-    const userChangeType: 'positive' | 'neutral' | 'negative' = activeUserPercentage >= 80 ? 'positive' : activeUserPercentage >= 60 ? 'neutral' : 'negative';
-    const stationChangeType: 'positive' | 'neutral' | 'negative' = activeStationPercentage >= 80 ? 'positive' : activeStationPercentage >= 60 ? 'neutral' : 'negative';
-    
-    return [
-      {
-        name: 'Total Users',
-        value: totalUsers,
-        description: `${activeUserCount} active users`,
-        change: `${activeUserPercentage}% active`,
-        changeType: userChangeType,
-      },
-      {
-        name: 'Radio Stations',
-        value: totalStations,
-        description: `${activeStationCount} active stations`,
-        change: `${activeStationPercentage}% active`,
-        changeType: stationChangeType,
-      },
-      {
-        name: 'Staff Users',
-        value: staffUsers,
-        description: 'Editorial and admin staff',
-      },
-      {
-        name: 'Radio Users',
-        value: radioUsers,
-        description: 'Radio station personnel',
-      },
-    ];
-  };
-
-  // Newsroom stats - removed for simplicity
-  const getNewsroomStats = () => {
-    return [];
-  };
-
-  const adminStats = getAdminStats();
-  const newsroomStats = getNewsroomStats();
-
-  // Only show admin section - no more toggle
-  const showAdminSection = isAdmin && adminStats.length > 0;
-  const showNewsroomSection = false;
-  const showToggle = false;
+  // Simple admin stats - no API calls for now
+  const adminStats = [
+    {
+      name: 'System Status',
+      value: 'Online',
+      description: 'All systems operational',
+      change: 'Running smoothly',
+      changeType: 'positive' as const,
+    },
+    {
+      name: 'User Management',
+      value: 'Active',
+      description: 'User accounts and permissions',
+    },
+    {
+      name: 'Radio Stations',
+      value: 'Active', 
+      description: 'Station management and content',
+    },
+    {
+      name: 'Admin Functions',
+      value: isSuperAdmin ? 'Full Access' : 'Standard Access',
+      description: isSuperAdmin ? 'Super Administrator privileges' : 'Administrator privileges',
+    },
+  ];
 
   return (
     <Container>
       <PageHeader
-        title="Dashboard"
-        description={`Welcome back, ${session?.user?.firstName || 'User'}!`}
+        title="Admin Dashboard"
+        description={`Welcome back, ${session?.user?.firstName || 'Administrator'}! System administration and management portal.`}
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <Button
+              color="white"
+              onClick={() => router.push('/admin/users')}
+            >
+              <UsersIcon className="h-4 w-4 mr-2" />
+              Manage Users
+            </Button>
+            <Button
+              color="white"
+              onClick={() => router.push('/admin/stations')}
+            >
+              <RadioIcon className="h-4 w-4 mr-2" />
+              Manage Stations
+            </Button>
+          </div>
+        }
       />
 
+      {/* Admin Stats */}
       <div className="mt-8">
-        {/* Admin Section */}
-        {showAdminSection && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">System Administration</h2>
-              <StatsCard stats={adminStats} />
-            </div>
-            
-            {/* User Activity Chart */}
-            <div>
-              <UserActivityChart />
-            </div>
-          </div>
-        )}
+        <StatsCard stats={adminStats} />
       </div>
+
+      {/* Quick Actions */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* User Management */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <Heading level={3}>User Management</Heading>
+            <Badge color="blue">Active</Badge>
+          </div>
+          <Text className="text-gray-600 mb-4">
+            Manage user accounts, roles, and permissions
+          </Text>
+          
+          <div className="space-y-3">
+            <Button
+              color="white"
+              className="w-full justify-start"
+              onClick={() => router.push('/admin/users')}
+            >
+              <EyeIcon className="h-4 w-4 mr-2" />
+              View All Users
+            </Button>
+            <Button
+              color="white" 
+              className="w-full justify-start"
+              onClick={() => router.push('/admin/users/new')}
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create New User
+            </Button>
+          </div>
+        </Card>
+
+        {/* Station Management */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <Heading level={3}>Radio Station Management</Heading>
+            <Badge color="green">Active</Badge>
+          </div>
+          <Text className="text-gray-600 mb-4">
+            Manage radio stations and their configurations
+          </Text>
+          
+          <div className="space-y-3">
+            <Button
+              color="white"
+              className="w-full justify-start"
+              onClick={() => router.push('/admin/stations')}
+            >
+              <EyeIcon className="h-4 w-4 mr-2" />
+              View All Stations
+            </Button>
+            <Button
+              color="white"
+              className="w-full justify-start" 
+              onClick={() => router.push('/admin/stations/new')}
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add New Station
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      {/* SUPERADMIN Only Section */}
+      {isSuperAdmin && (
+        <div className="mt-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Heading level={3}>Super Administrator Tools</Heading>
+              <Badge color="red">Super Admin</Badge>
+            </div>
+            <Text className="text-gray-600 mb-4">
+              Advanced system administration and oversight functions
+            </Text>
+            
+            <div className="space-y-3">
+              <Button
+                color="white"
+                className="w-full justify-start"
+                onClick={() => router.push('/newsroom')}
+              >
+                <CogIcon className="h-4 w-4 mr-2" />
+                Access Newsroom (Editorial Oversight)
+              </Button>
+              <Text className="text-sm text-gray-500">
+                As SUPERADMIN, you can access the newsroom for editorial oversight and system-wide management.
+              </Text>
+            </div>
+          </Card>
+        </div>
+      )}
     </Container>
   );
 } 

@@ -11,7 +11,7 @@ const roleBasedPaths: Record<string, string[]> = {
   '/admin': ['SUPERADMIN', 'ADMIN'],
   '/admin/users': ['SUPERADMIN', 'ADMIN'],
   '/admin/stations': ['SUPERADMIN', 'ADMIN'],
-  '/newsroom': ['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'],
+  '/newsroom': ['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'],
 };
 
 export async function middleware(request: NextRequest) {
