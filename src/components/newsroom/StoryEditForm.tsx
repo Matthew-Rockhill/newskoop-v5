@@ -35,7 +35,6 @@ interface Story {
   title: string;
   content: string | null;
   status: StoryStatus;
-  priority: string;
   categoryId: string | null;
   authorId: string;
   createdAt: string;
@@ -79,14 +78,6 @@ const statusColors = {
   ARCHIVED: 'zinc',
 } as const;
 
-// Priority badge colors
-const priorityColors = {
-  LOW: 'zinc',
-  MEDIUM: 'blue',
-  HIGH: 'amber',
-  URGENT: 'red',
-  BREAKING: 'red',
-} as const;
 
 interface StoryEditFormProps {
   storyId: string;
@@ -474,12 +465,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                 <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
                 <Badge color={statusColors[story.status] || 'zinc'}>
                   {story.status.replace('_', ' ')}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
-                <Badge color={priorityColors[story.priority as keyof typeof priorityColors] || 'zinc'}>
-                  {story.priority}
                 </Badge>
               </div>
             </div>

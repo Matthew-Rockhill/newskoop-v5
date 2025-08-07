@@ -8,10 +8,15 @@ import { canPublishStory, canUpdateStoryStatus } from '@/lib/permissions';
 import { TranslationStatus } from '@prisma/client';
 
 const publishSchema = z.object({
-  followUpDate: z.string().transform(str => new Date(str)),
+  followUpDate: z.string().transform(str => new Date(str)).optional(),
   followUpNote: z.string().optional(),
   scheduledPublishAt: z.string().transform(str => new Date(str)).optional(),
   publishImmediately: z.boolean().default(true),
+  
+  // Pre-publish checklist items (for logging/audit purposes)
+  contentReviewed: z.boolean().default(false),
+  translationsVerified: z.boolean().default(false),
+  audioQualityChecked: z.boolean().default(false),
 });
 
 export async function POST(
@@ -81,14 +86,15 @@ export async function POST(
         status: validatedData.publishImmediately ? 'PUBLISHED' : 'READY_TO_PUBLISH',
         publishedAt: validatedData.publishImmediately ? publishDate : null,
         publishedBy: session.user.id,
-        followUpDate: validatedData.followUpDate,
-        followUpNote: validatedData.followUpNote,
+        followUpDate: validatedData.followUpDate || null,
+        followUpNote: validatedData.followUpNote || null,
         updatedAt: new Date(),
       },
       include: {
         author: true,
         category: true,
         publisher: true,
+        translations: true,
       }
     });
 
@@ -103,8 +109,13 @@ export async function POST(
           entityType: 'STORY',
           entityId: id,
           scheduledFor: validatedData.scheduledPublishAt,
-          followUpDate: validatedData.followUpDate,
-          followUpNote: validatedData.followUpNote,
+          followUpDate: validatedData.followUpDate || null,
+          followUpNote: validatedData.followUpNote || null,
+          checklist: {
+            contentReviewed: validatedData.contentReviewed,
+            translationsVerified: validatedData.translationsVerified,
+            audioQualityChecked: validatedData.audioQualityChecked,
+          },
         },
         ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
@@ -122,8 +133,13 @@ export async function POST(
         entityId: id,
         storyTitle: story.title,
         publishDate: publishDate,
-        followUpDate: validatedData.followUpDate,
+        followUpDate: validatedData.followUpDate || null,
         translationsCount: story.translations.length,
+        checklist: {
+          contentReviewed: validatedData.contentReviewed,
+          translationsVerified: validatedData.translationsVerified,
+          audioQualityChecked: validatedData.audioQualityChecked,
+        },
       },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown',
@@ -131,7 +147,7 @@ export async function POST(
       targetType: 'STORY'
     });
 
-    // Also mark all approved translations as published
+    // Mark all approved translations as published
     if (validatedData.publishImmediately) {
       await prisma.translation.updateMany({
         where: {
@@ -139,8 +155,8 @@ export async function POST(
           status: 'APPROVED'
         },
         data: {
-          status: TranslationStatus.APPROVED,
-          approvedAt: new Date(),
+          status: TranslationStatus.PUBLISHED,
+          publishedAt: new Date(),
         }
       });
     }
@@ -151,7 +167,8 @@ export async function POST(
         : 'Story scheduled for publishing',
       story: updatedStory,
       publishedAt: publishDate,
-      followUpDate: validatedData.followUpDate,
+      followUpDate: validatedData.followUpDate || null,
+      translationsPublished: validatedData.publishImmediately ? updatedStory.translations.length : 0,
     });
 
   } catch (error: unknown) {

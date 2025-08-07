@@ -8,25 +8,43 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { AudioClip, Translation } from "@prisma/client";
+import { Translation, AudioClip } from "@prisma/client";
 
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
-import { Fieldset, FieldGroup, Field, Label, ErrorMessage } from "@/components/ui/fieldset";
+import { Fieldset, FieldGroup, Field, Label, Description } from "@/components/ui/fieldset";
 import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Divider } from "@/components/ui/divider";
 import { Badge } from "@/components/ui/badge";
 import { CustomAudioPlayer } from "@/components/ui/audio-player";
+import { Checkbox, CheckboxField, CheckboxGroup } from "@/components/ui/checkbox";
+import { Text } from "@/components/ui/text";
+import { Avatar } from "@/components/ui/avatar";
+import { 
+  DocumentTextIcon, 
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  CalendarDaysIcon,
+  MusicalNoteIcon
+} from "@heroicons/react/24/outline";
 import { useStory } from "@/hooks/use-stories";
 
 const publishSchema = z.object({
-  followUpDate: z.string().min(1, "Follow-up date is required"),
-  publishImmediately: z.boolean(),
-  checklistConfirmed: z.boolean().refine(val => val, "You must confirm the checklist before publishing."),
+  followUpDate: z.string().optional(),
   followUpNote: z.string().optional(),
+  publishImmediately: z.boolean(),
+  
+  // Pre-publish checklist items
+  contentReviewed: z.boolean().refine(val => val, "Content review must be confirmed"),
+  translationsVerified: z.boolean().optional(), // Will be validated conditionally
+  audioQualityChecked: z.boolean().refine(val => val, "Audio quality check must be confirmed"),
+  followUpRequired: z.boolean().optional(), // Optional checkbox
+  
+  // No translations confirmation
+  noTranslationsConfirmed: z.boolean().optional(),
+  
   scheduledPublishAt: z.string().optional(),
 });
 
@@ -39,9 +57,12 @@ export default function PublishStoryPage() {
   const storyId = params.id as string;
   const { data: story, isLoading, error } = useStory(storyId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
+  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
   // Check if story can be published
-  const { data: publishStatus, isLoading: isCheckingStatus } = useQuery({
+  const { data: publishStatus } = useQuery({
     queryKey: ['publishStatus', storyId],
     queryFn: async () => {
       const response = await fetch(`/api/newsroom/stories/${storyId}/publish`);
@@ -74,26 +95,52 @@ export default function PublishStoryPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
+    trigger,
     formState: { errors },
   } = useForm<PublishFormData>({
     resolver: zodResolver(publishSchema),
     defaultValues: {
-      checklistConfirmed: false,
+      contentReviewed: false,
+      translationsVerified: false,
+      audioQualityChecked: false,
+      followUpRequired: false,
       publishImmediately: true,
+      followUpDate: '',
+      followUpNote: '',
+      noTranslationsConfirmed: false,
     },
   });
 
   const watchPublishImmediately = watch('publishImmediately');
+  const watchedValues = watch();
   
-  // Stub: translations and their statuses
   const translations = story?.translations || [];
   const canPublish = publishStatus?.canPublish || false;
   const publishIssues = publishStatus?.issues || [];
+  
+  // Custom validation for form completeness
+  const isFormValid = watchedValues.contentReviewed && 
+    watchedValues.audioQualityChecked && 
+    (translations.length === 0 ? watchedValues.noTranslationsConfirmed : watchedValues.translationsVerified);
 
   const onSubmit: SubmitHandler<PublishFormData> = async (formData: PublishFormData) => {
     if (!canPublish) {
       toast.error("Story cannot be published. Please check the requirements.");
       return;
+    }
+
+    // Validate translations - either we have approved translations OR user confirmed no translations
+    if (translations.length === 0) {
+      if (!formData.noTranslationsConfirmed) {
+        toast.error("Please confirm that this story should be published without translations.");
+        return;
+      }
+    } else {
+      if (!formData.translationsVerified) {
+        toast.error("Please confirm that all translations have been verified.");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -128,6 +175,42 @@ export default function PublishStoryPage() {
     }
   };
 
+  // Audio handlers
+  const handleAudioPlay = (audioId: string) => {
+    setPlayingAudioId(audioId);
+  };
+
+  const handleAudioStop = () => {
+    setPlayingAudioId(null);
+  };
+
+  const handleAudioRestart = (audioId: string) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
+    setPlayingAudioId(audioId);
+  };
+
+  const handleAudioSeek = (audioId: string, time: number) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
+  };
+
+  const handleAudioTimeUpdate = (audioId: string, currentTime: number) => {
+    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
+  };
+
+  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
+    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   if (status === 'loading' || isLoading) {
     return (
       <Container>
@@ -156,207 +239,417 @@ export default function PublishStoryPage() {
   }
 
   return (
-    <Container>
-      <div className="space-y-6">
+    <>
+      <Container>
         <PageHeader
-          title="Pre-Publish Checklist"
-          action={{
-            label: "Back to Story",
-            onClick: () => router.push(`/newsroom/stories/${storyId}`),
-          }}
-        />
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* Story Details */}
-          <Card className="p-6">
-            <Heading level={2} className="mb-6">Story Details</Heading>
-            <div className="mb-4">
-              <div className="font-medium text-lg">{story.title}</div>
-              <div className="text-sm text-gray-600">Status: <Badge color="blue">{story.status}</Badge></div>
-            </div>
-            <div className="prose max-w-none">
-              <div className="text-gray-900 leading-relaxed space-y-4" dangerouslySetInnerHTML={{ __html: story.content }} />
-            </div>
-          </Card>
-
-          {/* Audio Clips */}
-          <Card className="p-6">
-            <Heading level={2} className="mb-6">Audio Clips</Heading>
-            {story.audioClips && story.audioClips.length > 0 ? (
-              <div className="space-y-4">
-                {story.audioClips.map((clip: AudioClip) => (
-                  <CustomAudioPlayer key={clip.id} clip={clip} />
-                ))}
+          title={story.title}
+          description={
+            <div className="flex items-center gap-4 mt-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
+                <Badge color="green">{story.status.replace('_', ' ')}</Badge>
               </div>
-            ) : (
-              <div className="text-gray-500">No audio clips attached.</div>
-            )}
-          </Card>
+            </div>
+          }
+          metadata={{
+            sections: [
+              {
+                title: "Author & Timeline",
+                items: [
+                  {
+                    label: "Author",
+                    value: (
+                      <>
+                        <Avatar
+                          className="h-6 w-6"
+                          name={`${story.author.firstName} ${story.author.lastName}`}
+                        />
+                        <span>{story.author.firstName} {story.author.lastName}</span>
+                      </>
+                    ),
+                    type: 'avatar'
+                  },
+                  {
+                    label: "Created",
+                    value: formatDate(story.createdAt),
+                    type: 'date'
+                  },
+                  {
+                    label: "Last Updated",
+                    value: formatDate(story.updatedAt),
+                    type: 'date'
+                  }
+                ]
+              },
+            ]
+          }}
+          actions={
+            <div className="flex items-center space-x-3">
+              <Button
+                color="white"
+                onClick={() => router.push(`/newsroom/stories/${storyId}`)}
+              >
+                Back to Story
+              </Button>
+              <Button
+                type="submit"
+                form="publish-form"
+                disabled={isSubmitting || !canPublish || !isFormValid}
+              >
+                {isSubmitting 
+                  ? (watchPublishImmediately ? "Publishing..." : "Scheduling...") 
+                  : (watchPublishImmediately ? "Publish Story" : "Schedule Publishing")}
+              </Button>
+            </div>
+          }
+        />
 
-          {/* Publish Status Checks */}
-          <Card className="p-6">
-            <Heading level={2} className="mb-6">Publication Requirements</Heading>
-            {isCheckingStatus ? (
-              <div className="text-gray-500">Checking publication requirements...</div>
-            ) : (
-              <div className="space-y-4">
-                {publishIssues.length > 0 ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h4 className="font-medium text-red-800 mb-2">Issues preventing publication:</h4>
-                    <ul className="text-red-700 space-y-1">
-                      {publishIssues.map((issue: string, index: number) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                          {issue}
-                        </li>
-                      ))}
-                    </ul>
+        {/* Warning Callout for Incomplete Requirements */}
+        {!canPublish && publishIssues.length > 0 && (
+          <Card className="p-4 mt-6 border-red-200 bg-red-50">
+            <div className="flex items-start gap-3">
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <Heading level={5} className="text-red-800 mb-1">
+                  Cannot Publish Story
+                </Heading>
+                <Text className="text-sm text-red-700 mb-2">
+                  The following issues must be resolved before publishing:
+                </Text>
+                <ul className="text-sm text-red-600 space-y-1">
+                  {publishIssues.map((issue: string, index: number) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                      {issue}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Publication Status Callout */}
+        {canPublish && (
+          <Card className={`p-4 mt-6 ${isFormValid ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+            <div className="flex items-start gap-3">
+              {isFormValid ? (
+                <CheckCircleIcon className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              ) : (
+                <ExclamationTriangleIcon className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              )}
+              <div className="flex-1">
+                <Heading level={5} className={isFormValid ? "text-green-800 mb-1" : "text-amber-800 mb-1"}>
+                  {isFormValid ? "Ready to Publish" : "Ready for Publication"}
+                </Heading>
+                <Text className={`text-sm ${isFormValid ? 'text-green-700' : 'text-amber-700'}`}>
+                  {isFormValid 
+                    ? "All requirements and checklist items completed. Ready to publish!"
+                    : "All requirements have been met. Complete the checklist below to publish."}
+                </Text>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <form id="publish-form" onSubmit={handleSubmit(onSubmit)} className="mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Story Content */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Heading level={3}>Story Content</Heading>
+                  <Badge color="zinc">
+                    {story.content.replace(/<[^>]*>/g, '').split(/\s+/).filter((word: string) => word.length > 0).length} words
+                  </Badge>
+                </div>
+                <div className="prose max-w-none">
+                  <div 
+                    className="text-gray-900 leading-relaxed space-y-4"
+                    dangerouslySetInnerHTML={{ __html: story.content }}
+                  />
+                </div>
+              </Card>
+
+              {/* Audio Clips Section */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Heading level={3}>Audio Clips</Heading>
+                  <Badge color="zinc">
+                    {story.audioClips?.length || 0} clips
+                  </Badge>
+                </div>
+                
+                {!story.audioClips || story.audioClips.length === 0 ? (
+                  <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <MusicalNoteIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      <div>
+                        <Text className="text-sm font-medium text-gray-700">No Audio Clips Added</Text>
+                        <Text className="text-xs text-gray-500">This story has no audio content attached</Text>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 className="font-medium text-green-800 mb-2">✓ Story is ready for publication</h4>
-                    <p className="text-green-700">All requirements have been met.</p>
+                  <div className="space-y-4">
+                    {story.audioClips.map((clip: AudioClip) => (
+                      <CustomAudioPlayer
+                        key={clip.id}
+                        clip={clip}
+                        isPlaying={playingAudioId === clip.id}
+                        currentTime={audioProgress[clip.id] || 0}
+                        duration={audioDuration[clip.id] || 0}
+                        onPlay={handleAudioPlay}
+                        onStop={handleAudioStop}
+                        onRestart={handleAudioRestart}
+                        onSeek={handleAudioSeek}
+                        onTimeUpdate={handleAudioTimeUpdate}
+                        onLoadedMetadata={handleAudioLoadedMetadata}
+                        onEnded={() => setPlayingAudioId(null)}
+                        onError={() => {
+                          toast.error('Failed to play audio file');
+                          setPlayingAudioId(null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              {/* Associated Translations */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Heading level={3}>Associated Translations</Heading>
+                  <Badge color={translations.length > 0 ? "green" : "zinc"}>
+                    {translations.length} translations
+                  </Badge>
+                </div>
+{translations.length > 0 ? (
+                  <div className="space-y-3">
+                    {translations.map((t: Translation) => (
+                      <div key={t.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{t.targetLanguage}</span>
+                          <Badge color={t.status === "APPROVED" ? "green" : "amber"}>{t.status}</Badge>
+                        </div>
+                        {t.status === "APPROVED" && (
+                          <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 border border-amber-200 bg-amber-50 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <ExclamationTriangleIcon className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <Text className="font-medium text-amber-800 mb-2">No translations assigned</Text>
+                        <Text className="text-sm text-amber-700 mb-3">
+                          This story has no translations. Is this correct?
+                        </Text>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={watch('noTranslationsConfirmed') || false}
+                            onChange={(e) => {
+                              setValue('noTranslationsConfirmed', e.target.checked);
+                              trigger('noTranslationsConfirmed');
+                            }}
+                            className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                          />
+                          <span className="text-sm text-amber-700">
+                            Yes, this story should be published without translations
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Publishing Checklist - MOVED TO TOP */}
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <DocumentTextIcon className="h-6 w-6 text-kelly-green" />
+                  <Heading level={4}>Publishing Checklist</Heading>
+                </div>
+                
+                {!isFormValid && (
+                  <div className="mb-4 p-3 border-amber-200 bg-amber-50 rounded-lg">
+                    <Text className="text-sm text-amber-700">
+                      <strong>Required:</strong> Complete all items before publishing.
+                    </Text>
                   </div>
                 )}
                 
-                {publishStatus?.checks && (
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className={`flex items-center gap-2 ${publishStatus.checks.hasPermission ? 'text-green-600' : 'text-red-600'}`}>
-                      <span>{publishStatus.checks.hasPermission ? '✓' : '✗'}</span>
-                      User has publish permission
-                    </div>
-                    <div className={`flex items-center gap-2 ${publishStatus.checks.correctStatus ? 'text-green-600' : 'text-red-600'}`}>
-                      <span>{publishStatus.checks.correctStatus ? '✓' : '✗'}</span>
-                      Story status allows publishing
-                    </div>
-                    <div className={`flex items-center gap-2 ${publishStatus.checks.hasCategory ? 'text-green-600' : 'text-red-600'}`}>
-                      <span>{publishStatus.checks.hasCategory ? '✓' : '✗'}</span>
-                      Story has category assigned
-                    </div>
-                    <div className={`flex items-center gap-2 ${publishStatus.checks.translationsApproved ? 'text-green-600' : 'text-red-600'}`}>
-                      <span>{publishStatus.checks.translationsApproved ? '✓' : '✗'}</span>
-                      All translations approved ({publishStatus.checks.approvedTranslations}/{publishStatus.checks.translationsCount})
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </Card>
+                <CheckboxGroup>
+                  {/* Content Review */}
+                  <CheckboxField>
+                    <Checkbox
+                      id="contentReviewed"
+                      checked={watch('contentReviewed') || false}
+                      onChange={(checked) => {
+                        setValue('contentReviewed', checked);
+                        trigger('contentReviewed');
+                      }}
+                    />
+                    <Label htmlFor="contentReviewed">
+                      Content Review Complete
+                    </Label>
+                    <Description>
+                      Final review of story content and editorial quality
+                    </Description>
+                    {errors.contentReviewed && (
+                      <Text className="text-sm text-red-600 mt-1">{errors.contentReviewed.message}</Text>
+                    )}
+                  </CheckboxField>
 
-          {/* Publishing Options */}
-          <Card className="p-6">
-            <Heading level={2} className="mb-6">Publishing Options</Heading>
-            <Fieldset>
-              <FieldGroup>
-                <Field>
-                  <Label>
-                    <input
-                      type="radio"
-                      {...register("publishImmediately")}
-                      value="true"
-                      className="mr-2"
+                  {/* Translation Verification */}
+                  <CheckboxField>
+                    <Checkbox
+                      id="translationsVerified"
+                      checked={translations.length === 0 ? (watch('noTranslationsConfirmed') || false) : (watch('translationsVerified') || false)}
+                      onChange={(checked) => {
+                        if (translations.length === 0) {
+                          setValue('noTranslationsConfirmed', checked);
+                          trigger('noTranslationsConfirmed');
+                        } else {
+                          setValue('translationsVerified', checked);
+                          trigger('translationsVerified');
+                        }
+                      }}
                     />
-                    Publish immediately
-                  </Label>
-                </Field>
-                <Field>
-                  <Label>
-                    <input
-                      type="radio"
-                      {...register("publishImmediately")}
-                      value="false"
-                      className="mr-2"
+                    <Label htmlFor="translationsVerified">
+                      {translations.length === 0 ? "No Translations Confirmed" : "Translation Verification"}
+                    </Label>
+                    <Description>
+                      {translations.length === 0 
+                        ? "Confirmed that this story should publish without translations"
+                        : "All required translations have been approved and are ready"}
+                    </Description>
+                    {errors.translationsVerified && (
+                      <Text className="text-sm text-red-600 mt-1">{errors.translationsVerified.message}</Text>
+                    )}
+                  </CheckboxField>
+
+                  {/* Audio Quality */}
+                  <CheckboxField>
+                    <Checkbox
+                      id="audioQualityChecked"
+                      checked={watch('audioQualityChecked') || false}
+                      onChange={(checked) => {
+                        setValue('audioQualityChecked', checked);
+                        trigger('audioQualityChecked');
+                      }}
                     />
-                    Schedule for later
-                  </Label>
-                  {!watchPublishImmediately && (
-                    <div className="mt-2 ml-6">
-                      <Label htmlFor="scheduledPublishAt">Scheduled Publish Date & Time</Label>
+                    <Label htmlFor="audioQualityChecked">
+                      Audio Quality Verification
+                    </Label>
+                    <Description>
+                      Audio clips tested for quality and compatibility
+                    </Description>
+                    {errors.audioQualityChecked && (
+                      <Text className="text-sm text-red-600 mt-1">{errors.audioQualityChecked.message}</Text>
+                    )}
+                  </CheckboxField>
+
+                  {/* Follow-up Required */}
+                  <CheckboxField>
+                    <Checkbox
+                      id="followUpRequired"
+                      checked={watch('followUpRequired') || false}
+                      onChange={(checked) => {
+                        setValue('followUpRequired', checked);
+                        trigger('followUpRequired');
+                      }}
+                    />
+                    <Label htmlFor="followUpRequired">
+                      Follow Up Date Set
+                    </Label>
+                    <Description>
+                      Story has a scheduled follow-up date
+                    </Description>
+                  </CheckboxField>
+                </CheckboxGroup>
+              </Card>
+
+              {/* Schedule Publishing (Optional) */}
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <CalendarDaysIcon className="h-6 w-6 text-kelly-green" />
+                  <Heading level={4}>Schedule Publishing (Optional)</Heading>
+                </div>
+                
+                <CheckboxGroup>
+                  <CheckboxField>
+                    <Checkbox
+                      id="schedulePublish"
+                      checked={!watch('publishImmediately')}
+                      onChange={(checked) => setValue('publishImmediately', !checked)}
+                    />
+                    <Label htmlFor="schedulePublish">Schedule for later</Label>
+                    <Description>
+                      By default, the story will publish immediately. Check this to schedule for a specific date and time.
+                    </Description>
+                    {!watch('publishImmediately') && (
+                      <div className="mt-3 ml-6">
+                        <label htmlFor="scheduledPublishAt" className="block text-sm font-medium text-gray-700 mb-1">
+                          Publish Date & Time
+                        </label>
+                        <Input
+                          id="scheduledPublishAt"
+                          type="datetime-local"
+                          {...register("scheduledPublishAt")}
+                          required={!watch('publishImmediately')}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
+                  </CheckboxField>
+                </CheckboxGroup>
+              </Card>
+
+              {/* Follow-up Planning */}
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <CalendarDaysIcon className="h-6 w-6 text-kelly-green" />
+                  <Heading level={4}>Follow-up Planning (Optional)</Heading>
+                </div>
+                
+                <Fieldset>
+                  <FieldGroup>
+                    <Field>
+                      <Label htmlFor="followUpDate">Follow-up Date</Label>
                       <Input
-                        id="scheduledPublishAt"
-                        type="datetime-local"
-                        {...register("scheduledPublishAt")}
-                        className="max-w-sm"
+                        id="followUpDate"
+                        type="date"
+                        {...register("followUpDate")}
                       />
-                    </div>
-                  )}
-                </Field>
-              </FieldGroup>
-            </Fieldset>
-          </Card>
-
-          {/* Associated Translations */}
-          <Card className="p-6">
-            <Heading level={2} className="mb-6">Associated Translations</Heading>
-            {translations.length > 0 ? (
-              <ul className="space-y-2">
-                {translations.map((t: Translation) => (
-                  <li key={t.id} className="flex items-center gap-2">
-                    <span className="font-medium">{t.targetLanguage}</span>
-                    <Badge color={t.status === "APPROVED" ? "green" : "amber"}>{t.status}</Badge>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-gray-500">No translations assigned.</div>
-            )}
-          </Card>
-
-          {/* Checklist */}
-          <Card className="p-6">
-            <Heading level={2} className="mb-6">Pre-Publish Checklist</Heading>
-            <Fieldset>
-              <FieldGroup>
-                <Field>
-                  <Label htmlFor="followUpDate">Follow-up Date *</Label>
-                  <Input
-                    id="followUpDate"
-                    type="date"
-                    {...register("followUpDate")}
-                  />
-                  {errors.followUpDate && <ErrorMessage>{errors.followUpDate.message}</ErrorMessage>}
-                </Field>
-                <Field>
-                  <Label htmlFor="followUpNote">Follow-up Note</Label>
-                  <Input
-                    id="followUpNote"
-                    {...register("followUpNote")}
-                    placeholder="Add a note for your follow-up (optional)"
-                  />
-                </Field>
-                <Field>
-                  <Label htmlFor="checklistConfirmed">Checklist Confirmation *</Label>
-                  <input
-                    id="checklistConfirmed"
-                    type="checkbox"
-                    {...register("checklistConfirmed")}
-                  />
-                  <span className="ml-2">I have reviewed all content, translations, and audio, and confirm this story is ready to publish.</span>
-                  {errors.checklistConfirmed && <ErrorMessage>{errors.checklistConfirmed.message}</ErrorMessage>}
-                </Field>
-              </FieldGroup>
-            </Fieldset>
-          </Card>
-
-          <Divider />
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              color="white"
-              onClick={() => router.push(`/newsroom/stories/${storyId}`)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !canPublish}>
-              {isSubmitting ? (watchPublishImmediately ? "Publishing..." : "Scheduling...") : (watchPublishImmediately ? "Publish Story & Translations" : "Schedule for Publishing")}
-            </Button>
-          </div>
-          {!canPublish && publishIssues.length > 0 && (
-            <div className="text-red-600 mt-4">
-              Please resolve the issues listed above before publishing.
+                      <Description>
+                        Set a date if this story needs to be followed up on
+                      </Description>
+                    </Field>
+                    <Field>
+                      <Label htmlFor="followUpNote">Follow-up Note</Label>
+                      <textarea
+                        id="followUpNote"
+                        {...register("followUpNote")}
+                        placeholder="Add a note for the follow-up"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-kelly-green focus:border-kelly-green"
+                        rows={3}
+                      />
+                    </Field>
+                  </FieldGroup>
+                </Fieldset>
+              </Card>
             </div>
-          )}
+          </div>
         </form>
-      </div>
-    </Container>
+      </Container>
+    </>
   );
-} 
+}

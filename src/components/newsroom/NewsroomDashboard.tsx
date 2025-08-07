@@ -21,6 +21,7 @@ import {
   DocumentTextIcon,
   EyeIcon,
   UserGroupIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
 export function NewsroomDashboard() {
@@ -83,6 +84,17 @@ export function NewsroomDashboard() {
     perPage: 100 
   });
 
+  // Editor/Sub-editor specific: stories with follow-up dates
+  const { data: followUpStoriesData } = useQuery({
+    queryKey: ['followUpStories'],
+    queryFn: async () => {
+      const response = await fetch('/api/newsroom/stories/follow-ups');
+      if (!response.ok) throw new Error('Failed to fetch follow-up stories');
+      return response.json();
+    },
+    enabled: isSubEditor || userRole === 'EDITOR',
+  });
+
   // Fetch translations assigned to the user
   const { data: assignedTranslationsData } = useQuery({
     queryKey: ['assignedTranslations', userId],
@@ -95,7 +107,26 @@ export function NewsroomDashboard() {
     },
     enabled: !!userId,
   });
-  const assignedTranslationStories = assignedTranslationsData || [];
+
+  // Sub-editor specific: translations pending review
+  const { data: pendingTranslationReviewsData } = useQuery({
+    queryKey: ['pendingTranslationReviews'],
+    queryFn: async () => {
+      const response = await fetch(`/api/newsroom/translations?status=NEEDS_REVIEW`);
+      if (!response.ok) throw new Error('Failed to fetch pending translation reviews');
+      const data = await response.json();
+      return data.translations || [];
+    },
+    enabled: isSubEditor,
+  });
+
+  const assignedTranslations = assignedTranslationsData || [];
+  const pendingTranslationReviews = pendingTranslationReviewsData || [];
+
+  // Filter translations by status for the assigned user
+  const inProgressTranslations = assignedTranslations.filter((t: any) => t.status === 'IN_PROGRESS');
+  const needsReviewTranslations = assignedTranslations.filter((t: any) => t.status === 'NEEDS_REVIEW');
+  const approvedTranslations = assignedTranslations.filter((t: any) => t.status === 'APPROVED');
 
   const allStories = allStoriesData?.stories || [];
   const draftStories = draftStoriesData?.stories || [];
@@ -106,6 +137,8 @@ export function NewsroomDashboard() {
   const approvedStories = approvedStoriesData?.stories || [];
   const pendingApprovalStories = pendingApprovalStoriesData?.stories || [];
   const approvedForPublishingStories = approvedForPublishingStoriesData?.stories || [];
+  const followUpStories = followUpStoriesData?.grouped || { overdue: [], dueToday: [], dueSoon: [], upcoming: [] };
+  const totalFollowUps = followUpStoriesData?.total || 0;
 
   // Calculate success metrics
   const totalStories = allStories.length;
@@ -121,26 +154,28 @@ export function NewsroomDashboard() {
 
   const successMetrics = isSubEditor ? [
     {
-      name: 'Pending Approval',
+      name: 'Pending Story Approval',
       value: pendingApprovalStories.length,
       description: 'Stories awaiting fact-check and approval',
       change: pendingApprovalStories.length > 5 ? 'High workload' : pendingApprovalStories.length > 2 ? 'Moderate' : 'Clear',
       changeType: pendingApprovalStories.length > 5 ? 'negative' as const : pendingApprovalStories.length > 2 ? 'neutral' as const : 'positive' as const,
     },
     {
+      name: 'Translation Reviews',
+      value: pendingTranslationReviews.length,
+      description: 'Translations awaiting review',
+      change: pendingTranslationReviews.length > 3 ? 'High workload' : pendingTranslationReviews.length > 1 ? 'Moderate' : 'Clear',
+      changeType: pendingTranslationReviews.length > 3 ? 'negative' as const : pendingTranslationReviews.length > 1 ? 'neutral' as const : 'positive' as const,
+    },
+    {
       name: 'Ready for Publishing',
       value: approvedForPublishingStories.length,
-      description: 'Approved stories ready for pre-publishing',
+      description: 'Approved stories ready for publishing',
     },
     {
-      name: 'Avg. Processing Time',
-      value: '2.1 days',
-      description: 'From submission to approval',
-    },
-    {
-      name: 'Total in Pipeline',
-      value: pendingApprovalStories.length + approvedForPublishingStories.length,
-      description: 'Stories in your workflow',
+      name: 'Total Workflow Items',
+      value: pendingApprovalStories.length + pendingTranslationReviews.length + approvedForPublishingStories.length,
+      description: 'Stories and translations in your workflow',
     },
   ] : isJournalist ? [
     {
@@ -207,7 +242,7 @@ export function NewsroomDashboard() {
     <Container>
       <PageHeader
         title="My Dashboard"
-        description={`Welcome back, ${session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here's your ${isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.`}
+        description={`Welcome back, ${session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here's your ${isSubEditor ? 'editorial review and approval' : isJournalist ? 'writing and review' : 'writing'} progress.`}
         action={!isSubEditor ? {
           label: "Create Story",
           onClick: () => router.push('/newsroom/stories/new')
@@ -231,6 +266,15 @@ export function NewsroomDashboard() {
                 <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
                 Review Pending Approval ({pendingApprovalStories.length})
             </Button>
+            )}
+            {isSubEditor && pendingTranslationReviews.length > 0 && (
+              <Button
+                color="white"
+                onClick={() => router.push('/newsroom/translations?status=NEEDS_REVIEW')}
+              >
+                <UserGroupIcon className="h-4 w-4 mr-2" />
+                Review Translations ({pendingTranslationReviews.length})
+              </Button>
             )}
             {!isJournalist && !isSubEditor && rejectedCount > 0 && (
               <Button
@@ -267,6 +311,130 @@ export function NewsroomDashboard() {
       {/* Sub-Editor Specific Sections */}
       {isSubEditor && (
         <>
+          {/* Follow-up Stories Section */}
+          {totalFollowUps > 0 && (
+            <div className="mt-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Heading level={3}>Story Follow-ups</Heading>
+                  <div className="flex items-center space-x-2">
+                    {followUpStories.overdue.length > 0 && (
+                      <Badge color="red">{followUpStories.overdue.length} Overdue</Badge>
+                    )}
+                    {followUpStories.dueToday.length > 0 && (
+                      <Badge color="amber">{followUpStories.dueToday.length} Due Today</Badge>
+                    )}
+                    {followUpStories.dueSoon.length > 0 && (
+                      <Badge color="blue">{followUpStories.dueSoon.length} Due Soon</Badge>
+                    )}
+                  </div>
+                </div>
+                <Text className="text-gray-600 mb-4">
+                  Stories scheduled for follow-up review and updates
+                </Text>
+                
+                <div className="space-y-4">
+                  {/* Overdue Follow-ups */}
+                  {followUpStories.overdue.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-red-700 mb-2">Overdue Follow-ups</h4>
+                      <div className="space-y-2">
+                        {followUpStories.overdue.slice(0, 3).map((story: any) => (
+                          <div key={story.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                            <div className="flex-1">
+                              <h5 className="font-medium text-gray-900">{story.title}</h5>
+                              <div className="flex items-center space-x-2 text-sm text-red-600">
+                                <CalendarDaysIcon className="h-4 w-4" />
+                                <span>Due: {new Date(story.followUpDate).toLocaleDateString()}</span>
+                                <span className="text-red-700 font-medium">({Math.abs(story.daysUntilFollowUp)} days overdue)</span>
+                                {story.followUpNote && <span className="text-gray-600">• {story.followUpNote}</span>}
+                              </div>
+                            </div>
+                            <Button
+                              color="red"
+                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            >
+                              <EyeIcon className="h-4 w-4 mr-1" />
+                              Review
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Due Today */}
+                  {followUpStories.dueToday.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-amber-700 mb-2">Due Today</h4>
+                      <div className="space-y-2">
+                        {followUpStories.dueToday.slice(0, 3).map((story: any) => (
+                          <div key={story.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                            <div className="flex-1">
+                              <h5 className="font-medium text-gray-900">{story.title}</h5>
+                              <div className="flex items-center space-x-2 text-sm text-amber-600">
+                                <CalendarDaysIcon className="h-4 w-4" />
+                                <span>Follow-up due today</span>
+                                {story.followUpNote && <span className="text-gray-600">• {story.followUpNote}</span>}
+                              </div>
+                            </div>
+                            <Button
+                              color="white"
+                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            >
+                              <EyeIcon className="h-4 w-4 mr-1" />
+                              Review
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Due Soon */}
+                  {followUpStories.dueSoon.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-blue-700 mb-2">Due Soon (Next 7 Days)</h4>
+                      <div className="space-y-2">
+                        {followUpStories.dueSoon.slice(0, 3).map((story: any) => (
+                          <div key={story.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <div className="flex-1">
+                              <h5 className="font-medium text-gray-900">{story.title}</h5>
+                              <div className="flex items-center space-x-2 text-sm text-blue-600">
+                                <CalendarDaysIcon className="h-4 w-4" />
+                                <span>Due: {new Date(story.followUpDate).toLocaleDateString()}</span>
+                                <span className="text-gray-600">({story.daysUntilFollowUp} days)</span>
+                                {story.followUpNote && <span className="text-gray-600">• {story.followUpNote}</span>}
+                              </div>
+                            </div>
+                            <Button
+                              color="white"
+                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            >
+                              <EyeIcon className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* View All Button */}
+                  {totalFollowUps > 9 && (
+                    <Button
+                      color="white"
+                      className="w-full"
+                      onClick={() => router.push('/newsroom/stories/follow-ups')}
+                    >
+                      View all {totalFollowUps} follow-up stories
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* Pending Approval Section */}
           <div className="mt-8">
             <Card className="p-6">
@@ -323,11 +491,11 @@ export function NewsroomDashboard() {
           <div className="mt-8">
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <Heading level={3}>Ready for Pre-Publishing</Heading>
+                <Heading level={3}>Ready for Publishing</Heading>
                 <Badge color="green">{approvedForPublishingStories.length}</Badge>
               </div>
               <Text className="text-gray-600 mb-4">
-                Approved stories ready for translation, pre-publish checklist, and scheduling
+                Approved stories ready for translation and publishing
               </Text>
               
               {approvedForPublishingStories.length > 0 ? (
@@ -351,10 +519,10 @@ export function NewsroomDashboard() {
                           View
                         </Button>
                         <Button
-                          onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
+                          onClick={() => router.push(`/newsroom/stories/${story.id}/publish`)}
                         >
                           <PencilIcon className="h-4 w-4 mr-1" />
-                          Pre-Publish
+                          Publish
                         </Button>
                       </div>
                     </div>
@@ -372,11 +540,60 @@ export function NewsroomDashboard() {
               ) : (
                 <div className="text-center py-6">
                   <DocumentTextIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <Text className="text-gray-500">No stories ready for pre-publishing</Text>
+                  <Text className="text-gray-500">No stories ready for publishing</Text>
                 </div>
               )}
             </Card>
           </div>
+
+          {/* Translation Review Section - Sub-Editors Only */}
+          {pendingTranslationReviews.length > 0 && (
+            <div className="mt-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Heading level={3}>Translation Reviews</Heading>
+                  <Badge color="amber">{pendingTranslationReviews.length}</Badge>
+                </div>
+                <Text className="text-gray-600 mb-4">
+                  Translations submitted by translators awaiting quality review
+                </Text>
+                
+                <div className="space-y-3">
+                  {pendingTranslationReviews.slice(0, 5).map((translation: any) => (
+                    <div key={translation.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">
+                          {translation.originalStory?.title} ({translation.targetLanguage})
+                        </h4>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <ClockIcon className="h-4 w-4" />
+                          <span>Submitted {formatDate(translation.updatedAt)} by {translation.assignedTo?.firstName} {translation.assignedTo?.lastName}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          color="white"
+                          onClick={() => router.push(`/newsroom/translations/${translation.id}/review`)}
+                        >
+                          <EyeIcon className="h-4 w-4 mr-1" />
+                          Review
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {pendingTranslationReviews.length > 5 && (
+                    <Button
+                      color="white"
+                      className="w-full"
+                      onClick={() => router.push('/newsroom/translations?status=NEEDS_REVIEW')}
+                    >
+                      View all {pendingTranslationReviews.length} pending translation reviews
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
         </>
       )}
 
@@ -656,46 +873,61 @@ export function NewsroomDashboard() {
       </div>
       )}
 
-      {/* Assigned Translations Section - Translators Only */}
-      {false && assignedTranslationStories.length > 0 && (
+      {/* Assigned Translations Section - All Users */}
+      {assignedTranslations.length > 0 && (
         <div className="mt-8">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <Heading level={3}>Assigned Translations</Heading>
-              <Badge color="purple">{assignedTranslationStories.length}</Badge>
+              <Badge color="purple">{assignedTranslations.length}</Badge>
             </div>
             <Text className="text-gray-600 mb-4">
               Stories assigned to you for translation
             </Text>
             <div className="space-y-3">
-              {assignedTranslationStories.slice(0, 5).map((translation: Story) => (
+              {assignedTranslations.slice(0, 5).map((translation: any) => (
                 <div key={translation.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{translation.title || 'Untitled'}</h4>
+                    <h4 className="font-medium text-gray-900">
+                      {translation.originalStory?.title || 'Untitled'} ({translation.targetLanguage})
+                    </h4>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <ClockIcon className="h-4 w-4" />
                       <span>Assigned {formatDate(translation.createdAt)}</span>
-                      {translation.author && (
-                        <span>• Author: {translation.author.firstName} {translation.author.lastName}</span>
+                      <Badge color="zinc" className="ml-2">{translation.status.replace('_', ' ')}</Badge>
+                      {translation.originalStory?.author && (
+                        <span>• Original by: {translation.originalStory.author.firstName} {translation.originalStory.author.lastName}</span>
                       )}
                     </div>
                   </div>
-                  <Button
-                    color="white"
-                    onClick={() => router.push(`/newsroom/translations/${translation.id}/work`)}
-                  >
-                    <PencilIcon className="h-4 w-4 mr-1" />
-                    Translate
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    {translation.status === 'IN_PROGRESS' && translation.translatedStoryId && (
+                      <Button
+                        color="secondary"
+                        onClick={() => router.push(`/newsroom/translations/${translation.id}/review`)}
+                      >
+                        <EyeIcon className="h-4 w-4 mr-1" />
+                        Review
+                      </Button>
+                    )}
+                    <Button
+                      color="white"
+                      onClick={() => router.push(`/newsroom/translations/${translation.id}/work`)}
+                    >
+                      <PencilIcon className="h-4 w-4 mr-1" />
+                      {translation.status === 'PENDING' ? 'Start' : 
+                       translation.status === 'REJECTED' ? 'Revise' : 'Continue'}
+                    </Button>
+                  </div>
                 </div>
               ))}
-              {assignedTranslationStories.length > 5 && (
+              {assignedTranslations.length > 5 && (
                 <Button
                   color="white"
                   className="w-full"
                   onClick={() => router.push('/newsroom/translations?assignedToId=' + userId)}
                 >
-                  View all {assignedTranslationStories.length} assigned translations
+                  View all {assignedTranslations.length} assigned translations
                 </Button>
               )}
             </div>

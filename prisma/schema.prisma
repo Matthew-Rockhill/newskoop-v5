@@ -52,13 +52,6 @@ enum StoryStatus {
   ARCHIVED
 }
 
-enum StoryPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-  BREAKING
-}
 
 enum CommentType {
   GENERAL
@@ -82,6 +75,7 @@ enum TranslationStatus {
   NEEDS_REVIEW
   APPROVED
   REJECTED
+  PUBLISHED
 }
 
 enum StoryLanguage {
@@ -167,6 +161,11 @@ model Station {
   isActive              Boolean               @default(true)
   hasContentAccess      Boolean               @default(true)
   
+  // Content filtering
+  allowedLanguages      String[]              @default(["English", "Afrikaans", "Xhosa"])
+  allowedReligions      String[]              @default(["Christian", "Muslim", "Neutral"])
+  blockedCategories     String[]              @default([])
+  
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   
@@ -210,7 +209,6 @@ model Story {
   slug              String              @unique
   content           String              @db.Text
   status            StoryStatus         @default(DRAFT)
-  priority          StoryPriority       @default(MEDIUM)
   
   // Language and translation fields
   language          StoryLanguage       @default(ENGLISH)
@@ -256,8 +254,15 @@ model Story {
   // Timestamps
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
-  followUpDate      DateTime?           // Editorial follow-up date
-  followUpNote      String?             // Optional follow-up note
+  followUpDate        DateTime?           // Editorial follow-up date
+  followUpNote        String?             // Optional follow-up note
+  followUpCompleted   Boolean @default(false)
+  followUpCompletedAt DateTime?
+  followUpCompletedBy String?
+  scheduledPublishAt  DateTime?           // Scheduled publish date/time
+  
+  // Review checklist data (stored as JSON)
+  reviewChecklist   Json?               // Stores tier 1 review checklist completion state
   
   @@index([status])
   @@index([authorId])
@@ -392,6 +397,7 @@ model Translation {
   reviewedAt        DateTime?
   approvedAt        DateTime?
   rejectedAt        DateTime?
+  publishedAt       DateTime?
   
   // Notes and feedback
   translatorNotes   String?           @db.Text

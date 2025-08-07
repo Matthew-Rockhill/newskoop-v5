@@ -47,14 +47,6 @@ const statusColors = {
   ARCHIVED: 'zinc',
 } as const;
 
-// Priority badge colors
-const priorityColors = {
-  LOW: 'zinc',
-  MEDIUM: 'blue',
-  HIGH: 'amber',
-  URGENT: 'red',
-  BREAKING: 'red',
-} as const;
 
 // Helper: should show review button
 function canShowReviewButton(userRole: StaffRole | null, status: string) {
@@ -233,12 +225,6 @@ export default function StoryDetailPage() {
               <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
               <Badge color={statusColors[story.status as keyof typeof statusColors] || 'zinc'}>
                 {story.status.replace('_', ' ')}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
-              <Badge color={priorityColors[story.priority as keyof typeof priorityColors] || 'zinc'}>
-                {story.priority}
               </Badge>
             </div>
           </div>
