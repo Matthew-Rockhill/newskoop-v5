@@ -39,7 +39,6 @@ const getStories = createHandler(
     const {
       query,
       status,
-      priority,
       categoryId,
       authorId,
       assignedToId,
@@ -76,7 +75,6 @@ const getStories = createHandler(
         ],
       }),
       ...(status && { status }),
-      ...(priority && { priority }),
       ...(categoryId && { categoryId }),
       ...(authorId && { authorId }),
       ...(assignedToId && { assignedToId }),
@@ -293,7 +291,6 @@ const createStory = createHandler(
         const storyFormData = {
           title: storyData.title,
           content: storyData.content,
-          priority: storyData.priority || 'MEDIUM',
           // categoryId: not required
           tagIds: [],
         };

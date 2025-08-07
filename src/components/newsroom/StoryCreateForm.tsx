@@ -85,7 +85,6 @@ export function StoryCreateForm() {
       // Add story data
       formData.append('title', data.title);
       formData.append('content', data.content);
-      formData.append('priority', 'MEDIUM'); // Default priority
       formData.append('status', status);
       
       // Add reviewer if submitting for review

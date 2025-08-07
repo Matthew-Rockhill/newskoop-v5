@@ -45,6 +45,10 @@ export async function POST(request: Request) {
           contactEmail: data.contactEmail || null,
           contactNumber: data.contactNumber || null,
           isActive: data.hasContentAccess ?? true,
+          hasContentAccess: data.hasContentAccess ?? true,
+          allowedLanguages: data.allowedLanguages || ['English', 'Afrikaans', 'Xhosa'],
+          allowedReligions: data.allowedReligions || ['Christian', 'Muslim', 'Neutral'],
+          blockedCategories: data.blockedCategories || [],
         },
       });
 

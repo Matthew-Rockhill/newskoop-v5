@@ -48,14 +48,6 @@ import type { Tag } from '@/hooks/use-tags';
 import type { StaffRole } from '@prisma/client';
 import { canUpdateStoryStatus } from '@/lib/permissions';
 
-// Priority badge colors
-const priorityColors = {
-  LOW: 'zinc',
-  MEDIUM: 'blue',
-  HIGH: 'amber',
-  URGENT: 'red',
-  BREAKING: 'red',
-} as const;
 
 // Journalist Content Review Schema (Tier 1) - Mandatory before submission
 const journalistReviewSchema = z.object({
@@ -67,11 +59,11 @@ const journalistReviewSchema = z.object({
 
 // Sub-Editor QA Review Schema (Tier 2) - Full checklist including classification
 const subEditorReviewSchema = z.object({
-  // Content items (inherited from Tier 1, auto-checked)
-  storyStructure: z.boolean().default(true),
-  languageGrammar: z.boolean().default(true),
-  factChecking: z.boolean().default(true),
-  audioQuality: z.boolean().default(true),
+  // Content items (inherited from Tier 1, can be true or false based on journalist review)
+  storyStructure: z.boolean(),
+  languageGrammar: z.boolean(),
+  factChecking: z.boolean(),
+  audioQuality: z.boolean(),
   
   // QA Classification items (sub-editor responsibility)
   categoryId: z.string().min(1, 'Category is required'),
@@ -182,92 +174,104 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   const isJournalist = isJournalistRole && (story?.status === 'IN_REVIEW' || story?.status === 'DRAFT');
   const isSubEditor = isSubEditorRole && story?.status === 'PENDING_APPROVAL';
 
-  // Use appropriate schema and default values based on role
-  const getFormConfig = () => {
-    if (isJournalist) {
-      return {
-        resolver: zodResolver(journalistReviewSchema),
-        defaultValues: {
-          storyStructure: false,
-          languageGrammar: false,
-          factChecking: false,
-          audioQuality: false,
-        }
-      };
-    } else if (isSubEditor) {
-      return {
-        resolver: zodResolver(subEditorReviewSchema),
-        defaultValues: {
-          storyStructure: true, // Inherited from Tier 1
-          languageGrammar: true,
-          factChecking: true,
-          audioQuality: true,
-          languageTagIds: [],
-          religionTagIds: [],
-          localityTagIds: [],
-          generalTagIds: [],
-        }
-      };
-    }
-    // Fallback to sub-editor schema
-    return {
-      resolver: zodResolver(subEditorReviewSchema),
-      defaultValues: {
-        storyStructure: false,
-        languageGrammar: false,
-        factChecking: false,
-        audioQuality: false,
-        languageTagIds: [],
-        religionTagIds: [],
-        localityTagIds: [],
-        generalTagIds: [],
-      }
-    };
+  // Determine which schema to use
+  const schema = isJournalist ? journalistReviewSchema : subEditorReviewSchema;
+  
+  // Simple default values
+  const defaultValues = {
+    storyStructure: false,
+    languageGrammar: false,
+    factChecking: false,
+    audioQuality: false,
+    languageTagIds: [],
+    religionTagIds: [],
+    localityTagIds: [],
+    generalTagIds: [],
   };
-
-  const formConfig = getFormConfig();
 
   const {
     watch,
     setValue,
     trigger,
     handleSubmit,
+    reset,
     formState: { errors, isValid },
   } = useForm<ReviewChecklistData>({
-    resolver: formConfig.resolver,
+    resolver: zodResolver(schema),
     mode: 'onChange',
-    defaultValues: formConfig.defaultValues,
+    defaultValues,
   });
 
   // Watch form values for real-time validation
   const watchedValues = watch();
+  
 
   // Helper function to handle checkbox changes
-  const handleCheckboxChange = (field: string, checked: boolean) => {
+  const handleCheckboxChange = async (field: string, checked: boolean) => {
     setValue(field as any, checked);
     setFieldInteractions(prev => ({ ...prev, [field]: true }));
     // Only trigger validation for the specific field that was changed
     setTimeout(() => trigger(field as any), 0);
+    
+    // Auto-save checklist for journalists
+    if (isJournalist && ['storyStructure', 'languageGrammar', 'factChecking', 'audioQuality'].includes(field)) {
+      try {
+        const checklistData = {
+          storyStructure: field === 'storyStructure' ? checked : watchedValues.storyStructure,
+          languageGrammar: field === 'languageGrammar' ? checked : watchedValues.languageGrammar,
+          factChecking: field === 'factChecking' ? checked : watchedValues.factChecking,
+          audioQuality: field === 'audioQuality' ? checked : watchedValues.audioQuality,
+        };
+        
+        await fetch(`/api/newsroom/stories/${storyId}/review-checklist`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(checklistData),
+        });
+      } catch (error) {
+        console.error('Failed to save checklist:', error);
+      }
+    }
   };
 
   // Set initial values when story loads
   useEffect(() => {
     if (story) {
-      setValue('categoryId', story.categoryId);
-      
       // Set existing tags
       const existingTags: Tag[] = story.tags.map((t: { tag: Tag }) => t.tag);
-      setValue('languageTagIds', existingTags.filter((t: Tag) => t.category === 'LANGUAGE').map((t: Tag) => t.id));
-      setValue('religionTagIds', existingTags.filter((t: Tag) => t.category === 'RELIGION').map((t: Tag) => t.id));
-      setValue('localityTagIds', existingTags.filter((t: Tag) => t.category === 'LOCALITY').map((t: Tag) => t.id));
-      setValue('generalTagIds', existingTags.filter((t: Tag) => t.category === 'GENERAL').map((t: Tag) => t.id));
+      
+      // Prepare form values
+      const formValues: any = {
+        categoryId: story.categoryId,
+        languageTagIds: existingTags.filter((t: Tag) => t.category === 'LANGUAGE').map((t: Tag) => t.id),
+        religionTagIds: existingTags.filter((t: Tag) => t.category === 'RELIGION').map((t: Tag) => t.id),
+        localityTagIds: existingTags.filter((t: Tag) => t.category === 'LOCALITY').map((t: Tag) => t.id),
+        generalTagIds: existingTags.filter((t: Tag) => t.category === 'GENERAL').map((t: Tag) => t.id),
+      };
+      
+      // Set review checklist values if they exist
+      if (story.reviewChecklist && typeof story.reviewChecklist === 'object') {
+        const checklist = story.reviewChecklist as any;
+        formValues.storyStructure = Boolean(checklist.storyStructure);
+        formValues.languageGrammar = Boolean(checklist.languageGrammar);
+        formValues.factChecking = Boolean(checklist.factChecking);
+        formValues.audioQuality = Boolean(checklist.audioQuality);
+      } else {
+        // Set defaults based on role
+        formValues.storyStructure = false;
+        formValues.languageGrammar = false;
+        formValues.factChecking = false;
+        formValues.audioQuality = false;
+      }
+      
+      reset(formValues);
       
       // Trigger validation after a short delay to ensure form has updated
       setTimeout(() => {
         trigger();
       }, 100);
     }
-  }, [story, setValue, trigger]);
+  }, [story, reset, trigger]);
 
   // Update validation when category or tags change
   useEffect(() => {
@@ -336,6 +340,22 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
 
     setIsSubmitting(true);
     try {
+      // Save the review checklist data for journalists
+      if (isJournalist) {
+        const checklistData = {
+          storyStructure: watchedValues.storyStructure,
+          languageGrammar: watchedValues.languageGrammar,
+          factChecking: watchedValues.factChecking,
+          audioQuality: watchedValues.audioQuality,
+        };
+        
+        await fetch(`/api/newsroom/stories/${storyId}/review-checklist`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(checklistData),
+        });
+      }
+      
       await updateStoryStatusMutation.mutateAsync({
         id: storyId,
         data: { 
@@ -506,10 +526,6 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
                 <Badge color="blue">{story.status.replace('_', ' ')}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">Priority:</span>
-                <Badge color={priorityColors[story.priority as keyof typeof priorityColors]}>{story.priority}</Badge>
               </div>
             </div>
           }
@@ -710,25 +726,25 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
               
               <form onSubmit={handleSubmit(isJournalist ? handleSubmitForApproval : handleApprove)}>
                 <CheckboxGroup>
-                  {/* Story Structure - Only for journalists */}
-                  {isJournalist && (
-                    <CheckboxField>
-                      <Checkbox
-                        id="storyStructure"
-                        checked={watchedValues.storyStructure || false}
-                        onChange={(checked) => handleCheckboxChange('storyStructure', checked)}
-                      />
-                      <Label htmlFor="storyStructure">
-                        Story Structure & Flow
-                      </Label>
-                      <Description>
-                        Verify logical flow, clear introduction, body, and conclusion
-                      </Description>
-                      {fieldInteractions.storyStructure && errors.storyStructure && (
-                        <Text className="text-sm text-red-600 mt-1">{(errors.storyStructure as any)?.message}</Text>
-                      )}
-                    </CheckboxField>
-                  )}
+                  {/* Story Structure */}
+                  <CheckboxField>
+                    <Checkbox
+                      id="storyStructure"
+                      checked={watchedValues.storyStructure || false}
+                      onChange={(checked) => handleCheckboxChange('storyStructure', checked)}
+                      disabled={isSubEditor} // Auto-checked for sub-editors
+                    />
+                    <Label htmlFor="storyStructure">
+                      Story Structure & Flow
+                      {isSubEditor && watchedValues.storyStructure && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
+                    </Label>
+                    <Description>
+                      Verify logical flow, clear introduction, body, and conclusion
+                    </Description>
+                    {fieldInteractions.storyStructure && errors.storyStructure && (
+                      <Text className="text-sm text-red-600 mt-1">{(errors.storyStructure as any)?.message}</Text>
+                    )}
+                  </CheckboxField>
 
                   {/* Language & Grammar */}
                   <CheckboxField>
@@ -740,7 +756,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                     />
                     <Label htmlFor="languageGrammar">
                       Language & Grammar
-                      {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
+                      {isSubEditor && watchedValues.languageGrammar && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
                     <Description>
                       Check for spelling, grammar, punctuation, and language clarity
@@ -760,7 +776,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                     />
                     <Label htmlFor="factChecking">
                       Fact Checking
-                      {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
+                      {isSubEditor && watchedValues.factChecking && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
                     <Description>
                       Verify accuracy of facts, dates, names, and statistics
@@ -780,7 +796,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                     />
                     <Label htmlFor="audioQuality">
                       Audio Quality
-                      {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
+                      {isSubEditor && watchedValues.audioQuality && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
                     <Description>
                       Review audio clarity, volume, and technical quality

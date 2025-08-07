@@ -92,6 +92,9 @@ export async function PATCH(
         contactNumber: data.contactNumber,
         isActive: data.isActive !== undefined ? data.isActive : existingStation.isActive,
         hasContentAccess: data.hasContentAccess !== undefined ? data.hasContentAccess : existingStation.hasContentAccess,
+        allowedLanguages: data.allowedLanguages !== undefined ? data.allowedLanguages : existingStation.allowedLanguages,
+        allowedReligions: data.allowedReligions !== undefined ? data.allowedReligions : existingStation.allowedReligions,
+        blockedCategories: data.blockedCategories !== undefined ? data.blockedCategories : existingStation.blockedCategories,
       },
       include: {
         users: {

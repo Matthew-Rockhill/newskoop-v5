@@ -67,7 +67,27 @@ const getStory = createHandler(
 
     const story = await prisma.story.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        content: true,
+        status: true,
+        language: true,
+        isTranslation: true,
+        originalStoryId: true,
+        storyGroupId: true,
+        authorId: true,
+        assignedToId: true,
+        reviewerId: true,
+        publishedAt: true,
+        publishedBy: true,
+        categoryId: true,
+        createdAt: true,
+        updatedAt: true,
+        followUpDate: true,
+        followUpNote: true,
+        reviewChecklist: true,
         author: {
           select: {
             id: true,
@@ -215,7 +235,6 @@ const updateStory = createHandler(
       tagIds?: string[]; 
       title?: string;
       content?: string;
-      priority?: string;
       assignedToId?: string;
       reviewerId?: string;
       [key: string]: unknown;

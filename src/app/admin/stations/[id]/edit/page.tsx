@@ -18,6 +18,9 @@ type Station = {
   website?: string | null;
   isActive: boolean;
   hasContentAccess: boolean;
+  allowedLanguages: string[];
+  allowedReligions: string[];
+  blockedCategories: string[];
   createdAt: Date;
   updatedAt: Date;
   users: Array<{

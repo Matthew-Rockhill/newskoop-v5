@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryPriority, CommentType, StoryLanguage } from '@prisma/client';
+import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, CommentType, StoryLanguage } from '@prisma/client';
 
 // Base user schema
 const baseUserSchema = z.object({
@@ -123,7 +123,6 @@ export const stationSearchSchema = z.object({
 export const storyCreateSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   content: z.string().min(1, 'Content is required'),
-  priority: z.nativeEnum(StoryPriority).default(StoryPriority.MEDIUM),
   categoryId: z.string().optional(), // Now optional
   tagIds: z.array(z.string()).optional().default([]),
 });
@@ -131,7 +130,6 @@ export const storyCreateSchema = z.object({
 export const storyUpdateSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   content: z.string().min(1).optional(),
-  priority: z.nativeEnum(StoryPriority).optional(),
   categoryId: z.string().optional(),
   tagIds: z.array(z.string()).optional(),
 });
@@ -148,7 +146,6 @@ export const storyStatusUpdateSchema = z.object({
 export const storySearchSchema = z.object({
   query: z.string().optional(),
   status: z.nativeEnum(StoryStatus).optional(),
-  priority: z.nativeEnum(StoryPriority).optional(),
   categoryId: z.string().optional(),
   authorId: z.string().optional(),
   assignedToId: z.string().optional(),

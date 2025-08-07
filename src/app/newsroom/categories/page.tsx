@@ -32,10 +32,10 @@ export default function CategoriesPage() {
   );
   const categories = data?.categories || [];
 
-  // Check if user can create categories (SUPERADMIN can create parent categories, ADMIN/EDITOR can create subcategories)
+  // Check if user can create categories
   const canCreateCategory = () => {
     const userRole = session?.user?.staffRole;
-    return userRole && ['SUPERADMIN', 'ADMIN', 'EDITOR'].includes(userRole);
+    return userRole && ['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR'].includes(userRole);
   };
 
   // Check if user can edit a specific category
@@ -43,11 +43,11 @@ export default function CategoriesPage() {
     const userRole = session?.user?.staffRole;
     if (!userRole) return false;
     
-    // SUPERADMIN can edit everything
-    if (userRole === 'SUPERADMIN') return true;
+    // SUPERADMIN, ADMIN, and EDITOR can edit all categories
+    if (['SUPERADMIN', 'ADMIN', 'EDITOR'].includes(userRole)) return true;
     
-    // ADMIN and EDITOR can only edit subcategories (level > 1)
-    if (['ADMIN', 'EDITOR'].includes(userRole)) {
+    // SUB_EDITOR can edit level 2 and 3 categories
+    if (userRole === 'SUB_EDITOR') {
       return category.level > 1;
     }
     

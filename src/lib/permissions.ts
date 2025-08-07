@@ -234,4 +234,31 @@ const tagPermissions = {
 export function hasTagPermission(userRole: StaffRole | null, action: PermissionAction): boolean {
   if (!userRole) return false;
   return tagPermissions[userRole]?.includes(action) || false;
+}
+
+// Translation permissions
+const translationPermissions = {
+  INTERN: ['read'],
+  JOURNALIST: ['read'],
+  SUB_EDITOR: ['create', 'read', 'update', 'approve'],
+  EDITOR: ['create', 'read', 'update', 'delete', 'approve'],
+  ADMIN: ['create', 'read', 'update', 'delete', 'approve'],
+  SUPERADMIN: ['create', 'read', 'update', 'delete', 'approve'],
+};
+
+export function hasTranslationPermission(userRole: StaffRole | null, action: PermissionAction | 'approve'): boolean {
+  if (!userRole) return false;
+  return translationPermissions[userRole]?.includes(action) || false;
+}
+
+export function canApproveTranslation(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+export function canWorkOnTranslation(userRole: StaffRole | null, translationAssignedToId: string, currentUserId: string): boolean {
+  if (!userRole) return false;
+  // Only the assigned translator or higher roles can work on translation
+  if (translationAssignedToId === currentUserId) return true;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 } 

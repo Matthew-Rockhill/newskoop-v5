@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StoryStatus, StoryPriority } from '@prisma/client';
+import { StoryStatus } from '@prisma/client';
 
 // Types for story data
 export interface Story {
@@ -8,7 +8,6 @@ export interface Story {
   slug: string;
   content: string;
   status: StoryStatus;
-  priority: StoryPriority;
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
@@ -98,12 +97,17 @@ export interface Story {
   _count?: {
     comments: number;
   };
+  reviewChecklist?: {
+    storyStructure?: boolean;
+    languageGrammar?: boolean;
+    factChecking?: boolean;
+    audioQuality?: boolean;
+  };
 }
 
 export interface StoryFilters {
   query?: string;
   status?: StoryStatus;
-  priority?: StoryPriority;
   categoryId?: string;
   authorId?: string;
   assignedToId?: string;
@@ -116,7 +120,6 @@ export interface StoryFilters {
 export interface CreateStoryData {
   title: string;
   content: string;
-  priority?: StoryPriority;
   categoryId: string;
   tagIds?: string[];
 }
@@ -124,7 +127,6 @@ export interface CreateStoryData {
 export interface UpdateStoryData {
   title?: string;
   content?: string;
-  priority?: StoryPriority;
   categoryId?: string;
   tagIds?: string[];
 }

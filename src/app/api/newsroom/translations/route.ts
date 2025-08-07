@@ -5,20 +5,67 @@ import { createHandler, withAuth, withErrorHandling } from '@/lib/api-handler';
 const getTranslations = createHandler(
   async (req: NextRequest) => {
     const url = new URL(req.url);
+    const query = url.searchParams.get('query');
+    const status = url.searchParams.get('status');
     const assignedToId = url.searchParams.get('assignedToId');
+    const targetLanguage = url.searchParams.get('targetLanguage');
+    
     const where: Record<string, unknown> = {};
+    
+    // Add filters
+    if (status) where.status = status;
     if (assignedToId) where.assignedToId = assignedToId;
+    if (targetLanguage) where.targetLanguage = targetLanguage;
+    
+    // Add search query
+    if (query) {
+      where.OR = [
+        {
+          originalStory: {
+            title: { contains: query, mode: 'insensitive' }
+          }
+        },
+        {
+          translatedStory: {
+            title: { contains: query, mode: 'insensitive' }
+          }
+        }
+      ];
+    }
 
     const translations = await prisma.translation.findMany({
       where,
       include: {
         originalStory: {
           include: {
-            author: true,
-            category: true,
+            author: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              }
+            },
+            category: {
+              select: {
+                id: true,
+                name: true,
+              }
+            },
           },
         },
-        assignedTo: true,
+        assignedTo: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          }
+        },
+        translatedStory: {
+          select: {
+            id: true,
+            title: true,
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

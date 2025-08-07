@@ -42,6 +42,11 @@ const stationEditSchema = z.object({
   isActive: z.boolean(),
   hasContentAccess: z.boolean(),
   
+  // Content Filtering
+  allowedLanguages: z.array(z.string()).min(1, 'At least one language must be selected'),
+  allowedReligions: z.array(z.string()).min(1, 'At least one religion must be selected'),
+  blockedCategories: z.array(z.string()),
+  
   // Primary Contact (existing user)
   primaryContactId: z.string().min(1, 'Primary contact is required'),
   
@@ -69,6 +74,9 @@ type Station = {
   website?: string | null;
   isActive: boolean;
   hasContentAccess: boolean;
+  allowedLanguages: string[];
+  allowedReligions: string[];
+  blockedCategories: string[];
   createdAt: Date;
   updatedAt: Date;
   users: Array<{
@@ -100,8 +108,28 @@ export default function StationEditForm({ station }: StationEditFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usersToRemove, setUsersToRemove] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Array<{id: string, name: string, level: number}>>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   const primaryContact = station.users.find(user => user.isPrimaryContact);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/newsroom/categories?flat=true');
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data.categories || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const {
     register,
@@ -120,6 +148,9 @@ export default function StationEditForm({ station }: StationEditFormProps) {
       contactNumber: station.contactNumber || '',
       isActive: station.isActive,
       hasContentAccess: station.hasContentAccess,
+      allowedLanguages: station.allowedLanguages || ['English', 'Afrikaans', 'Xhosa'],
+      allowedReligions: station.allowedReligions || ['Christian', 'Muslim', 'Neutral'],
+      blockedCategories: station.blockedCategories || [],
       primaryContactId: primaryContact?.id || '',
       newUsers: []
     }
@@ -144,6 +175,9 @@ export default function StationEditForm({ station }: StationEditFormProps) {
       contactNumber: station.contactNumber || '',
       isActive: station.isActive,
       hasContentAccess: station.hasContentAccess,
+      allowedLanguages: station.allowedLanguages || ['English', 'Afrikaans', 'Xhosa'],
+      allowedReligions: station.allowedReligions || ['Christian', 'Muslim', 'Neutral'],
+      blockedCategories: station.blockedCategories || [],
       primaryContactId: primaryContact?.id || '',
       newUsers: []
     });
@@ -163,6 +197,9 @@ export default function StationEditForm({ station }: StationEditFormProps) {
           contactNumber: data.contactNumber,
           isActive: data.isActive,
           hasContentAccess: data.hasContentAccess,
+          allowedLanguages: data.allowedLanguages,
+          allowedReligions: data.allowedReligions,
+          blockedCategories: data.blockedCategories,
         }),
       });
 
@@ -339,6 +376,101 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                 </Description>
               </Label>
             </CheckboxField>
+          </FieldGroup>
+        </Fieldset>
+
+        {/* Content Filtering */}
+        <Fieldset>
+          <Heading level={2}>Content Filtering</Heading>
+          <Text className="mt-1">Configure which content this station can access.</Text>
+          
+          <FieldGroup className="mt-6">
+            <Field>
+              <Label>Allowed Languages</Label>
+              <Description>Select languages this station can access</Description>
+              <div className="mt-2 space-y-2">
+                {['English', 'Afrikaans', 'Xhosa'].map((language) => (
+                  <CheckboxField key={language}>
+                    <Checkbox
+                      id={`language-${language}`}
+                      checked={watch('allowedLanguages')?.includes(language)}
+                      onChange={(checked) => {
+                        const current = watch('allowedLanguages') || [];
+                        if (checked && !current.includes(language)) {
+                          setValue('allowedLanguages', [...current, language]);
+                        } else if (!checked) {
+                          setValue('allowedLanguages', current.filter(l => l !== language));
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`language-${language}`}>{language}</Label>
+                  </CheckboxField>
+                ))}
+              </div>
+              {errors.allowedLanguages && (
+                <ErrorMessage>{errors.allowedLanguages.message}</ErrorMessage>
+              )}
+            </Field>
+
+            <Field>
+              <Label>Allowed Religions</Label>
+              <Description>Select religious content this station can access</Description>
+              <div className="mt-2 space-y-2">
+                {['Christian', 'Muslim', 'Neutral'].map((religion) => (
+                  <CheckboxField key={religion}>
+                    <Checkbox
+                      id={`religion-${religion}`}
+                      checked={watch('allowedReligions')?.includes(religion)}
+                      onChange={(checked) => {
+                        const current = watch('allowedReligions') || [];
+                        if (checked && !current.includes(religion)) {
+                          setValue('allowedReligions', [...current, religion]);
+                        } else if (!checked) {
+                          setValue('allowedReligions', current.filter(r => r !== religion));
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`religion-${religion}`}>
+                      {religion}
+                      {religion === 'Neutral' && <span className="text-sm text-gray-500 ml-1">(All content)</span>}
+                    </Label>
+                  </CheckboxField>
+                ))}
+              </div>
+              {errors.allowedReligions && (
+                <ErrorMessage>{errors.allowedReligions.message}</ErrorMessage>
+              )}
+            </Field>
+
+            <Field>
+              <Label>Blocked Categories</Label>
+              <Description>Select categories to block from this station</Description>
+              {loadingCategories ? (
+                <div className="text-sm text-gray-500">Loading categories...</div>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {categories
+                    .filter(cat => cat.level === 1) // Only show level 1 categories
+                    .map((category) => (
+                      <CheckboxField key={category.id}>
+                        <Checkbox
+                          id={`category-${category.id}`}
+                          checked={watch('blockedCategories')?.includes(category.id)}
+                          onChange={(checked) => {
+                            const current = watch('blockedCategories') || [];
+                            if (checked && !current.includes(category.id)) {
+                              setValue('blockedCategories', [...current, category.id]);
+                            } else if (!checked) {
+                              setValue('blockedCategories', current.filter(c => c !== category.id));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`category-${category.id}`}>{category.name}</Label>
+                      </CheckboxField>
+                    ))}
+                </div>
+              )}
+            </Field>
           </FieldGroup>
         </Fieldset>
 
