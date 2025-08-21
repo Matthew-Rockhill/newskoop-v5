@@ -11,12 +11,22 @@ import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { 
   CalendarIcon,
   MusicalNoteIcon,
-  LanguageIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
 
 interface StoryCardProps {
-  story: any;
+  story: {
+    id: string;
+    title: string;
+    content: string | null;
+    category: { id: string; name: string; slug: string } | null;
+    author: { firstName: string; lastName: string } | null;
+    createdAt: string | Date;
+    publishedAt?: string | Date;
+    tags: Array<{ id: string; name: string; category: string }>;
+    audioClips?: Array<{ id: string; url: string; originalName: string; duration: number | null }>;
+    translations?: Array<{ id: string; title: string; content: string | null; targetLanguage: string }>;
+  };
   selectedLanguage?: string;
 }
 
@@ -24,22 +34,22 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
 
   // Get language tags
-  const languageTags = story.tags?.filter((tag: any) => tag.category === 'LANGUAGE') || [];
-  const hasSelectedLanguage = selectedLanguage ? languageTags.some((tag: any) => tag.name === selectedLanguage) : true;
+  const languageTags = story.tags?.filter((tag) => tag.category === 'LANGUAGE') || [];
+  const hasSelectedLanguage = selectedLanguage ? languageTags.some((tag) => tag.name === selectedLanguage) : true;
 
   // Get the story content (could be original or translation)
   const displayTitle = story.title;
   const displayContent = story.content;
   
   // Extract text content for preview (remove HTML)
-  const textContent = displayContent.replace(/<[^>]*>/g, '').substring(0, 150);
+  const textContent = displayContent ? displayContent.replace(/<[^>]*>/g, '').substring(0, 150) : 'No content available';
   
-  // Format published date
-  const publishedDate = new Date(story.publishedAt).toLocaleDateString('en-US', {
+  // Format published date  
+  const publishedDate = story.publishedAt ? new Date(story.publishedAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  });
+  }) : 'No date';
 
   // Audio handlers
   const handleAudioPlay = (audioId: string) => {
@@ -67,7 +77,7 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
           )}
           {/* Audio Indicator */}
           {story.audioClips && story.audioClips.length > 0 && (
-            <Badge color="kelly-green" className="text-xs flex items-center gap-1">
+            <Badge color="green" className="text-xs flex items-center gap-1">
               <MusicalNoteIcon className="h-3 w-3" />
               Audio
             </Badge>
@@ -76,10 +86,10 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
         
         {languageTags.length > 0 && (
           <div className="flex gap-1">
-            {languageTags.map((tag: any) => (
+            {languageTags.map((tag) => (
               <Badge 
                 key={tag.id}
-                color={selectedLanguage && tag.name === selectedLanguage ? "green" : "gray"}
+                color={selectedLanguage && tag.name === selectedLanguage ? "green" : "zinc"}
                 className="text-xs"
               >
                 {tag.name === 'English' ? 'EN' : 
@@ -118,7 +128,7 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
           </div>
           
           <div className="space-y-2">
-            {story.audioClips.slice(0, 1).map((clip: any) => (
+            {story.audioClips.slice(0, 1).map((clip) => (
               <CustomAudioPlayer
                 key={clip.id}
                 clip={clip}

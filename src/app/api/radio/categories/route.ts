@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         level: 1,
         isParent: true,
         id: {
-          notIn: station.blockedCategories,
+          notIn: station?.blockedCategories || [],
         },
       },
       select: {
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
           where: {
             category: 'LANGUAGE',
             name: {
-              in: station.allowedLanguages,
+              in: station?.allowedLanguages || [],
             },
           },
           select: { id: true },
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
           where: {
             category: 'RELIGION',
             name: {
-              in: station.allowedReligions,
+              in: station?.allowedReligions || [],
             },
           },
           select: { id: true },
@@ -135,10 +135,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       categories: categoriesWithCounts,
       station: {
-        name: station.name,
-        allowedLanguages: station.allowedLanguages,
-        allowedReligions: station.allowedReligions,
-        blockedCategories: station.blockedCategories,
+        name: station?.name || 'Unknown',
+        allowedLanguages: station?.allowedLanguages || [],
+        allowedReligions: station?.allowedReligions || [],
+        blockedCategories: station?.blockedCategories || [],
       },
     });
 

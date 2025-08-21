@@ -362,8 +362,11 @@ export default function ProfilePage() {
                       </label>
                       <Input
                         {...profileForm.register('firstName')}
-                        error={profileForm.formState.errors.firstName?.message}
+                        data-invalid={!!profileForm.formState.errors.firstName}
                       />
+                      {profileForm.formState.errors.firstName && (
+                        <p className="text-red-500 text-sm mt-1">{profileForm.formState.errors.firstName.message}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -371,8 +374,11 @@ export default function ProfilePage() {
                       </label>
                       <Input
                         {...profileForm.register('lastName')}
-                        error={profileForm.formState.errors.lastName?.message}
+                        data-invalid={!!profileForm.formState.errors.lastName}
                       />
+                      {profileForm.formState.errors.lastName && (
+                        <p className="text-red-500 text-sm mt-1">{profileForm.formState.errors.lastName.message}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -381,8 +387,11 @@ export default function ProfilePage() {
                       <Input
                         {...profileForm.register('mobileNumber')}
                         placeholder="Optional"
-                        error={profileForm.formState.errors.mobileNumber?.message}
+                        data-invalid={!!profileForm.formState.errors.mobileNumber}
                       />
+                      {profileForm.formState.errors.mobileNumber && (
+                        <p className="text-red-500 text-sm mt-1">{profileForm.formState.errors.mobileNumber.message}</p>
+                      )}
                     </div>
                   </div>
 
@@ -478,8 +487,11 @@ export default function ProfilePage() {
                               <Input
                                 type="password"
                                 {...passwordForm.register('currentPassword')}
-                                error={passwordForm.formState.errors.currentPassword?.message}
+                                data-invalid={!!passwordForm.formState.errors.currentPassword}
                               />
+                              {passwordForm.formState.errors.currentPassword && (
+                                <p className="text-red-500 text-sm mt-1">{passwordForm.formState.errors.currentPassword.message}</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -488,8 +500,11 @@ export default function ProfilePage() {
                               <Input
                                 type="password"
                                 {...passwordForm.register('newPassword')}
-                                error={passwordForm.formState.errors.newPassword?.message}
+                                data-invalid={!!passwordForm.formState.errors.newPassword}
                               />
+                              {passwordForm.formState.errors.newPassword && (
+                                <p className="text-red-500 text-sm mt-1">{passwordForm.formState.errors.newPassword.message}</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -498,8 +513,11 @@ export default function ProfilePage() {
                               <Input
                                 type="password"
                                 {...passwordForm.register('confirmPassword')}
-                                error={passwordForm.formState.errors.confirmPassword?.message}
+                                data-invalid={!!passwordForm.formState.errors.confirmPassword}
                               />
+                              {passwordForm.formState.errors.confirmPassword && (
+                                <p className="text-red-500 text-sm mt-1">{passwordForm.formState.errors.confirmPassword.message}</p>
+                              )}
                             </div>
                           </div>
 
@@ -633,8 +651,11 @@ export default function ProfilePage() {
                           </label>
                           <Input
                             {...stationForm.register('name')}
-                            error={stationForm.formState.errors.name?.message}
+                            data-invalid={!!stationForm.formState.errors.name}
                           />
+                          {stationForm.formState.errors.name && (
+                            <p className="text-red-500 text-sm mt-1">{stationForm.formState.errors.name.message}</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -643,8 +664,11 @@ export default function ProfilePage() {
                           <Input
                             {...stationForm.register('contactNumber')}
                             placeholder="Optional"
-                            error={stationForm.formState.errors.contactNumber?.message}
+                            data-invalid={!!stationForm.formState.errors.contactNumber}
                           />
+                          {stationForm.formState.errors.contactNumber && (
+                            <p className="text-red-500 text-sm mt-1">{stationForm.formState.errors.contactNumber.message}</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -654,8 +678,11 @@ export default function ProfilePage() {
                             type="email"
                             {...stationForm.register('contactEmail')}
                             placeholder="Optional"
-                            error={stationForm.formState.errors.contactEmail?.message}
+                            data-invalid={!!stationForm.formState.errors.contactEmail}
                           />
+                          {stationForm.formState.errors.contactEmail && (
+                            <p className="text-red-500 text-sm mt-1">{stationForm.formState.errors.contactEmail.message}</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -664,8 +691,11 @@ export default function ProfilePage() {
                           <Input
                             {...stationForm.register('website')}
                             placeholder="https://example.com"
-                            error={stationForm.formState.errors.website?.message}
+                            data-invalid={!!stationForm.formState.errors.website}
                           />
+                          {stationForm.formState.errors.website && (
+                            <p className="text-red-500 text-sm mt-1">{stationForm.formState.errors.website.message}</p>
+                          )}
                         </div>
                         <div className="md:col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-2">

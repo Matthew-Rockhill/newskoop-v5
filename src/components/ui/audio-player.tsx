@@ -3,8 +3,6 @@
 import { useCallback, useRef } from 'react';
 import { 
   MusicalNoteIcon,
-  PlayIcon,
-  PauseIcon,
 } from '@heroicons/react/24/outline';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
@@ -37,7 +35,6 @@ export function CustomAudioPlayer({
   onEnded,
   onError,
   duration = 0,
-  compact = false,
 }: CustomAudioPlayerProps) {
   const playerRef = useRef<AudioPlayer>(null);
 
@@ -53,24 +50,25 @@ export function CustomAudioPlayer({
     onEnded?.(clip.id);
   }, [onEnded, clip.id]);
 
-  const handleError = useCallback(() => {
-    onError?.(clip.id);
-  }, [onError, clip.id]);
+  // Unused handlers - commented out to avoid lint errors
+  // const handleError = useCallback(() => {
+  //   onError?.(clip.id);
+  // }, [onError, clip.id]);
 
-  const handleLoadedMetadata = useCallback((e: Event) => {
-    const target = e.target as HTMLAudioElement;
-    onLoadedMetadata?.(clip.id, target.duration);
-  }, [onLoadedMetadata, clip.id]);
+  // const handleLoadedMetadata = useCallback((e: Event) => {
+  //   const target = e.target as HTMLAudioElement;
+  //   onLoadedMetadata?.(clip.id, target.duration);
+  // }, [onLoadedMetadata, clip.id]);
 
-  const handleTimeUpdate = useCallback((e: Event) => {
-    const target = e.target as HTMLAudioElement;
-    onTimeUpdate?.(clip.id, target.currentTime);
-  }, [onTimeUpdate, clip.id]);
+  // const handleTimeUpdate = useCallback((e: Event) => {
+  //   const target = e.target as HTMLAudioElement;
+  //   onTimeUpdate?.(clip.id, target.currentTime);
+  // }, [onTimeUpdate, clip.id]);
 
-  const handleSeeked = useCallback((e: Event) => {
-    const target = e.target as HTMLAudioElement;
-    onSeek?.(clip.id, target.currentTime);
-  }, [onSeek, clip.id]);
+  // const handleSeeked = useCallback((e: Event) => {
+  //   const target = e.target as HTMLAudioElement;
+  //   onSeek?.(clip.id, target.currentTime);
+  // }, [onSeek, clip.id]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

@@ -162,7 +162,7 @@ export default function CategoryPage() {
 
               {/* Count Badge */}
               <div className="flex-shrink-0">
-                <Badge color="white" className="bg-gray-50 text-gray-800 font-semibold border border-gray-200">
+                <Badge color="zinc" className="bg-gray-50 text-gray-800 font-semibold border border-gray-200">
                   {pagination?.total || stories.length} {category?.name === 'News Bulletins' ? 'bulletins' : 'stories'}
                 </Badge>
               </div>
@@ -304,7 +304,7 @@ export default function CategoryPage() {
                     return (
                       <Button
                         key={pageNumber}
-                        color={pageNumber === currentPage ? "kelly-green" : "white"}
+                        color={pageNumber === currentPage ? "primary" : "white"}
                         onClick={() => setCurrentPage(pageNumber)}
                         className="min-w-[40px]"
                       >

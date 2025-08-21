@@ -34,7 +34,7 @@ import {
 interface Story {
   id: string;
   title: string;
-  content: string;
+  content: string | null;
   author: {
     firstName: string;
     lastName: string;
@@ -88,7 +88,8 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
     });
   };
 
-  const truncateContent = (content: string, maxLength: number = 100) => {
+  const truncateContent = (content: string | null, maxLength: number = 100) => {
+    if (!content) return 'No content available';
     // Strip HTML tags for preview
     const textContent = content.replace(/<[^>]*>/g, '');
     return textContent.length > maxLength 
@@ -132,11 +133,11 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
             {story.title}
           </h4>
           {languageTag && (
-            <Badge color="blue" size="sm">
+            <Badge color="blue">
               {languageTag.name}
             </Badge>
           )}
-          <Badge color="green" size="sm">
+          <Badge color="green">
             {story.category.name}
           </Badge>
         </div>
@@ -167,7 +168,6 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
       <Button
         type="button"
         outline
-        size="sm"
         onClick={() => onRemove(story.id)}
         className="flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
       >

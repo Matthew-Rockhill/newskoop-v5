@@ -341,14 +341,14 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 </Button>
               )}
               
-              {canShowRequestRevisionButton(userRole, translation.status) && (
+              {canShowRequestRevisionButton(userRole || null, translation.status) && (
                 <Button color="red" onClick={handleRequestRevision} disabled={isSubmitting}>
                   <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
                   Request Revision
                 </Button>
               )}
               
-              {canShowSubmitForReviewButton(userRole, translation.status, isOwnTranslation) && (
+              {canShowSubmitForReviewButton(userRole || null, translation.status, isOwnTranslation) && (
                 <Button 
                   color="primary" 
                   onClick={handleSubmitForReview} 
@@ -458,7 +458,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                     <Heading level={3} className="text-xl font-semibold">Translated Story</Heading>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge color="kelly-green" className="text-sm">
+                    <Badge color="green" className="text-sm">
                       {translation.targetLanguage}
                     </Badge>
                     <Badge color="zinc" className="text-sm">
@@ -660,8 +660,9 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
         <RevisionRequestModal
           isOpen={showRevisionModal}
           onClose={() => setShowRevisionModal(false)}
-          onSubmit={handleRevisionRequested}
-          isSubmitting={isSubmitting}
+          onConfirm={handleRevisionRequested}
+          storyTitle={originalStory?.title || 'Story'}
+          isLoading={isSubmitting}
         />
       )}
     </>

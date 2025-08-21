@@ -29,7 +29,7 @@ type BulletinEditFormData = z.infer<typeof bulletinEditSchema>;
 interface SelectedStory {
   id: string;
   title: string;
-  content: string;
+  content: string | null;
   audioUrl?: string;
   author: {
     firstName: string;
@@ -281,7 +281,10 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Bulletin Schedule *
                 </label>
-                <Select {...register('scheduleId')} error={errors.scheduleId?.message}>
+                <Select 
+                  {...register('scheduleId')} 
+                  data-invalid={!!errors.scheduleId}
+                >
                   <option value="">Select a bulletin schedule...</option>
                   {schedules.map((schedule: any) => (
                     <option key={schedule.id} value={schedule.id}>
@@ -289,6 +292,9 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
                     </option>
                   ))}
                 </Select>
+                {errors.scheduleId && (
+                  <p className="text-red-600 text-sm mt-1">{errors.scheduleId.message}</p>
+                )}
               </div>
 
               {selectedSchedule && (
@@ -298,10 +304,10 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
                     <Text className="font-semibold text-gray-900">
                       {selectedSchedule.title}
                     </Text>
-                    <Badge color="blue" size="sm">
+                    <Badge color="blue">
                       {selectedSchedule.language}
                     </Badge>
-                    <Badge color="green" size="sm">
+                    <Badge color="green">
                       {selectedSchedule.scheduleType.replace('_', ' ')}
                     </Badge>
                   </div>
@@ -319,8 +325,11 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
                   type="date"
                   {...register('scheduledDate')}
                   min={new Date().toISOString().slice(0, 10)}
-                  error={errors.scheduledDate?.message}
+                  data-invalid={!!errors.scheduledDate}
                 />
+                {errors.scheduledDate && (
+                  <p className="text-red-600 text-sm mt-1">{errors.scheduledDate.message}</p>
+                )}
                 <Text className="text-xs text-gray-500 mt-1">
                   The bulletin will be scheduled for {selectedSchedule?.time || '[time]'} on this date
                 </Text>

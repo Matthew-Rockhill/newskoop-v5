@@ -14,7 +14,7 @@ const roleBasedPaths: Record<string, string[]> = {
 };
 
 // Paths for radio users (different user type)
-const radioUserPaths = ['/radio'];
+// const radioUserPaths = ['/radio'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

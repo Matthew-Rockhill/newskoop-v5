@@ -79,13 +79,13 @@ export default function BulletinsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DRAFT': return 'gray';
+      case 'DRAFT': return 'zinc';
       case 'IN_REVIEW': return 'yellow';
       case 'NEEDS_REVISION': return 'orange';
       case 'APPROVED': return 'blue';
       case 'PUBLISHED': return 'green';
-      case 'ARCHIVED': return 'gray';
-      default: return 'gray';
+      case 'ARCHIVED': return 'zinc';
+      default: return 'zinc';
     }
   };
 
@@ -94,7 +94,7 @@ export default function BulletinsPage() {
       case 'ENGLISH': return 'blue';
       case 'AFRIKAANS': return 'green';
       case 'XHOSA': return 'purple';
-      default: return 'gray';
+      default: return 'zinc';
     }
   };
 

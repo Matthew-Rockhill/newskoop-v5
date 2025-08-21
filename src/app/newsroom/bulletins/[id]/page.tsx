@@ -192,7 +192,7 @@ export default function BulletinViewPage() {
                             By {bulletinStory.story?.author?.firstName} {bulletinStory.story?.author?.lastName}
                           </span>
                           {bulletinStory.story?.category && (
-                            <Badge color="green" size="sm">
+                            <Badge color="green">
                               {bulletinStory.story.category.name}
                             </Badge>
                           )}
@@ -243,7 +243,7 @@ export default function BulletinViewPage() {
                           {bulletinStory.story.tags
                             .filter((storyTag: any) => storyTag.tag.category !== 'LANGUAGE')
                             .map((storyTag: any) => (
-                            <Badge key={storyTag.tag.id} color="zinc" size="sm">
+                            <Badge key={storyTag.tag.id} color="zinc">
                               {storyTag.tag.name}
                             </Badge>
                           ))}

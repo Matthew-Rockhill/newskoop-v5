@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { AnnouncementTargetAudience } from '@prisma/client';
 
 // GET /api/radio/announcements - Get active announcements for radio users (excluding dismissed ones)
 export async function GET(req: NextRequest) {
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
     const whereClause = {
       isActive: true,
       targetAudience: {
-        in: ['RADIO', 'ALL'],
+        in: [AnnouncementTargetAudience.RADIO, AnnouncementTargetAudience.ALL],
       },
       OR: [
         { expiresAt: null },

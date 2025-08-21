@@ -236,7 +236,7 @@ export default function RadioDashboard() {
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <Text className="text-sm text-gray-600">Station:</Text>
-                  <Badge color="kelly-green">{station?.name}</Badge>
+                  <Badge color="green">{station?.name}</Badge>
                 </div>
                 <div className="flex items-center gap-2">
                   <Text className="text-sm text-gray-600">Languages:</Text>

@@ -20,7 +20,7 @@ import { debounce } from 'lodash';
 interface Story {
   id: string;
   title: string;
-  content: string;
+  content: string | null;
   publishedAt: string;
   author: {
     firstName: string;
@@ -48,6 +48,15 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
   const [categoryFilter, setCategoryFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [page, setPage] = useState(1);
+
+  const truncateContent = (content: string | null, maxLength: number = 100) => {
+    if (!content) return 'No content available';
+    // Strip HTML tags for preview
+    const textContent = content.replace(/<[^>]*>/g, '');
+    return textContent.length > maxLength 
+      ? textContent.substring(0, maxLength) + '...' 
+      : textContent;
+  };
 
   // Debounced search to avoid too many API calls
   const debouncedSearch = useCallback(
@@ -144,13 +153,6 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
     return storyTags.find(tag => tag.category === 'LANGUAGE');
   };
 
-  const truncateContent = (content: string, maxLength: number = 150) => {
-    // Strip HTML tags for preview
-    const textContent = content.replace(/<[^>]*>/g, '');
-    return textContent.length > maxLength 
-      ? textContent.substring(0, maxLength) + '...' 
-      : textContent;
-  };
 
   return (
     <div className="space-y-4">
@@ -196,7 +198,6 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
             <Button
               type="button"
               outline
-              size="sm"
               onClick={resetFilters}
             >
               Clear Filters
@@ -243,11 +244,11 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
                         {story.title}
                       </h4>
                       {languageTag && (
-                        <Badge color="blue" size="sm">
+                        <Badge color="blue">
                           {languageTag.name}
                         </Badge>
                       )}
-                      <Badge color="green" size="sm">
+                      <Badge color="green">
                         {story.category.name}
                       </Badge>
                     </div>
@@ -276,7 +277,6 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
 
                   <Button
                     type="button"
-                    size="sm"
                     onClick={() => onAddStory(story)}
                     disabled={isSelected}
                     className={
@@ -307,7 +307,6 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
           <Button
             type="button"
             outline
-            size="sm"
             onClick={() => setPage(page - 1)}
             disabled={page === 1}
           >
@@ -319,7 +318,6 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
           <Button
             type="button"
             outline
-            size="sm"
             onClick={() => setPage(page + 1)}
             disabled={page === pagination.totalPages}
           >

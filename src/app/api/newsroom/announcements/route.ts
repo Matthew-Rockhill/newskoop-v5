@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { AnnouncementTargetAudience } from '@prisma/client';
 
 // GET /api/newsroom/announcements - Get announcements for newsroom staff
 export async function GET(req: NextRequest) {
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
     const whereClause = {
       isActive: true,
       targetAudience: {
-        in: ['NEWSROOM', 'ALL'],
+        in: [AnnouncementTargetAudience.NEWSROOM, AnnouncementTargetAudience.ALL],
       },
       OR: [
         { expiresAt: null },

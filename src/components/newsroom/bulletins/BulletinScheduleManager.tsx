@@ -142,8 +142,11 @@ export function BulletinScheduleManager({
               <Input
                 {...register('title')}
                 placeholder="e.g., Morning News Bulletin"
-                error={errors.title?.message}
+                data-invalid={!!errors.title}
               />
+              {errors.title && (
+                <p className="text-red-600 text-sm mt-1">{errors.title.message}</p>
+              )}
             </div>
 
             {/* Time */}
@@ -151,7 +154,10 @@ export function BulletinScheduleManager({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Time *
               </label>
-              <Select {...register('time')} error={errors.time?.message}>
+              <Select 
+                {...register('time')} 
+                data-invalid={!!errors.time}
+              >
                 <option value="">Select time...</option>
                 <option value="04:00">4:00 AM</option>
                 <option value="04:30">4:30 AM</option>
@@ -185,6 +191,9 @@ export function BulletinScheduleManager({
                 <option value="18:30">6:30 PM</option>
                 <option value="19:00">7:00 PM</option>
               </Select>
+              {errors.time && (
+                <p className="text-red-600 text-sm mt-1">{errors.time.message}</p>
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 Business hours: 4:00 AM - 7:00 PM (30-minute intervals)
               </p>
@@ -195,11 +204,17 @@ export function BulletinScheduleManager({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Language *
               </label>
-              <Select {...register('language')} error={errors.language?.message}>
+              <Select 
+                {...register('language')} 
+                data-invalid={!!errors.language}
+              >
                 <option value="ENGLISH">English</option>
                 <option value="AFRIKAANS">Afrikaans</option>
                 <option value="XHOSA">Xhosa</option>
               </Select>
+              {errors.language && (
+                <p className="text-red-600 text-sm mt-1">{errors.language.message}</p>
+              )}
             </div>
 
             {/* Schedule Type */}
@@ -207,11 +222,17 @@ export function BulletinScheduleManager({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Schedule Type *
               </label>
-              <Select {...register('scheduleType')} error={errors.scheduleType?.message}>
+              <Select 
+                {...register('scheduleType')} 
+                data-invalid={!!errors.scheduleType}
+              >
                 <option value="WEEKDAY">Weekday</option>
                 <option value="WEEKEND">Weekend</option>
                 <option value="PUBLIC_HOLIDAY">Public Holiday</option>
               </Select>
+              {errors.scheduleType && (
+                <p className="text-red-600 text-sm mt-1">{errors.scheduleType.message}</p>
+              )}
             </div>
 
             {/* Active Status */}

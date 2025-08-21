@@ -110,7 +110,7 @@ export default function BulletinSchedulesPage() {
       case 'ENGLISH': return 'blue';
       case 'AFRIKAANS': return 'green';
       case 'XHOSA': return 'purple';
-      default: return 'gray';
+      default: return 'zinc';
     }
   };
 
@@ -229,7 +229,6 @@ export default function BulletinSchedulesPage() {
                   <div className="flex items-center gap-2">
                     <Button
                       outline
-                      size="sm"
                       onClick={() => toggleActiveMutation.mutate({ id: schedule.id, isActive: schedule.isActive })}
                       className="flex items-center gap-1"
                     >
@@ -247,7 +246,6 @@ export default function BulletinSchedulesPage() {
                     </Button>
                     <Button
                       outline
-                      size="sm"
                       onClick={() => setEditingSchedule(schedule)}
                       className="flex items-center gap-1"
                     >
@@ -256,7 +254,6 @@ export default function BulletinSchedulesPage() {
                     </Button>
                     <Button
                       outline
-                      size="sm"
                       onClick={() => handleDelete(schedule)}
                       disabled={schedule._count.bulletins > 0}
                       className="flex items-center gap-1 text-red-600 hover:text-red-700 disabled:opacity-50"

@@ -14,7 +14,7 @@ import {
 interface Story {
   id: string;
   title: string;
-  content: string;
+  content: string | null;
   author: {
     firstName: string;
     lastName: string;
@@ -69,7 +69,7 @@ export function BulletinPreview({
       case 'ENGLISH': return 'blue';
       case 'AFRIKAANS': return 'green';
       case 'XHOSA': return 'purple';
-      default: return 'gray';
+      default: return 'zinc';
     }
   };
 
@@ -101,7 +101,7 @@ export function BulletinPreview({
               {title || 'Untitled Bulletin'}
             </Heading>
             <div className="flex items-center gap-3">
-              <Badge color={getLanguageColor(language)} size="sm">
+              <Badge color={getLanguageColor(language)}>
                 {language}
               </Badge>
               <span className="flex items-center gap-1 text-sm text-gray-600">
@@ -178,7 +178,7 @@ export function BulletinPreview({
                           <Heading level={4} className="font-semibold text-gray-900">
                             {story.title}
                           </Heading>
-                          <Badge color="green" size="sm">
+                          <Badge color="green">
                             {story.category.name}
                           </Badge>
                         </div>
@@ -219,7 +219,11 @@ export function BulletinPreview({
 
                     {/* Story Content */}
                     <div className="prose prose-sm max-w-none text-gray-700">
-                      <div dangerouslySetInnerHTML={{ __html: story.content }} />
+                      {story.content ? (
+                        <div dangerouslySetInnerHTML={{ __html: story.content }} />
+                      ) : (
+                        <p className="text-gray-500 italic">No content available</p>
+                      )}
                     </div>
 
                     {/* Story Tags */}
@@ -230,7 +234,7 @@ export function BulletinPreview({
                           {story.tags
                             .filter(tag => tag.category !== 'LANGUAGE')
                             .map((tag) => (
-                            <Badge key={tag.id} color="zinc" size="sm">
+                            <Badge key={tag.id} color="zinc">
                               {tag.name}
                             </Badge>
                           ))}
@@ -286,6 +290,7 @@ export function BulletinPreview({
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-600">
               {stories.reduce((total, story) => {
+                if (!story.content) return total;
                 const words = story.content.replace(/<[^>]*>/g, '').split(' ').filter(word => word.length > 0);
                 return total + words.length;
               }, 0)}

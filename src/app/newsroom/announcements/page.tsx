@@ -239,14 +239,14 @@ export default function NewsroomAnnouncementsPage() {
                         <Heading level={4} className="text-lg font-semibold text-gray-900">
                           {announcement.title}
                         </Heading>
-                        <Badge color={getPriorityColor(announcement.priority)} className="text-xs">
+                        <Badge color={getPriorityColor(announcement.priority)}>
                           {announcement.priority}
                         </Badge>
-                        <Badge color={getTargetAudienceColor(announcement.targetAudience)} className="text-xs">
+                        <Badge color={getTargetAudienceColor(announcement.targetAudience)}>
                           {announcement.targetAudience}
                         </Badge>
                         {announcement.isDismissed && (
-                          <Badge color="zinc" className="text-xs">
+                          <Badge color="zinc">
                             DISMISSED
                           </Badge>
                         )}
@@ -260,7 +260,7 @@ export default function NewsroomAnnouncementsPage() {
                         <div className="flex items-center gap-1">
                           <UsersIcon className="h-4 w-4" />
                           <span>By {announcement.author.firstName} {announcement.author.lastName}</span>
-                          <Badge color="zinc" className="text-xs">
+                          <Badge color="zinc">
                             {announcement.author.staffRole}
                           </Badge>
                         </div>
@@ -275,7 +275,6 @@ export default function NewsroomAnnouncementsPage() {
                   {!announcement.isDismissed && (
                     <Button
                       outline
-                      size="sm"
                       onClick={() => handleDismiss(announcement.id)}
                       disabled={dismissMutation.isPending}
                       className="flex items-center gap-1"

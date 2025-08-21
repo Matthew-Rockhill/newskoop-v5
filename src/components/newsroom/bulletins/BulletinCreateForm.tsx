@@ -29,7 +29,7 @@ type BulletinFormData = z.infer<typeof bulletinSchema>;
 interface SelectedStory {
   id: string;
   title: string;
-  content: string;
+  content: string | null;
   author: {
     firstName: string;
     lastName: string;
@@ -228,7 +228,10 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Bulletin Schedule *
                 </label>
-                <Select {...register('scheduleId')} error={errors.scheduleId?.message}>
+                <Select 
+                  {...register('scheduleId')} 
+                  data-invalid={!!errors.scheduleId}
+                >
                   <option value="">Select a bulletin schedule...</option>
                   {schedules.map((schedule: any) => (
                     <option key={schedule.id} value={schedule.id}>
@@ -236,6 +239,9 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                     </option>
                   ))}
                 </Select>
+                {errors.scheduleId && (
+                  <p className="text-red-600 text-sm mt-1">{errors.scheduleId.message}</p>
+                )}
                 {schedules.length === 0 && (
                   <Text className="text-sm text-amber-600 mt-1">
                     No active schedules found. Please create a schedule first.
@@ -250,10 +256,10 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                     <Text className="font-semibold text-gray-900">
                       {selectedSchedule.title}
                     </Text>
-                    <Badge color="blue" size="sm">
+                    <Badge color="blue">
                       {selectedSchedule.language}
                     </Badge>
-                    <Badge color="green" size="sm">
+                    <Badge color="green">
                       {selectedSchedule.scheduleType.replace('_', ' ')}
                     </Badge>
                   </div>
@@ -271,8 +277,11 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                   type="date"
                   {...register('scheduledDate')}
                   min={new Date().toISOString().slice(0, 10)}
-                  error={errors.scheduledDate?.message}
+                  data-invalid={!!errors.scheduledDate}
                 />
+                {errors.scheduledDate && (
+                  <p className="text-red-600 text-sm mt-1">{errors.scheduledDate.message}</p>
+                )}
                 <Text className="text-xs text-gray-500 mt-1">
                   The bulletin will be scheduled for {selectedSchedule?.time || '[time]'} on this date
                 </Text>

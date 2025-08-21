@@ -400,7 +400,7 @@ export default function StoryDetailPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Text className="text-sm text-gray-600">Audio:</Text>
-                    <Badge color="white" className="text-xs">
+                    <Badge color="zinc" className="text-xs">
                       {story.audioClips?.length > 0 ? 
                         `${story.audioClips.length} clip${story.audioClips.length !== 1 ? 's' : ''}` : 
                         'No audio'
@@ -413,7 +413,7 @@ export default function StoryDetailPage() {
                     <Text className="text-sm text-gray-600">Available Languages:</Text>
                     <div className="flex gap-1">
                       {availableLanguages.map((lang: string) => (
-                        <Badge key={lang} color="white" className="text-xs">
+                        <Badge key={lang} color="zinc" className="text-xs">
                           {lang === 'English' ? 'EN' : lang === 'Afrikaans' ? 'AF' : 'XH'}
                         </Badge>
                       ))}
