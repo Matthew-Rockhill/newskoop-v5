@@ -1,6 +1,6 @@
 "use client";
 
-import { TranslationReviewForm } from '@/components/newsroom/TranslationReviewForm';
+import { TranslationReviewForm } from '@/components/newsroom/TranslationReviewFormNew';
 
 interface TranslationReviewPageProps {
   params: Promise<{

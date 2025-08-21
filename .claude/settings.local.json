@@ -17,7 +17,8 @@
       "Bash(xcopy:*)",
       "Bash(robocopy:*)",
       "Bash(mkdir:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(DATABASE_URL='postgresql://neondb_owner:npg_q7N1owMIiWnp@ep-lingering-sun-abx8zkr7-pooler.eu-west-2.aws.neon.tech/newskoopdb?sslmode=require&channel_binding=require' npx prisma db push)"
     ],
     "deny": []
   }

@@ -11,11 +11,19 @@ import {
   HomeIcon,
   ArrowRightOnRectangleIcon,
   NewspaperIcon,
+  MegaphoneIcon,
+  SpeakerWaveIcon,
+  ChevronDownIcon,
+  ArrowLeftIcon,
+  UserIcon,
+  CogIcon,
+  RadioIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '../shared/Logo'
 import { useSession, signOut } from 'next-auth/react'
+import { useQuery } from '@tanstack/react-query'
 import { Avatar } from '../ui/avatar'
 import { Button } from '../ui/button'
 
@@ -35,8 +43,20 @@ interface NavigationItem {
 
 export function NewsroomLayout({ children }: NewsroomLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
   const pathname = usePathname()
   const { data: session } = useSession()
+
+  // Fetch user profile to get profile picture
+  const { data: profileData } = useQuery({
+    queryKey: ['staff-profile'],
+    queryFn: async () => {
+      const response = await fetch('/api/staff/profile');
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    },
+    enabled: !!session,
+  });
 
   // Newsroom navigation for editorial staff
   const getNavigation = (): NavigationItem[] => {
@@ -48,10 +68,20 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
     // All editorial staff can see stories
     navigation.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
     
+    // Bulletins - SUB_EDITOR and above
+    if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'JOURNALIST'].includes(session.user.staffRole)) {
+      navigation.push({ name: 'Bulletins', href: '/newsroom/bulletins', icon: RadioIcon })
+    }
+    
     // Categories and Tags - SUB_EDITOR and above
     if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR'].includes(session.user.staffRole)) {
       navigation.push({ name: 'Categories', href: '/newsroom/categories', icon: FolderIcon })
       navigation.push({ name: 'Tags', href: '/newsroom/tags', icon: TagIcon })
+    }
+
+    // Announcements - EDITOR and above
+    if (session?.user?.staffRole && ['SUPERADMIN', 'ADMIN', 'EDITOR'].includes(session.user.staffRole)) {
+      navigation.push({ name: 'Announcements', href: '/newsroom/announcements', icon: MegaphoneIcon })
     }
 
     return navigation
@@ -101,33 +131,124 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
               {navigation.map((item) => renderNavigationItem(item))}
             </ul>
           </li>
+          <li>
+            <div className="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider mb-2">
+              Content Access
+            </div>
+            <ul role="list" className="-mx-2 space-y-1">
+              <li>
+                <Link
+                  href="/radio"
+                  className={classNames(
+                    pathname.startsWith('/radio')
+                      ? 'bg-gray-50 text-[#76BD43]'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
+                    'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
+                  )}
+                >
+                  <SpeakerWaveIcon
+                    className={classNames(
+                      pathname.startsWith('/radio') ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
+                      'h-6 w-6 shrink-0'
+                    )}
+                    aria-hidden="true"
+                  />
+                  Radio Station Zone
+                </Link>
+              </li>
+            </ul>
+          </li>
         </ul>
 
         <div className="-mx-6 mt-auto">
           {session?.user && (
             <div className="border-t border-gray-200 px-6 py-3">
-              <div className="flex items-center gap-x-4 mb-3">
-                <Avatar
-                  className="h-8 w-8"
-                  name={`${session.user.firstName} ${session.user.lastName}`}
-                />
-                <div className="min-w-0 flex-auto">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {`${session.user.firstName} ${session.user.lastName}`}
-                  </p>
-                  <p className="truncate text-xs text-gray-500">
-                    {session.user.staffRole}
-                  </p>
-                </div>
+              <div className="relative">
+                <button
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                  className="flex items-center gap-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors w-full"
+                >
+                  <Avatar
+                    className="h-8 w-8"
+                    name={`${session.user.firstName} ${session.user.lastName}`}
+                    src={profileData?.user?.profilePictureUrl}
+                  />
+                  <div className="min-w-0 flex-auto text-left">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {`${session.user.firstName} ${session.user.lastName}`}
+                    </p>
+                    <p className="truncate text-xs text-gray-500">
+                      {session.user.staffRole}
+                    </p>
+                  </div>
+                  <ChevronDownIcon className={`h-4 w-4 text-gray-500 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* User Dropdown */}
+                {isUserDropdownOpen && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsUserDropdownOpen(false)}
+                    />
+                    
+                    {/* Dropdown Menu */}
+                    <div className="absolute bottom-full left-2 right-2 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                      <div className="py-2">
+                        {/* Cross-Navigation Links */}
+                        {/* Admin Dashboard - for admin staff */}
+                        {(['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole || '')) && (
+                          <Link
+                            href="/admin"
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                          >
+                            <ArrowLeftIcon className="h-4 w-4" />
+                            Admin Dashboard
+                          </Link>
+                        )}
+                        
+                        {/* Radio Station Zone - all staff */}
+                        <Link
+                          href="/radio"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                        >
+                          <ArrowLeftIcon className="h-4 w-4" />
+                          Radio Station Zone
+                        </Link>
+                        
+                        <div className="border-t border-gray-100 my-1"></div>
+                        
+                        {/* Profile & Settings */}
+                        <Link
+                          href="/newsroom/profile"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                        >
+                          <UserIcon className="h-4 w-4" />
+                          Profile & Settings
+                        </Link>
+                        
+                        <div className="border-t border-gray-100 my-1"></div>
+                        
+                        {/* Sign Out */}
+                        <button
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            signOut({ callbackUrl: '/login' });
+                          }}
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                        >
+                          <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <Button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                color="white"
-                className="w-full justify-start text-sm"
-              >
-                <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
             </div>
           )}
         </div>
@@ -193,6 +314,7 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
               <Avatar
                 className="h-8 w-8"
                 name={`${session.user.firstName} ${session.user.lastName}`}
+                src={profileData?.user?.profilePictureUrl}
               />
             )}
             <Button

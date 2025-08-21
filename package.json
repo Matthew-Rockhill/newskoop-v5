@@ -9,10 +9,14 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "vercel-build": "prisma migrate deploy && prisma generate && next build",
-    "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
+    "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
+    "seed:production": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/seed-production-users.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.1.1",

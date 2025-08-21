@@ -8,8 +8,8 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    // Check if user is authenticated and is a radio user
-    if (!session?.user || session.user.userType !== 'RADIO') {
+    // Check if user is authenticated
+    if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -22,28 +22,60 @@ export async function GET(req: NextRequest) {
       include: { radioStation: true },
     });
 
-    if (!user?.radioStation) {
-      return NextResponse.json(
-        { error: 'No station associated with user' },
-        { status: 400 }
-      );
-    }
+    // Handle different user types
+    let station = null;
+    let allowedLanguages = ['English', 'Afrikaans', 'Xhosa']; // Default for STAFF users
+    let hasContentAccess = true;
 
-    const station = user.radioStation;
+    if (session.user.userType === 'RADIO') {
+      // Radio users must have an associated station
+      if (!user?.radioStation) {
+        return NextResponse.json(
+          { error: 'No station associated with user' },
+          { status: 400 }
+        );
+      }
 
-    // Check if station has content access
-    if (!station.isActive || !station.hasContentAccess) {
+      station = user.radioStation;
+
+      // Check if station has content access
+      if (!station.isActive || !station.hasContentAccess) {
+        return NextResponse.json(
+          { error: 'Station does not have content access' },
+          { status: 403 }
+        );
+      }
+
+      allowedLanguages = station.allowedLanguages;
+      hasContentAccess = station.hasContentAccess;
+    } else if (session.user.userType === 'STAFF') {
+      // STAFF users can access all content without station restrictions
+      station = {
+        id: 'staff-access',
+        name: 'Newskoop',
+        allowedLanguages: ['English', 'Afrikaans', 'Xhosa'],
+        allowedReligions: ['Christian', 'Muslim', 'Neutral'],
+        hasContentAccess: true,
+        isActive: true,
+        blockedCategories: [],
+      };
+      allowedLanguages = station.allowedLanguages;
+      hasContentAccess = station.hasContentAccess;
+    } else {
+      // Fallback for any unexpected user types
       return NextResponse.json(
-        { error: 'Station does not have content access' },
+        { error: 'Invalid user type for radio access' },
         { status: 403 }
       );
     }
 
-    // Get query parameters for pagination
+    // Get query parameters for pagination and filtering
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get('page') || '1');
     const perPage = parseInt(url.searchParams.get('perPage') || '20');
     const skip = (page - 1) * perPage;
+    const category = url.searchParams.get('category'); // Category slug filter
+    const language = url.searchParams.get('language'); // Language filter
 
     // Build the where clause for filtering
     const whereClause: any = {
@@ -54,23 +86,46 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    // Get language tags that match station's allowed languages
+    // Add category filter if specified
+    if (category) {
+      const categoryRecord = await prisma.category.findUnique({
+        where: { slug: category },
+        select: { id: true },
+      });
+      
+      if (categoryRecord) {
+        whereClause.categoryId = categoryRecord.id;
+      }
+    }
+
+    // Get language tags that match allowed languages
+    let languageFilter = allowedLanguages;
+    
+    // If specific language requested, filter to just that language
+    if (language && allowedLanguages.includes(language)) {
+      languageFilter = [language];
+    }
+    
     const languageTags = await prisma.tag.findMany({
       where: {
         category: 'LANGUAGE',
         name: {
-          in: station.allowedLanguages,
+          in: languageFilter,
         },
       },
       select: { id: true },
     });
 
-    // Get religion tags that match station's allowed religions
+    // Get religion tags - for STAFF users, include all religions
+    const allowedReligions = session.user.userType === 'STAFF' 
+      ? ['Christian', 'Muslim', 'Neutral'] // All religions for staff
+      : (station as any)?.allowedReligions || ['Christian', 'Muslim', 'Neutral'];
+
     const religionTags = await prisma.tag.findMany({
       where: {
         category: 'RELIGION',
         name: {
-          in: station.allowedReligions,
+          in: allowedReligions,
         },
       },
       select: { id: true },
@@ -166,7 +221,7 @@ export async function GET(req: NextRequest) {
       tags: story.tags.map(st => st.tag),
     }));
 
-    return NextResponse.json({
+    const responseData = {
       stories: transformedStories,
       pagination: {
         total,
@@ -175,11 +230,14 @@ export async function GET(req: NextRequest) {
         totalPages: Math.ceil(total / perPage),
       },
       station: {
-        name: station.name,
-        allowedLanguages: station.allowedLanguages,
-        allowedReligions: station.allowedReligions,
+        name: station?.name || 'Newskoop',
+        allowedLanguages: station?.allowedLanguages || ['English', 'Afrikaans', 'Xhosa'],
+        allowedReligions: station?.allowedReligions || ['Christian', 'Muslim', 'Neutral'],
       },
-    });
+    };
+
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error fetching radio stories:', error);
     return NextResponse.json(

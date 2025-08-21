@@ -68,6 +68,19 @@ enum TagCategory {
   GENERAL
 }
 
+// Announcement enums
+enum AnnouncementPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AnnouncementTargetAudience {
+  ALL
+  NEWSROOM
+  RADIO
+}
+
 // Translation workflow enums
 enum TranslationStatus {
   PENDING
@@ -82,6 +95,21 @@ enum StoryLanguage {
   ENGLISH
   AFRIKAANS
   XHOSA
+}
+
+enum BulletinScheduleType {
+  WEEKDAY
+  WEEKEND
+  PUBLIC_HOLIDAY
+}
+
+enum BulletinStatus {
+  DRAFT
+  IN_REVIEW
+  NEEDS_REVISION
+  APPROVED
+  PUBLISHED
+  ARCHIVED
 }
 
 // Email tracking enums
@@ -118,6 +146,8 @@ model User {
   lastLoginAt           DateTime?
   resetToken           String?
   resetTokenExpiresAt  DateTime?
+  profilePictureUrl    String?
+  defaultLanguagePreference String?   // For radio interface language preference
   
   staffRole             StaffRole?
   
@@ -140,6 +170,16 @@ model User {
   // Translation relationships
   assignedTranslations  Translation[]         @relation("AssignedTranslations")
   reviewedTranslations  Translation[]         @relation("ReviewedTranslations")
+  
+  // Announcement relationships
+  authoredAnnouncements Announcement[]        @relation("AuthoredAnnouncements")
+  announcementDismissals UserAnnouncementDismissal[]
+  
+  // Bulletin relationships
+  authoredBulletins     Bulletin[]            @relation("AuthoredBulletins")
+  reviewedBulletins     Bulletin[]            @relation("ReviewedBulletins")
+  publishedBulletins    Bulletin[]            @relation("PublishedBulletins")
+  bulletinSchedules     BulletinSchedule[]
   
   @@index([email])
   @@index([userType])
@@ -264,6 +304,9 @@ model Story {
   // Review checklist data (stored as JSON)
   reviewChecklist   Json?               // Stores tier 1 review checklist completion state
   
+  // Bulletin relationships
+  bulletinStories   BulletinStory[]
+  
   @@index([status])
   @@index([authorId])
   @@index([categoryId])
@@ -290,6 +333,7 @@ model Category {
   isEditable  Boolean    @default(true) // false for parent categories
   
   stories     Story[]
+  bulletins   Bulletin[]
   
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -472,6 +516,132 @@ model EmailLog {
   @@index([status])
   @@index([type])
   @@index([createdAt])
+}
+
+// Announcement models
+model Announcement {
+  id                String                    @id @default(cuid())
+  title             String
+  message           String
+  priority          AnnouncementPriority      @default(MEDIUM)
+  targetAudience    AnnouncementTargetAudience @default(ALL)
+  isActive          Boolean                   @default(true)
+  expiresAt         DateTime?
+  
+  // Author relationship
+  authorId          String
+  author            User                      @relation("AuthoredAnnouncements", fields: [authorId], references: [id])
+  
+  // User dismissals
+  dismissals        UserAnnouncementDismissal[]
+  
+  // Timestamps
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  
+  @@index([isActive])
+  @@index([targetAudience])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([expiresAt])
+}
+
+model UserAnnouncementDismissal {
+  id              String       @id @default(cuid())
+  
+  // User relationship
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  
+  // Announcement relationship
+  announcementId  String
+  announcement    Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  
+  // Dismissal timestamp
+  dismissedAt     DateTime     @default(now())
+  
+  @@unique([userId, announcementId])
+  @@index([userId])
+  @@index([announcementId])
+}
+
+// Bulletin Schedule Model
+model BulletinSchedule {
+  id               String               @id @default(cuid())
+  title            String
+  time             String               // Format: "HH:MM"
+  language         StoryLanguage
+  scheduleType     BulletinScheduleType
+  isActive         Boolean              @default(true)
+  
+  createdBy        String
+  creator          User                 @relation(fields: [createdBy], references: [id])
+  
+  bulletins        Bulletin[]
+  
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  
+  @@unique([time, language, scheduleType])
+  @@index([scheduleType, isActive])
+}
+
+// Bulletin Model
+model Bulletin {
+  id               String               @id @default(cuid())
+  title            String
+  slug             String               @unique
+  intro            String               @db.Text  // Rich text content
+  outro            String               @db.Text  // Rich text content
+  language         StoryLanguage
+  status           BulletinStatus       @default(DRAFT)
+  
+  // Schedule reference
+  scheduleId       String?
+  schedule         BulletinSchedule?    @relation(fields: [scheduleId], references: [id])
+  scheduledFor     DateTime?            // The specific date/time this bulletin is for
+  
+  // Author and review workflow
+  authorId         String
+  author           User                 @relation("AuthoredBulletins", fields: [authorId], references: [id])
+  reviewerId       String?
+  reviewer         User?                @relation("ReviewedBulletins", fields: [reviewerId], references: [id])
+  publishedBy      String?
+  publisher        User?                @relation("PublishedBulletins", fields: [publishedBy], references: [id])
+  
+  // Publishing
+  publishedAt      DateTime?
+  
+  // Stories in bulletin
+  bulletinStories  BulletinStory[]
+  
+  // Review checklist
+  reviewChecklist  Json?                // Same structure as stories
+  
+  // Category (News Bulletins)
+  categoryId       String
+  category         Category             @relation(fields: [categoryId], references: [id])
+  
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  
+  @@index([status, language])
+  @@index([scheduledFor])
+}
+
+// Junction table for bulletin stories with ordering
+model BulletinStory {
+  id               String               @id @default(cuid())
+  bulletinId       String
+  bulletin         Bulletin             @relation(fields: [bulletinId], references: [id], onDelete: Cascade)
+  storyId          String
+  story            Story                @relation(fields: [storyId], references: [id])
+  order            Int                  // Order of story in bulletin
+  
+  addedAt          DateTime             @default(now())
+  
+  @@unique([bulletinId, storyId])
+  @@index([bulletinId, order])
 }
 
  

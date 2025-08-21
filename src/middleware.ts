@@ -13,6 +13,9 @@ const roleBasedPaths: Record<string, string[]> = {
   '/newsroom': ['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'],
 };
 
+// Paths for radio users (different user type)
+const radioUserPaths = ['/radio'];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -54,6 +57,9 @@ export async function middleware(request: NextRequest) {
       }
     }
   }
+
+  // Radio routes are now accessible to all authenticated users
+  // No additional restrictions needed for /radio routes
 
   return NextResponse.next();
 }

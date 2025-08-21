@@ -20,13 +20,20 @@ export default function DashboardRouter() {
       return;
     }
 
-    // Route based on user role
+    // Route based on user type and role
+    const userType = session.user.userType;
     const staffRole = session.user.staffRole;
+    console.log('👤 Dashboard Router - User Type:', userType);
     console.log('👤 Dashboard Router - Staff Role:', staffRole);
     console.log('👤 Dashboard Router - Full User:', session.user);
     
+    // Radio users go to radio zone
+    if (userType === 'RADIO') {
+      console.log('📻 Dashboard Router - RADIO user, redirecting to /radio');
+      router.push('/radio');
+    }
     // Editorial staff (including EDITOR) go to newsroom
-    if (staffRole === 'INTERN' || staffRole === 'JOURNALIST' || staffRole === 'SUB_EDITOR' || staffRole === 'EDITOR') {
+    else if (staffRole === 'INTERN' || staffRole === 'JOURNALIST' || staffRole === 'SUB_EDITOR' || staffRole === 'EDITOR') {
       console.log('📰 Dashboard Router - Editorial staff, redirecting to /newsroom');
       router.push('/newsroom');
     } 

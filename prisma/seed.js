@@ -114,6 +114,133 @@ async function main() {
     console.log(`✅ Category created: ${category.name}`);
   }
 
+  // Create Level 2 Categories for News Stories
+  const newsStoriesParent = await prisma.category.findUnique({
+    where: { slug: 'news-stories' }
+  });
+
+  if (newsStoriesParent) {
+    const level2Categories = [
+      { name: 'International News', description: 'News from around the world' },
+      { name: 'South African Community News', description: 'Local community news by province' },
+      { name: 'South African National News', description: 'National news and politics' },
+    ];
+
+    for (const category of level2Categories) {
+      const slug = category.name.toLowerCase().replace(/\s+/g, '-');
+      
+      await prisma.category.upsert({
+        where: { slug },
+        update: {},
+        create: {
+          name: category.name,
+          slug,
+          description: category.description,
+          level: 2,
+          isParent: false,
+          parentId: newsStoriesParent.id,
+        },
+      });
+      console.log(`✅ Level 2 Category created: ${category.name}`);
+    }
+  }
+
+  // Create Level 2 Categories for Sports
+  const sportsParent = await prisma.category.findUnique({
+    where: { slug: 'sports' }
+  });
+
+  if (sportsParent) {
+    const sportsLevel2Categories = [
+      { name: 'Sports News Stories', description: 'Latest sports news and coverage' },
+      { name: 'Morning Update', description: 'Morning sports updates and highlights' },
+      { name: 'Afternoon Update', description: 'Afternoon sports updates and results' },
+      { name: 'Wiele2Wiele', description: 'Weekly sports analysis and commentary' },
+    ];
+
+    for (const category of sportsLevel2Categories) {
+      const slug = category.name.toLowerCase().replace(/\s+/g, '-');
+      
+      await prisma.category.upsert({
+        where: { slug },
+        update: {},
+        create: {
+          name: category.name,
+          slug,
+          description: category.description,
+          level: 2,
+          isParent: false,
+          parentId: sportsParent.id,
+        },
+      });
+      console.log(`✅ Sports Level 2 Category created: ${category.name}`);
+    }
+  }
+
+  // Create Level 2 Categories for Finance
+  const financeParent = await prisma.category.findUnique({
+    where: { slug: 'finance' }
+  });
+
+  if (financeParent) {
+    const financeLevel2Categories = [
+      { name: 'Bizskoops', description: 'Business news and market analysis' },
+      { name: 'Lunch Time Report', description: 'Midday market updates and financial news' },
+      { name: 'Evening Report', description: 'End-of-day market summary and analysis' },
+    ];
+
+    for (const category of financeLevel2Categories) {
+      const slug = category.name.toLowerCase().replace(/\s+/g, '-');
+      
+      await prisma.category.upsert({
+        where: { slug },
+        update: {},
+        create: {
+          name: category.name,
+          slug,
+          description: category.description,
+          level: 2,
+          isParent: false,
+          parentId: financeParent.id,
+        },
+      });
+      console.log(`✅ Finance Level 2 Category created: ${category.name}`);
+    }
+  }
+
+  // Create Level 2 Categories for Speciality
+  const specialityParent = await prisma.category.findUnique({
+    where: { slug: 'speciality' }
+  });
+
+  if (specialityParent) {
+    const specialityLevel2Categories = [
+      { name: 'Lifestyle', description: 'Lifestyle trends, health, and wellness' },
+      { name: 'Agriskoops', description: 'Agricultural news and farming updates' },
+      { name: 'Techskoops', description: 'Technology news and digital innovation' },
+      { name: 'Paperskoops', description: 'Print media highlights and reviews' },
+      { name: 'Goodskoops', description: 'Community good news and positive stories' },
+    ];
+
+    for (const category of specialityLevel2Categories) {
+      const slug = category.name.toLowerCase().replace(/\s+/g, '-');
+      
+      await prisma.category.upsert({
+        where: { slug },
+        update: {},
+        create: {
+          name: category.name,
+          slug,
+          description: category.description,
+          level: 2,
+          isParent: false,
+          parentId: specialityParent.id,
+        },
+      });
+      console.log(`✅ Speciality Level 2 Category created: ${category.name}`);
+    }
+  }
+
   // Create Language Tags
   const languageTags = [
     { name: 'English', slug: 'english' },
@@ -156,6 +283,34 @@ async function main() {
       },
     });
     console.log(`✅ Religion tag created: ${tag.name}`);
+  }
+
+  // Create Locality Tags for South African Provinces
+  const localityTags = [
+    { name: 'Eastern Cape', slug: 'eastern-cape' },
+    { name: 'Free State', slug: 'free-state' },
+    { name: 'Gauteng', slug: 'gauteng' },
+    { name: 'KwaZulu-Natal', slug: 'kwazulu-natal' },
+    { name: 'Limpopo', slug: 'limpopo' },
+    { name: 'Mpumalanga', slug: 'mpumalanga' },
+    { name: 'Northern Cape', slug: 'northern-cape' },
+    { name: 'North West', slug: 'north-west' },
+    { name: 'Western Cape', slug: 'western-cape' },
+  ];
+
+  for (const tag of localityTags) {
+    await prisma.tag.upsert({
+      where: { slug: tag.slug },
+      update: {},
+      create: {
+        name: tag.name,
+        slug: tag.slug,
+        category: TagCategory.LOCALITY,
+        isRequired: false,
+        isPreset: true,
+      },
+    });
+    console.log(`✅ Locality tag created: ${tag.name}`);
   }
 
   // Create sample stories in various stages

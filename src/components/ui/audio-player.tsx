@@ -25,6 +25,7 @@ interface CustomAudioPlayerProps {
   isPlaying?: boolean;
   currentTime?: number;
   duration?: number;
+  compact?: boolean;
 }
 
 export function CustomAudioPlayer({
@@ -36,6 +37,7 @@ export function CustomAudioPlayer({
   onEnded,
   onError,
   duration = 0,
+  compact = false,
 }: CustomAudioPlayerProps) {
   const playerRef = useRef<AudioPlayer>(null);
 
