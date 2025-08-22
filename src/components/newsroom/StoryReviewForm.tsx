@@ -393,10 +393,15 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
           }),
         });
       }
-      // Then update the story status
+      // Then update the story status with proper assignment
+      // Loop 1: IN_REVIEW -> assign to author (intern)
+      // Loop 2: PENDING_APPROVAL -> assign to reviewer (journalist)
       await updateStoryStatusMutation.mutateAsync({
         id: storyId,
-        data: { status: 'NEEDS_REVISION' },
+        data: { 
+          status: 'NEEDS_REVISION',
+          assignedToId: story?.status === 'PENDING_APPROVAL' ? story?.reviewerId : story?.authorId
+        },
       });
       
       toast.success('Revision requested successfully');
@@ -1078,6 +1083,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       }}
       onConfirm={handleRevisionRequested}
       storyTitle={story?.title || ''}
+      storyStatus={story?.status}
       isLoading={isSubmitting}
     />
   </>

@@ -69,7 +69,7 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
     navigation.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
     
     // Bulletins - SUB_EDITOR and above
-    if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'JOURNALIST'].includes(session.user.staffRole)) {
+    if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR'].includes(session.user.staffRole)) {
       navigation.push({ name: 'Bulletins', href: '/newsroom/bulletins', icon: RadioIcon })
     }
     

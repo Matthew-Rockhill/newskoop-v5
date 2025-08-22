@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check if user has permission
-    if (!session.user.staffRole || !['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'SUPERADMIN', 'ADMIN'].includes(session.user.staffRole)) {
+    if (!session.user.staffRole || !['EDITOR', 'SUB_EDITOR', 'SUPERADMIN', 'ADMIN'].includes(session.user.staffRole)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user has permission
-    if (!session.user.staffRole || !['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'SUPERADMIN', 'ADMIN'].includes(session.user.staffRole)) {
+    if (!session.user.staffRole || !['EDITOR', 'SUB_EDITOR', 'SUPERADMIN', 'ADMIN'].includes(session.user.staffRole)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

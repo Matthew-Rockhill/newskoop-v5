@@ -21,6 +21,7 @@ interface RevisionRequestModalProps {
   onClose: () => void;
   onConfirm: (revisionNotes: RevisionNote[]) => void;
   storyTitle: string;
+  storyStatus?: string;
   isLoading?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function RevisionRequestModal({
   onClose,
   onConfirm,
   storyTitle,
+  storyStatus,
   isLoading = false,
 }: RevisionRequestModalProps) {
   const { data: session } = useSession();
@@ -286,7 +288,11 @@ export function RevisionRequestModal({
 
               <div className="bg-blue-50 p-3 rounded-lg">
                 <Text className="text-sm text-blue-800">
-                  <strong>Note:</strong> This story will be sent back to the intern for revision. 
+                  <strong>Note:</strong> This story will be sent back to {
+                    storyStatus === 'PENDING_APPROVAL' 
+                      ? 'the journalist' 
+                      : 'the author'
+                  } for revision. 
                   Each revision note will be tracked separately and can be marked as resolved individually.
                 </Text>
               </div>

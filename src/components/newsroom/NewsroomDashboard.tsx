@@ -42,7 +42,7 @@ export function NewsroomDashboard() {
     perPage: 100 
   });
   const { data: rejectedStoriesData } = useStories({ 
-    authorId: userId, 
+    assignedToId: userId, 
     status: 'NEEDS_REVISION', 
     page: 1, 
     perPage: 100 
