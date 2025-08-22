@@ -24,11 +24,8 @@ export default function NewUserPage() {
   const handleSubmit = async (data: UserFormData) => {
     setIsSubmitting(true);
     try {
-      // Clean up the data - convert empty string to undefined
-      const submitData = {
-        ...data,
-        translationLanguage: data.translationLanguage === '' ? undefined : data.translationLanguage
-      };
+      // The form data is already properly formatted by validation schema
+      const submitData = data;
       
       const response = await fetch('/api/users', {
         method: 'POST',

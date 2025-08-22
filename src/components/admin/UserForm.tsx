@@ -67,16 +67,11 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
   const userType = watch('userType');
 
   const handleFormSubmit = async (data: UserFormData) => {
-    // Remove translation language for radio users and handle empty string
+    // Remove translation language for radio users
     const submitData = { ...data };
     if (data.userType === 'RADIO') {
       delete submitData.translationLanguage;
       delete submitData.staffRole;
-    } else {
-      // Convert empty string to undefined for translation language
-      if (submitData.translationLanguage === '') {
-        submitData.translationLanguage = undefined;
-      }
     }
     await onSubmit(submitData);
   };

@@ -97,11 +97,6 @@ export function UserEditForm({ user }: UserEditFormProps) {
       if (data.userType === 'RADIO') {
         delete submitData.translationLanguage;
         delete submitData.staffRole;
-      } else {
-        // Convert empty string to undefined for translation language
-        if (submitData.translationLanguage === '') {
-          submitData.translationLanguage = undefined;
-        }
       }
 
       const response = await fetch(`/api/users/${user.id}`, {

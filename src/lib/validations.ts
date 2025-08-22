@@ -21,10 +21,10 @@ export const userCreateSchema = z.object({
   translationLanguage: z.union([
     z.literal(''),
     z.nativeEnum(TranslationLanguage),
-    z.undefined()
+    z.null()
   ]).optional().transform((val) => {
-    // Convert empty string to undefined
-    return val === '' ? undefined : val;
+    // Convert empty string to null for database
+    return val === '' ? null : val;
   }),
   isActive: z.boolean().default(true),
 }).refine((data) => {
@@ -69,9 +69,10 @@ export const userUpdateSchema = z.object({
   translationLanguage: z.union([
     z.literal(''),
     z.nativeEnum(TranslationLanguage),
-    z.undefined()
+    z.null()
   ]).optional().transform((val) => {
-    return val === '' ? undefined : val;
+    // Convert empty string to null for database
+    return val === '' ? null : val;
   }),
   radioStationId: z.string().optional(),
   isPrimaryContact: z.boolean().optional(),
