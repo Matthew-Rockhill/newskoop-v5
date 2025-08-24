@@ -198,8 +198,8 @@ const getStory = createHandler(
           },
           orderBy: { createdAt: 'desc' },
         },
-        // Include related translations for publication unit display
-        translations: {
+        // Include related translation requests for publication unit display
+        translationRequests: {
           select: {
             id: true,
             status: true,

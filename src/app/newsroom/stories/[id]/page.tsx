@@ -477,7 +477,7 @@ export default function StoryDetailPage() {
           {/* Translation Unit - Show when story has translations or is in translation workflow */}
           <TranslationUnit
             storyStatus={story.status}
-            translations={story.translations || []}
+            translations={story.translationRequests || []}
           />
 
           {/* Category & Tags - Show for journalists and above */}
