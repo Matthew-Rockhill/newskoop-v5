@@ -162,7 +162,6 @@ export function TranslationUnit({
                             <span className="font-medium text-sm">{translation.targetLanguage}</span>
                             <Badge 
                               color={translationStatusColors[translation.status as keyof typeof translationStatusColors] || 'zinc'}
-                              size="sm"
                             >
                               {translation.status.replace('_', ' ')}
                             </Badge>

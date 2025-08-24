@@ -108,7 +108,7 @@ function ReviewSection({ translations }: { translations: Translation[] }) {
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <Badge color="purple" size="sm">
+                  <Badge color="purple">
                     {translation.targetLanguage}
                   </Badge>
                   <span className="text-sm font-medium text-gray-900">
@@ -131,7 +131,7 @@ function ReviewSection({ translations }: { translations: Translation[] }) {
                     </div>
                   )}
                   {translation.originalStory.category && (
-                    <Badge color="zinc" size="sm">{translation.originalStory.category.name}</Badge>
+                    <Badge color="zinc">{translation.originalStory.category.name}</Badge>
                   )}
                 </div>
 
