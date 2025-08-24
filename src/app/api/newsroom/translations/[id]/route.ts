@@ -59,7 +59,6 @@ const updateTranslation = createHandler(
     }
 
     const userRole = session.user.staffRole ?? null;
-    let newStatus: string | undefined;
 
     // Check permissions for status changes
     if (data.status) {
@@ -85,7 +84,7 @@ const updateTranslation = createHandler(
       };
 
       const currentStatus = currentTranslation.status;
-      newStatus = data.status;
+      const newStatus = data.status;
 
       if (!validTransitions[currentStatus]?.includes(newStatus)) {
         return NextResponse.json({ 
@@ -132,7 +131,7 @@ const updateTranslation = createHandler(
       });
 
       // If this translation was approved, check if all translations in the unit are now approved
-      if (newStatus === 'APPROVED') {
+      if (data.status === 'APPROVED') {
         const allTranslations = await tx.translation.findMany({
           where: { originalStoryId: translation.originalStoryId },
           select: { status: true },
