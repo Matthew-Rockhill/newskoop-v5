@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Checkbox, CheckboxGroup, CheckboxField } from '@/components/ui/checkbox';
 import { RevisionRequestModal } from './RevisionRequestModal';
+import { SubEditorSelectionModal } from './SubEditorSelectionModal';
 
 interface RevisionNote {
   id: string;
@@ -36,28 +37,36 @@ interface RevisionNote {
   category?: string;
 }
 
-// Translation Review Schema
-const translationReviewSchema = z.object({
-  languageAccuracy: z.boolean(),
-  culturalAdaptation: z.boolean(),
-  completeness: z.boolean(),
-  consistency: z.boolean(),
-  qualityControl: z.boolean().optional(),
-  finalApproval: z.boolean().optional(),
-}).superRefine((data, ctx) => {
-  const requiredFields = ['languageAccuracy', 'culturalAdaptation', 'completeness', 'consistency'];
-  requiredFields.forEach(field => {
-    if (!data[field as keyof typeof data]) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `${field.replace(/([A-Z])/g, ' $1').trim()} must be checked`,
-        path: [field],
-      });
+// Dynamic Translation Review Schema
+const createTranslationReviewSchema = (isSubEditor: boolean, status: string) => {
+  return z.object({
+    languageAccuracy: z.boolean(),
+    culturalAdaptation: z.boolean(),
+    completeness: z.boolean(),
+    consistency: z.boolean(),
+    qualityControl: z.boolean().optional(),
+    finalApproval: z.boolean().optional(),
+  }).superRefine((data, ctx) => {
+    const requiredFields = ['languageAccuracy', 'culturalAdaptation', 'completeness', 'consistency'];
+    
+    // Add qualityControl as required for sub-editors reviewing NEEDS_REVIEW translations
+    if (isSubEditor && status === 'NEEDS_REVIEW') {
+      requiredFields.push('qualityControl');
     }
+    
+    requiredFields.forEach(field => {
+      if (!data[field as keyof typeof data]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${field.replace(/([A-Z])/g, ' $1').trim()} must be checked`,
+          path: [field],
+        });
+      }
+    });
   });
-});
+};
 
-type ReviewChecklistData = z.infer<typeof translationReviewSchema>;
+type ReviewChecklistData = z.infer<ReturnType<typeof createTranslationReviewSchema>>;
 
 interface TranslationReviewFormProps {
   translationId: string;
@@ -87,6 +96,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
   const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [showReviewerModal, setShowReviewerModal] = useState(false);
 
   // Fetch translation data
   const { data: translationData, isLoading: translationLoading, error: translationError } = useQuery({
@@ -105,11 +115,23 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
   const userRole = session?.user?.staffRole;
   const userId = session?.user?.id;
   const isOwnTranslation = translation?.assignedToId === userId;
-  const isTranslator = userRole && ['JOURNALIST', 'INTERN'].includes(userRole);
   const isSubEditor = userRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 
+  // Fetch available reviewers (sub-editors and above)
+  const { data: reviewersData } = useQuery({
+    queryKey: ['reviewers'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/users?roles=SUB_EDITOR,EDITOR,ADMIN,SUPERADMIN');
+      if (!response.ok) throw new Error('Failed to fetch reviewers');
+      return response.json();
+    },
+    enabled: isOwnTranslation && translation?.status === 'IN_PROGRESS'
+  });
+
+  const availableReviewers = reviewersData?.users || [];
+
   const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<ReviewChecklistData>({
-    resolver: zodResolver(translationReviewSchema),
+    resolver: zodResolver(createTranslationReviewSchema(isSubEditor, translation?.status || '')),
     defaultValues: {
       languageAccuracy: false,
       culturalAdaptation: false,
@@ -157,11 +179,16 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
   };
 
   const handleSubmitForReview = async () => {
-    if (isTranslator && !isValid) {
-      toast.error('Please complete the translation review checklist before submitting for review');
+    if (isOwnTranslation && !isValid) {
+      toast.error('Please complete the translation review checklist before submitting for approval');
       return;
     }
 
+    // Show reviewer selection modal
+    setShowReviewerModal(true);
+  };
+
+  const handleReviewerSelected = async (reviewerId: string) => {
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/newsroom/translations/${translationId}`, {
@@ -169,19 +196,21 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'NEEDS_REVIEW',
+          reviewerId: reviewerId,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit translation for review');
+        throw new Error('Failed to submit translation for approval');
       }
       
-      toast.success('Translation submitted for review successfully');
+      toast.success('Translation submitted for approval successfully');
       router.push(`/newsroom/translations/${translationId}`);
     } catch (error) {
-      toast.error('Failed to submit translation for review');
+      toast.error('Failed to submit translation for approval');
     } finally {
       setIsSubmitting(false);
+      setShowReviewerModal(false);
     }
   };
 
@@ -239,7 +268,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
     return (
       <Container>
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kelly-green mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto"></div>
           <Text className="mt-4">Loading translation for review...</Text>
         </div>
       </Container>
@@ -257,7 +286,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
           </Text>
           <Button onClick={() => router.push('/newsroom/translations')}>
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
-            Back to Translations
+            Back
           </Button>
         </div>
       </Container>
@@ -287,16 +316,6 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       <Container>
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Button
-              color="white"
-              onClick={() => router.push('/newsroom/translations')}
-            >
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Back to Translations
-            </Button>
-          </div>
-
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <Heading level={1} className="text-3xl font-bold text-gray-900 mb-3">
@@ -334,6 +353,21 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
+              <Button
+                color="white"
+                onClick={() => router.push('/newsroom/translations')}
+              >
+                <ArrowLeftIcon className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+
+              {(canShowEditButton(translation.status) && isOwnTranslation) ||
+               canShowRequestRevisionButton(userRole || null, translation.status) ||
+               canShowSubmitForReviewButton(userRole || null, translation.status, isOwnTranslation) ||
+               (canShowApproveButton(translation.status) && isSubEditor) ? (
+                <div className="h-6 w-px bg-gray-300" />
+              ) : null}
+
               {canShowEditButton(translation.status) && isOwnTranslation && (
                 <Button color="white" onClick={handleEdit}>
                   <PencilIcon className="h-4 w-4 mr-2" />
@@ -352,10 +386,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 <Button 
                   color="primary" 
                   onClick={handleSubmitForReview} 
-                  disabled={isSubmitting || (isTranslator && !isValid)}
+                  disabled={isSubmitting || (isOwnTranslation && !isValid)}
                 >
                   <CheckCircleIcon className="h-4 w-4 mr-2" />
-                  Submit for Review
+                  Submit for Approval
                 </Button>
               )}
               
@@ -411,7 +445,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <DocumentTextIcon className="h-6 w-6 text-kelly-green" />
+                  <DocumentTextIcon className="h-6 w-6 text-gray-600" />
                   <Heading level={3} className="text-xl font-semibold">Original Story</Heading>
                 </div>
                 <div className="flex items-center gap-2">
@@ -451,10 +485,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
             {/* Translated Story */}
             {translatedStory && (
-              <Card className="p-6 border-2 border-kelly-green/20">
+              <Card className="p-6 border-2 border-green-200">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <LanguageIcon className="h-6 w-6 text-kelly-green" />
+                    <LanguageIcon className="h-6 w-6 text-green-600" />
                     <Heading level={3} className="text-xl font-semibold">Translated Story</Heading>
                   </div>
                   <div className="flex items-center gap-2">
@@ -510,9 +544,9 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
           <div className="space-y-6">
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <CheckCircleIcon className="h-6 w-6 text-kelly-green" />
+                <CheckCircleIcon className="h-6 w-6 text-green-600" />
                 <Heading level={3} className="text-xl font-semibold">
-                  {isTranslator ? 'Self-Review Checklist' : 'Quality Review'}
+                  {isOwnTranslation ? 'Self-Review Checklist' : 'Quality Review'}
                 </Heading>
               </div>
 
@@ -520,9 +554,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 <CheckboxGroup>
                   <CheckboxField>
                     <Checkbox
-                      {...register('languageAccuracy')}
                       checked={watchedValues.languageAccuracy}
-                      onChange={(checked) => setValue('languageAccuracy', checked)}
+                      onChange={(checked) => {
+                        setValue('languageAccuracy', checked, { shouldValidate: true });
+                      }}
                     />
                     <div>
                       <Text className="font-medium">Language Accuracy</Text>
@@ -534,9 +569,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
                   <CheckboxField>
                     <Checkbox
-                      {...register('culturalAdaptation')}
                       checked={watchedValues.culturalAdaptation}
-                      onChange={(checked) => setValue('culturalAdaptation', checked)}
+                      onChange={(checked) => {
+                        setValue('culturalAdaptation', checked, { shouldValidate: true });
+                      }}
                     />
                     <div>
                       <Text className="font-medium">Cultural Adaptation</Text>
@@ -548,9 +584,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
                   <CheckboxField>
                     <Checkbox
-                      {...register('completeness')}
                       checked={watchedValues.completeness}
-                      onChange={(checked) => setValue('completeness', checked)}
+                      onChange={(checked) => {
+                        setValue('completeness', checked, { shouldValidate: true });
+                      }}
                     />
                     <div>
                       <Text className="font-medium">Completeness</Text>
@@ -562,9 +599,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
                   <CheckboxField>
                     <Checkbox
-                      {...register('consistency')}
                       checked={watchedValues.consistency}
-                      onChange={(checked) => setValue('consistency', checked)}
+                      onChange={(checked) => {
+                        setValue('consistency', checked, { shouldValidate: true });
+                      }}
                     />
                     <div>
                       <Text className="font-medium">Consistency</Text>
@@ -577,9 +615,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                   {isSubEditor && translation.status === 'NEEDS_REVIEW' && (
                     <CheckboxField>
                       <Checkbox
-                        {...register('qualityControl')}
                         checked={watchedValues.qualityControl}
-                        onChange={(checked) => setValue('qualityControl', checked)}
+                        onChange={(checked) => {
+                          setValue('qualityControl', checked, { shouldValidate: true });
+                        }}
                       />
                       <div>
                         <Text className="font-medium">Quality Control</Text>
@@ -612,8 +651,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                     )}
                   </div>
                 </div>
+                
               </div>
             </Card>
+
 
             {/* Translation Timeline */}
             <Card className="p-6">
@@ -661,6 +702,17 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
           isOpen={showRevisionModal}
           onClose={() => setShowRevisionModal(false)}
           onConfirm={handleRevisionRequested}
+          storyTitle={originalStory?.title || 'Story'}
+          isLoading={isSubmitting}
+        />
+      )}
+
+      {/* Sub-Editor Selection Modal */}
+      {showReviewerModal && (
+        <SubEditorSelectionModal
+          isOpen={showReviewerModal}
+          onClose={() => setShowReviewerModal(false)}
+          onConfirm={handleReviewerSelected}
           storyTitle={originalStory?.title || 'Story'}
           isLoading={isSubmitting}
         />

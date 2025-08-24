@@ -9,6 +9,9 @@ import {
   TrashIcon,
   EyeIcon,
   MusicalNoteIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  ArrowUpCircleIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -24,6 +27,7 @@ import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/compone
 
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { TranslationSelectionModal } from '@/components/newsroom/TranslationSelectionModal';
+import { TranslationUnit } from '@/components/newsroom/TranslationUnit';
 
 import { useStory, useDeleteStory } from '@/hooks/use-stories';
 import { 
@@ -48,14 +52,37 @@ const statusColors = {
 } as const;
 
 
-// Helper: should show review button
-function canShowReviewButton(userRole: StaffRole | null, status: string) {
+// Helper: should show submit for review button (interns only)
+function canShowSubmitForReviewButton(userRole: StaffRole | null, status: string, authorId: string, userId: string | null) {
+  if (!userRole || !userId) return false;
+  // Only interns can submit their own draft stories for review
+  return userRole === 'INTERN' && status === 'DRAFT' && authorId === userId;
+}
+
+// Helper: should show request revision button
+function canShowRequestRevisionButton(userRole: StaffRole | null, status: string, isOwnStory: boolean = false) {
   if (!userRole) return false;
-  // Only show for sub-editor and above, and only for PENDING_APPROVAL
-  return (
+  // Journalists can request revision when reviewing OTHER people's stories
+  if (userRole === 'JOURNALIST' && status === 'IN_REVIEW' && !isOwnStory) return true;
+  // Sub-editors and above can request revision on PENDING_APPROVAL stories
+  if (
     ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) &&
     status === 'PENDING_APPROVAL'
-  );
+  ) return true;
+  return false;
+}
+
+// Helper: should show final review button
+function canShowFinalReviewButton(userRole: StaffRole | null, status: string, isOwnStory: boolean = false) {
+  if (!userRole) return false;
+  // Journalists reviewing intern stories (IN_REVIEW status)
+  if (userRole === 'JOURNALIST' && status === 'IN_REVIEW' && !isOwnStory) return true;
+  // Sub-editors and above reviewing PENDING_APPROVAL stories
+  if (
+    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) &&
+    status === 'PENDING_APPROVAL'
+  ) return true;
+  return false;
 }
 
 // Helper: should show edit button
@@ -98,24 +125,26 @@ export default function StoryDetailPage() {
     setShowTranslationModal(true);
   };
 
-  const handleTranslationConfirm = async ({ language, translatorId }: { language: string; translatorId: string }) => {
+  const handleTranslationConfirm = async (translations: { language: string; translatorId: string }[]) => {
     setIsTranslating(true);
     try {
-      // Create a Translation record for this story
+      // Create multiple Translation records for this story
       const response = await fetch(`/api/newsroom/translations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           originalStoryId: storyId,
-          assignedToId: translatorId,
-          targetLanguage: language,
+          translations: translations.map(t => ({
+            assignedToId: t.translatorId,
+            targetLanguage: t.language,
+          })),
         }),
       });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to send for translation');
       }
-      toast.success('Story sent for translation');
+      toast.success(`Story sent for translation to ${translations.length} language${translations.length > 1 ? 's' : ''}`);
       setShowTranslationModal(false);
       router.refresh?.();
     } catch (error: unknown) {
@@ -123,6 +152,26 @@ export default function StoryDetailPage() {
       toast.error(errorMessage);
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  const handleSubmitForReview = async () => {
+    try {
+      const response = await fetch(`/api/newsroom/stories/${storyId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'IN_REVIEW' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit story for review');
+      }
+
+      toast.success('Story submitted for review');
+      router.push('/newsroom/stories');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit for review';
+      toast.error(errorMessage);
     }
   };
 
@@ -263,66 +312,108 @@ export default function StoryDetailPage() {
         }}
         actions={
           <div className="flex items-center space-x-3">
-            {/* Back to Dashboard */}
+            {/* Back to Stories */}
             <Button
               color="white"
-              onClick={() => router.push('/newsroom')}
+              onClick={() => router.push('/newsroom/stories')}
             >
-              ← Back to Dashboard
+              ← Back to Stories
             </Button>
 
-            {/* Review Button for Sub-Editors - Only for PENDING_APPROVAL */}
-            {canShowReviewButton(session?.user?.staffRole ?? null, story.status) && (
-              <Button
-                color="primary"
-                onClick={() => router.push(`/newsroom/stories/${storyId}/review`)}
-              >
-                <EyeIcon className="h-4 w-4 mr-2" />
-                Review Story
-              </Button>
-            )}
+            {/* Basic Actions */}
+            <div className="flex items-center space-x-2">
+              {/* Edit Button - Only show if user can edit this story and status is editable */}
+              {canShowEditButton(session?.user?.staffRole ?? null, story.authorId, session?.user?.id || '', story.status) ? (
+                <Button 
+                  color="secondary" 
+                  onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
+                >
+                  <PencilSquareIcon className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              ) : (
+                // Show lock reason only if user is the author and story is locked
+                (session?.user?.staffRole && story.authorId === session?.user?.id && getEditLockReason(story.status)) && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-500">
+                    <PencilSquareIcon className="h-4 w-4" />
+                    <span>{getEditLockReason(story.status)}</span>
+                  </div>
+                )
+              )}
 
-            {/* Edit Button - Only show if user can edit this story and status is editable */}
-            {canShowEditButton(session?.user?.staffRole ?? null, story.authorId, session?.user?.id || '', story.status) ? (
-              <Button 
-                color="secondary" 
-                onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
-              >
-                <PencilSquareIcon className="h-4 w-4 mr-2" />
-                Edit Story
-              </Button>
-            ) : (
-              // Show lock reason only if user is the author and story is locked
-              (session?.user?.staffRole && story.authorId === session?.user?.id && getEditLockReason(story.status)) && (
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <PencilSquareIcon className="h-4 w-4" />
-                  <span>{getEditLockReason(story.status)}</span>
-                </div>
-              )
-            )}
+              {/* Delete Button - Only show if user can delete stories and status is deletable */}
+              {canShowDeleteButton(session?.user?.staffRole ?? null, story.status) && (
+                <Button
+                  color="red"
+                  onClick={() => setShowDeleteModal(true)}
+                  disabled={isDeleting}
+                >
+                  <TrashIcon className="h-4 w-4 mr-2" />
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </Button>
+              )}
+            </div>
 
-            {/* Delete Button - Only show if user can delete stories and status is deletable */}
-            {canShowDeleteButton(session?.user?.staffRole ?? null, story.status) && (
-              <Button
-                color="red"
-                onClick={() => setShowDeleteModal(true)}
-                disabled={isDeleting}
-              >
-                <TrashIcon className="h-4 w-4 mr-2" />
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </Button>
-            )}
+            {/* Workflow Actions - Visual separator with border */}
+            <div className="flex items-center space-x-2 pl-3 border-l border-gray-300">
+              {/* Submit for Review - Interns only, DRAFT stories */}
+              {canShowSubmitForReviewButton(session?.user?.staffRole ?? null, story.status, story.authorId, session?.user?.id ?? null) && (
+                <Button
+                  color="primary"
+                  onClick={handleSubmitForReview}
+                >
+                  <ArrowUpCircleIcon className="h-4 w-4 mr-2" />
+                  Submit for Review
+                </Button>
+              )}
 
-            {/* Send for Translation Button - Only for APPROVED status and with permission */}
-            {story.status === 'APPROVED' && canSendForTranslation && (
-              <Button
-                color="secondary"
-                onClick={handleSendForTranslation}
-                disabled={isTranslating}
-              >
-                {isTranslating ? 'Sending...' : 'Send for Translation'}
-              </Button>
-            )}
+              {/* Request Revision */}
+              {canShowRequestRevisionButton(session?.user?.staffRole ?? null, story.status, story.authorId === session?.user?.id) && (
+                <Button
+                  color="secondary"
+                  onClick={() => {
+                    // For now, redirect to review page for revision functionality
+                    router.push(`/newsroom/stories/${storyId}/review`);
+                  }}
+                >
+                  <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
+                  Request Revision
+                </Button>
+              )}
+
+              {/* Final Review */}
+              {canShowFinalReviewButton(session?.user?.staffRole ?? null, story.status, story.authorId === session?.user?.id) && (
+                <Button
+                  color="primary"
+                  onClick={() => router.push(`/newsroom/stories/${storyId}/review`)}
+                >
+                  <CheckCircleIcon className="h-4 w-4 mr-2" />
+                  Final Review
+                </Button>
+              )}
+
+              {/* Send for Translation Button - Only for APPROVED status and with permission */}
+              {story.status === 'APPROVED' && canSendForTranslation && (
+                <Button
+                  color="secondary"
+                  onClick={handleSendForTranslation}
+                  disabled={isTranslating}
+                >
+                  {isTranslating ? 'Sending...' : 'Send for Translation'}
+                </Button>
+              )}
+
+              {/* Review for Publishing Button - Only for READY_TO_PUBLISH status */}
+              {story.status === 'READY_TO_PUBLISH' && session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
+                <Button
+                  color="primary"
+                  onClick={() => router.push(`/newsroom/stories/${storyId}/publish`)}
+                >
+                  <CheckCircleIcon className="h-4 w-4 mr-2" />
+                  Review for Publishing
+                </Button>
+              )}
+            </div>
           </div>
         }
       />
@@ -383,6 +474,11 @@ export default function StoryDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Translation Unit - Show when story has translations or is in translation workflow */}
+          <TranslationUnit
+            storyStatus={story.status}
+            translations={story.translations || []}
+          />
 
           {/* Category & Tags - Show for journalists and above */}
           {session?.user?.staffRole && ['JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
@@ -446,36 +542,6 @@ export default function StoryDetailPage() {
         </div>
       </div>
 
-      {/* Associated Translations Section */}
-      {story.translations && story.translations.length > 0 && (
-        <div className="mt-8">
-          <Card className="p-6">
-            <Heading level={3} className="mb-4">Associated Translations</Heading>
-            <div className="space-y-3">
-              {story.translations.map((translation: { id: string; title: string; language: string; status: string; assignedTo: { firstName: string; lastName: string } }) => (
-                <div key={translation.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{translation.title}</h4>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Badge color="purple">{translation.language}</Badge>
-                      <Badge color={translation.status === 'APPROVED' ? 'green' : 'amber'}>{translation.status}</Badge>
-                      {translation.assignedTo && (
-                        <span>• Translator: {translation.assignedTo.firstName} {translation.assignedTo.lastName}</span>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    color="white"
-                    onClick={() => router.push(`/newsroom/translations/${translation.id}/work`)}
-                  >
-                    View
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
 
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteModal} onClose={() => setShowDeleteModal(false)}>

@@ -162,7 +162,7 @@ export async function PATCH(
     }
 
     // Update slug if title changes
-    let updateData: any = { ...validatedData };
+    const updateData: any = { ...validatedData };
     if (validatedData.title) {
       const baseSlug = validatedData.title
         .toLowerCase()

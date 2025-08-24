@@ -77,19 +77,93 @@ const getTranslations = createHandler(
 
 const createTranslation = createHandler(
   async (req: NextRequest) => {
-    const { originalStoryId, assignedToId, targetLanguage } = await req.json();
-    if (!originalStoryId || !assignedToId || !targetLanguage) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const body = await req.json();
+    
+    // Support both single translation (legacy) and multiple translations (new)
+    if (body.translations && Array.isArray(body.translations)) {
+      // New multiple translation format
+      const { originalStoryId, translations } = body;
+      if (!originalStoryId || !translations || translations.length === 0) {
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      }
+
+      // Validate all translations have required fields
+      for (const translation of translations) {
+        if (!translation.assignedToId || !translation.targetLanguage) {
+          return NextResponse.json({ error: 'All translations must have assignedToId and targetLanguage' }, { status: 400 });
+        }
+      }
+
+      // Create all translations and update original story status in a transaction
+      const results = await prisma.$transaction(async (tx) => {
+        // Get original story to copy data from
+        const originalStory = await tx.story.findUnique({
+          where: { id: originalStoryId },
+          include: {
+            audioClips: true,
+            tags: true,
+            category: true,
+          },
+        });
+
+        if (!originalStory) {
+          throw new Error('Original story not found');
+        }
+
+        const createdTranslations = [];
+
+        // Create each translation
+        for (const translationData of translations) {
+          const translation = await tx.translation.create({
+            data: {
+              originalStoryId,
+              assignedToId: translationData.assignedToId,
+              targetLanguage: translationData.targetLanguage,
+              status: 'PENDING',
+            },
+          });
+          createdTranslations.push(translation);
+        }
+
+        // Update the original story status to PENDING_TRANSLATION
+        await tx.story.update({
+          where: { id: originalStoryId },
+          data: { status: 'PENDING_TRANSLATION' },
+        });
+
+        return createdTranslations;
+      });
+
+      return NextResponse.json({ translations: results }, { status: 201 });
+    } else {
+      // Legacy single translation format
+      const { originalStoryId, assignedToId, targetLanguage } = body;
+      if (!originalStoryId || !assignedToId || !targetLanguage) {
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      }
+
+      // Create translation and update original story status in a transaction
+      const result = await prisma.$transaction(async (tx) => {
+        const translation = await tx.translation.create({
+          data: {
+            originalStoryId,
+            assignedToId,
+            targetLanguage,
+            status: 'PENDING',
+          },
+        });
+
+        // Update the original story status to PENDING_TRANSLATION
+        await tx.story.update({
+          where: { id: originalStoryId },
+          data: { status: 'PENDING_TRANSLATION' },
+        });
+
+        return translation;
+      });
+
+      return NextResponse.json(result, { status: 201 });
     }
-    const translation = await prisma.translation.create({
-      data: {
-        originalStoryId,
-        assignedToId,
-        targetLanguage,
-        status: 'PENDING',
-      },
-    });
-    return NextResponse.json(translation, { status: 201 });
   },
   [withErrorHandling, withAuth]
 );

@@ -278,43 +278,12 @@ function StoriesPageContent() {
                           e.stopPropagation();
                           router.push(`/newsroom/stories/${story.id}`);
                         }}
-                        outline
+                        color="white"
                         className="text-sm"
                       >
-                        View
+                        <EyeIcon className="h-4 w-4 mr-1" />
+                        View Story
                       </Button>
-                      
-                      {/* Review Button - For Journalists reviewing IN_REVIEW stories or Sub-Editors reviewing PENDING_APPROVAL */}
-                      {session?.user?.staffRole && (
-                        (session.user.staffRole === 'JOURNALIST' && story.status === 'IN_REVIEW' && story.reviewerId === session.user.id) ||
-                        (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && story.status === 'PENDING_APPROVAL')
-                      ) && (
-                        <Button
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            router.push(`/newsroom/stories/${story.id}/review`);
-                          }}
-                          color="primary"
-                          className="text-sm"
-                        >
-                          Review
-                        </Button>
-                      )}
-
-                      {/* Edit Button - For authors addressing revision requests */}
-                      {session?.user?.id === story.authorId && story.status === 'NEEDS_REVISION' && (
-                        <Button
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            router.push(`/newsroom/stories/${story.id}/edit`);
-                          }}
-                          color="primary"
-                          className="text-sm"
-                        >
-                          <PencilIcon className="h-4 w-4 mr-1" />
-                          Revise
-                        </Button>
-                      )}
                     </div>
                   </td>
                 </tr>

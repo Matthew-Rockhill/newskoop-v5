@@ -1,6 +1,7 @@
-"use client";
+'use client';
 
 import { TranslationReviewForm } from '@/components/newsroom/TranslationReviewFormNew';
+import { use } from 'react';
 
 interface TranslationReviewPageProps {
   params: Promise<{
@@ -8,7 +9,7 @@ interface TranslationReviewPageProps {
   }>;
 }
 
-export default async function TranslationReviewPage({ params }: TranslationReviewPageProps) {
-  const { id } = await params;
+export default function TranslationReviewPage({ params }: TranslationReviewPageProps) {
+  const { id } = use(params);
   return <TranslationReviewForm translationId={id} />;
 }

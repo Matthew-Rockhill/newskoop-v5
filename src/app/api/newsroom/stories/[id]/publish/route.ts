@@ -58,14 +58,28 @@ export async function POST(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
-    // Verify story can be published
-    if (!canUpdateStoryStatus(userRole, story.status, 'PUBLISHED')) {
+    // Verify story can be published - must be in READY_TO_PUBLISH status
+    if (story.status !== 'READY_TO_PUBLISH') {
       return NextResponse.json({ 
-        error: `Cannot publish story with status: ${story.status}` 
+        error: `Story must be in READY_TO_PUBLISH status. Current status: ${story.status}. Ensure all translations are approved first.`
       }, { status: 400 });
     }
 
-    // Check if all required translations are approved
+    // Verify user has permission to publish
+    if (!canUpdateStoryStatus(userRole, story.status, 'PUBLISHED')) {
+      return NextResponse.json({ 
+        error: `Insufficient permissions to publish story` 
+      }, { status: 403 });
+    }
+
+    // Double-check that story has required translations (should always be true for READY_TO_PUBLISH)
+    if (story.translations.length === 0) {
+      return NextResponse.json({ 
+        error: 'Story must have translations before publishing'
+      }, { status: 400 });
+    }
+
+    // Double-check that all translations are approved (should always be true for READY_TO_PUBLISH)
     const pendingTranslations = story.translations.filter(t => t.status !== 'APPROVED');
     if (pendingTranslations.length > 0) {
       return NextResponse.json({ 
@@ -215,16 +229,20 @@ export async function GET(
 
     const userRole = session.user.staffRole ?? null;
     const canPublish = canPublishStory(userRole);
+    const isReadyToPublishStatus = story.status === 'READY_TO_PUBLISH';
     const canChangeStatus = canUpdateStoryStatus(userRole, story.status, 'PUBLISHED');
+    const hasTranslations = story.translations.length > 0;
     const allTranslationsApproved = story.translations.every(t => t.status === 'APPROVED');
     const hasCategory = !!story.categoryId;
 
-    const readyToPublish = canPublish && canChangeStatus && allTranslationsApproved && hasCategory;
+    const readyToPublish = canPublish && isReadyToPublishStatus && canChangeStatus && hasTranslations && allTranslationsApproved && hasCategory;
 
     const issues = [];
     if (!canPublish) issues.push('User does not have publish permissions');
-    if (!canChangeStatus) issues.push(`Cannot publish story with status: ${story.status}`);
-    if (!allTranslationsApproved) issues.push('Some translations are not approved');
+    if (!isReadyToPublishStatus) issues.push(`Story must be in READY_TO_PUBLISH status (current: ${story.status}). Ensure all translations are approved first.`);
+    if (!canChangeStatus) issues.push(`Cannot publish story with current permissions and status`);
+    if (!hasTranslations) issues.push('Story must have translations before publishing');
+    if (!allTranslationsApproved) issues.push('All translations must be approved before publishing');
     if (!hasCategory) issues.push('Story must have a category assigned');
 
     return NextResponse.json({
@@ -233,6 +251,7 @@ export async function GET(
       checks: {
         hasPermission: canPublish,
         correctStatus: canChangeStatus,
+        hasTranslations,
         translationsApproved: allTranslationsApproved,
         hasCategory,
         currentStatus: story.status,

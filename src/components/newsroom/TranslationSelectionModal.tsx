@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Select } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Translator {
   id: string;
@@ -15,10 +16,15 @@ interface Translator {
   translationLanguage?: 'AFRIKAANS' | 'XHOSA';
 }
 
+interface TranslationRequest {
+  language: string;
+  translatorId: string;
+}
+
 interface TranslationSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (data: { language: string; translatorId: string }) => void;
+  onConfirm: (translations: TranslationRequest[]) => void;
   storyTitle: string;
   isLoading?: boolean;
 }
@@ -35,34 +41,49 @@ export function TranslationSelectionModal({
   storyTitle,
   isLoading = false,
 }: TranslationSelectionModalProps) {
-  const [selectedLanguage, setSelectedLanguage] = useState('');
-  const [translators, setTranslators] = useState<Translator[]>([]);
-  const [selectedTranslatorId, setSelectedTranslatorId] = useState('');
+  const [selectedLanguages, setSelectedLanguages] = useState<Set<string>>(new Set(['AFRIKAANS']));
+  const [afrikaansTranslators, setAfrikaansTranslators] = useState<Translator[]>([]);
+  const [xhosaTranslators, setXhosaTranslators] = useState<Translator[]>([]);
+  const [selectedAfrikaansTranslator, setSelectedAfrikaansTranslator] = useState('');
+  const [selectedXhosaTranslator, setSelectedXhosaTranslator] = useState('');
   const [isLoadingTranslators, setIsLoadingTranslators] = useState(false);
 
   useEffect(() => {
-    if (isOpen && selectedLanguage) {
-      fetchTranslators(selectedLanguage);
+    if (isOpen) {
+      fetchTranslators();
     } else {
-      setTranslators([]);
-      setSelectedTranslatorId('');
+      // Reset state when modal closes
+      setSelectedLanguages(new Set(['AFRIKAANS']));
+      setAfrikaansTranslators([]);
+      setXhosaTranslators([]);
+      setSelectedAfrikaansTranslator('');
+      setSelectedXhosaTranslator('');
     }
-  }, [isOpen, selectedLanguage]);
+  }, [isOpen]);
 
-  const fetchTranslators = async (language: string) => {
+  const fetchTranslators = async () => {
     setIsLoadingTranslators(true);
     try {
-      const response = await fetch(`/api/users?userType=STAFF&isActive=true&translationLanguage=${language}&perPage=100`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch translators');
+      // Fetch Afrikaans translators
+      const afrikaansResponse = await fetch(`/api/users?userType=STAFF&isActive=true&translationLanguage=AFRIKAANS&perPage=100`);
+      if (afrikaansResponse.ok) {
+        const afrikaansData = await afrikaansResponse.json();
+        const afrikaansUsers = afrikaansData.users || [];
+        setAfrikaansTranslators(afrikaansUsers);
+        if (afrikaansUsers.length > 0) {
+          setSelectedAfrikaansTranslator(afrikaansUsers[0].id);
+        }
       }
-      const data = await response.json();
-      const users = data.users || [];
-      setTranslators(users);
-      if (users.length > 0) {
-        setSelectedTranslatorId(users[0].id);
-      } else {
-        setSelectedTranslatorId('');
+
+      // Fetch Xhosa translators
+      const xhosaResponse = await fetch(`/api/users?userType=STAFF&isActive=true&translationLanguage=XHOSA&perPage=100`);
+      if (xhosaResponse.ok) {
+        const xhosaData = await xhosaResponse.json();
+        const xhosaUsers = xhosaData.users || [];
+        setXhosaTranslators(xhosaUsers);
+        if (xhosaUsers.length > 0) {
+          setSelectedXhosaTranslator(xhosaUsers[0].id);
+        }
       }
     } catch (error) {
       console.error('Error fetching translators:', error);
@@ -71,13 +92,44 @@ export function TranslationSelectionModal({
     }
   };
 
+  const handleLanguageToggle = (language: string, checked: boolean) => {
+    const newSelectedLanguages = new Set(selectedLanguages);
+    if (checked) {
+      newSelectedLanguages.add(language);
+    } else {
+      // Don't allow unchecking Afrikaans as it's required
+      if (language !== 'AFRIKAANS') {
+        newSelectedLanguages.delete(language);
+      }
+    }
+    setSelectedLanguages(newSelectedLanguages);
+  };
+
   const handleConfirm = () => {
-    if (selectedLanguage && selectedTranslatorId) {
-      onConfirm({ language: selectedLanguage, translatorId: selectedTranslatorId });
+    const translations: TranslationRequest[] = [];
+    
+    // Always include Afrikaans (required)
+    if (selectedAfrikaansTranslator) {
+      translations.push({
+        language: 'AFRIKAANS',
+        translatorId: selectedAfrikaansTranslator
+      });
+    }
+
+    // Include Xhosa if selected
+    if (selectedLanguages.has('XHOSA') && selectedXhosaTranslator) {
+      translations.push({
+        language: 'XHOSA',
+        translatorId: selectedXhosaTranslator
+      });
+    }
+
+    if (translations.length > 0) {
+      onConfirm(translations);
     }
   };
 
-  const selectedTranslator = translators.find(t => t.id === selectedTranslatorId);
+  const isFormValid = selectedAfrikaansTranslator && (!selectedLanguages.has('XHOSA') || selectedXhosaTranslator);
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -106,60 +158,95 @@ export function TranslationSelectionModal({
             {/* Content */}
             <div className="space-y-4">
               <Text className="text-gray-600">
-                Select the target language and translator for this story:
+                Select target languages and translators for this story:
               </Text>
               <div className="bg-gray-50 p-3 rounded-lg">
                 <Text className="font-medium text-gray-900">&ldquo;{storyTitle}&rdquo;</Text>
               </div>
 
+              {/* Language Selection */}
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700">
-                  Target Language *
+                  Target Languages
                 </label>
-                <Select
-                  value={selectedLanguage}
-                  onChange={e => setSelectedLanguage(e.target.value)}
-                  disabled={isLoading}
-                >
-                  <option value="">Choose a language...</option>
-                  {LANGUAGES.map(lang => (
-                    <option key={lang.value} value={lang.value}>{lang.label}</option>
-                  ))}
-                </Select>
+                <div className="space-y-2">
+                  {/* Afrikaans (Required) */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={true}
+                      disabled={true}
+                      onChange={() => {}} // No-op since it's required
+                    />
+                    <Text className="text-sm font-medium">Afrikaans (Required)</Text>
+                  </div>
+                  
+                  {/* Xhosa (Optional) */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedLanguages.has('XHOSA')}
+                      onChange={(checked) => handleLanguageToggle('XHOSA', checked)}
+                      disabled={isLoading}
+                    />
+                    <Text className="text-sm">Xhosa (Optional)</Text>
+                  </div>
+                </div>
               </div>
 
-              {selectedLanguage && (
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Select Translator *
-                  </label>
-                  {isLoadingTranslators ? (
-                    <div className="text-center py-4">
-                      <Text className="text-gray-500">Loading translators...</Text>
-                    </div>
-                  ) : translators.length === 0 ? (
-                    <div className="text-center py-4">
-                      <Text className="text-red-600">No translators available for this language</Text>
-                    </div>
-                  ) : (
-                    <Select
-                      value={selectedTranslatorId}
-                      onChange={e => setSelectedTranslatorId(e.target.value)}
-                      disabled={isLoading}
-                    >
-                      <option value="">Choose a translator...</option>
-                      {translators.map(translator => (
-                        <option key={translator.id} value={translator.id}>
-                          {translator.firstName} {translator.lastName} ({translator.email})
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                  {selectedTranslator && (
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <Text className="text-sm text-blue-800">
-                        <strong>Selected:</strong> {selectedTranslator.firstName} {selectedTranslator.lastName}
-                      </Text>
+              {isLoadingTranslators ? (
+                <div className="text-center py-4">
+                  <Text className="text-gray-500">Loading translators...</Text>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Afrikaans Translator Selection */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Afrikaans Translator *
+                    </label>
+                    {afrikaansTranslators.length === 0 ? (
+                      <div className="text-center py-2">
+                        <Text className="text-red-600 text-sm">No Afrikaans translators available</Text>
+                      </div>
+                    ) : (
+                      <Select
+                        value={selectedAfrikaansTranslator}
+                        onChange={e => setSelectedAfrikaansTranslator(e.target.value)}
+                        disabled={isLoading}
+                      >
+                        <option value="">Choose an Afrikaans translator...</option>
+                        {afrikaansTranslators.map(translator => (
+                          <option key={translator.id} value={translator.id}>
+                            {translator.firstName} {translator.lastName}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Xhosa Translator Selection */}
+                  {selectedLanguages.has('XHOSA') && (
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Xhosa Translator *
+                      </label>
+                      {xhosaTranslators.length === 0 ? (
+                        <div className="text-center py-2">
+                          <Text className="text-red-600 text-sm">No Xhosa translators available</Text>
+                        </div>
+                      ) : (
+                        <Select
+                          value={selectedXhosaTranslator}
+                          onChange={e => setSelectedXhosaTranslator(e.target.value)}
+                          disabled={isLoading}
+                        >
+                          <option value="">Choose a Xhosa translator...</option>
+                          {xhosaTranslators.map(translator => (
+                            <option key={translator.id} value={translator.id}>
+                              {translator.firstName} {translator.lastName}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
                     </div>
                   )}
                 </div>
@@ -178,7 +265,7 @@ export function TranslationSelectionModal({
               </Button>
               <Button
                 onClick={handleConfirm}
-                disabled={!selectedLanguage || !selectedTranslatorId || isLoading || isLoadingTranslators}
+                disabled={!isFormValid || isLoading || isLoadingTranslators}
               >
                 {isLoading ? 'Sending...' : 'Send for Translation'}
               </Button>

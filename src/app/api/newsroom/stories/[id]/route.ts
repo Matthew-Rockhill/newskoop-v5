@@ -198,6 +198,35 @@ const getStory = createHandler(
           },
           orderBy: { createdAt: 'desc' },
         },
+        // Include related translations for publication unit display
+        translations: {
+          include: {
+            assignedTo: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            reviewer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            translatedStory: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+              },
+            },
+          },
+          orderBy: { targetLanguage: 'asc' },
+        },
       },
     });
 

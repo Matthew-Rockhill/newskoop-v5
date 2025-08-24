@@ -122,7 +122,7 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
         <div className="text-center py-12">
           <Text className="text-red-600">Error loading translation</Text>
           <Button onClick={() => router.push('/newsroom/translations')} className="mt-4">
-            Back to Translations
+            Back
           </Button>
         </div>
       </Container>
@@ -135,28 +135,97 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <Container>
-      <div className="space-y-6">
-        <PageHeader
-          title="Translation Details"
-          description={
-            <div className="flex items-center gap-3 mt-1">
-              <span>{`${translation.originalStory.title} → ${translation.targetLanguage}`}</span>
+      <PageHeader
+        title={translation.translatedStory?.title || translation.originalStory.title}
+        description={
+          <div className="flex items-center gap-4 mt-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
               <Badge color={statusColors[translation.status as keyof typeof statusColors]}>
-                <StatusIcon className="h-3 w-3 mr-1" />
                 {translation.status.replace('_', ' ')}
               </Badge>
             </div>
-          }
-          actions={
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Language:</span>
+              <Badge color="zinc">
+                {translation.originalStory.language} → {translation.targetLanguage}
+              </Badge>
+            </div>
+          </div>
+        }
+        metadata={{
+          sections: [
+            {
+              title: "Assignment & Timeline",
+              items: [
+                {
+                  label: "Assigned To",
+                  value: translation.assignedTo ? 
+                    `${translation.assignedTo.firstName} ${translation.assignedTo.lastName}` : 
+                    'Unassigned'
+                },
+                {
+                  label: "Created",
+                  value: formatDate(translation.createdAt)
+                },
+                {
+                  label: "Last Updated",
+                  value: formatDate(translation.updatedAt)
+                }
+              ]
+            },
+            {
+              title: "Original Story",
+              items: [
+                {
+                  label: "Author",
+                  value: `${translation.originalStory.author.firstName} ${translation.originalStory.author.lastName}`
+                },
+                {
+                  label: "Category",
+                  value: translation.originalStory.category?.name || 'No category'
+                }
+              ]
+            }
+          ]
+        }}
+        actions={
+          <Button
+            color="white"
+            onClick={() => router.push('/newsroom/translations')}
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        }
+      />
+
+      {/* Action Buttons */}
+      <Card className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Basic Actions */}
+            <div className="flex flex-wrap gap-3">
               <Button
                 color="white"
-                onClick={() => router.push('/newsroom/translations')}
+                onClick={() => router.push(`/newsroom/stories/${translation.originalStory.id}`)}
               >
-                <ArrowLeftIcon className="h-4 w-4 mr-1" />
-                Back to Translations
+                <DocumentTextIcon className="h-4 w-4 mr-1" />
+                View Original Story
               </Button>
               
+              {translation.translatedStory && (
+                <Button
+                  color="white"
+                  onClick={() => router.push(`/newsroom/stories/${translation.translatedStory.id}`)}
+                >
+                  <DocumentTextIcon className="h-4 w-4 mr-1" />
+                  View Translated Story
+                </Button>
+              )}
+            </div>
+
+            {/* Workflow Actions */}
+            <div className="flex flex-wrap gap-3 sm:border-l sm:pl-4">
               {canEdit && (
                 <Button
                   color="primary"
@@ -177,11 +246,11 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
                   Review Translation
                 </Button>
               )}
-            </div>
-          }
-        />
+          </div>
+        </div>
+      </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Original Story */}
@@ -223,15 +292,6 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
                   />
                 </div>
                 
-                <div className="pt-4 border-t">
-                  <Button
-                    color="white"
-                    onClick={() => router.push(`/newsroom/stories/${translation.originalStory.id}`)}
-                  >
-                    <DocumentTextIcon className="h-4 w-4 mr-1" />
-                    View Original Story
-                  </Button>
-                </div>
               </div>
             </Card>
 
@@ -267,15 +327,6 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
                     />
                   </div>
                   
-                  <div className="pt-4 border-t">
-                    <Button
-                      color="white"
-                      onClick={() => router.push(`/newsroom/stories/${translation.translatedStory.id}`)}
-                    >
-                      <DocumentTextIcon className="h-4 w-4 mr-1" />
-                      View Translated Story
-                    </Button>
-                  </div>
                 </div>
               </Card>
             )}
@@ -418,7 +469,6 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
                 <DescriptionDetails>{formatDate(translation.updatedAt)}</DescriptionDetails>
               </DescriptionList>
             </Card>
-          </div>
         </div>
       </div>
     </Container>

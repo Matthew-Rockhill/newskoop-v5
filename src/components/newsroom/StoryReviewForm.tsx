@@ -569,25 +569,15 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
           }}
           actions={
             <div className="flex items-center space-x-3">
-              {canShowEditButton(story.status) && (
-                <Button
-                  color="secondary"
-                  onClick={handleEdit}
-                >
-                  <PencilIcon className="h-4 w-4" />
-                  Edit
-                </Button>
-              )}
-              {canShowRequestRevisionButton(session?.user?.staffRole as string | null, story.status, story.authorId === session?.user?.id) && (
-                <Button
-                  color="secondary"
-                  onClick={handleRequestRevision}
-                  disabled={isSubmitting}
-                >
-                  <ExclamationTriangleIcon className="h-4 w-4" />
-                  Request Revision
-                </Button>
-              )}
+              {/* Back to Story */}
+              <Button
+                color="white"
+                onClick={() => router.push(`/newsroom/stories/${storyId}`)}
+              >
+                ← Back to Story
+              </Button>
+
+              {/* Final Actions Only - No Request Revision here, it's handled on detail page */}
               {canShowSubmitForApprovalButton(session?.user?.staffRole as string | null, story.status) && (
                 <Button
                   color="primary"

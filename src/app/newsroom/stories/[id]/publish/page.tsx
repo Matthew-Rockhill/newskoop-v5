@@ -38,12 +38,9 @@ const publishSchema = z.object({
   
   // Pre-publish checklist items
   contentReviewed: z.boolean().refine(val => val, "Content review must be confirmed"),
-  translationsVerified: z.boolean().optional(), // Will be validated conditionally
+  translationsVerified: z.boolean().refine(val => val, "Translation verification must be confirmed"),
   audioQualityChecked: z.boolean().refine(val => val, "Audio quality check must be confirmed"),
   followUpRequired: z.boolean().optional(), // Optional checkbox
-  
-  // No translations confirmation
-  noTranslationsConfirmed: z.boolean().optional(),
   
   scheduledPublishAt: z.string().optional(),
 });
@@ -108,7 +105,6 @@ export default function PublishStoryPage() {
       publishImmediately: true,
       followUpDate: '',
       followUpNote: '',
-      noTranslationsConfirmed: false,
     },
   });
 
@@ -119,10 +115,10 @@ export default function PublishStoryPage() {
   const canPublish = publishStatus?.canPublish || false;
   const publishIssues = publishStatus?.issues || [];
   
-  // Custom validation for form completeness
+  // Custom validation for form completeness - translations are always required
   const isFormValid = watchedValues.contentReviewed && 
     watchedValues.audioQualityChecked && 
-    (translations.length === 0 ? watchedValues.noTranslationsConfirmed : watchedValues.translationsVerified);
+    watchedValues.translationsVerified;
 
   const onSubmit: SubmitHandler<PublishFormData> = async (formData: PublishFormData) => {
     if (!canPublish) {
@@ -130,17 +126,10 @@ export default function PublishStoryPage() {
       return;
     }
 
-    // Validate translations - either we have approved translations OR user confirmed no translations
-    if (translations.length === 0) {
-      if (!formData.noTranslationsConfirmed) {
-        toast.error("Please confirm that this story should be published without translations.");
-        return;
-      }
-    } else {
-      if (!formData.translationsVerified) {
-        toast.error("Please confirm that all translations have been verified.");
-        return;
-      }
+    // Validate translations - all translations must be verified
+    if (!formData.translationsVerified) {
+      toast.error("Please confirm that all translations have been verified.");
+      return;
     }
 
     setIsSubmitting(true);
@@ -440,28 +429,14 @@ export default function PublishStoryPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-4 border border-amber-200 bg-amber-50 rounded-lg">
+                  <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
                     <div className="flex items-start gap-3">
-                      <ExclamationTriangleIcon className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
-                        <Text className="font-medium text-amber-800 mb-2">No translations assigned</Text>
-                        <Text className="text-sm text-amber-700 mb-3">
-                          This story has no translations. Is this correct?
+                        <Text className="font-medium text-red-800 mb-2">No translations found</Text>
+                        <Text className="text-sm text-red-700">
+                          This story cannot be published without approved translations. Please ensure translations have been assigned and completed.
                         </Text>
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={watch('noTranslationsConfirmed') || false}
-                            onChange={(e) => {
-                              setValue('noTranslationsConfirmed', e.target.checked);
-                              trigger('noTranslationsConfirmed');
-                            }}
-                            className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                          />
-                          <span className="text-sm text-amber-700">
-                            Yes, this story should be published without translations
-                          </span>
-                        </label>
                       </div>
                     </div>
                   </div>
@@ -512,24 +487,17 @@ export default function PublishStoryPage() {
                   <CheckboxField>
                     <Checkbox
                       id="translationsVerified"
-                      checked={translations.length === 0 ? (watch('noTranslationsConfirmed') || false) : (watch('translationsVerified') || false)}
+                      checked={watch('translationsVerified') || false}
                       onChange={(checked) => {
-                        if (translations.length === 0) {
-                          setValue('noTranslationsConfirmed', checked);
-                          trigger('noTranslationsConfirmed');
-                        } else {
-                          setValue('translationsVerified', checked);
-                          trigger('translationsVerified');
-                        }
+                        setValue('translationsVerified', checked);
+                        trigger('translationsVerified');
                       }}
                     />
                     <Label htmlFor="translationsVerified">
-                      {translations.length === 0 ? "No Translations Confirmed" : "Translation Verification"}
+                      Translation Verification
                     </Label>
                     <Description>
-                      {translations.length === 0 
-                        ? "Confirmed that this story should publish without translations"
-                        : "All required translations have been approved and are ready"}
+                      All required translations have been approved and are ready for publishing
                     </Description>
                     {errors.translationsVerified && (
                       <Text className="text-sm text-red-600 mt-1">{errors.translationsVerified.message}</Text>

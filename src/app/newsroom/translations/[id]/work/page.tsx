@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,8 +35,8 @@ interface TranslationWorkPageProps {
   }>;
 }
 
-export default async function TranslationWorkPage({ params }: TranslationWorkPageProps) {
-  const { id } = await params;
+export default function TranslationWorkPage({ params }: TranslationWorkPageProps) {
+  const { id } = use(params);
   return <TranslationWorkForm translationId={id} />;
 }
 
@@ -166,7 +166,7 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
         <div className="text-center py-12">
           <Text className="text-red-600">Error loading translation</Text>
           <Button onClick={() => router.push("/newsroom/translations")} className="mt-4">
-            Back to Translations
+            Back
           </Button>
         </div>
       </Container>
@@ -186,16 +186,8 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
                 onClick={() => router.push("/newsroom/translations")}
               >
                 <ArrowLeftIcon className="h-4 w-4 mr-1" />
-                Back to Translations
+                Back
               </Button>
-              {hasExistingTranslation && (
-                <Button
-                  color="secondary"
-                  onClick={() => router.push(`/newsroom/translations/${translationId}/review`)}
-                >
-                  Review & Submit
-                </Button>
-              )}
             </div>
           }
         />
@@ -276,15 +268,6 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
                     >
                       {saveMutation.isPending ? "Saving..." : "Save Translation"}
                     </Button>
-                    {hasExistingTranslation && (
-                      <Button 
-                        type="button"
-                        color="secondary"
-                        onClick={() => router.push(`/newsroom/translations/${translationId}/review`)}
-                      >
-                        Review & Submit
-                      </Button>
-                    )}
                   </div>
                 </div>
               </form>

@@ -98,33 +98,60 @@ const updateTranslation = createHandler(
         data.reviewerId = session.user.id;
       } else if (newStatus === 'REJECTED') {
         data.reviewerId = session.user.id;
+      } else if (newStatus === 'NEEDS_REVIEW') {
+        // Keep the reviewerId if provided (when submitting for approval)
+        // If not provided, it will be null until someone reviews it
+        data.reviewedAt = null; // Reset review timestamp
       }
     }
 
-    const translation = await prisma.translation.update({
-      where: { id },
-      data: {
-        ...data,
-        updatedAt: new Date(),
-      },
-      include: {
-        originalStory: {
-          include: {
-            author: true,
-            category: true,
-          },
+    // Use transaction to handle translation update and potential story status update
+    const result = await prisma.$transaction(async (tx) => {
+      const translation = await tx.translation.update({
+        where: { id },
+        data: {
+          ...data,
+          updatedAt: new Date(),
         },
-        translatedStory: {
-          include: {
-            author: true,
+        include: {
+          originalStory: {
+            include: {
+              author: true,
+              category: true,
+            },
           },
+          translatedStory: {
+            include: {
+              author: true,
+            },
+          },
+          assignedTo: true,
+          reviewer: true,
         },
-        assignedTo: true,
-        reviewer: true,
-      },
+      });
+
+      // If this translation was approved, check if all translations in the unit are now approved
+      if (newStatus === 'APPROVED') {
+        const allTranslations = await tx.translation.findMany({
+          where: { originalStoryId: translation.originalStoryId },
+          select: { status: true },
+        });
+
+        const allApproved = allTranslations.every(t => t.status === 'APPROVED');
+        
+        // If all translations are approved, update story status to READY_TO_PUBLISH
+        if (allApproved) {
+          await tx.story.update({
+            where: { id: translation.originalStoryId },
+            data: { status: 'READY_TO_PUBLISH' },
+          });
+        }
+      }
+
+      return translation;
     });
 
-    return NextResponse.json({ translation });
+    return NextResponse.json({ translation: result });
   },
   [withErrorHandling, withAuth]
 );
