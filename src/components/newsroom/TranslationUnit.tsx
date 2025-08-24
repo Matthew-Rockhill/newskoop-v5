@@ -180,7 +180,6 @@ export function TranslationUnit({
                       
                       <div className="flex items-center gap-1">
                         <Button
-                          size="sm"
                           color="white"
                           onClick={() => handleViewTranslation(translation.id)}
                         >

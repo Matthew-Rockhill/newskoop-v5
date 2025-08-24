@@ -143,7 +143,6 @@ function ReviewSection({ translations }: { translations: Translation[] }) {
 
               <div className="flex items-center gap-2 ml-4">
                 <Button
-                  size="sm"
                   color="white"
                   onClick={() => router.push(`/newsroom/translations/${translation.id}/work`)}
                 >
