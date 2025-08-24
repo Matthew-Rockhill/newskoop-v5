@@ -103,6 +103,26 @@ export interface Story {
     factChecking?: boolean;
     audioQuality?: boolean;
   };
+  translationRequests?: Array<{
+    id: string;
+    status: string;
+    targetLanguage: string;
+    createdAt: string;
+    updatedAt: string;
+    approvedAt?: string;
+    assignedTo?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    reviewer?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }>;
 }
 
 export interface StoryFilters {
