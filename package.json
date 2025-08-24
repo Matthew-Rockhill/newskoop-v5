@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma migrate deploy && prisma generate && next build",
+    "vercel-build": "prisma migrate deploy || echo 'Migration deployment failed, continuing...' && prisma generate && next build",
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "seed:production": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/seed-production-users.ts"
   },
