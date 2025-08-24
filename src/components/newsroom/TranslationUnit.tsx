@@ -32,11 +32,6 @@ interface Translation {
     lastName: string;
     email: string;
   };
-  translatedStory?: {
-    id: string;
-    title: string;
-    slug: string;
-  };
 }
 
 interface TranslationUnitProps {

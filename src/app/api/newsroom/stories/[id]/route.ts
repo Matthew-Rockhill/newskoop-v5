@@ -200,7 +200,13 @@ const getStory = createHandler(
         },
         // Include related translations for publication unit display
         translations: {
-          include: {
+          select: {
+            id: true,
+            status: true,
+            targetLanguage: true,
+            createdAt: true,
+            updatedAt: true,
+            approvedAt: true,
             assignedTo: {
               select: {
                 id: true,
@@ -215,13 +221,6 @@ const getStory = createHandler(
                 firstName: true,
                 lastName: true,
                 email: true,
-              },
-            },
-            translatedStory: {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
               },
             },
           },
