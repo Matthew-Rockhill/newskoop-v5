@@ -131,7 +131,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
   const availableReviewers = reviewersData?.users || [];
 
   const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<ReviewChecklistData>({
-    resolver: zodResolver(createTranslationReviewSchema(isSubEditor, translation?.status || '')),
+    resolver: zodResolver(createTranslationReviewSchema(isSubEditor || false, translation?.status || '')),
     defaultValues: {
       languageAccuracy: false,
       culturalAdaptation: false,

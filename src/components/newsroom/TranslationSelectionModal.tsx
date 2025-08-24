@@ -29,11 +29,6 @@ interface TranslationSelectionModalProps {
   isLoading?: boolean;
 }
 
-const LANGUAGES = [
-  { value: 'AFRIKAANS', label: 'Afrikaans' },
-  { value: 'XHOSA', label: 'Xhosa' },
-];
-
 export function TranslationSelectionModal({
   isOpen,
   onClose,

@@ -364,7 +364,7 @@ function TranslationsPageContent() {
                           </div>
                           <div className="flex items-center gap-1">
                             <LanguageIcon className="h-3 w-3" />
-                            {translation.originalStory.language || 'ENGLISH'} → {translation.targetLanguage}
+                            ENGLISH → {translation.targetLanguage}
                           </div>
                           <div className="flex items-center gap-1">
                             <ClockIcon className="h-3 w-3" />
