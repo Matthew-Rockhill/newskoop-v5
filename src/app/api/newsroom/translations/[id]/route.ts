@@ -59,6 +59,7 @@ const updateTranslation = createHandler(
     }
 
     const userRole = session.user.staffRole ?? null;
+    let newStatus: string | undefined;
 
     // Check permissions for status changes
     if (data.status) {
@@ -84,7 +85,7 @@ const updateTranslation = createHandler(
       };
 
       const currentStatus = currentTranslation.status;
-      const newStatus = data.status;
+      newStatus = data.status;
 
       if (!validTransitions[currentStatus]?.includes(newStatus)) {
         return NextResponse.json({ 
