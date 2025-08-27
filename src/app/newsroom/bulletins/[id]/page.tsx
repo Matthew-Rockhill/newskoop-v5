@@ -2,26 +2,71 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Container } from '@/components/ui/container';
-import { Heading } from '@/components/ui/heading';
-import { Text } from '@/components/ui/text';
+import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
+import { formatLanguage } from '@/lib/language-utils';
 import { 
-  ArrowLeftIcon,
-  NewspaperIcon,
-  ClockIcon,
-  CalendarDaysIcon,
   PencilIcon,
-  CheckCircleIcon,
-  EyeIcon,
-  UserIcon,
 } from '@heroicons/react/24/outline';
+
+interface BulletinStory {
+  id: string;
+  order: number;
+  story?: {
+    title: string;
+    content: string;
+    audioUrl?: string;
+    author?: {
+      firstName: string;
+      lastName: string;
+    };
+    category?: {
+      name: string;
+    };
+    publishedAt?: string;
+    tags?: Array<{
+      tag: {
+        id: string;
+        name: string;
+        category: string;
+      };
+    }>;
+  };
+}
+
+interface Bulletin {
+  id: string;
+  title: string;
+  intro: string;
+  outro: string;
+  status: string;
+  language: string;
+  scheduledFor?: string;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  schedule?: {
+    title: string;
+    time: string;
+  };
+  bulletinStories?: BulletinStory[];
+}
 
 export default function BulletinViewPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const bulletinId = params.id as string;
 
   const { data, isLoading, error } = useQuery({
@@ -33,25 +78,16 @@ export default function BulletinViewPage() {
     },
   });
 
-  const bulletin = data?.bulletin;
+  const bulletin: Bulletin = data?.bulletin;
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT': return 'zinc';
-      case 'IN_REVIEW': return 'yellow';
-      case 'NEEDS_REVISION': return 'orange';
-      case 'APPROVED': return 'blue';
-      case 'PUBLISHED': return 'green';
+      case 'IN_REVIEW': return 'amber';
+      case 'NEEDS_REVISION': return 'red';
+      case 'APPROVED': return 'lime';
+      case 'PUBLISHED': return 'emerald';
       case 'ARCHIVED': return 'zinc';
-      default: return 'zinc';
-    }
-  };
-
-  const getLanguageColor = (language: string) => {
-    switch (language) {
-      case 'ENGLISH': return 'blue';
-      case 'AFRIKAANS': return 'green';
-      case 'XHOSA': return 'purple';
       default: return 'zinc';
     }
   };
@@ -69,97 +105,114 @@ export default function BulletinViewPage() {
 
   if (isLoading) {
     return (
-      <Container className="py-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-        <Text className="mt-2 text-center text-gray-600">Loading bulletin...</Text>
+      <Container>
+        <div className="text-center py-12">
+          <p>Loading bulletin...</p>
+        </div>
       </Container>
     );
   }
 
   if (error) {
     return (
-      <Container className="py-8">
-        <Card className="p-8 text-center">
-          <Text className="text-red-600">Error loading bulletin</Text>
-          <Button outline onClick={() => router.back()} className="mt-4">
-            Go Back
+      <Container>
+        <div className="text-center py-12">
+          <p className="text-red-600">Error loading bulletin: {error instanceof Error ? error.message : 'Unknown error'}</p>
+          <Button href="/newsroom/bulletins" className="mt-4">
+            Back to Bulletins
           </Button>
-        </Card>
+        </div>
       </Container>
     );
   }
 
   return (
-    <Container className="py-8 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Button
-          outline
-          onClick={() => router.back()}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeftIcon className="h-4 w-4" />
-          Back
-        </Button>
-        <div className="flex items-center gap-3">
-          <NewspaperIcon className="h-8 w-8 text-[#76BD43]" />
-          <div>
-            <Heading level={1} className="text-3xl font-bold text-gray-900">
-              {bulletin.title}
-            </Heading>
-            <div className="flex items-center gap-3 mt-2">
+    <Container>
+      <PageHeader
+        title={bulletin.title}
+        description={
+          <div className="flex items-center gap-4 mt-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
               <Badge color={getStatusColor(bulletin.status)}>
                 {bulletin.status.replace('_', ' ')}
               </Badge>
-              <Badge color={getLanguageColor(bulletin.language)}>
-                {bulletin.language}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Language:</span>
+              <Badge color="blue">
+                {formatLanguage(bulletin.language)}
               </Badge>
-              <Text className="text-gray-600">
-                {bulletin._count?.bulletinStories || 0} stories
-              </Text>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Stories:</span>
+              <span className="text-sm text-zinc-900 dark:text-white">
+                {bulletin.bulletinStories?.length || 0}
+              </span>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Bulletin Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <UserIcon className="h-5 w-5 text-gray-400" />
-            <Text className="font-semibold">Author</Text>
+        }
+        metadata={{
+          sections: [
+            {
+              title: "Author & Timeline",
+              items: [
+                {
+                  label: "Author",
+                  value: (
+                    <>
+                      <Avatar
+                        className="h-6 w-6"
+                        name={`${bulletin.author.firstName} ${bulletin.author.lastName}`}
+                      />
+                      <span>{bulletin.author.firstName} {bulletin.author.lastName}</span>
+                    </>
+                  ),
+                  type: 'avatar'
+                },
+                {
+                  label: "Created",
+                  value: formatDate(bulletin.createdAt),
+                  type: 'date'
+                },
+                {
+                  label: "Last Updated",
+                  value: formatDate(bulletin.updatedAt),
+                  type: 'date'
+                }
+              ]
+            }
+          ]
+        }}
+        actions={
+          <div className="flex items-center space-x-3">
+            <Button
+              color="white"
+              onClick={() => router.push('/newsroom/bulletins')}
+            >
+              ← Back to Bulletins
+            </Button>
+            {bulletin.status === 'DRAFT' && bulletin.author.id === session?.user?.id && (
+              <Button
+                color="secondary"
+                onClick={() => router.push(`/newsroom/bulletins/${bulletin.id}/edit`)}
+              >
+                <PencilIcon className="h-4 w-4 mr-2" />
+                Edit Bulletin
+              </Button>
+            )}
           </div>
-          <Text>{bulletin.author?.firstName} {bulletin.author?.lastName}</Text>
-        </Card>
+        }
+      />
 
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
-            <Text className="font-semibold">Scheduled</Text>
-          </div>
-          <Text>
-            {bulletin.scheduledFor ? formatDate(bulletin.scheduledFor) : 'Not scheduled'}
-          </Text>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <ClockIcon className="h-5 w-5 text-gray-400" />
-            <Text className="font-semibold">Schedule</Text>
-          </div>
-          <Text>
-            {bulletin.schedule ? `${bulletin.schedule.title} (${bulletin.schedule.time})` : 'No schedule'}
-          </Text>
-        </Card>
-      </div>
-
-      {/* Bulletin Content */}
-      <div className="space-y-6">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
         {/* Introduction */}
         <Card className="p-6">
-          <Heading level={2} className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Introduction
-          </Heading>
+          </h3>
           <div 
             className="prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{ __html: bulletin.intro }}
@@ -168,53 +221,28 @@ export default function BulletinViewPage() {
 
         {/* Stories */}
         <Card className="p-6">
-          <Heading level={2} className="text-lg font-semibold text-gray-900 mb-4">
-            Stories ({bulletin._count?.bulletinStories || 0})
-          </Heading>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Stories
+            </h3>
+            <Badge color="zinc">
+              {bulletin.bulletinStories?.length || 0} stories
+            </Badge>
+          </div>
           {bulletin.bulletinStories && bulletin.bulletinStories.length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-8 pl-12">
               {bulletin.bulletinStories
-                .sort((a: any, b: any) => a.order - b.order)
-                .map((bulletinStory: any, index: number) => (
-                  <div key={bulletinStory.id} className="border border-gray-200 rounded-lg p-6">
-                    {/* Story Header */}
-                    <div className="flex items-start gap-3 mb-4">
-                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-[#76BD43] text-white rounded-full text-sm font-semibold">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <Heading level={3} className="text-lg font-semibold text-gray-900 mb-2">
-                          {bulletinStory.story?.title}
-                        </Heading>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                          <span className="flex items-center gap-1">
-                            <UserIcon className="h-4 w-4" />
-                            By {bulletinStory.story?.author?.firstName} {bulletinStory.story?.author?.lastName}
-                          </span>
-                          {bulletinStory.story?.category && (
-                            <Badge color="green">
-                              {bulletinStory.story.category.name}
-                            </Badge>
-                          )}
-                          {bulletinStory.story?.publishedAt && (
-                            <span className="flex items-center gap-1">
-                              <ClockIcon className="h-4 w-4" />
-                              {new Date(bulletinStory.story.publishedAt).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                .sort((a: { order: number }, b: { order: number }) => a.order - b.order)
+                .map((bulletinStory: BulletinStory, index: number) => (
+                  <div key={bulletinStory.id} className="relative pb-8 border-b border-gray-200 last:border-b-0 last:pb-0">
+                    {/* Story Number */}
+                    <div className="absolute -left-12 top-0 flex items-center justify-center w-8 h-8 bg-[#76BD43] text-white rounded-full text-sm font-semibold">
+                      {index + 1}
                     </div>
 
                     {/* Audio Player */}
                     {bulletinStory.story?.audioUrl && (
                       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M9 9a3 3 0 000 6h1.5M12 9v6M9 21V3l3-3 3 3v18" />
-                          </svg>
-                          <Text className="font-medium text-blue-900">Audio Version</Text>
-                        </div>
                         <audio 
                           controls 
                           className="w-full"
@@ -229,27 +257,10 @@ export default function BulletinViewPage() {
                     )}
 
                     {/* Story Content */}
-                    <div className="prose prose-sm max-w-none">
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: bulletinStory.story?.content || '' }}
-                      />
-                    </div>
-
-                    {/* Story Tags */}
-                    {bulletinStory.story?.tags && bulletinStory.story.tags.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Text className="text-sm text-gray-500 font-medium">Tags:</Text>
-                          {bulletinStory.story.tags
-                            .filter((storyTag: any) => storyTag.tag.category !== 'LANGUAGE')
-                            .map((storyTag: any) => (
-                            <Badge key={storyTag.tag.id} color="zinc">
-                              {storyTag.tag.name}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: bulletinStory.story?.content || '' }}
+                    />
                   </div>
                 ))}
             </div>
@@ -258,35 +269,78 @@ export default function BulletinViewPage() {
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <Text className="text-gray-600 mt-2">No stories added yet</Text>
-              <Text className="text-gray-500 text-sm mt-1">Add stories to your bulletin to see them here</Text>
+              <p className="text-gray-600 mt-2">No stories added yet</p>
+              <p className="text-gray-500 text-sm mt-1">Add stories to your bulletin to see them here</p>
             </div>
           )}
         </Card>
 
-        {/* Outro */}
-        <Card className="p-6">
-          <Heading level={2} className="text-lg font-semibold text-gray-900 mb-4">
-            Outro
-          </Heading>
-          <div 
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: bulletin.outro }}
-          />
-        </Card>
-      </div>
+          {/* Outro */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Outro
+            </h3>
+            <div 
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: bulletin.outro }}
+            />
+          </Card>
+        </div>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3 mt-8">
-        {bulletin.status === 'DRAFT' && (
-          <Button
-            onClick={() => router.push(`/newsroom/bulletins/${bulletin.id}/edit`)}
-            className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white flex items-center gap-2"
-          >
-            <PencilIcon className="h-4 w-4" />
-            Edit Bulletin
-          </Button>
-        )}
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Bulletin Details */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Bulletin Details</h3>
+            
+            <DescriptionList>
+              <DescriptionTerm>Language</DescriptionTerm>
+              <DescriptionDetails>
+                <Badge color="blue">
+                  {formatLanguage(bulletin.language)}
+                </Badge>
+              </DescriptionDetails>
+
+              <DescriptionTerm>Total Stories</DescriptionTerm>
+              <DescriptionDetails>
+                {bulletin.bulletinStories?.length || 0}
+              </DescriptionDetails>
+
+              {bulletin.scheduledFor && (
+                <>
+                  <DescriptionTerm>Scheduled For</DescriptionTerm>
+                  <DescriptionDetails>
+                    {formatDate(bulletin.scheduledFor)}
+                  </DescriptionDetails>
+                </>
+              )}
+
+              {bulletin.schedule && (
+                <>
+                  <DescriptionTerm>Schedule</DescriptionTerm>
+                  <DescriptionDetails>
+                    {bulletin.schedule.title}
+                    <br />
+                    <span className="text-sm text-gray-500">{bulletin.schedule.time}</span>
+                  </DescriptionDetails>
+                </>
+              )}
+            </DescriptionList>
+          </Card>
+
+          {bulletin.publishedAt && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Publication</h3>
+              
+              <DescriptionList>
+                <DescriptionTerm>Published</DescriptionTerm>
+                <DescriptionDetails>
+                  {formatDate(bulletin.publishedAt)}
+                </DescriptionDetails>
+              </DescriptionList>
+            </Card>
+          )}
+        </div>
       </div>
     </Container>
   );
