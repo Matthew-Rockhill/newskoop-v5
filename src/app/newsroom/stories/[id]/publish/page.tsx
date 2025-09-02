@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -30,22 +30,27 @@ import {
   MusicalNoteIcon
 } from "@heroicons/react/24/outline";
 import { useStory } from "@/hooks/use-stories";
+import { formatLanguage } from "@/lib/language-utils";
 
-const publishSchema = z.object({
+// Create schema factory function that can access the current auto-validation state
+const createPublishSchema = (allTranslationsApproved: boolean) => z.object({
   followUpDate: z.string().optional(),
   followUpNote: z.string().optional(),
   publishImmediately: z.boolean(),
   
   // Pre-publish checklist items
   contentReviewed: z.boolean().refine(val => val, "Content review must be confirmed"),
-  translationsVerified: z.boolean().refine(val => val, "Translation verification must be confirmed"),
+  translationsVerified: z.boolean().refine(
+    val => val || allTranslationsApproved, 
+    "Translation verification must be confirmed"
+  ),
   audioQualityChecked: z.boolean().refine(val => val, "Audio quality check must be confirmed"),
   followUpRequired: z.boolean().optional(), // Optional checkbox
   
   scheduledPublishAt: z.string().optional(),
 });
 
-type PublishFormData = z.infer<typeof publishSchema>;
+type PublishFormData = z.infer<ReturnType<typeof createPublishSchema>>;
 
 export default function PublishStoryPage() {
   const router = useRouter();
@@ -70,6 +75,16 @@ export default function PublishStoryPage() {
     },
     enabled: !!storyId && !!story,
   });
+
+  // Calculate auto-validation state early so we can use it in schema creation
+  const translations = story?.translations || [];
+  const allTranslationsApproved = translations.length > 0 && translations.every((t: Translation) => t.status === "APPROVED");
+
+  // Create memoized resolver to update when auto-validation state changes
+  const publishResolver = useMemo(() => 
+    zodResolver(createPublishSchema(allTranslationsApproved)), 
+    [allTranslationsApproved]
+  );
 
   // Check permissions
   useEffect(() => {
@@ -96,7 +111,7 @@ export default function PublishStoryPage() {
     trigger,
     formState: { errors },
   } = useForm<PublishFormData>({
-    resolver: zodResolver(publishSchema),
+    resolver: publishResolver,
     defaultValues: {
       contentReviewed: false,
       translationsVerified: false,
@@ -111,14 +126,21 @@ export default function PublishStoryPage() {
   const watchPublishImmediately = watch('publishImmediately');
   const watchedValues = watch();
   
-  const translations = story?.translations || [];
   const canPublish = publishStatus?.canPublish || false;
   const publishIssues = publishStatus?.issues || [];
   
+  // Automatically update form state when translations are auto-approved
+  useEffect(() => {
+    if (allTranslationsApproved && !watchedValues.translationsVerified) {
+      setValue('translationsVerified', true);
+      trigger('translationsVerified');
+    }
+  }, [allTranslationsApproved, watchedValues.translationsVerified, setValue, trigger]);
+
   // Custom validation for form completeness - translations are always required
   const isFormValid = watchedValues.contentReviewed && 
     watchedValues.audioQualityChecked && 
-    watchedValues.translationsVerified;
+    (watchedValues.translationsVerified || allTranslationsApproved);
 
   const onSubmit: SubmitHandler<PublishFormData> = async (formData: PublishFormData) => {
     if (!canPublish) {
@@ -126,8 +148,8 @@ export default function PublishStoryPage() {
       return;
     }
 
-    // Validate translations - all translations must be verified
-    if (!formData.translationsVerified) {
+    // Validate translations - all translations must be verified (either manually or automatically)
+    if (!formData.translationsVerified && !allTranslationsApproved) {
       toast.error("Please confirm that all translations have been verified.");
       return;
     }
@@ -293,6 +315,7 @@ export default function PublishStoryPage() {
           }
         />
 
+
         {/* Warning Callout for Incomplete Requirements */}
         {!canPublish && publishIssues.length > 0 && (
           <Card className="p-4 mt-6 border-red-200 bg-red-50">
@@ -419,7 +442,7 @@ export default function PublishStoryPage() {
                     {translations.map((t: Translation) => (
                       <div key={t.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="font-medium">{t.targetLanguage}</span>
+                          <span className="font-medium">{formatLanguage(t.targetLanguage)}</span>
                           <Badge color={t.status === "APPROVED" ? "green" : "amber"}>{t.status}</Badge>
                         </div>
                         {t.status === "APPROVED" && (
@@ -485,19 +508,30 @@ export default function PublishStoryPage() {
 
                   {/* Translation Verification */}
                   <CheckboxField>
-                    <Checkbox
-                      id="translationsVerified"
-                      checked={watch('translationsVerified') || false}
-                      onChange={(checked) => {
-                        setValue('translationsVerified', checked);
-                        trigger('translationsVerified');
-                      }}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="translationsVerified"
+                        checked={watch('translationsVerified') || allTranslationsApproved}
+                        onChange={(checked) => {
+                          setValue('translationsVerified', checked);
+                          trigger('translationsVerified');
+                        }}
+                        disabled={allTranslationsApproved}
+                      />
+                      {allTranslationsApproved && (
+                        <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                      )}
+                    </div>
                     <Label htmlFor="translationsVerified">
                       Translation Verification
+                      {allTranslationsApproved && (
+                        <span className="ml-2 text-sm text-green-600 font-normal">(Auto-verified)</span>
+                      )}
                     </Label>
                     <Description>
-                      All required translations have been approved and are ready for publishing
+                      {allTranslationsApproved 
+                        ? "All translations are approved and automatically verified"
+                        : "All required translations have been approved and are ready for publishing"}
                     </Description>
                     {errors.translationsVerified && (
                       <Text className="text-sm text-red-600 mt-1">{errors.translationsVerified.message}</Text>

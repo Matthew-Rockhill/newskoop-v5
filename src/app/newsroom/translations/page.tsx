@@ -233,22 +233,22 @@ function TranslationsPageContent() {
 
   return (
     <Container>
-      <div className="space-y-6">
-        <PageHeader
-          title="Translations"
-          description="Manage story translations across different languages"
-          searchProps={{
-            value: filters.query || '',
-            onChange: (value) => handleFilterChange('query', value),
-            placeholder: "Search translations..."
-          }}
-          actions={
-            <Button color="white" onClick={() => router.push('/newsroom')}>
-              Back to Dashboard
-            </Button>
-          }
-        />
+      <PageHeader
+        title="Translations"
+        description="Manage story translations across different languages"
+        searchProps={{
+          value: filters.query || '',
+          onChange: (value) => handleFilterChange('query', value),
+          placeholder: "Search translations..."
+        }}
+        actions={
+          <Button color="white" onClick={() => router.push('/newsroom')}>
+            Back to Dashboard
+          </Button>
+        }
+      />
 
+      <div className="mt-8 space-y-6">
         {/* Dedicated Review Section for Sub-Editors and above */}
         {canViewAll && (
           <div className="mb-8">
@@ -257,7 +257,7 @@ function TranslationsPageContent() {
         )}
 
         {/* Filter Buttons */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mb-6">
           <Button
             onClick={() => handleFilterChange('status', '')}
             color={!filters.status ? 'primary' : 'white'}

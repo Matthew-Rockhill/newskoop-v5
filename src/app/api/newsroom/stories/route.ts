@@ -373,6 +373,38 @@ const createStory = createHandler(
       console.log('🎵 Added audio clips:', uploadedAudioFiles.length);
     }
 
+    // Copy audio clips from original story if this is a translation
+    if (storyData.isTranslation && storyData.originalStoryId && uploadedAudioFiles.length === 0) {
+      console.log('🔄 Copying audio clips from original story...');
+      try {
+        const originalStory = await prisma.story.findUnique({
+          where: { id: storyData.originalStoryId as string },
+          include: { audioClips: true }
+        });
+
+        if (originalStory?.audioClips && originalStory.audioClips.length > 0) {
+          // Copy audio clips from original story
+          const audioClipsToCreate = originalStory.audioClips.map(clip => ({
+            filename: clip.filename,
+            originalName: clip.originalName,
+            url: clip.url,
+            fileSize: clip.fileSize,
+            mimeType: clip.mimeType,
+            duration: clip.duration,
+            uploadedBy: user.id, // Credit current user as uploader for the translation
+          }));
+
+          createData.audioClips = {
+            create: audioClipsToCreate
+          };
+          console.log(`✅ Copied ${audioClipsToCreate.length} audio clips from original story`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to copy audio clips from original story:', error);
+        // Continue without audio clips rather than failing the entire translation creation
+      }
+    }
+
     // Create story with audio files
     console.log('💾 Creating story in database...');
     console.log('📊 Final create data:', JSON.stringify(createData, null, 2));

@@ -13,6 +13,7 @@ import {
   LanguageIcon,
   DocumentTextIcon,
   ArrowLeftIcon,
+  MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
 
 import { Container } from '@/components/ui/container';
@@ -24,7 +25,8 @@ import { Text } from '@/components/ui/text';
 import { Heading } from '@/components/ui/heading';
 import { Avatar } from '@/components/ui/avatar';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
-import { StaffRole, TranslationStatus } from '@prisma/client';
+import { CustomAudioPlayer } from '@/components/ui/audio-player';
+import { StaffRole, TranslationStatus, AudioClip as PrismaAudioClip } from '@prisma/client';
 
 interface TranslationDetailPageProps {
   params: Promise<{
@@ -94,6 +96,37 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
 
   const translation = data?.translation;
   const isAssignedTranslator = translation?.assignedToId === userId;
+
+  // Audio player state
+  const [playingAudioId, setPlayingAudioId] = React.useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = React.useState<Record<string, number>>({});
+  const [audioDuration, setAudioDuration] = React.useState<Record<string, number>>({});
+
+  // Audio player handlers
+  const handleAudioPlay = (clipId: string) => {
+    setPlayingAudioId(clipId);
+  };
+
+  const handleAudioStop = () => {
+    setPlayingAudioId(null);
+  };
+
+  const handleAudioRestart = (clipId: string) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: 0 }));
+    setPlayingAudioId(clipId);
+  };
+
+  const handleAudioSeek = (clipId: string, time: number) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: time }));
+  };
+
+  const handleAudioTimeUpdate = (clipId: string, currentTime: number) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: currentTime }));
+  };
+
+  const handleAudioLoadedMetadata = (clipId: string, duration: number) => {
+    setAudioDuration(prev => ({ ...prev, [clipId]: duration }));
+  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -201,7 +234,7 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
       />
 
       {/* Action Buttons */}
-      <Card className="p-6">
+      <Card className="p-6 mt-8">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Basic Actions */}
             <div className="flex flex-wrap gap-3">
@@ -250,7 +283,7 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Original Story */}
@@ -285,11 +318,64 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                 </div>
                 
-                <div className="prose max-w-none">
+                <div className="max-w-full">
                   <div 
                     className="text-gray-700 leading-relaxed"
+                    style={{ 
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word',
+                      maxWidth: '100%',
+                      wordBreak: 'break-word'
+                    }}
                     dangerouslySetInnerHTML={{ __html: translation.originalStory.content }}
                   />
+                </div>
+                
+                {/* Original Story Audio Clips */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <Heading level={4} className="text-sm font-semibold">Audio Clips</Heading>
+                    <Badge color="zinc">
+                      {translation.originalStory.audioClips?.length || 0} clips
+                    </Badge>
+                  </div>
+                  
+                  {!translation.originalStory.audioClips || translation.originalStory.audioClips.length === 0 ? (
+                    <div className="p-3 border border-gray-200 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <MusicalNoteIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <div>
+                          <Text className="text-xs font-medium text-gray-700">No Audio Clips</Text>
+                          <Text className="text-xs text-gray-500">This story has no audio content</Text>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {translation.originalStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>) => (
+                        <CustomAudioPlayer
+                          key={clip.id}
+                          clip={clip}
+                          isPlaying={playingAudioId === clip.id}
+                          currentTime={audioProgress[clip.id] || 0}
+                          duration={audioDuration[clip.id] || 0}
+                          onPlay={handleAudioPlay}
+                          onStop={handleAudioStop}
+                          onRestart={handleAudioRestart}
+                          onSeek={handleAudioSeek}
+                          onTimeUpdate={handleAudioTimeUpdate}
+                          onLoadedMetadata={handleAudioLoadedMetadata}
+                          onEnded={() => setPlayingAudioId(null)}
+                          onError={() => {
+                            console.error('Failed to play audio file');
+                            setPlayingAudioId(null);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
               </div>
@@ -320,11 +406,61 @@ function TranslationDetail({ params }: { params: Promise<{ id: string }> }) {
                     </div>
                   </div>
                   
-                  <div className="prose max-w-none">
+                  <div className="overflow-x-hidden">
                     <div 
-                      className="text-gray-700 leading-relaxed"
+                      className="text-gray-700 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
+                      style={{ 
+                        fontFamily: 'inherit', 
+                        wordBreak: 'break-word',
+                        whiteSpace: 'normal'
+                      }}
                       dangerouslySetInnerHTML={{ __html: translation.translatedStory.content }}
                     />
+                  </div>
+                  
+                  {/* Translated Story Audio Clips */}
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <Heading level={4} className="text-sm font-semibold">Audio Clips</Heading>
+                      <Badge color="zinc">
+                        {translation.translatedStory.audioClips?.length || 0} clips
+                      </Badge>
+                    </div>
+                    
+                    {!translation.translatedStory.audioClips || translation.translatedStory.audioClips.length === 0 ? (
+                      <div className="p-3 border border-green-200 bg-green-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <MusicalNoteIcon className="h-4 w-4 text-green-400 flex-shrink-0" />
+                          <div>
+                            <Text className="text-xs font-medium text-green-700">No Audio Clips</Text>
+                            <Text className="text-xs text-green-600">Translation inherits original audio clips</Text>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {translation.translatedStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>) => (
+                          <CustomAudioPlayer
+                            key={clip.id}
+                            clip={clip}
+                            isPlaying={playingAudioId === clip.id}
+                            currentTime={audioProgress[clip.id] || 0}
+                            duration={audioDuration[clip.id] || 0}
+                            onPlay={handleAudioPlay}
+                            onStop={handleAudioStop}
+                            onRestart={handleAudioRestart}
+                            onSeek={handleAudioSeek}
+                            onTimeUpdate={handleAudioTimeUpdate}
+                            onLoadedMetadata={handleAudioLoadedMetadata}
+                            onEnded={() => setPlayingAudioId(null)}
+                            onError={() => {
+                              console.error('Failed to play audio file');
+                              setPlayingAudioId(null);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                   
                 </div>

@@ -247,7 +247,13 @@ const getStory = createHandler(
       }
     }
 
-    return NextResponse.json(story);
+    // Alias translationRequests as translations for frontend compatibility
+    const storyWithTranslations = {
+      ...story,
+      translations: story.translationRequests
+    };
+    
+    return NextResponse.json(storyWithTranslations);
   },
   [withErrorHandling, withAuth]
 );

@@ -8,9 +8,17 @@ import { canPublishStory, canUpdateStoryStatus } from '@/lib/permissions';
 import { TranslationStatus } from '@prisma/client';
 
 const publishSchema = z.object({
-  followUpDate: z.string().transform(str => new Date(str)).optional(),
+  followUpDate: z.string().optional().transform(str => {
+    if (!str || str.trim() === '') return undefined;
+    const date = new Date(str);
+    return isNaN(date.getTime()) ? undefined : date;
+  }),
   followUpNote: z.string().optional(),
-  scheduledPublishAt: z.string().transform(str => new Date(str)).optional(),
+  scheduledPublishAt: z.string().optional().transform(str => {
+    if (!str || str.trim() === '') return undefined;
+    const date = new Date(str);
+    return isNaN(date.getTime()) ? undefined : date;
+  }),
   publishImmediately: z.boolean().default(true),
   
   // Pre-publish checklist items (for logging/audit purposes)
@@ -45,7 +53,7 @@ export async function POST(
       include: {
         author: true,
         category: true,
-        translations: {
+        translationRequests: {
           include: {
             assignedTo: true,
           }
@@ -73,14 +81,14 @@ export async function POST(
     }
 
     // Double-check that story has required translations (should always be true for READY_TO_PUBLISH)
-    if (story.translations.length === 0) {
+    if (story.translationRequests.length === 0) {
       return NextResponse.json({ 
         error: 'Story must have translations before publishing'
       }, { status: 400 });
     }
 
     // Double-check that all translations are approved (should always be true for READY_TO_PUBLISH)
-    const pendingTranslations = story.translations.filter(t => t.status !== 'APPROVED');
+    const pendingTranslations = story.translationRequests.filter(t => t.status !== 'APPROVED');
     if (pendingTranslations.length > 0) {
       return NextResponse.json({ 
         error: 'All translations must be approved before publishing',
@@ -91,24 +99,33 @@ export async function POST(
     // Determine publish date
     const publishDate = validatedData.publishImmediately 
       ? new Date() 
-      : validatedData.scheduledPublishAt || new Date();
+      : (validatedData.scheduledPublishAt || new Date());
+
+    // Prepare update data with safe date handling
+    const updateData: any = {
+      status: validatedData.publishImmediately ? 'PUBLISHED' : 'READY_TO_PUBLISH',
+      publishedAt: validatedData.publishImmediately ? publishDate : null,
+      publishedBy: session.user.id,
+      followUpNote: validatedData.followUpNote || null,
+      updatedAt: new Date(),
+    };
+
+    // Only set followUpDate if it's a valid date
+    if (validatedData.followUpDate && validatedData.followUpDate instanceof Date && !isNaN(validatedData.followUpDate.getTime())) {
+      updateData.followUpDate = validatedData.followUpDate;
+    } else {
+      updateData.followUpDate = null;
+    }
 
     // Update story status and metadata
     const updatedStory = await prisma.story.update({
       where: { id },
-      data: {
-        status: validatedData.publishImmediately ? 'PUBLISHED' : 'READY_TO_PUBLISH',
-        publishedAt: validatedData.publishImmediately ? publishDate : null,
-        publishedBy: session.user.id,
-        followUpDate: validatedData.followUpDate || null,
-        followUpNote: validatedData.followUpNote || null,
-        updatedAt: new Date(),
-      },
+      data: updateData,
       include: {
         author: true,
         category: true,
         publisher: true,
-        translations: true,
+        translationRequests: true,
       }
     });
 
@@ -148,7 +165,7 @@ export async function POST(
         storyTitle: story.title,
         publishDate: publishDate,
         followUpDate: validatedData.followUpDate || null,
-        translationsCount: story.translations.length,
+        translationsCount: story.translationRequests.length,
         checklist: {
           contentReviewed: validatedData.contentReviewed,
           translationsVerified: validatedData.translationsVerified,
@@ -182,7 +199,7 @@ export async function POST(
       story: updatedStory,
       publishedAt: publishDate,
       followUpDate: validatedData.followUpDate || null,
-      translationsPublished: validatedData.publishImmediately ? updatedStory.translations.length : 0,
+      translationsPublished: validatedData.publishImmediately ? updatedStory.translationRequests.length : 0,
     });
 
   } catch (error: unknown) {
@@ -217,7 +234,7 @@ export async function GET(
     const story = await prisma.story.findUnique({
       where: { id },
       include: {
-        translations: true,
+        translationRequests: true,
         category: true,
         audioClips: true,
       }
@@ -231,8 +248,8 @@ export async function GET(
     const canPublish = canPublishStory(userRole);
     const isReadyToPublishStatus = story.status === 'READY_TO_PUBLISH';
     const canChangeStatus = canUpdateStoryStatus(userRole, story.status, 'PUBLISHED');
-    const hasTranslations = story.translations.length > 0;
-    const allTranslationsApproved = story.translations.every(t => t.status === 'APPROVED');
+    const hasTranslations = story.translationRequests.length > 0;
+    const allTranslationsApproved = story.translationRequests.every(t => t.status === 'APPROVED');
     const hasCategory = !!story.categoryId;
 
     const readyToPublish = canPublish && isReadyToPublishStatus && canChangeStatus && hasTranslations && allTranslationsApproved && hasCategory;
@@ -255,8 +272,8 @@ export async function GET(
         translationsApproved: allTranslationsApproved,
         hasCategory,
         currentStatus: story.status,
-        translationsCount: story.translations.length,
-        approvedTranslations: story.translations.filter(t => t.status === 'APPROVED').length,
+        translationsCount: story.translationRequests.length,
+        approvedTranslations: story.translationRequests.filter(t => t.status === 'APPROVED').length,
       }
     });
 

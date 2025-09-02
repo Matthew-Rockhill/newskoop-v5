@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
@@ -13,14 +13,14 @@ import {
   ExclamationTriangleIcon,
   PencilIcon,
   DocumentTextIcon,
-  EyeIcon,
   LanguageIcon,
   ArrowLeftIcon,
   ClockIcon,
-  UserIcon,
+  MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
 
 import { Container } from '@/components/ui/container';
+import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
@@ -28,6 +28,8 @@ import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Checkbox, CheckboxGroup, CheckboxField } from '@/components/ui/checkbox';
+import { CustomAudioPlayer } from '@/components/ui/audio-player';
+import { AudioClip as PrismaAudioClip } from '@prisma/client';
 import { RevisionRequestModal } from './RevisionRequestModal';
 import { SubEditorSelectionModal } from './SubEditorSelectionModal';
 
@@ -97,6 +99,11 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [showReviewerModal, setShowReviewerModal] = useState(false);
+  
+  // Audio player state
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
+  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
   // Fetch translation data
   const { data: translationData, isLoading: translationLoading, error: translationError } = useQuery({
@@ -118,19 +125,20 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
   const isSubEditor = userRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 
   // Fetch available reviewers (sub-editors and above)
-  const { data: reviewersData } = useQuery({
-    queryKey: ['reviewers'],
-    queryFn: async () => {
-      const response = await fetch('/api/admin/users?roles=SUB_EDITOR,EDITOR,ADMIN,SUPERADMIN');
-      if (!response.ok) throw new Error('Failed to fetch reviewers');
-      return response.json();
-    },
-    enabled: isOwnTranslation && translation?.status === 'IN_PROGRESS'
-  });
+  // This query is currently disabled but may be needed for reviewer selection in the future
+  // const { data: reviewersData } = useQuery({
+  //   queryKey: ['reviewers'],
+  //   queryFn: async () => {
+  //     const response = await fetch('/api/admin/users?roles=SUB_EDITOR,EDITOR,ADMIN,SUPERADMIN');
+  //     if (!response.ok) throw new Error('Failed to fetch reviewers');
+  //     return response.json();
+  //   },
+  //   enabled: isOwnTranslation && translation?.status === 'IN_PROGRESS'
+  // });
 
-  const availableReviewers = reviewersData?.users || [];
+  // const availableReviewers = reviewersData?.users || []; // Currently unused but may be needed for reviewer selection
 
-  const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<ReviewChecklistData>({
+  const { handleSubmit, watch, setValue, formState: { isValid } } = useForm<ReviewChecklistData>({
     resolver: zodResolver(createTranslationReviewSchema(isSubEditor || false, translation?.status || '')),
     defaultValues: {
       languageAccuracy: false,
@@ -144,7 +152,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
   const watchedValues = watch();
 
-  const handleApprove = async (formData: ReviewChecklistData) => {
+  const handleApprove = async () => {
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/newsroom/translations/${translationId}`, {
@@ -163,7 +171,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       
       toast.success('Translation approved successfully');
       router.push(`/newsroom/translations/${translationId}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to approve translation');
     } finally {
       setIsSubmitting(false);
@@ -206,7 +214,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       
       toast.success('Translation submitted for approval successfully');
       router.push(`/newsroom/translations/${translationId}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to submit translation for approval');
     } finally {
       setIsSubmitting(false);
@@ -246,12 +254,38 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       
       toast.success('Revision requested successfully');
       router.push(`/newsroom/translations/${translationId}/work`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to request revision');
     } finally {
       setIsSubmitting(false);
       setShowRevisionModal(false);
     }
+  };
+
+  // Audio player handlers
+  const handleAudioPlay = (clipId: string) => {
+    setPlayingAudioId(clipId);
+  };
+
+  const handleAudioStop = () => {
+    setPlayingAudioId(null);
+  };
+
+  const handleAudioRestart = (clipId: string) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: 0 }));
+    setPlayingAudioId(clipId);
+  };
+
+  const handleAudioSeek = (clipId: string, time: number) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: time }));
+  };
+
+  const handleAudioTimeUpdate = (clipId: string, currentTime: number) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: currentTime }));
+  };
+
+  const handleAudioLoadedMetadata = (clipId: string, duration: number) => {
+    setAudioDuration(prev => ({ ...prev, [clipId]: duration }));
   };
 
   const formatDate = (dateString: string) => {
@@ -301,57 +335,40 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
     REJECTED: 'red',
   } as const;
 
-  const statusIcons = {
-    PENDING: ClockIcon,
-    IN_PROGRESS: PencilIcon,
-    NEEDS_REVIEW: EyeIcon,
-    APPROVED: CheckCircleIcon,
-    REJECTED: ExclamationTriangleIcon,
-  } as const;
-
-  const StatusIcon = statusIcons[translation.status as keyof typeof statusIcons];
-
   return (
     <>
       <Container>
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <Heading level={1} className="text-3xl font-bold text-gray-900 mb-3">
-                Translation Review
-              </Heading>
-              <Text className="text-lg text-gray-600 mb-4">
-                {translatedStory?.title || originalStory?.title || 'Untitled Translation'}
-              </Text>
-              
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <StatusIcon className="h-5 w-5" />
-                  <Badge color={statusColors[translation.status as keyof typeof statusColors]} className="text-sm">
-                    {translation.status.replace('_', ' ')}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <LanguageIcon className="h-4 w-4 text-gray-500" />
-                  <Text className="text-sm text-gray-600">
-                    {originalStory?.language || 'ENGLISH'} → {translation.targetLanguage}
-                  </Text>
-                </div>
-                
-                {translation.assignedTo && (
-                  <div className="flex items-center gap-2">
-                    <UserIcon className="h-4 w-4 text-gray-500" />
-                    <Text className="text-sm text-gray-600">
-                      {translation.assignedTo.firstName} {translation.assignedTo.lastName}
-                    </Text>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
+        <PageHeader
+          title="Translation Review"
+          description={translatedStory?.title || originalStory?.title || 'Untitled Translation'}
+          metadata={{
+            sections: [
+              {
+                title: "Translation Details",
+                items: [
+                  {
+                    label: "Status",
+                    value: (
+                      <Badge color={statusColors[translation.status as keyof typeof statusColors]}>
+                        {translation.status.replace('_', ' ')}
+                      </Badge>
+                    )
+                  },
+                  {
+                    label: "Language",
+                    value: `${originalStory?.language || 'ENGLISH'} → ${translation.targetLanguage}`
+                  },
+                  {
+                    label: "Translator",
+                    value: translation.assignedTo ? 
+                      `${translation.assignedTo.firstName} ${translation.assignedTo.lastName}` : 
+                      'Unassigned'
+                  }
+                ]
+              }
+            ]
+          }}
+          actions={
             <div className="flex items-center gap-3">
               <Button
                 color="white"
@@ -361,13 +378,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 Back
               </Button>
 
-              {(canShowEditButton(translation.status) && isOwnTranslation) ||
-               canShowRequestRevisionButton(userRole || null, translation.status) ||
-               canShowSubmitForReviewButton(userRole || null, translation.status, isOwnTranslation) ||
-               (canShowApproveButton(translation.status) && isSubEditor) ? (
-                <div className="h-6 w-px bg-gray-300" />
-              ) : null}
-
+              {/* Workflow Actions */}
               {canShowEditButton(translation.status) && isOwnTranslation && (
                 <Button color="white" onClick={handleEdit}>
                   <PencilIcon className="h-4 w-4 mr-2" />
@@ -396,7 +407,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
               {canShowApproveButton(translation.status) && isSubEditor && (
                 <Button 
                   color="primary" 
-                  onClick={() => handleApprove(watchedValues)} 
+                  onClick={handleApprove} 
                   disabled={!isValid || isSubmitting}
                 >
                   <CheckCircleIcon className="h-4 w-4 mr-2" />
@@ -404,12 +415,12 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 </Button>
               )}
             </div>
-          </div>
-        </div>
+          }
+        />
 
         {/* Status Alert */}
         {!isValid && (translation.status === 'IN_PROGRESS' || translation.status === 'NEEDS_REVIEW') && (
-          <Card className={`p-4 mb-8 ${
+          <Card className={`p-4 mt-8 mb-8 ${
             translation.status === 'NEEDS_REVIEW' 
               ? 'border-amber-200 bg-amber-50' 
               : 'border-blue-200 bg-blue-50'
@@ -438,7 +449,9 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
           </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-8 ${
+          !isValid && (translation.status === 'IN_PROGRESS' || translation.status === 'NEEDS_REVIEW') ? '' : 'mt-8'
+        }`}>
           {/* Main Content - Stories Comparison */}
           <div className="lg:col-span-2 space-y-6">
             {/* Original Story */}
@@ -475,11 +488,71 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 )}
               </div>
               
-              <div className="prose max-w-none">
+              <div className="max-h-96 overflow-y-auto overflow-x-hidden">
                 <div 
-                  className="text-gray-800 leading-relaxed"
+                  className="text-gray-700 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
+                  style={{ 
+                    fontFamily: 'inherit', 
+                    wordBreak: 'break-word',
+                    whiteSpace: 'normal'
+                  }}
                   dangerouslySetInnerHTML={{ __html: originalStory?.content || '<p>Content not available</p>' }}
                 />
+              </div>
+              
+              {/* Original Story Audio Clips */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <Heading level={4} className="text-sm font-semibold">Audio Clips</Heading>
+                  <Badge color="zinc">
+                    {originalStory?.audioClips?.length || 0} clips
+                  </Badge>
+                </div>
+                
+                {!originalStory?.audioClips || originalStory.audioClips.length === 0 ? (
+                  <div className="p-3 border border-gray-200 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <MusicalNoteIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <div>
+                        <Text className="text-xs font-medium text-gray-700">No Audio Clips</Text>
+                        <Text className="text-xs text-gray-500">This story has no audio content</Text>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {originalStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>) => (
+                      <CustomAudioPlayer
+                        key={clip.id}
+                        clip={clip}
+                        isPlaying={playingAudioId === clip.id}
+                        currentTime={audioProgress[clip.id] || 0}
+                        duration={audioDuration[clip.id] || 0}
+                        onPlay={handleAudioPlay}
+                        onStop={handleAudioStop}
+                        onRestart={handleAudioRestart}
+                        onSeek={handleAudioSeek}
+                        onTimeUpdate={handleAudioTimeUpdate}
+                        onLoadedMetadata={handleAudioLoadedMetadata}
+                        onEnded={() => setPlayingAudioId(null)}
+                        onError={() => {
+                          toast.error('Failed to play audio file');
+                          setPlayingAudioId(null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <Button
+                  color="white"
+                  onClick={() => router.push(`/newsroom/stories/${originalStory?.id}`)}
+                >
+                  <DocumentTextIcon className="h-4 w-4 mr-2" />
+                  View Full Story
+                </Button>
               </div>
             </Card>
 
@@ -518,11 +591,71 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                   )}
                 </div>
                 
-                <div className="prose max-w-none">
+                <div className="max-h-96 overflow-y-auto overflow-x-hidden">
                   <div 
-                    className="text-gray-800 leading-relaxed"
+                    className="text-gray-700 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
+                    style={{ 
+                      fontFamily: 'inherit', 
+                      wordBreak: 'break-word',
+                      whiteSpace: 'normal'
+                    }}
                     dangerouslySetInnerHTML={{ __html: translatedStory.content || '<p>Translation not available</p>' }}
                   />
+                </div>
+                
+                {/* Translated Story Audio Clips */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <Heading level={4} className="text-sm font-semibold">Audio Clips</Heading>
+                    <Badge color="zinc">
+                      {translatedStory.audioClips?.length || 0} clips
+                    </Badge>
+                  </div>
+                  
+                  {!translatedStory.audioClips || translatedStory.audioClips.length === 0 ? (
+                    <div className="p-3 border border-green-200 bg-green-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <MusicalNoteIcon className="h-4 w-4 text-green-400 flex-shrink-0" />
+                        <div>
+                          <Text className="text-xs font-medium text-green-700">No Audio Clips</Text>
+                          <Text className="text-xs text-green-600">Translation inherits original audio clips</Text>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {translatedStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>) => (
+                        <CustomAudioPlayer
+                          key={clip.id}
+                          clip={clip}
+                          isPlaying={playingAudioId === clip.id}
+                          currentTime={audioProgress[clip.id] || 0}
+                          duration={audioDuration[clip.id] || 0}
+                          onPlay={handleAudioPlay}
+                          onStop={handleAudioStop}
+                          onRestart={handleAudioRestart}
+                          onSeek={handleAudioSeek}
+                          onTimeUpdate={handleAudioTimeUpdate}
+                          onLoadedMetadata={handleAudioLoadedMetadata}
+                          onEnded={() => setPlayingAudioId(null)}
+                          onError={() => {
+                            toast.error('Failed to play audio file');
+                            setPlayingAudioId(null);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <Button
+                    color="white"
+                    onClick={() => router.push(`/newsroom/stories/${translatedStory.id}`)}
+                  >
+                    <DocumentTextIcon className="h-4 w-4 mr-2" />
+                    View Full Translated Story
+                  </Button>
                 </div>
               </Card>
             )}

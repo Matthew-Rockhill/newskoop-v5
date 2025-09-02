@@ -31,6 +31,7 @@ import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import type { AudioClip as PrismaAudioClip } from '@prisma/client';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
 import { RevisionRequestModal } from './RevisionRequestModal';
+import { SubEditorSelectionModal } from './SubEditorSelectionModal';
 
 interface RevisionNote {
   id: string;
@@ -139,6 +140,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [showSubEditorModal, setShowSubEditorModal] = useState(false);
   const [fieldInteractions, setFieldInteractions] = useState<Record<string, boolean>>({});
   
   // Audio state
@@ -338,7 +340,14 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       return;
     }
 
+    // Show the sub-editor selection modal
+    setShowSubEditorModal(true);
+  };
+
+  const handleSubEditorSelected = async (subEditorId: string) => {
     setIsSubmitting(true);
+    setShowSubEditorModal(false);
+    
     try {
       // Save the review checklist data for journalists
       if (isJournalist) {
@@ -360,7 +369,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
         id: storyId,
         data: { 
           status: 'PENDING_APPROVAL',
-          reviewerId: session?.user?.id  // Track who submitted for approval
+          reviewerId: subEditorId  // Assign to the selected sub-editor
         },
       });
       
@@ -1074,6 +1083,15 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       onConfirm={handleRevisionRequested}
       storyTitle={story?.title || ''}
       storyStatus={story?.status}
+      isLoading={isSubmitting}
+    />
+
+    {/* Sub-Editor Selection Modal */}
+    <SubEditorSelectionModal
+      isOpen={showSubEditorModal}
+      onClose={() => setShowSubEditorModal(false)}
+      onConfirm={handleSubEditorSelected}
+      storyTitle={story?.title || ''}
       isLoading={isSubmitting}
     />
   </>

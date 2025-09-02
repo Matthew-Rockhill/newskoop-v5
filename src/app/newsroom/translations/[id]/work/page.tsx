@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftIcon, DocumentTextIcon, LanguageIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, DocumentTextIcon, LanguageIcon, CheckCircleIcon, MusicalNoteIcon } from "@heroicons/react/24/outline";
+import { useSession } from "next-auth/react";
 
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
@@ -21,6 +22,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Field, FieldGroup, Fieldset, Label, Description, ErrorMessage } from "@/components/ui/fieldset";
 import { Avatar } from "@/components/ui/avatar";
 import { Divider } from "@/components/ui/divider";
+import { Dialog, DialogTitle, DialogDescription, DialogActions } from "@/components/ui/dialog";
+import { Select } from "@/components/ui/select";
+import { CustomAudioPlayer } from "@/components/ui/audio-player";
+import { AudioClip as PrismaAudioClip } from '@prisma/client';
 
 const translationSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -43,7 +48,17 @@ export default function TranslationWorkPage({ params }: TranslationWorkPageProps
 function TranslationWorkForm({ translationId }: { translationId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
   const [content, setContent] = useState("");
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [selectedReviewer, setSelectedReviewer] = useState("");
+  const [reviewers, setReviewers] = useState<Array<{ id: string; firstName: string; lastName: string }>>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Audio player state
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
+  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
   const {
     register,
@@ -73,6 +88,7 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
   const translation = data?.translation;
   const originalStory = translation?.originalStory;
   const hasExistingTranslation = !!translation?.translatedStoryId;
+  const isReadOnly = translation?.status === 'NEEDS_REVIEW' || translation?.status === 'APPROVED';
 
   // Load existing translation if it exists
   useEffect(() => {
@@ -82,6 +98,22 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
       setContent(translation.translatedStory.content);
     }
   }, [translation, setValue]);
+
+  // Fetch reviewers (sub-editors and above)
+  useEffect(() => {
+    const fetchReviewers = async () => {
+      try {
+        const response = await fetch('/api/users?staffRole=SUB_EDITOR,EDITOR,ADMIN,SUPERADMIN&isActive=true&perPage=100');
+        if (response.ok) {
+          const data = await response.json();
+          setReviewers(data.users || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch reviewers:', error);
+      }
+    };
+    fetchReviewers();
+  }, []);
 
   // Sync RTE content with react-hook-form
   useEffect(() => {
@@ -150,6 +182,88 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
     saveMutation.mutate(data);
   };
 
+  // Submit for review handler
+  const handleSubmitForReview = async () => {
+    // First validate the form
+    const isValid = await trigger();
+    if (!isValid) {
+      toast.error("Please complete all required fields before submitting for review");
+      return;
+    }
+
+    // Save the translation first if needed
+    if (!hasExistingTranslation || saveMutation.isPending) {
+      toast.error("Please save your translation first before submitting for review");
+      return;
+    }
+
+    setShowSubmitModal(true);
+  };
+
+  const confirmSubmitForReview = async () => {
+    if (!selectedReviewer) {
+      toast.error("Please select a reviewer");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Update translation status to NEEDS_REVIEW and assign reviewer
+      const response = await fetch(`/api/newsroom/translations/${translationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "NEEDS_REVIEW",
+          reviewerId: selectedReviewer,
+          submittedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to submit for review");
+      }
+
+      toast.success("Translation submitted for review successfully!");
+      setShowSubmitModal(false);
+      
+      // Invalidate queries and redirect
+      await queryClient.invalidateQueries({ queryKey: ['translation', translationId] });
+      router.push('/newsroom/translations');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit for review";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Audio player handlers
+  const handleAudioPlay = (clipId: string) => {
+    setPlayingAudioId(clipId);
+  };
+
+  const handleAudioStop = () => {
+    setPlayingAudioId(null);
+  };
+
+  const handleAudioRestart = (clipId: string) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: 0 }));
+    setPlayingAudioId(clipId);
+  };
+
+  const handleAudioSeek = (clipId: string, time: number) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: time }));
+  };
+
+  const handleAudioTimeUpdate = (clipId: string, currentTime: number) => {
+    setAudioProgress(prev => ({ ...prev, [clipId]: currentTime }));
+  };
+
+  const handleAudioLoadedMetadata = (clipId: string, duration: number) => {
+    setAudioDuration(prev => ({ ...prev, [clipId]: duration }));
+  };
+
   if (isLoading) {
     return (
       <Container>
@@ -196,13 +310,43 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
           {/* Left: Translation Form */}
           <div>
             <Card className="p-6">
-              <Heading level={3} className="mb-6">
-                Write Translation
-                <Badge color="green" className="ml-3">
-                  <LanguageIcon className="h-3 w-3 mr-1" />
-                  {translation.targetLanguage}
+              <div className="flex items-center justify-between mb-6">
+                <Heading level={3}>
+                  Write Translation
+                  <Badge color="green" className="ml-3">
+                    <LanguageIcon className="h-3 w-3 mr-1" />
+                    {translation.targetLanguage}
+                  </Badge>
+                </Heading>
+                {/* Show translation status */}
+                <Badge 
+                  color={
+                    translation.status === 'PENDING' ? 'amber' :
+                    translation.status === 'IN_PROGRESS' ? 'blue' :
+                    translation.status === 'NEEDS_REVIEW' ? 'purple' :
+                    translation.status === 'APPROVED' ? 'green' :
+                    translation.status === 'REJECTED' ? 'red' : 'zinc'
+                  }
+                >
+                  {translation.status.replace('_', ' ')}
                 </Badge>
-              </Heading>
+              </div>
+              
+              {/* Show message if translation is already submitted or approved */}
+              {translation.status === 'NEEDS_REVIEW' && (
+                <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
+                  <Text className="text-purple-900">
+                    This translation has been submitted for review. You cannot make further edits until the reviewer provides feedback.
+                  </Text>
+                </div>
+              )}
+              {translation.status === 'APPROVED' && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <Text className="text-green-900">
+                    This translation has been approved and cannot be edited.
+                  </Text>
+                </div>
+              )}
               
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <Fieldset>
@@ -217,6 +361,7 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
                         {...register("title")}
                         placeholder={`Enter ${translation.targetLanguage} title...`}
                         invalid={!!errors.title}
+                        disabled={isReadOnly}
                       />
                       {errors.title && (
                         <ErrorMessage>{errors.title.message}</ErrorMessage>
@@ -235,10 +380,12 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
                           <RichTextEditor
                             content={field.value}
                             onChange={(val) => {
-                              setContent(val);
-                              field.onChange(val);
+                              if (!isReadOnly) {
+                                setContent(val);
+                                field.onChange(val);
+                              }
                             }}
-                            placeholder="Write your translation here..."
+                            placeholder={isReadOnly ? "Translation cannot be edited" : "Write your translation here..."}
                             className="min-h-[400px]"
                           />
                         )}
@@ -261,13 +408,32 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
                     Cancel
                   </Button>
                   <div className="flex items-center gap-3">
-                    <Button 
-                      type="submit" 
-                      color="primary" 
-                      disabled={saveMutation.isPending}
-                    >
-                      {saveMutation.isPending ? "Saving..." : "Save Translation"}
-                    </Button>
+                    {!isReadOnly && (
+                      <>
+                        <Button 
+                          type="submit" 
+                          color="primary" 
+                          disabled={saveMutation.isPending}
+                        >
+                          {saveMutation.isPending ? "Saving..." : "Save Translation"}
+                        </Button>
+                        
+                        {/* Show Submit for Review button only when translation is IN_PROGRESS and user is the assigned translator */}
+                        {translation?.status === 'IN_PROGRESS' && 
+                         translation?.assignedToId === session?.user?.id && 
+                         hasExistingTranslation && (
+                          <Button
+                            type="button"
+                            color="secondary"
+                            onClick={handleSubmitForReview}
+                            disabled={saveMutation.isPending}
+                          >
+                            <CheckCircleIcon className="h-4 w-4 mr-1" />
+                            Submit for Review
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </form>
@@ -316,6 +482,53 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
                 
                 <Divider />
                 
+                {/* Audio Clips Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Heading level={4} className="text-sm font-semibold text-gray-900">Audio Clips</Heading>
+                    <Badge color="zinc">
+                      {originalStory.audioClips?.length || 0} clips
+                    </Badge>
+                  </div>
+                  
+                  {!originalStory.audioClips || originalStory.audioClips.length === 0 ? (
+                    <div className="p-3 border border-gray-200 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <MusicalNoteIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <div>
+                          <Text className="text-xs font-medium text-gray-700">No Audio Clips</Text>
+                          <Text className="text-xs text-gray-500">This story has no audio content</Text>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {originalStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>) => (
+                        <CustomAudioPlayer
+                          key={clip.id}
+                          clip={clip}
+                          isPlaying={playingAudioId === clip.id}
+                          currentTime={audioProgress[clip.id] || 0}
+                          duration={audioDuration[clip.id] || 0}
+                          onPlay={handleAudioPlay}
+                          onStop={handleAudioStop}
+                          onRestart={handleAudioRestart}
+                          onSeek={handleAudioSeek}
+                          onTimeUpdate={handleAudioTimeUpdate}
+                          onLoadedMetadata={handleAudioLoadedMetadata}
+                          onEnded={() => setPlayingAudioId(null)}
+                          onError={() => {
+                            toast.error('Failed to play audio file');
+                            setPlayingAudioId(null);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <Divider />
+                
                 <Button
                   color="white"
                   onClick={() => router.push(`/newsroom/stories/${originalStory.id}`)}
@@ -328,6 +541,47 @@ function TranslationWorkForm({ translationId }: { translationId: string }) {
           </div>
         </div>
       </div>
+
+      {/* Submit for Review Modal */}
+      <Dialog open={showSubmitModal} onClose={() => setShowSubmitModal(false)}>
+        <DialogTitle>Submit Translation for Review</DialogTitle>
+        <DialogDescription>
+          Select a reviewer for your translation. The reviewer will be notified and can approve or request revisions.
+        </DialogDescription>
+        
+        <div className="mt-4">
+          <Label htmlFor="reviewer">Select Reviewer *</Label>
+          <Select 
+            id="reviewer"
+            value={selectedReviewer}
+            onChange={(e) => setSelectedReviewer(e.target.value)}
+          >
+            <option value="">Choose a reviewer...</option>
+            {reviewers.map((reviewer) => (
+              <option key={reviewer.id} value={reviewer.id}>
+                {reviewer.firstName} {reviewer.lastName}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <DialogActions>
+          <Button
+            color="white"
+            onClick={() => setShowSubmitModal(false)}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="primary"
+            onClick={confirmSubmitForReview}
+            disabled={isSubmitting || !selectedReviewer}
+          >
+            {isSubmitting ? "Submitting..." : "Submit for Review"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   PencilSquareIcon,
   TrashIcon,
@@ -102,6 +103,7 @@ export default function StoryDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const storyId = params.id as string;
   
   const [isDeleting, setIsDeleting] = useState(false);
@@ -146,7 +148,12 @@ export default function StoryDetailPage() {
       }
       toast.success(`Story sent for translation to ${translations.length} language${translations.length > 1 ? 's' : ''}`);
       setShowTranslationModal(false);
-      router.refresh?.();
+      
+      // Invalidate the story query to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      
+      // Redirect to translations page
+      router.push('/newsroom/translations');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send for translation';
       toast.error(errorMessage);
@@ -423,9 +430,15 @@ export default function StoryDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Story Content */}
           <Card className="p-6">
-            <div className="prose max-w-none">
+            <div className="max-w-full">
               <div 
-                className="text-gray-900 leading-relaxed space-y-4"
+                className="text-gray-900 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
+                style={{ 
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  whiteSpace: 'normal'
+                }}
                 dangerouslySetInnerHTML={{ __html: story.content }}
               />
             </div>
