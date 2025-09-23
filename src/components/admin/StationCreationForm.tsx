@@ -15,25 +15,16 @@ import { Text } from '@/components/ui/text';
 import { Divider } from '@/components/ui/divider';
 import toast from 'react-hot-toast';
 import { TrashIcon, PlusIcon, InfoIcon } from 'lucide-react';
+import { Province } from '@prisma/client';
 
-// Province enum matching Prisma schema
-const provinces = [
-  'EASTERN_CAPE',
-  'FREE_STATE',
-  'GAUTENG',
-  'KWAZULU_NATAL',
-  'LIMPOPO',
-  'MPUMALANGA',
-  'NORTHERN_CAPE',
-  'NORTH_WEST',
-  'WESTERN_CAPE'
-] as const;
+// Get province values from Prisma enum
+const provinces = Object.values(Province).filter(p => p !== 'NATIONAL') as Province[];
 
 // Form validation schema
 const stationSchema = z.object({
   // Basic Information
   name: z.string().min(1, 'Station name is required'),
-  province: z.enum(provinces, { required_error: 'Province is required' }),
+  province: z.nativeEnum(Province, { required_error: 'Province is required' }),
   contactEmail: z.string().email('Invalid email address').optional().or(z.literal('')),
   contactNumber: z.string().optional(),
   
@@ -114,7 +105,7 @@ export default function StationCreationForm() {
   } = useForm<StationFormData>({
     resolver: zodResolver(stationSchema),
     defaultValues: {
-      province: 'GAUTENG',
+      province: Province.GAUTENG,
       hasContentAccess: true,
       allowedLanguages: ['English', 'Afrikaans', 'Xhosa'],
       allowedReligions: ['Christian', 'Muslim', 'Neutral'],
@@ -157,13 +148,36 @@ export default function StationCreationForm() {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) throw new Error('Failed to create station');
+      if (!response.ok) {
+        let errorMessage = 'Failed to create station';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
 
-      toast.success('Station created successfully!');
+      const result = await response.json();
+
+      // Check if any emails failed to send
+      if (result.data?.emailResults) {
+        const failedEmails = result.data.emailResults.filter((email: any) => !email.sent);
+        if (failedEmails.length > 0) {
+          toast.error(`Station created but ${failedEmails.length} email(s) failed to send. Users may need to be contacted manually.`);
+        } else {
+          toast.success('Station created successfully! All magic link emails sent.');
+        }
+      } else {
+        toast.success('Station created successfully!');
+      }
+
       router.push('/admin/stations');
-    } catch (error) {
-      toast.error('Failed to create station');
-      console.error(error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create station';
+      toast.error(errorMessage);
+      console.error('Station creation error:', error);
     } finally {
       setIsSubmitting(false);
     }

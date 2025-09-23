@@ -93,45 +93,49 @@ const createUser = createHandler(
       );
     }
 
-    // Generate a secure temporary password
-    const temporaryPassword = generatePassword();
-    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+    // Use transaction to ensure user creation and email sending are atomic
+    const result = await prisma.$transaction(async (tx) => {
+      // Generate a secure temporary password
+      const temporaryPassword = generatePassword();
+      const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        ...data,
-        password: hashedPassword,
-        mustChangePassword: true,
-      },
-      include: {
-        radioStation: true,
-      },
-    });
+      const user = await tx.user.create({
+        data: {
+          ...data,
+          password: hashedPassword,
+          mustChangePassword: true,
+        },
+        include: {
+          radioStation: true,
+        },
+      });
 
-    console.log('Created user with ID:', user.id); // Debug log
+      console.log('Created user with ID:', user.id); // Debug log
 
-    // Send magic link email
-    let emailResult: { sent: boolean; error?: string } = { sent: false, error: 'Email not attempted' };
-    try {
-      emailResult = await createAndSendMagicLink({
+      // Send magic link email - if this fails, rollback user creation
+      const emailResult = await createAndSendMagicLink({
         userId: user.id,
         email: user.email,
         name: `${user.firstName} ${user.lastName}`,
         isPrimary: false,
       });
-    } catch (error: unknown) {
-      console.error('Failed to send magic link email:', error instanceof Error ? error.message : 'Unknown error');
-      emailResult = { sent: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
+
+      // If email failed to send, throw error to rollback transaction
+      if (!emailResult.sent) {
+        throw new Error(`Failed to send magic link email: ${emailResult.error}`);
+      }
+
+      return { user, emailResult };
+    });
 
     // Remove password from response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
+    const { password, ...userWithoutPassword } = result.user;
 
     return NextResponse.json({
       user: userWithoutPassword,
-      emailSent: emailResult.sent,
-      emailError: emailResult.error,
+      emailSent: result.emailResult.sent,
+      message: 'User created successfully and magic link email sent',
     }, { status: 201 });
   },
   [

@@ -18,7 +18,11 @@ export async function createAndSendMagicLink({
   try {
     // Generate a unique token
     const token = generateToken();
-    
+
+    // WARNING: Using resetToken field for magic links creates potential conflicts
+    // with password reset functionality. Both systems will overwrite each other's tokens.
+    // TODO: Add separate magicLinkToken and magicLinkTokenExpiresAt fields to User model
+
     // Store the token with expiration (24 hours)
     await prisma.user.update({
       where: { id: userId },

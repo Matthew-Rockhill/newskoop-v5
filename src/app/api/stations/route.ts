@@ -86,53 +86,63 @@ export async function POST(request: Request) {
         }
       }
 
-      return { station, primaryUser, additionalUsers };
+      // 4) Send magic link emails to all users - inside transaction
+      const emailResults = [];
+
+      // Send to primary user
+      const primaryEmailResult = await createAndSendMagicLink({
+        userId: primaryUser.id,
+        email: primaryUser.email,
+        name: `${primaryUser.firstName} ${primaryUser.lastName}`,
+        isPrimary: true,
+      });
+
+      if (!primaryEmailResult.sent) {
+        throw new Error(`Failed to send magic link email to primary contact ${primaryUser.email}: ${primaryEmailResult.error}`);
+      }
+
+      emailResults.push({
+        email: primaryUser.email,
+        sent: primaryEmailResult.sent,
+        error: primaryEmailResult.error,
+      });
+
+      // Send to additional users
+      for (const user of additionalUsers) {
+        const emailResult = await createAndSendMagicLink({
+          userId: user.id,
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+          isPrimary: false,
+        });
+
+        if (!emailResult.sent) {
+          throw new Error(`Failed to send magic link email to ${user.email}: ${emailResult.error}`);
+        }
+
+        emailResults.push({
+          email: user.email,
+          sent: emailResult.sent,
+          error: emailResult.error,
+        });
+      }
+
+      return { station, primaryUser, additionalUsers, emailResults };
     });
 
-    // 4) Send magic link emails to all users
-    const emailResults = [];
-    
-    // Send to primary user
-    const primaryEmailResult = await createAndSendMagicLink({
-      userId: result.primaryUser.id,
-      email: result.primaryUser.email,
-      name: `${result.primaryUser.firstName} ${result.primaryUser.lastName}`,
-      isPrimary: true,
-    });
-    emailResults.push({
-      email: result.primaryUser.email,
-      sent: primaryEmailResult.sent,
-      error: primaryEmailResult.error,
-    });
-    
-    // Send to additional users
-    for (const user of result.additionalUsers) {
-      const emailResult = await createAndSendMagicLink({
-        userId: user.id,
-        email: user.email,
-        name: `${user.firstName} ${user.lastName}`,
-        isPrimary: false,
-      });
-      emailResults.push({
-        email: user.email,
-        sent: emailResult.sent,
-        error: emailResult.error,
-      });
-    }
-    
     // 5) Revalidate the stations listing
     revalidatePath('/admin/stations');
 
     console.log(`Station created: ${result.station.name}`);
-    console.log('Email results:', emailResults);
-    
+    console.log('Email results:', result.emailResults);
+
     return NextResponse.json({
       success: true,
       data: {
         stationId: result.station.id,
         stationName: result.station.name,
         userCount: result.additionalUsers.length + 1,
-        emailResults,
+        emailResults: result.emailResults,
       },
     });
   } catch (error) {

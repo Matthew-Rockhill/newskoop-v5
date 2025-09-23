@@ -26,7 +26,7 @@ export const userCreateSchema = z.object({
     // Convert empty string to null for database
     return val === '' ? null : val;
   }),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
 }).refine((data) => {
   // For STAFF users, staffRole is required
   if (data.userType === UserType.STAFF && !data.staffRole) {

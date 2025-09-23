@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { userCreateSchema } from '@/lib/validations';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -10,32 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Fieldset } from '@/components/ui/fieldset';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
+import { z } from 'zod';
 
-const userSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  mobileNumber: z.string().optional(),
-  userType: z.enum(['STAFF', 'RADIO']),
-  staffRole: z.enum(['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN']).optional(),
-  translationLanguage: z.union([
-    z.literal(''),
-    z.enum(['AFRIKAANS', 'XHOSA']),
-    z.undefined()
-  ]).optional(),
-  isActive: z.boolean(),
-}).refine((data) => {
-  // For STAFF users, staffRole is required
-  if (data.userType === 'STAFF' && !data.staffRole) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Staff role is required for staff users",
-  path: ["staffRole"],
-});
-
-type UserFormData = z.infer<typeof userSchema>;
+type UserFormData = z.infer<typeof userCreateSchema>;
 
 interface UserFormProps {
   user?: UserFormData;
@@ -51,7 +28,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
     setValue,
     formState: { errors },
   } = useForm<UserFormData>({
-    resolver: zodResolver(userSchema),
+    resolver: zodResolver(userCreateSchema),
     defaultValues: {
       email: user?.email || '',
       firstName: user?.firstName || '',

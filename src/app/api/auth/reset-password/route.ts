@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { sendEmail, generatePasswordResetEmail } from '@/lib/email';
 import { generateResetToken, verifyResetToken } from '@/lib/auth';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 
 // POST /api/auth/reset-password/request - Request a password reset
 export async function POST(req: NextRequest) {
@@ -92,11 +93,14 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
     // Update the password and clear the reset token
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        password: newPassword,
+        password: hashedPassword,
         resetToken: null,
         resetTokenExpiresAt: null,
         mustChangePassword: false,

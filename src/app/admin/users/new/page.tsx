@@ -2,20 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { UserForm } from '@/components/admin/UserForm';
-// Define the UserFormData type based on the form schema
-type UserFormData = {
-  email: string;
-  firstName: string;
-  lastName: string;
-  userType: 'STAFF' | 'RADIO';
-  isActive: boolean;
-  mobileNumber?: string;
-  staffRole?: 'SUPERADMIN' | 'ADMIN' | 'EDITOR' | 'SUB_EDITOR' | 'JOURNALIST' | 'INTERN';
-  translationLanguage?: 'AFRIKAANS' | 'XHOSA' | '';
-};
+import { userCreateSchema } from '@/lib/validations';
+import { z } from 'zod';
+
+type UserFormData = z.infer<typeof userCreateSchema>;
 
 export default function NewUserPage() {
   const router = useRouter();
@@ -26,7 +20,7 @@ export default function NewUserPage() {
     try {
       // The form data is already properly formatted by validation schema
       const submitData = data;
-      
+
       const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
@@ -36,23 +30,36 @@ export default function NewUserPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create user');
+        let errorMessage = 'Failed to create user';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      
-      // API returns { user: userData, emailSent: boolean, emailError?: string }
+
+      // API returns { user: userData, emailSent: boolean, message: string }
       if (result.user && result.user.id) {
+        if (result.emailSent) {
+          toast.success('User created successfully! Magic link email sent.');
+        } else {
+          toast.error('User created but email failed to send. User may need to be contacted manually.');
+        }
         router.push(`/admin/users/${result.user.id}`);
       } else {
         // This should not happen with a successful API response
         console.error('Unexpected API response structure:', result);
+        toast.error('User created but response was unexpected. Please check the user list.');
         router.push('/admin/users');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating user:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create user');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create user';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
