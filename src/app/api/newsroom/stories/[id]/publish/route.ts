@@ -8,16 +8,38 @@ import { canPublishStory, canUpdateStoryStatus } from '@/lib/permissions';
 import { TranslationStatus } from '@prisma/client';
 
 const publishSchema = z.object({
-  followUpDate: z.string().optional().transform(str => {
+  followUpDate: z.string().optional().transform((str, ctx) => {
     if (!str || str.trim() === '') return undefined;
     const date = new Date(str);
-    return isNaN(date.getTime()) ? undefined : date;
+    if (isNaN(date.getTime())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid follow-up date format',
+      });
+      return z.NEVER;
+    }
+    return date;
   }),
   followUpNote: z.string().optional(),
-  scheduledPublishAt: z.string().optional().transform(str => {
+  scheduledPublishAt: z.string().optional().transform((str, ctx) => {
     if (!str || str.trim() === '') return undefined;
     const date = new Date(str);
-    return isNaN(date.getTime()) ? undefined : date;
+    if (isNaN(date.getTime())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid scheduled publish date format',
+      });
+      return z.NEVER;
+    }
+    // Ensure scheduled date is in the future
+    if (date <= new Date()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Scheduled publish date must be in the future',
+      });
+      return z.NEVER;
+    }
+    return date;
   }),
   publishImmediately: z.boolean().default(true),
   
@@ -97,17 +119,30 @@ export async function POST(
     }
 
     // Determine publish date
-    const publishDate = validatedData.publishImmediately 
-      ? new Date() 
-      : (validatedData.scheduledPublishAt || new Date());
+    let publishDate: Date;
+    if (validatedData.publishImmediately) {
+      publishDate = new Date();
+    } else {
+      // If not publishing immediately, require a scheduled date
+      if (!validatedData.scheduledPublishAt) {
+        return NextResponse.json({
+          error: 'Scheduled publish date is required when not publishing immediately'
+        }, { status: 400 });
+      }
+      publishDate = validatedData.scheduledPublishAt;
+    }
 
     // Prepare update data with safe date handling
     const updateData: any = {
-      status: validatedData.publishImmediately ? 'PUBLISHED' : 'READY_TO_PUBLISH',
+      // Only change status to PUBLISHED if publishing immediately
+      // For scheduled publishing, keep current READY_TO_PUBLISH status
+      ...(validatedData.publishImmediately && { status: 'PUBLISHED' }),
       publishedAt: validatedData.publishImmediately ? publishDate : null,
       publishedBy: session.user.id,
       followUpNote: validatedData.followUpNote || null,
       updatedAt: new Date(),
+      // Store scheduled publish date for future reference
+      ...(validatedData.scheduledPublishAt && { scheduledPublishAt: publishDate }),
     };
 
     // Only set followUpDate if it's a valid date
@@ -275,7 +310,8 @@ export async function GET(
       issues,
       checks: {
         hasPermission: canPublish,
-        correctStatus: canChangeStatus,
+        hasCorrectStatus: isReadyToPublishStatus,
+        canChangeStatus: canChangeStatus,
         hasTranslations,
         translationsApproved: allTranslationsApproved,
         hasCategory,

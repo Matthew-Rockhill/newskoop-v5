@@ -165,8 +165,15 @@ export default function PublishStoryPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to publish story');
+        let errorMessage = 'Failed to publish story';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response.json() fails, use the status text as fallback
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       await response.json();
