@@ -107,6 +107,21 @@ const updateTranslation = createHandler(
 
     // Use transaction to handle translation update and potential story status update
     const result = await prisma.$transaction(async (tx) => {
+      // Re-fetch current status within transaction to prevent race conditions
+      const currentState = await tx.translation.findUnique({
+        where: { id },
+        select: { status: true, updatedAt: true },
+      });
+
+      if (!currentState) {
+        throw new Error('Translation not found');
+      }
+
+      // Check if status has changed since we first fetched it (optimistic locking)
+      if (currentState.status !== currentTranslation.status) {
+        throw new Error(`Translation status has changed. Expected ${currentTranslation.status}, but found ${currentState.status}. Please refresh and try again.`);
+      }
+
       const translation = await tx.translation.update({
         where: { id },
         data: {

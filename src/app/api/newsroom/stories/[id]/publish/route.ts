@@ -117,18 +117,38 @@ export async function POST(
       updateData.followUpDate = null;
     }
 
-    // Update story status and metadata
-    const updatedStory = await prisma.story.update({
-      where: { id },
-      data: updateData,
-      include: {
-        author: true,
-        category: true,
-        publisher: true,
-        translationRequests: true,
+    // Use transaction to ensure story and translation updates happen atomically
+    const result = await prisma.$transaction(async (tx) => {
+      // Update story status and metadata
+      const updatedStory = await tx.story.update({
+        where: { id },
+        data: updateData,
+        include: {
+          author: true,
+          category: true,
+          publisher: true,
+          translationRequests: true,
+        }
+      });
+
+      // Mark all approved translations as published if publishing immediately
+      if (validatedData.publishImmediately) {
+        await tx.translation.updateMany({
+          where: {
+            originalStoryId: id,
+            status: 'APPROVED'
+          },
+          data: {
+            status: TranslationStatus.PUBLISHED,
+            publishedAt: new Date(),
+          }
+        });
       }
+
+      return updatedStory;
     });
 
+    // Log audit trails after successful transaction
     // If scheduled for later, store the scheduled date
     if (!validatedData.publishImmediately && validatedData.scheduledPublishAt) {
       // In a real implementation, you might use a job queue like Bull or a cron job
@@ -178,28 +198,16 @@ export async function POST(
       targetType: 'STORY'
     });
 
-    // Mark all approved translations as published
-    if (validatedData.publishImmediately) {
-      await prisma.translation.updateMany({
-        where: {
-          originalStoryId: id,
-          status: 'APPROVED'
-        },
-        data: {
-          status: TranslationStatus.PUBLISHED,
-          publishedAt: new Date(),
-        }
-      });
-    }
+    const updatedStory = result;
 
     return NextResponse.json({
-      message: validatedData.publishImmediately 
-        ? 'Story published successfully' 
+      message: validatedData.publishImmediately
+        ? 'Story published successfully'
         : 'Story scheduled for publishing',
       story: updatedStory,
       publishedAt: publishDate,
       followUpDate: validatedData.followUpDate || null,
-      translationsPublished: validatedData.publishImmediately ? updatedStory.translationRequests.length : 0,
+      translationsPublished: validatedData.publishImmediately ? updatedStory.translationRequests.filter(t => t.status === 'APPROVED').length : 0,
     });
 
   } catch (error: unknown) {

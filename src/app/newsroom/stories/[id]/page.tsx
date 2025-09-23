@@ -143,8 +143,15 @@ export default function StoryDetailPage() {
         }),
       });
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to send for translation');
+        let errorMessage = 'Failed to send for translation';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch {
+          // If response.json() fails, use the status text as fallback
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
       toast.success(`Story sent for translation to ${translations.length} language${translations.length > 1 ? 's' : ''}`);
       setShowTranslationModal(false);
