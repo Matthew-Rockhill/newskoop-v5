@@ -117,9 +117,9 @@ export function SubEditorSelectionModal({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <Text className="block text-sm font-medium text-gray-700">
                     Select Sub-Editor *
-                  </label>
+                  </Text>
                   <Select
                     value={selectedSubEditorId}
                     onChange={(e) => setSelectedSubEditorId(e.target.value)}
