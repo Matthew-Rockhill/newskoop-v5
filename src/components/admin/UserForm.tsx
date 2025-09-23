@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { userCreateSchema } from '@/lib/validations';
+import { userFormSchema } from '@/lib/validations';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -12,7 +12,7 @@ import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { z } from 'zod';
 
-type UserFormData = z.infer<typeof userCreateSchema>;
+type UserFormData = z.infer<typeof userFormSchema>;
 
 interface UserFormProps {
   user?: UserFormData;
@@ -28,7 +28,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
     setValue,
     formState: { errors },
   } = useForm<UserFormData>({
-    resolver: zodResolver(userCreateSchema),
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
       email: user?.email || '',
       firstName: user?.firstName || '',

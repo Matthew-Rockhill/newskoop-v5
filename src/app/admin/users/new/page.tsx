@@ -6,10 +6,11 @@ import toast from 'react-hot-toast';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { UserForm } from '@/components/admin/UserForm';
-import { userCreateSchema } from '@/lib/validations';
+import { userFormSchema, userCreateSchema } from '@/lib/validations';
 import { z } from 'zod';
 
-type UserFormData = z.infer<typeof userCreateSchema>;
+type UserFormData = z.infer<typeof userFormSchema>;
+type UserCreateData = z.infer<typeof userCreateSchema>;
 
 export default function NewUserPage() {
   const router = useRouter();
@@ -18,8 +19,11 @@ export default function NewUserPage() {
   const handleSubmit = async (data: UserFormData) => {
     setIsSubmitting(true);
     try {
-      // The form data is already properly formatted by validation schema
-      const submitData = data;
+      // Transform frontend form data to backend API format
+      const submitData: UserCreateData = {
+        ...data,
+        translationLanguage: data.translationLanguage === '' ? null : data.translationLanguage
+      };
 
       const response = await fetch('/api/users', {
         method: 'POST',

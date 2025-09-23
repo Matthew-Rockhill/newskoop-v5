@@ -38,6 +38,31 @@ export const userCreateSchema = z.object({
   path: ["staffRole"],
 });
 
+// Frontend user form schema - allows empty strings for better UX
+export const userFormSchema = z.object({
+  email: z.string().email(),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  mobileNumber: z.string().optional(),
+  userType: z.nativeEnum(UserType),
+  staffRole: z.nativeEnum(StaffRole).optional(),
+  translationLanguage: z.union([
+    z.literal(''),
+    z.nativeEnum(TranslationLanguage),
+    z.undefined()
+  ]).optional(),
+  isActive: z.boolean(),
+}).refine((data) => {
+  // For STAFF users, staffRole is required
+  if (data.userType === UserType.STAFF && !data.staffRole) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Staff role is required for staff users",
+  path: ["staffRole"],
+});
+
 // Staff user schema
 export const staffUserSchema = baseUserSchema.extend({
   userType: z.literal(UserType.STAFF),
