@@ -12,13 +12,13 @@ This guide explains how to set up development, staging, and production environme
 
 ### 2. Staging
 - **Database**: Staging Neon database
-- **Email**: SendGrid restricted mode (only @newskoop.com emails)
+- **Email**: Resend restricted mode (only @newskoop.com emails)
 - **URL**: https://staging.newskoop.vercel.app
 - **Branch**: `staging` branch
 
 ### 3. Production
 - **Database**: Production Neon database
-- **Email**: SendGrid full mode
+- **Email**: Resend full mode
 - **URL**: https://newskoop.vercel.app
 - **Branch**: `main` branch
 
@@ -52,9 +52,9 @@ This guide explains how to set up development, staging, and production environme
    DATABASE_URL=[production_neon_url]
    NEXTAUTH_URL=https://newskoop.vercel.app
    NEXTAUTH_SECRET=[generate_new_secret]
-   EMAIL_MODE=sendgrid
-   SENDGRID_API_KEY=[your_sendgrid_key]
-   SENDGRID_FROM_EMAIL=noreply@newskoop.com
+   EMAIL_MODE=resend
+   RESEND_API_KEY=[your_resend_api_key]
+   RESEND_FROM_EMAIL=Newskoop <noreply@newskoop.com>
    BLOB_READ_WRITE_TOKEN=[your_blob_token]
    ```
 
@@ -63,9 +63,9 @@ This guide explains how to set up development, staging, and production environme
    DATABASE_URL=[staging_neon_url]
    NEXTAUTH_URL=https://staging.newskoop.vercel.app
    NEXTAUTH_SECRET=[generate_new_secret]
-   EMAIL_MODE=sendgrid-restricted
-   SENDGRID_API_KEY=[your_sendgrid_key]
-   SENDGRID_FROM_EMAIL=staging@newskoop.com
+   EMAIL_MODE=resend-restricted
+   RESEND_API_KEY=[your_resend_api_key]
+   RESEND_FROM_EMAIL=Newskoop Staging <staging@newskoop.com>
    BLOB_READ_WRITE_TOKEN=[your_blob_token]
    ```
 
@@ -85,8 +85,8 @@ This guide explains how to set up development, staging, and production environme
    
    # Email
    EMAIL_MODE=console
-   SENDGRID_API_KEY=not_needed_in_dev
-   SENDGRID_FROM_EMAIL=dev@localhost
+   RESEND_API_KEY=not_needed_in_dev
+   RESEND_FROM_EMAIL=Newskoop Dev <dev@localhost>
    
    # Vercel Blob (optional for local)
    BLOB_READ_WRITE_TOKEN=your_dev_token_if_needed

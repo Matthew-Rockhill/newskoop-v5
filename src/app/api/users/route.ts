@@ -40,7 +40,11 @@ const getUsers = createHandler(
         ],
       }),
       ...(userType && { userType }),
-      ...(staffRole && { staffRole }),
+      ...(staffRole && {
+        staffRole: Array.isArray(staffRole)
+          ? { in: staffRole }
+          : staffRole
+      }),
       ...(radioStationId && { radioStationId }),
       ...(typeof isActive === 'boolean' && { isActive }),
       ...(translationLanguage && { translationLanguage }),

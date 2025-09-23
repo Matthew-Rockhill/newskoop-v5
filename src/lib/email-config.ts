@@ -1,5 +1,5 @@
 // Email configuration for different environments
-export type EmailMode = 'console' | 'sendgrid-restricted' | 'sendgrid';
+export type EmailMode = 'console' | 'resend-restricted' | 'resend';
 
 export interface EmailConfig {
   mode: EmailMode;
@@ -13,12 +13,12 @@ export const EMAIL_CONFIGS: Record<string, EmailConfig> = {
     allowedDomains: ['*'], // Any email works in development
   },
   staging: {
-    mode: 'sendgrid-restricted',
+    mode: 'resend-restricted',
     allowedDomains: ['newskoop.com', 'newskoop.co.za', 'test.newskoop.com'],
     catchAllEmail: 'staging-emails@newskoop.com',
   },
   production: {
-    mode: 'sendgrid',
+    mode: 'resend',
     allowedDomains: ['*'], // All emails allowed in production
   },
 };
@@ -30,7 +30,7 @@ export function getEmailConfig(): EmailConfig {
     return {
       mode: emailMode,
       allowedDomains: emailMode === 'console' ? ['*'] : EMAIL_CONFIGS.staging.allowedDomains,
-      catchAllEmail: emailMode === 'sendgrid-restricted' ? EMAIL_CONFIGS.staging.catchAllEmail : undefined,
+      catchAllEmail: emailMode === 'resend-restricted' ? EMAIL_CONFIGS.staging.catchAllEmail : undefined,
     };
   }
 

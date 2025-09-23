@@ -101,7 +101,23 @@ export const passwordUpdateSchema = z.object({
 export const userSearchSchema = z.object({
   query: z.string().optional(),
   userType: z.nativeEnum(UserType).optional(),
-  staffRole: z.nativeEnum(StaffRole).optional(),
+  staffRole: z.preprocess(
+    (val) => {
+      // Handle comma-separated roles for filtering
+      if (typeof val === 'string' && val.includes(',')) {
+        const roles = val.split(',').map(r => r.trim());
+        // Validate all roles are valid
+        const validRoles = roles.filter(r => Object.values(StaffRole).includes(r as StaffRole));
+        // Return array of valid roles for filtering
+        return validRoles.length > 0 ? validRoles : undefined;
+      }
+      return val;
+    },
+    z.union([
+      z.nativeEnum(StaffRole),
+      z.array(z.nativeEnum(StaffRole))
+    ]).optional()
+  ),
   radioStationId: z.string().optional(),
   isActive: z.boolean().optional(),
   translationLanguage: z.nativeEnum(TranslationLanguage).optional(),

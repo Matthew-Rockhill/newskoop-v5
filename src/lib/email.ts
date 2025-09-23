@@ -1,13 +1,11 @@
-import sgMail from '@sendgrid/mail';
-import { generateMagicLink, generateToken } from './auth';
+import { Resend } from 'resend';
+import { generateMagicLink } from './auth';
 import { getEmailConfig, isEmailAllowed } from './email-config';
 import { logEmail } from './email-logger';
 import { EmailType } from '@prisma/client';
 
-// Initialize SendGrid only if API key is available
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+// Initialize Resend only if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 interface SendEmailOptions {
   to: string;
@@ -85,55 +83,59 @@ export async function sendEmail({ to, subject, html, type = 'SYSTEM', userId }: 
       
       return; // Success in console mode
       
-    case 'sendgrid-restricted':
-    case 'sendgrid':
-      if (!process.env.SENDGRID_API_KEY) {
-        console.warn('SENDGRID_API_KEY not configured, falling back to console mode');
+    case 'resend-restricted':
+    case 'resend':
+      if (!resend) {
+        console.warn('RESEND_API_KEY not configured, falling back to console mode');
         console.log('\n📧 Email (Fallback Console Mode)');
         console.log('To:', actualRecipient);
         console.log('Subject:', actualSubject);
         return;
       }
-      
+
       try {
         // Log email attempt
         const emailLog = await logEmail({
           to: actualRecipient,
-          from: process.env.SENDGRID_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
+          from: process.env.RESEND_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
           subject: actualSubject,
           type,
           userId,
           status: 'PENDING',
           metadata: { originalRecipient: to !== actualRecipient ? to : undefined },
         });
-        
-        const [response] = await sgMail.send({
-          from: process.env.SENDGRID_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
+
+        const { data, error } = await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
           to: actualRecipient,
           subject: actualSubject,
           html,
         });
-        
+
+        if (error) {
+          throw error;
+        }
+
         // Update email log with success
-        if (emailLog) {
+        if (emailLog && data) {
           await logEmail({
             to: actualRecipient,
-            from: process.env.SENDGRID_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
+            from: process.env.RESEND_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
             subject: actualSubject,
             type,
             userId,
             status: 'SENT',
-            providerId: response.headers['x-message-id'],
+            providerId: data.id,
             metadata: { originalRecipient: to !== actualRecipient ? to : undefined },
           });
         }
       } catch (error) {
         console.error('Failed to send email:', error);
-        
+
         // Log email failure
         await logEmail({
           to: actualRecipient,
-          from: process.env.SENDGRID_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
+          from: process.env.RESEND_FROM_EMAIL || 'Newskoop <no-reply@newskoop.co.za>',
           subject: actualSubject,
           type,
           userId,
@@ -141,7 +143,7 @@ export async function sendEmail({ to, subject, html, type = 'SYSTEM', userId }: 
           failureReason: error instanceof Error ? error.message : 'Unknown error',
           metadata: { error: error instanceof Error ? error.stack : error },
         });
-        
+
         throw new Error('Failed to send email');
       }
       break;
