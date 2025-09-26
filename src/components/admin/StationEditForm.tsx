@@ -355,7 +355,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                 checked={isActive}
                 onChange={(checked) => setValue('isActive', checked)}
               />
-              <Label htmlFor="isActive">
+              <Label>
                 Station Active
                 <Description>
                   When enabled, this station will be active and accessible to users.
@@ -369,7 +369,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                 checked={hasContentAccess}
                 onChange={(checked) => setValue('hasContentAccess', checked)}
               />
-              <Label htmlFor="hasContentAccess">
+              <Label>
                 Enable Content Access
                 <Description>
                   Allow this station to access all available content.
@@ -403,7 +403,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                         }
                       }}
                     />
-                    <Label htmlFor={`language-${language}`}>{language}</Label>
+                    <Label>{language}</Label>
                   </CheckboxField>
                 ))}
               </div>
@@ -430,7 +430,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                         }
                       }}
                     />
-                    <Label htmlFor={`religion-${religion}`}>
+                    <Label>
                       {religion}
                       {religion === 'Neutral' && <span className="text-sm text-gray-500 ml-1">(All content)</span>}
                     </Label>
@@ -465,7 +465,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                             }
                           }}
                         />
-                        <Label htmlFor={`category-${category.id}`}>{category.name}</Label>
+                        <Label>{category.name}</Label>
                       </CheckboxField>
                     ))}
                 </div>

@@ -738,7 +738,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                       onChange={(checked) => handleCheckboxChange('storyStructure', checked)}
                       disabled={isSubEditor} // Auto-checked for sub-editors
                     />
-                    <Label htmlFor="storyStructure">
+                    <Label>
                       Story Structure & Flow
                       {isSubEditor && watchedValues.storyStructure && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
@@ -758,7 +758,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                       onChange={(checked) => handleCheckboxChange('languageGrammar', checked)}
                       disabled={isSubEditor} // Auto-checked for sub-editors
                     />
-                    <Label htmlFor="languageGrammar">
+                    <Label>
                       Language & Grammar
                       {isSubEditor && watchedValues.languageGrammar && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
@@ -778,7 +778,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                       onChange={(checked) => handleCheckboxChange('factChecking', checked)}
                       disabled={isSubEditor} // Auto-checked for sub-editors
                     />
-                    <Label htmlFor="factChecking">
+                    <Label>
                       Fact Checking
                       {isSubEditor && watchedValues.factChecking && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
@@ -798,7 +798,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                       onChange={(checked) => handleCheckboxChange('audioQuality', checked)}
                       disabled={isSubEditor} // Auto-checked for sub-editors
                     />
-                    <Label htmlFor="audioQuality">
+                    <Label>
                       Audio Quality
                       {isSubEditor && watchedValues.audioQuality && <span className="text-green-600 ml-2">✓ Verified by Journalist</span>}
                     </Label>
@@ -819,7 +819,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                           checked={isCategoryAssigned}
                           disabled
                         />
-                        <Label htmlFor="categoryAssigned">
+                        <Label>
                           Category Assigned
                         </Label>
                         <Description>
@@ -833,7 +833,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                           checked={areRequiredTagsAssigned}
                           disabled
                         />
-                        <Label htmlFor="tagsAssigned">
+                        <Label>
                           Required Tags Assigned
                         </Label>
                         <Description>

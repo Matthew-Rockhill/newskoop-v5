@@ -520,7 +520,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                       onChange={(checked) => handleCheckboxChange('languageAccuracy', checked)}
                       disabled={isSubEditor} // Auto-checked for sub-editors
                     />
-                    <Label htmlFor="languageAccuracy">
+                    <Label>
                       Language Accuracy
                       {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Translator</span>}
                     </Label>
@@ -540,7 +540,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                       onChange={(checked) => handleCheckboxChange('culturalAdaptation', checked)}
                       disabled={isSubEditor} // Auto-checked for sub-editors
                     />
-                    <Label htmlFor="culturalAdaptation">
+                    <Label>
                       Cultural Adaptation
                       {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Translator</span>}
                     </Label>
@@ -560,7 +560,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                       onChange={(checked) => handleCheckboxChange('completeness', checked)}
                       disabled={isSubEditor} // Auto-checked for sub-editors
                     />
-                    <Label htmlFor="completeness">
+                    <Label>
                       Completeness
                       {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Translator</span>}
                     </Label>
@@ -580,7 +580,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                       onChange={(checked) => handleCheckboxChange('consistency', checked)}
                       disabled={isSubEditor} // Auto-checked for sub-editors
                     />
-                    <Label htmlFor="consistency">
+                    <Label>
                       Consistency with Original
                       {isSubEditor && <span className="text-green-600 ml-2">✓ Verified by Translator</span>}
                     </Label>
@@ -601,7 +601,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                           checked={watchedValues.qualityControl || false}
                           onChange={(checked) => handleCheckboxChange('qualityControl', checked)}
                         />
-                        <Label htmlFor="qualityControl">
+                        <Label>
                           Quality Control Review
                         </Label>
                         <Description>
@@ -618,7 +618,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                           checked={watchedValues.finalApproval || false}
                           onChange={(checked) => handleCheckboxChange('finalApproval', checked)}
                         />
-                        <Label htmlFor="finalApproval">
+                        <Label>
                           Final Approval Confirmation
                         </Label>
                         <Description>
