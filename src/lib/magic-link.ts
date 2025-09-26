@@ -1,12 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { generateToken } from '@/lib/auth';
 import { sendMagicLink } from '@/lib/email';
+import { Prisma } from '@prisma/client';
 
 interface CreateMagicLinkParams {
   userId: string;
   email: string;
   name: string;
   isPrimary?: boolean;
+  tx?: Prisma.TransactionClient;
 }
 
 export async function createAndSendMagicLink({
@@ -14,6 +16,7 @@ export async function createAndSendMagicLink({
   email,
   name,
   isPrimary = false,
+  tx,
 }: CreateMagicLinkParams): Promise<{ sent: boolean; error?: string }> {
   try {
     // Generate a unique token
@@ -23,8 +26,11 @@ export async function createAndSendMagicLink({
     // with password reset functionality. Both systems will overwrite each other's tokens.
     // TODO: Add separate magicLinkToken and magicLinkTokenExpiresAt fields to User model
 
+    // Use transaction client if provided, otherwise use default prisma client
+    const client = tx || prisma;
+
     // Store the token with expiration (24 hours)
-    await prisma.user.update({
+    await client.user.update({
       where: { id: userId },
       data: {
         resetToken: token,

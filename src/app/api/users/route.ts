@@ -118,6 +118,7 @@ const createUser = createHandler(
         email: user.email,
         name: `${user.firstName} ${user.lastName}`,
         isPrimary: false,
+        tx, // Pass the transaction client
       });
 
       // If email failed to send, throw error to rollback transaction
