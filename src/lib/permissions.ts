@@ -1,4 +1,4 @@
-import { StaffRole, StoryStatus } from '@prisma/client';
+import { StaffRole, StoryStatus, StoryStage } from '@prisma/client';
 
 export type PermissionAction = 'create' | 'read' | 'update' | 'delete';
 
@@ -261,4 +261,207 @@ export function canWorkOnTranslation(userRole: StaffRole | null, translationAssi
   // Only the assigned translator or higher roles can work on translation
   if (translationAssignedToId === currentUserId) return true;
   return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+// ============================================================================
+// NEW STAGE-BASED PERMISSIONS (Simplified Workflow)
+// ============================================================================
+
+/**
+ * Check if user can edit a story based on stage
+ */
+export function canEditStoryByStage(
+  userRole: StaffRole | null,
+  stage: StoryStage | null,
+  storyAuthorId: string,
+  currentUserId: string
+): boolean {
+  if (!userRole || !stage) return false;
+
+  // Editors and above can edit any story in DRAFT
+  if (stage === 'DRAFT' && ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+    return true;
+  }
+
+  // Stories in DRAFT can be edited by author
+  if (stage === 'DRAFT') {
+    return storyAuthorId === currentUserId;
+  }
+
+  // Stories in review/approval stages are locked
+  if (stage === 'NEEDS_JOURNALIST_REVIEW' || stage === 'NEEDS_SUB_EDITOR_APPROVAL') {
+    return false;
+  }
+
+  // Stories that are approved, translated, or published are locked
+  if (stage === 'APPROVED' || stage === 'TRANSLATED' || stage === 'PUBLISHED') {
+    return false;
+  }
+
+  return false;
+}
+
+/**
+ * Check if user can review a story (journalist reviewing intern work)
+ */
+export function canReviewStory(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+/**
+ * Check if user can approve a story (sub-editor final approval)
+ */
+export function canApproveStoryStage(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+/**
+ * Check if user can send story for translation
+ */
+export function canSendForTranslation(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+/**
+ * Check if user can request revision
+ */
+export function canRequestRevision(
+  userRole: StaffRole | null,
+  stage: StoryStage | null,
+  assignedReviewerId: string | null,
+  assignedApproverId: string | null,
+  currentUserId: string
+): boolean {
+  if (!userRole || !stage) return false;
+
+  // Journalist can request revision if they're the assigned reviewer
+  if (stage === 'NEEDS_JOURNALIST_REVIEW') {
+    if (assignedReviewerId === currentUserId && canReviewStory(userRole)) {
+      return true;
+    }
+  }
+
+  // Sub-editor can request revision if they're the assigned approver
+  if (stage === 'NEEDS_SUB_EDITOR_APPROVAL') {
+    if (assignedApproverId === currentUserId && canApproveStoryStage(userRole)) {
+      return true;
+    }
+  }
+
+  // Editors and above can always request revision
+  return ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+/**
+ * Get the next stage action for a story based on author role
+ */
+export function getNextStageAction(
+  authorRole: StaffRole | null,
+  currentStage: StoryStage | null,
+  userRole: StaffRole | null
+): {
+  action: string;
+  label: string;
+  requiresAssignment: boolean;
+  assignmentRole?: StaffRole[];
+} | null {
+  if (!authorRole || !currentStage || !userRole) return null;
+
+  // INTERN story path
+  if (authorRole === 'INTERN') {
+    if (currentStage === 'DRAFT') {
+      return {
+        action: 'submit_for_review',
+        label: 'Submit for Review',
+        requiresAssignment: true,
+        assignmentRole: ['JOURNALIST'],
+      };
+    }
+    if (currentStage === 'NEEDS_JOURNALIST_REVIEW' && canReviewStory(userRole)) {
+      return {
+        action: 'send_for_approval',
+        label: 'Send for Approval',
+        requiresAssignment: true,
+        assignmentRole: ['SUB_EDITOR', 'EDITOR'],
+      };
+    }
+  }
+
+  // JOURNALIST story path
+  if (authorRole === 'JOURNALIST') {
+    if (currentStage === 'DRAFT') {
+      return {
+        action: 'submit_for_approval',
+        label: 'Submit for Approval',
+        requiresAssignment: true,
+        assignmentRole: ['SUB_EDITOR', 'EDITOR'],
+      };
+    }
+  }
+
+  // SUB_EDITOR/EDITOR story path (can self-approve)
+  if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(authorRole)) {
+    if (currentStage === 'DRAFT' && canApproveStoryStage(userRole)) {
+      return {
+        action: 'approve_story',
+        label: 'Approve Story',
+        requiresAssignment: false,
+      };
+    }
+  }
+
+  // Approval stage
+  if (currentStage === 'NEEDS_SUB_EDITOR_APPROVAL' && canApproveStoryStage(userRole)) {
+    return {
+      action: 'approve_story',
+      label: 'Approve Story',
+      requiresAssignment: false,
+    };
+  }
+
+  // Translation stage
+  if (currentStage === 'APPROVED' && canSendForTranslation(userRole)) {
+    return {
+      action: 'send_for_translation',
+      label: 'Send for Translation',
+      requiresAssignment: true,
+      assignmentRole: ['JOURNALIST', 'SUB_EDITOR', 'EDITOR'],
+    };
+  }
+
+  // Publishing stage
+  if (currentStage === 'TRANSLATED' && canPublishStory(userRole)) {
+    return {
+      action: 'publish_story',
+      label: 'Publish Story',
+      requiresAssignment: false,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Get stage-specific lock reason
+ */
+export function getStageLockReason(stage: StoryStage | null): string | null {
+  if (!stage) return null;
+
+  switch (stage) {
+    case 'NEEDS_JOURNALIST_REVIEW':
+      return 'Story is under review by a journalist';
+    case 'NEEDS_SUB_EDITOR_APPROVAL':
+      return 'Story is awaiting sub-editor approval';
+    case 'APPROVED':
+      return 'Story has been approved and is ready for translation';
+    case 'TRANSLATED':
+      return 'Story translations are complete and ready to publish';
+    case 'PUBLISHED':
+      return 'Story has been published';
+    default:
+      return null;
+  }
 } 
