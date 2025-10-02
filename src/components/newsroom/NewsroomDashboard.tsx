@@ -48,7 +48,7 @@ export function NewsroomDashboard() {
 
   // Journalist-specific: stories assigned for review
   const { data: reviewStoriesData } = useStories({
-    reviewerId: userId,
+    assignedReviewerId: userId,
     stage: 'NEEDS_JOURNALIST_REVIEW',
     page: 1,
     perPage: 100
@@ -117,7 +117,7 @@ export function NewsroomDashboard() {
       title: 'Stories to Review',
       count: reviewStories.length,
       icon: EyeIcon,
-      href: `/newsroom/stories?reviewerId=${userId}&stage=NEEDS_JOURNALIST_REVIEW`,
+      href: `/newsroom/stories?assignedReviewerId=${userId}&stage=NEEDS_JOURNALIST_REVIEW`,
       color: 'amber',
     },
     {
@@ -193,6 +193,113 @@ export function NewsroomDashboard() {
           );
         })}
       </div>
+
+      {/* Task Lists - Journalist */}
+      {isJournalist && reviewStories.length > 0 && (
+        <div className="mt-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Heading level={3}>Stories to Review</Heading>
+              <Text className="text-sm text-zinc-600">{reviewStories.length} stories</Text>
+            </div>
+            <div className="space-y-3">
+              {reviewStories.slice(0, 5).map((story: any) => (
+                <div
+                  key={story.id}
+                  className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                  onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                >
+                  <div className="flex-1">
+                    <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                    <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                      by {story.author.firstName} {story.author.lastName}
+                    </Text>
+                  </div>
+                  <EyeIcon className="h-5 w-5 text-zinc-400" />
+                </div>
+              ))}
+              {reviewStories.length > 5 && (
+                <Button
+                  color="white"
+                  className="w-full"
+                  onClick={() => router.push(`/newsroom/stories?assignedReviewerId=${userId}&stage=NEEDS_JOURNALIST_REVIEW`)}
+                >
+                  View all {reviewStories.length} stories
+                </Button>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Task Lists - Sub-Editor */}
+      {isSubEditor && pendingApprovalStories.length > 0 && (
+        <div className="mt-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Heading level={3}>Stories Needing Approval</Heading>
+              <Text className="text-sm text-zinc-600">{pendingApprovalStories.length} stories</Text>
+            </div>
+            <div className="space-y-3">
+              {pendingApprovalStories.slice(0, 5).map((story: any) => (
+                <div
+                  key={story.id}
+                  className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                  onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                >
+                  <div className="flex-1">
+                    <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                    <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                      by {story.author.firstName} {story.author.lastName}
+                    </Text>
+                  </div>
+                  <CheckCircleIcon className="h-5 w-5 text-zinc-400" />
+                </div>
+              ))}
+              {pendingApprovalStories.length > 5 && (
+                <Button
+                  color="white"
+                  className="w-full"
+                  onClick={() => router.push('/newsroom/stories?stage=NEEDS_SUB_EDITOR_APPROVAL')}
+                >
+                  View all {pendingApprovalStories.length} stories
+                </Button>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Task Lists - Intern (Stories in Review) */}
+      {!isJournalist && !isSubEditor && (needsReviewStories.length > 0 || needsApprovalStories.length > 0) && (
+        <div className="mt-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Heading level={3}>Your Stories in Review</Heading>
+              <Text className="text-sm text-zinc-600">{needsReviewStories.length + needsApprovalStories.length} stories</Text>
+            </div>
+            <div className="space-y-3">
+              {[...needsReviewStories, ...needsApprovalStories].slice(0, 5).map((story: any) => (
+                <div
+                  key={story.id}
+                  className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                  onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                >
+                  <div className="flex-1">
+                    <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                    <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                      {story.stage === 'NEEDS_JOURNALIST_REVIEW'
+                        ? `Being reviewed by ${story.assignedReviewer?.firstName || 'journalist'}`
+                        : 'Awaiting sub-editor approval'}
+                    </Text>
+                  </div>
+                  <ClockIcon className="h-5 w-5 text-zinc-400" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
     </Container>
   );
 }

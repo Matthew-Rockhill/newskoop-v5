@@ -66,12 +66,16 @@ function StoriesPageContent() {
     const stage = searchParams.get('stage');
     const authorId = searchParams.get('authorId');
     const reviewerId = searchParams.get('reviewerId');
+    const assignedReviewerId = searchParams.get('assignedReviewerId');
+    const assignedApproverId = searchParams.get('assignedApproverId');
     const query = searchParams.get('query');
     const page = searchParams.get('page');
 
     if (stage) urlFilters.stage = stage as StoryStage;
     if (authorId) urlFilters.authorId = authorId;
     if (reviewerId) urlFilters.reviewerId = reviewerId;
+    if (assignedReviewerId) urlFilters.assignedReviewerId = assignedReviewerId;
+    if (assignedApproverId) urlFilters.assignedApproverId = assignedApproverId;
     if (query) urlFilters.query = query;
     if (page) urlFilters.page = parseInt(page);
 
@@ -129,7 +133,7 @@ function StoriesPageContent() {
       <div className="space-y-6">
         <PageHeader
           title={
-            filters.reviewerId && filters.stage === 'NEEDS_JOURNALIST_REVIEW'
+            filters.assignedReviewerId && filters.stage === 'NEEDS_JOURNALIST_REVIEW'
               ? 'Stories to Review'
               : filters.authorId
                 ? 'My Stories'

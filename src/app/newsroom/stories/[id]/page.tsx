@@ -34,8 +34,10 @@ import { StageTransitionModal } from '@/components/ui/stage-transition-modal';
 import { useStory, useDeleteStory } from '@/hooks/use-stories';
 import {
   canEditStory,
+  canEditStoryByStage,
   canDeleteStory,
   getEditLockReason,
+  getStageLockReason,
   canUpdateStoryStatus
 } from '@/lib/permissions';
 import { StaffRole, StoryStatus, StoryStage, AudioClip } from '@prisma/client';
@@ -90,10 +92,10 @@ function canShowFinalReviewButton(userRole: StaffRole | null, status: string, is
   return false;
 }
 
-// Helper: should show edit button
-function canShowEditButton(userRole: StaffRole | null, authorId: string, userId: string | null, status: string) {
-  // Use the permissions system - it already handles which statuses are editable
-  return canEditStory(userRole, authorId, userId ?? '', status as StoryStatus);
+// Helper: should show edit button (stage-based)
+function canShowEditButton(userRole: StaffRole | null, authorId: string, userId: string | null, stage: StoryStage | null) {
+  // Use the stage-based permissions system
+  return canEditStoryByStage(userRole, stage, authorId, userId ?? '');
 }
 
 // Helper: should show delete button
@@ -548,10 +550,10 @@ export default function StoryDetailPage() {
 
             {/* Basic Actions */}
             <div className="flex items-center space-x-2">
-              {/* Edit Button - Only show if user can edit this story and status is editable */}
-              {canShowEditButton(session?.user?.staffRole ?? null, story.authorId, session?.user?.id || '', story.status) ? (
-                <Button 
-                  color="secondary" 
+              {/* Edit Button - Only show if user can edit this story and stage is editable */}
+              {canShowEditButton(session?.user?.staffRole ?? null, story.authorId, session?.user?.id || '', story.stage) ? (
+                <Button
+                  color="secondary"
                   onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
                 >
                   <PencilSquareIcon className="h-4 w-4 mr-2" />
@@ -559,10 +561,10 @@ export default function StoryDetailPage() {
                 </Button>
               ) : (
                 // Show lock reason only if user is the author and story is locked
-                (session?.user?.staffRole && story.authorId === session?.user?.id && getEditLockReason(story.status)) && (
+                (session?.user?.staffRole && story.authorId === session?.user?.id && getStageLockReason(story.stage)) && (
                   <div className="flex items-center space-x-2 text-sm text-gray-500">
                     <PencilSquareIcon className="h-4 w-4" />
-                    <span>{getEditLockReason(story.status)}</span>
+                    <span>{getStageLockReason(story.stage)}</span>
                   </div>
                 )
               )}

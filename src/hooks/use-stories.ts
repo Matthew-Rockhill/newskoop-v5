@@ -133,6 +133,8 @@ export interface StoryFilters {
   authorId?: string;
   assignedToId?: string;
   reviewerId?: string;
+  assignedReviewerId?: string;
+  assignedApproverId?: string;
   tagIds?: string[];
   page?: number;
   perPage?: number;

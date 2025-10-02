@@ -44,6 +44,8 @@ const getStories = createHandler(
       authorId,
       assignedToId,
       reviewerId,
+      assignedReviewerId,
+      assignedApproverId,
       tagIds,
       page = 1,
       perPage = 10
@@ -81,6 +83,8 @@ const getStories = createHandler(
       ...(authorId && { authorId }),
       ...(assignedToId && { assignedToId }),
       ...(reviewerId && { reviewerId }),
+      ...(assignedReviewerId && { assignedReviewerId }),
+      ...(assignedApproverId && { assignedApproverId }),
       ...(tagIds && tagIds.length > 0 && {
         tags: {
           some: {
@@ -113,7 +117,8 @@ const getStories = createHandler(
         OR: [
           { authorId: user.id },
           { assignedToId: user.id },
-          { reviewerId: user.id }
+          { reviewerId: user.id },
+          { assignedReviewerId: user.id }
         ]
       };
       
