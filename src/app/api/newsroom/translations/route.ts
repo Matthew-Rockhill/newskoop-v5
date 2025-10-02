@@ -123,7 +123,7 @@ const createTranslation = createHandler(
 
         const existingLanguages = existingTranslations.map(t => t.targetLanguage);
         const requestedLanguages = translations.map((t: { targetLanguage: string }) => t.targetLanguage);
-        const duplicateLanguages = requestedLanguages.filter(lang => existingLanguages.includes(lang));
+        const duplicateLanguages = requestedLanguages.filter((lang: string) => existingLanguages.includes(lang));
 
         if (duplicateLanguages.length > 0) {
           throw new Error(`Translation requests already exist for: ${duplicateLanguages.join(', ')}. Please check existing translations.`);
