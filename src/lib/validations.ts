@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, CommentType, StoryLanguage } from '@prisma/client';
+import { StaffRole, UserType, TranslationLanguage, Province, StoryStatus, StoryStage, CommentType, StoryLanguage } from '@prisma/client';
 
 // Base user schema
 const baseUserSchema = z.object({
@@ -188,6 +188,7 @@ export const storyStatusUpdateSchema = z.object({
 export const storySearchSchema = z.object({
   query: z.string().optional(),
   status: z.nativeEnum(StoryStatus).optional(),
+  stage: z.nativeEnum(StoryStage).optional(),
   categoryId: z.string().optional(),
   authorId: z.string().optional(),
   assignedToId: z.string().optional(),

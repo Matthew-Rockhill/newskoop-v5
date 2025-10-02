@@ -32,20 +32,19 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { useStories, type StoryFilters } from '@/hooks/use-stories';
 import { useSession } from 'next-auth/react';
-import { StoryStatus } from '@prisma/client';
+import { StoryStage } from '@prisma/client';
+import { StageBadge } from '@/components/ui/stage-badge';
 
-// Status badge colors
-const statusColors = {
-  DRAFT: 'zinc',
-  IN_REVIEW: 'amber',
-  NEEDS_REVISION: 'red',
-  PENDING_APPROVAL: 'blue',
-  APPROVED: 'lime',
-  PENDING_TRANSLATION: 'purple',
-  READY_TO_PUBLISH: 'emerald',
-  PUBLISHED: 'emerald',
-  ARCHIVED: 'zinc',
-} as const;
+// Stage filter options for the new workflow
+const stageFilters = [
+  { value: null, label: 'All Stages', icon: null },
+  { value: 'DRAFT', label: 'Draft', icon: PencilIcon },
+  { value: 'NEEDS_JOURNALIST_REVIEW', label: 'Needs Review', icon: EyeIcon },
+  { value: 'NEEDS_SUB_EDITOR_APPROVAL', label: 'Needs Approval', icon: CheckCircleIcon },
+  { value: 'APPROVED', label: 'Approved', icon: CheckCircleIcon },
+  { value: 'TRANSLATED', label: 'Translated', icon: null },
+  { value: 'PUBLISHED', label: 'Published', icon: null },
+] as const;
 
 function StoriesPageContent() {
   const router = useRouter();
@@ -64,13 +63,13 @@ function StoriesPageContent() {
     };
 
     // Read URL parameters
-    const status = searchParams.get('status');
+    const stage = searchParams.get('stage');
     const authorId = searchParams.get('authorId');
     const reviewerId = searchParams.get('reviewerId');
     const query = searchParams.get('query');
     const page = searchParams.get('page');
 
-    if (status) urlFilters.status = status as StoryStatus;
+    if (stage) urlFilters.stage = stage as StoryStage;
     if (authorId) urlFilters.authorId = authorId;
     if (reviewerId) urlFilters.reviewerId = reviewerId;
     if (query) urlFilters.query = query;
@@ -130,9 +129,9 @@ function StoriesPageContent() {
       <div className="space-y-6">
         <PageHeader
           title={
-            filters.reviewerId && filters.status === 'IN_REVIEW' 
-              ? 'Stories to Review' 
-              : filters.authorId 
+            filters.reviewerId && filters.stage === 'NEEDS_JOURNALIST_REVIEW'
+              ? 'Stories to Review'
+              : filters.authorId
                 ? 'My Stories'
                 : 'Stories'
           }
@@ -147,61 +146,24 @@ function StoriesPageContent() {
           }}
         />
 
-        {/* Filter Buttons */}
+        {/* Stage Filter Buttons */}
         <div className="flex flex-wrap gap-2">
-          {/* Status Filters */}
-          <Button
-            onClick={() => handleFilterChange('status', undefined)}
-            color={!filters.status ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            All Statuses
-          </Button>
-          <Button
-            onClick={() => handleFilterChange('status', 'DRAFT')}
-            color={filters.status === 'DRAFT' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <PencilIcon className="h-4 w-4" />
-            Draft
-          </Button>
-          <Button
-            onClick={() => handleFilterChange('status', 'IN_REVIEW')}
-            color={filters.status === 'IN_REVIEW' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <EyeIcon className="h-4 w-4" />
-            In Review
-          </Button>
-          <Button
-            onClick={() => handleFilterChange('status', 'NEEDS_REVISION')}
-            color={filters.status === 'NEEDS_REVISION' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            Needs Revision
-          </Button>
-          <Button
-            onClick={() => handleFilterChange('status', 'PENDING_APPROVAL')}
-            color={filters.status === 'PENDING_APPROVAL' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            Pending Approval
-          </Button>
-          <Button
-            onClick={() => handleFilterChange('status', 'APPROVED')}
-            color={filters.status === 'APPROVED' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <CheckCircleIcon className="h-4 w-4" />
-            Approved
-          </Button>
-          <Button
-            onClick={() => handleFilterChange('status', 'PUBLISHED')}
-            color={filters.status === 'PUBLISHED' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            Published
-          </Button>
+          {stageFilters.map((filter) => {
+            const Icon = filter.icon;
+            const isActive = filters.stage === filter.value || (!filters.stage && filter.value === null);
+
+            return (
+              <Button
+                key={filter.label}
+                onClick={() => handleFilterChange('stage', filter.value || undefined)}
+                color={isActive ? 'primary' : 'white'}
+                className="text-sm"
+              >
+                {Icon && <Icon className="h-4 w-4" />}
+                {filter.label}
+              </Button>
+            );
+          })}
         </div>
 
         {isLoading ? (
@@ -267,9 +229,7 @@ function StoriesPageContent() {
                     </div>
                   </td>
                   <td className="py-4">
-                    <Badge color={statusColors[story.status as keyof typeof statusColors] || 'zinc'}>
-                      {story.status.replace('_', ' ')}
-                    </Badge>
+                    {story.stage && <StageBadge stage={story.stage as StoryStage} />}
                   </td>
                   <td className="py-4">
                     <div className="flex items-center gap-2">

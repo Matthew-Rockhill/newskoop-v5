@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StoryStatus } from '@prisma/client';
+import { StoryStatus, StoryStage } from '@prisma/client';
 
 // Types for story data
 export interface Story {
@@ -128,6 +128,7 @@ export interface Story {
 export interface StoryFilters {
   query?: string;
   status?: StoryStatus;
+  stage?: StoryStage;
   categoryId?: string;
   authorId?: string;
   assignedToId?: string;

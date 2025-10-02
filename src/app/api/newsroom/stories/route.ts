@@ -39,6 +39,7 @@ const getStories = createHandler(
     const {
       query,
       status,
+      stage,
       categoryId,
       authorId,
       assignedToId,
@@ -59,7 +60,7 @@ const getStories = createHandler(
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
           { content: { contains: query, mode: 'insensitive' } },
-          { author: { 
+          { author: {
             OR: [
               { firstName: { contains: query, mode: 'insensitive' } },
               { lastName: { contains: query, mode: 'insensitive' } },
@@ -67,14 +68,15 @@ const getStories = createHandler(
             ]
           }},
           { category: { name: { contains: query, mode: 'insensitive' } } },
-          { tags: { 
-            some: { 
-              tag: { name: { contains: query, mode: 'insensitive' } } 
-            } 
+          { tags: {
+            some: {
+              tag: { name: { contains: query, mode: 'insensitive' } }
+            }
           }},
         ],
       }),
       ...(status && { status }),
+      ...(stage && { stage }),
       ...(categoryId && { categoryId }),
       ...(authorId && { authorId }),
       ...(assignedToId && { assignedToId }),
