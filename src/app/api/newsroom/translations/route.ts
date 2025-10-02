@@ -110,6 +110,25 @@ const createTranslation = createHandler(
           throw new Error('Original story not found');
         }
 
+        // Validate story status - must be APPROVED to send for translation
+        if (originalStory.status !== 'APPROVED') {
+          throw new Error(`Story must be in APPROVED status to send for translation. Current status: ${originalStory.status}`);
+        }
+
+        // Check for existing translation requests to prevent duplicates
+        const existingTranslations = await tx.translation.findMany({
+          where: { originalStoryId },
+          select: { targetLanguage: true, status: true },
+        });
+
+        const existingLanguages = existingTranslations.map(t => t.targetLanguage);
+        const requestedLanguages = translations.map(t => t.targetLanguage);
+        const duplicateLanguages = requestedLanguages.filter(lang => existingLanguages.includes(lang));
+
+        if (duplicateLanguages.length > 0) {
+          throw new Error(`Translation requests already exist for: ${duplicateLanguages.join(', ')}. Please check existing translations.`);
+        }
+
         const createdTranslations = [];
 
         // Create each translation
@@ -125,11 +144,13 @@ const createTranslation = createHandler(
           createdTranslations.push(translation);
         }
 
-        // Update the original story status to PENDING_TRANSLATION
-        await tx.story.update({
-          where: { id: originalStoryId },
-          data: { status: 'PENDING_TRANSLATION' },
-        });
+        // Only update story status to PENDING_TRANSLATION if currently APPROVED
+        if (originalStory.status === 'APPROVED') {
+          await tx.story.update({
+            where: { id: originalStoryId },
+            data: { status: 'PENDING_TRANSLATION' },
+          });
+        }
 
         return createdTranslations;
       });
@@ -144,6 +165,33 @@ const createTranslation = createHandler(
 
       // Create translation and update original story status in a transaction
       const result = await prisma.$transaction(async (tx) => {
+        // Get original story to validate status
+        const originalStory = await tx.story.findUnique({
+          where: { id: originalStoryId },
+          select: { status: true },
+        });
+
+        if (!originalStory) {
+          throw new Error('Original story not found');
+        }
+
+        // Validate story status - must be APPROVED to send for translation
+        if (originalStory.status !== 'APPROVED') {
+          throw new Error(`Story must be in APPROVED status to send for translation. Current status: ${originalStory.status}`);
+        }
+
+        // Check for existing translation in this language
+        const existingTranslation = await tx.translation.findFirst({
+          where: {
+            originalStoryId,
+            targetLanguage,
+          },
+        });
+
+        if (existingTranslation) {
+          throw new Error(`Translation request already exists for ${targetLanguage}. Please check existing translations.`);
+        }
+
         const translation = await tx.translation.create({
           data: {
             originalStoryId,
@@ -153,11 +201,13 @@ const createTranslation = createHandler(
           },
         });
 
-        // Update the original story status to PENDING_TRANSLATION
-        await tx.story.update({
-          where: { id: originalStoryId },
-          data: { status: 'PENDING_TRANSLATION' },
-        });
+        // Only update story status to PENDING_TRANSLATION if currently APPROVED
+        if (originalStory.status === 'APPROVED') {
+          await tx.story.update({
+            where: { id: originalStoryId },
+            data: { status: 'PENDING_TRANSLATION' },
+          });
+        }
 
         return translation;
       });
