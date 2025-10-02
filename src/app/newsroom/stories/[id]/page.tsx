@@ -29,15 +29,19 @@ import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/compone
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { TranslationSelectionModal } from '@/components/newsroom/TranslationSelectionModal';
 import { TranslationUnit } from '@/components/newsroom/TranslationUnit';
+import { StageTransitionModal } from '@/components/ui/stage-transition-modal';
 
 import { useStory, useDeleteStory } from '@/hooks/use-stories';
-import { 
-  canEditStory, 
-  canDeleteStory, 
+import {
+  canEditStory,
+  canDeleteStory,
   getEditLockReason,
   canUpdateStoryStatus
 } from '@/lib/permissions';
-import { StaffRole, StoryStatus, AudioClip } from '@prisma/client';
+import { StaffRole, StoryStatus, StoryStage, AudioClip } from '@prisma/client';
+import { StageBadge } from '@/components/ui/stage-badge';
+import { RevisionRequestBanner } from '@/components/ui/revision-request-banner';
+import { useQuery } from '@tanstack/react-query';
 
 // Status badge colors
 const statusColors = {
@@ -113,15 +117,118 @@ export default function StoryDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showTranslationModal, setShowTranslationModal] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [showStageTransitionModal, setShowStageTransitionModal] = useState(false);
+  const [stageTransitionAction, setStageTransitionAction] = useState<string | null>(null);
 
   // Fetch single story
   const { data: story, isLoading } = useStory(storyId);
+
+  // Fetch revision requests for this story
+  const { data: revisionRequestsData } = useQuery({
+    queryKey: ['revisionRequests', storyId],
+    queryFn: async () => {
+      const response = await fetch(`/api/newsroom/stories/${storyId}/revisions`);
+      if (!response.ok) throw new Error('Failed to fetch revision requests');
+      return response.json();
+    },
+    enabled: !!storyId,
+  });
+
+  // Fetch users for assignment
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await fetch('/api/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
+  });
+
+  const unresolvedRevisions = revisionRequestsData?.revisionRequests?.filter(
+    (r: any) => !r.resolvedAt
+  ) || [];
+
+  const users = usersData?.users || [];
 
   // Mutations
   const deleteStoryMutation = useDeleteStory();
 
   // Only compute this after story is defined
   const canSendForTranslation = !!session?.user?.staffRole && !!story && canUpdateStoryStatus(session.user.staffRole, story.status, 'PENDING_TRANSLATION');
+
+  // Determine next stage action based on current stage and user role
+  const getNextStageAction = () => {
+    if (!story || !session?.user?.staffRole || !story.stage) return null;
+
+    const userRole = session.user.staffRole as StaffRole;
+    const stage = story.stage as StoryStage;
+    const isAuthor = story.authorId === session.user.id;
+
+    // DRAFT -> Submit for Review (Intern only)
+    if (stage === 'DRAFT' && userRole === 'INTERN' && isAuthor) {
+      return {
+        action: 'submit_for_review',
+        label: 'Submit for Review',
+        icon: ArrowUpCircleIcon,
+        color: 'primary' as const,
+        requiresAssignment: true,
+        assignmentLabel: 'Assign Journalist Reviewer',
+        assignmentRoles: ['JOURNALIST' as StaffRole],
+      };
+    }
+
+    // DRAFT -> Send for Approval (Journalist/Sub-Editor/Editor)
+    if (stage === 'DRAFT' && ['JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) && isAuthor) {
+      return {
+        action: 'send_for_approval',
+        label: 'Send for Approval',
+        icon: ArrowUpCircleIcon,
+        color: 'primary' as const,
+        requiresAssignment: true,
+        assignmentLabel: 'Assign Sub-Editor for Approval',
+        assignmentRoles: ['SUB_EDITOR' as StaffRole, 'EDITOR' as StaffRole, 'ADMIN' as StaffRole, 'SUPERADMIN' as StaffRole],
+      };
+    }
+
+    // NEEDS_JOURNALIST_REVIEW -> Send for Approval or Request Revision (Journalist reviewing)
+    if (stage === 'NEEDS_JOURNALIST_REVIEW' && userRole === 'JOURNALIST' && !isAuthor) {
+      return {
+        action: 'send_for_approval',
+        label: 'Send for Approval',
+        icon: CheckCircleIcon,
+        color: 'primary' as const,
+        requiresAssignment: true,
+        assignmentLabel: 'Assign Sub-Editor for Approval',
+        assignmentRoles: ['SUB_EDITOR' as StaffRole, 'EDITOR' as StaffRole, 'ADMIN' as StaffRole, 'SUPERADMIN' as StaffRole],
+      };
+    }
+
+    // NEEDS_SUB_EDITOR_APPROVAL -> Approve or Request Revision (Sub-Editor)
+    if (stage === 'NEEDS_SUB_EDITOR_APPROVAL' && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      return {
+        action: 'approve_story',
+        label: 'Approve Story',
+        icon: CheckCircleIcon,
+        color: 'primary' as const,
+        requiresAssignment: false,
+      };
+    }
+
+    // APPROVED -> Send for Translation (Sub-Editor)
+    if (stage === 'APPROVED' && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      return {
+        action: 'send_for_translation',
+        label: 'Send for Translation',
+        icon: ArrowUpCircleIcon,
+        color: 'secondary' as const,
+        requiresAssignment: false, // Handled by translation modal
+      };
+    }
+
+    return null;
+  };
+
+  const nextAction = getNextStageAction();
 
   const handleSendForTranslation = () => {
     setShowTranslationModal(true);
@@ -166,6 +273,40 @@ export default function StoryDetailPage() {
       toast.error(errorMessage);
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  const handleStageTransition = async (data: any) => {
+    if (!nextAction) return;
+
+    try {
+      const response = await fetch(`/api/newsroom/stories/${storyId}/stage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: nextAction.action,
+          assignedUserId: data.assignedUserId,
+          checklistData: data.checklistData,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to transition story stage');
+      }
+
+      toast.success(`Story ${nextAction.label.toLowerCase()} successfully`);
+      setShowStageTransitionModal(false);
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      await queryClient.invalidateQueries({ queryKey: ['stories'] });
+
+      // Redirect to stories list
+      router.push('/newsroom/stories');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to transition stage';
+      toast.error(errorMessage);
     }
   };
 
@@ -280,15 +421,21 @@ export default function StoryDetailPage() {
   // Only render the main page content if story is defined
   return (
     <Container>
+      {/* Revision Request Banner */}
+      {unresolvedRevisions.length > 0 && story.authorId === session?.user?.id && (
+        <RevisionRequestBanner
+          revisionRequests={unresolvedRevisions}
+          className="mb-6"
+        />
+      )}
+
       <PageHeader
         title={story.title}
         description={
           <div className="flex items-center gap-4 mt-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
-              <Badge color={statusColors[story.status as keyof typeof statusColors] || 'zinc'}>
-                {story.status.replace('_', ' ')}
-              </Badge>
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">Stage:</span>
+              {story.stage && <StageBadge stage={story.stage as StoryStage} />}
             </div>
           </div>
         }
@@ -370,44 +517,19 @@ export default function StoryDetailPage() {
 
             {/* Workflow Actions - Visual separator with border */}
             <div className="flex items-center space-x-2 pl-3 border-l border-gray-300">
-              {/* Submit for Review - Interns only, DRAFT stories */}
-              {canShowSubmitForReviewButton(session?.user?.staffRole ?? null, story.status, story.authorId, session?.user?.id ?? null) && (
+              {/* Next Stage Action Button */}
+              {nextAction && nextAction.action !== 'send_for_translation' && (
                 <Button
-                  color="primary"
-                  onClick={handleSubmitForReview}
+                  color={nextAction.color}
+                  onClick={() => setShowStageTransitionModal(true)}
                 >
-                  <ArrowUpCircleIcon className="h-4 w-4 mr-2" />
-                  Submit for Review
+                  <nextAction.icon className="h-4 w-4 mr-2" />
+                  {nextAction.label}
                 </Button>
               )}
 
-              {/* Request Revision */}
-              {canShowRequestRevisionButton(session?.user?.staffRole ?? null, story.status, story.authorId === session?.user?.id) && (
-                <Button
-                  color="secondary"
-                  onClick={() => {
-                    // For now, redirect to review page for revision functionality
-                    router.push(`/newsroom/stories/${storyId}/review`);
-                  }}
-                >
-                  <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
-                  Request Revision
-                </Button>
-              )}
-
-              {/* Final Review */}
-              {canShowFinalReviewButton(session?.user?.staffRole ?? null, story.status, story.authorId === session?.user?.id) && (
-                <Button
-                  color="primary"
-                  onClick={() => router.push(`/newsroom/stories/${storyId}/review`)}
-                >
-                  <CheckCircleIcon className="h-4 w-4 mr-2" />
-                  Final Review
-                </Button>
-              )}
-
-              {/* Send for Translation Button - Only for APPROVED status and with permission */}
-              {story.status === 'APPROVED' && canSendForTranslation && (
+              {/* Send for Translation - Special case with translation modal */}
+              {nextAction?.action === 'send_for_translation' && (
                 <Button
                   color="secondary"
                   onClick={handleSendForTranslation}
@@ -588,6 +710,28 @@ export default function StoryDetailPage() {
         storyTitle={story.title}
         isLoading={isTranslating}
       />
+
+      {/* Stage Transition Modal */}
+      {nextAction && (
+        <StageTransitionModal
+          isOpen={showStageTransitionModal}
+          onClose={() => setShowStageTransitionModal(false)}
+          onSubmit={handleStageTransition}
+          title={nextAction.label}
+          description={`Complete the checklist below to ${nextAction.label.toLowerCase()}.`}
+          actionLabel={nextAction.label}
+          actionColor={nextAction.color}
+          requiresAssignment={nextAction.requiresAssignment}
+          assignmentLabel={nextAction.assignmentLabel}
+          assignmentRoles={nextAction.assignmentRoles}
+          users={users}
+          checklistItems={[
+            { id: 'content', label: 'Content is complete and accurate', checked: false, required: true },
+            { id: 'grammar', label: 'Grammar and spelling checked', checked: false, required: true },
+            { id: 'sources', label: 'Sources verified', checked: false, required: true },
+          ]}
+        />
+      )}
 
     </Container>
   );
