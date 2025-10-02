@@ -8,7 +8,7 @@ async function main() {
 
   // Create superadmin user
   const hashedPassword = await bcrypt.hash('Mw5883Rl$', 12);
-  
+
   const adminUser = await prisma.user.upsert({
     where: { email: 'mrockhill@gmail.com' },
     update: {
@@ -26,6 +26,37 @@ async function main() {
   });
 
   console.log('✅ Superadmin user created:', adminUser.email);
+
+  // Create test users for each staff role
+  const testUsers = [
+    { email: 'intern@newskoop.com', firstName: 'Test', lastName: 'Intern', role: StaffRole.INTERN, password: 'Intern@123' },
+    { email: 'journalist@newskoop.com', firstName: 'Test', lastName: 'Journalist', role: StaffRole.JOURNALIST, password: 'Journalist@123' },
+    { email: 'subeditor@newskoop.com', firstName: 'Test', lastName: 'SubEditor', role: StaffRole.SUB_EDITOR, password: 'SubEditor@123' },
+    { email: 'editor@newskoop.com', firstName: 'Test', lastName: 'Editor', role: StaffRole.EDITOR, password: 'Editor@123' },
+    { email: 'admin@newskoop.com', firstName: 'Test', lastName: 'Admin', role: StaffRole.ADMIN, password: 'Admin@123' },
+  ];
+
+  for (const testUser of testUsers) {
+    const hashedTestPassword = await bcrypt.hash(testUser.password, 12);
+
+    await prisma.user.upsert({
+      where: { email: testUser.email },
+      update: {
+        password: hashedTestPassword,
+      },
+      create: {
+        email: testUser.email,
+        firstName: testUser.firstName,
+        lastName: testUser.lastName,
+        password: hashedTestPassword,
+        userType: UserType.STAFF,
+        staffRole: testUser.role,
+        isActive: true,
+      },
+    });
+
+    console.log(`✅ Test user created: ${testUser.email} (${testUser.role})`);
+  }
 
   // Create Level 1 Categories
   const categories = [
