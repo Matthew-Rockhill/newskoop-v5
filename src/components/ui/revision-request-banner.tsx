@@ -1,6 +1,6 @@
-import { Alert } from './alert';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import type { StaffRole } from '@prisma/client';
+import clsx from 'clsx';
 
 export interface RevisionRequest {
   id: string;
@@ -54,33 +54,36 @@ export function RevisionRequestBanner({
   };
 
   return (
-    <div className={className}>
-      <Alert color="amber">
-        <div className="flex items-start gap-3">
-          <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-              Revision Requested
-            </h3>
-            <div className="mt-2 text-sm text-amber-800 dark:text-amber-200">
-              <p className="font-medium">
-                {latestRevision.requestedBy.firstName} {latestRevision.requestedBy.lastName} (
-                {getRoleLabel(latestRevision.requestedBy.staffRole)})
-              </p>
-              <p className="mt-1">"{latestRevision.reason}"</p>
-              <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-                Requested {getTimeAgo(latestRevision.createdAt)}
-              </p>
-            </div>
-            {revisionRequests.length > 1 && (
-              <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
-                +{revisionRequests.length - 1} more revision request
-                {revisionRequests.length - 1 > 1 ? 's' : ''}
-              </p>
-            )}
+    <div
+      className={clsx(
+        className,
+        'rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30'
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+            Revision Requested
+          </h3>
+          <div className="mt-2 text-sm text-amber-800 dark:text-amber-200">
+            <p className="font-medium">
+              {latestRevision.requestedBy.firstName} {latestRevision.requestedBy.lastName} (
+              {getRoleLabel(latestRevision.requestedBy.staffRole)})
+            </p>
+            <p className="mt-1">"{latestRevision.reason}"</p>
+            <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+              Requested {getTimeAgo(latestRevision.createdAt)}
+            </p>
           </div>
+          {revisionRequests.length > 1 && (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+              +{revisionRequests.length - 1} more revision request
+              {revisionRequests.length - 1 > 1 ? 's' : ''}
+            </p>
+          )}
         </div>
-      </Alert>
+      </div>
     </div>
   );
 }

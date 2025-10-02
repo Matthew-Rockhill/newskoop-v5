@@ -65,7 +65,16 @@ export function StoryCreateForm() {
         }
         return;
       }
-      
+
+      // For editors and above: save as draft and redirect to review page (they can self-approve)
+      if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
+        const story = await createStory(data, 'DRAFT');
+        if (story) {
+          router.push(`/newsroom/stories/${story.id}/review`);
+        }
+        return;
+      }
+
       // For interns: show reviewer selection modal
       setPendingFormData(data);
       setShowReviewerModal(true);
@@ -112,8 +121,9 @@ export function StoryCreateForm() {
       
       if (status === 'DRAFT') {
         toast.success('Story saved as draft!');
-        // Don't redirect here for journalists using "Review Story" - let caller handle it
-        if (session?.user?.staffRole !== 'JOURNALIST' || submitAction !== 'review') {
+        // Don't redirect here for editors/journalists using "Review Story" - let caller handle it
+        const rolesWithReviewAccess = ['JOURNALIST', 'EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'];
+        if (!session?.user?.staffRole || !rolesWithReviewAccess.includes(session.user.staffRole) || submitAction !== 'review') {
           router.push(`/newsroom/stories/${story.id}/edit`);
         }
       } else {
@@ -238,10 +248,10 @@ export function StoryCreateForm() {
                 disabled={isSubmitting}
                 onClick={() => setSubmitAction('review')}
               >
-                {isSubmitting && submitAction === 'review' 
-                  ? 'Submitting...' 
-                  : session?.user?.staffRole === 'JOURNALIST' 
-                    ? 'Review Story' 
+                {isSubmitting && submitAction === 'review'
+                  ? 'Submitting...'
+                  : (session?.user?.staffRole === 'JOURNALIST' || ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session?.user?.staffRole || ''))
+                    ? 'Review Story'
                     : 'Submit for Review'
                 }
               </Button>

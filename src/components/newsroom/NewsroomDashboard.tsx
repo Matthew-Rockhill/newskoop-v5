@@ -41,11 +41,11 @@ export function NewsroomDashboard() {
     page: 1, 
     perPage: 100 
   });
-  const { data: rejectedStoriesData } = useStories({ 
-    assignedToId: userId, 
-    status: 'NEEDS_REVISION', 
-    page: 1, 
-    perPage: 100 
+  const { data: rejectedStoriesData } = useStories({
+    authorId: userId,
+    status: 'NEEDS_REVISION',
+    page: 1,
+    perPage: 100
   });
   const { data: publishedStoriesData } = useStories({ 
     authorId: userId, 

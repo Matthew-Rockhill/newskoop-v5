@@ -21,7 +21,7 @@ export interface StageTransitionModalProps {
   title: string;
   description?: string;
   actionLabel: string;
-  actionColor?: 'primary' | 'secondary' | 'success' | 'danger';
+  actionColor?: 'primary' | 'secondary' | 'white' | 'red';
   checklistItems?: ChecklistItem[];
   requiresAssignment?: boolean;
   assignmentLabel?: string;

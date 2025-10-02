@@ -14,11 +14,11 @@ export async function POST(req: NextRequest) {
 
     const { token, password } = schema.parse(await req.json());
 
-    // Verify the token
+    // Verify the JWT token
     const userId = verifyResetToken(token);
     if (!userId) {
       return NextResponse.json(
-        { error: 'Invalid or expired token' },
+        { error: 'Invalid or expired token. The link may have been used already or has expired.' },
         { status: 400 }
       );
     }
@@ -28,9 +28,25 @@ export async function POST(req: NextRequest) {
       where: { id: userId },
     });
 
-    if (!user || !user.resetToken || user.resetToken !== token) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Invalid or expired token' },
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if token exists in database
+    if (!user.resetToken) {
+      return NextResponse.json(
+        { error: 'No active password reset request found. Please request a new password reset link.' },
+        { status: 400 }
+      );
+    }
+
+    // Check if the token matches
+    if (user.resetToken !== token) {
+      return NextResponse.json(
+        { error: 'This password reset link has been superseded by a newer request. Please use the most recent link sent to your email.' },
         { status: 400 }
       );
     }
@@ -38,7 +54,7 @@ export async function POST(req: NextRequest) {
     // Check token expiration
     if (user.resetTokenExpiresAt && user.resetTokenExpiresAt < new Date()) {
       return NextResponse.json(
-        { error: 'Token has expired' },
+        { error: 'This password reset link has expired. Please request a new one.' },
         { status: 400 }
       );
     }

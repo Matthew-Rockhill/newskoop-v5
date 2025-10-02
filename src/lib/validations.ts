@@ -216,6 +216,7 @@ export const categoryUpdateSchema = z.object({
 export const tagCreateSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
+  category: z.enum(['LOCALITY', 'GENERAL']).optional(),
 });
 
 export const tagUpdateSchema = z.object({
