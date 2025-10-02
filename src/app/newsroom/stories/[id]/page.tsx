@@ -119,6 +119,8 @@ export default function StoryDetailPage() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [showStageTransitionModal, setShowStageTransitionModal] = useState(false);
   const [stageTransitionAction, setStageTransitionAction] = useState<string | null>(null);
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [isRequestingRevision, setIsRequestingRevision] = useState(false);
 
   // Fetch single story
   const { data: story, isLoading } = useStory(storyId);
@@ -230,6 +232,29 @@ export default function StoryDetailPage() {
 
   const nextAction = getNextStageAction();
 
+  // Determine if user can request revision
+  const canRequestRevision = () => {
+    if (!story || !session?.user?.staffRole || !story.stage) return false;
+
+    const userRole = session.user.staffRole as StaffRole;
+    const stage = story.stage as StoryStage;
+    const isAuthor = story.authorId === session.user.id;
+
+    // Journalist can request revision when reviewing intern's work
+    if (stage === 'NEEDS_JOURNALIST_REVIEW' && userRole === 'JOURNALIST' && !isAuthor) {
+      return true;
+    }
+
+    // Sub-Editor can request revision when approving
+    if (stage === 'NEEDS_SUB_EDITOR_APPROVAL' && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const showRevisionButton = canRequestRevision();
+
   const handleSendForTranslation = () => {
     setShowTranslationModal(true);
   };
@@ -307,6 +332,46 @@ export default function StoryDetailPage() {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to transition stage';
       toast.error(errorMessage);
+    }
+  };
+
+  const handleRevisionRequest = async (data: any) => {
+    if (!data.assignedUserId || !data.reason) {
+      toast.error('Please assign a user and provide a reason for revision');
+      return;
+    }
+
+    setIsRequestingRevision(true);
+    try {
+      const response = await fetch(`/api/newsroom/stories/${storyId}/revisions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignedToId: data.assignedUserId,
+          reason: data.reason,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to request revision');
+      }
+
+      toast.success('Revision requested successfully');
+      setShowRevisionModal(false);
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      await queryClient.invalidateQueries({ queryKey: ['stories'] });
+      await queryClient.invalidateQueries({ queryKey: ['revisionRequests', storyId] });
+
+      // Redirect to stories list
+      router.push('/newsroom/stories');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to request revision';
+      toast.error(errorMessage);
+    } finally {
+      setIsRequestingRevision(false);
     }
   };
 
@@ -517,6 +582,17 @@ export default function StoryDetailPage() {
 
             {/* Workflow Actions - Visual separator with border */}
             <div className="flex items-center space-x-2 pl-3 border-l border-gray-300">
+              {/* Request Revision Button */}
+              {showRevisionButton && (
+                <Button
+                  color="secondary"
+                  onClick={() => setShowRevisionModal(true)}
+                >
+                  <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
+                  Request Revision
+                </Button>
+              )}
+
               {/* Next Stage Action Button */}
               {nextAction && nextAction.action !== 'send_for_translation' && (
                 <Button
@@ -732,6 +808,70 @@ export default function StoryDetailPage() {
           ]}
         />
       )}
+
+      {/* Revision Request Modal */}
+      <Dialog open={showRevisionModal} onClose={() => setShowRevisionModal(false)}>
+        <DialogTitle>Request Revision</DialogTitle>
+        <DialogDescription>
+          Provide feedback and assign this story back to a team member for revision.
+        </DialogDescription>
+
+        <div className="mt-4 space-y-4">
+          {/* Assignment Select */}
+          <div>
+            <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+              Assign to: <span className="text-red-600">*</span>
+            </label>
+            <select
+              id="revisionAssignee"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              defaultValue=""
+            >
+              <option value="">Select user...</option>
+              {users
+                .filter((u: any) => u.id === story?.authorId)
+                .map((user: any) => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName} {user.lastName} ({user.staffRole})
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Reason Textarea */}
+          <div>
+            <label className="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+              Reason for revision: <span className="text-red-600">*</span>
+            </label>
+            <textarea
+              id="revisionReason"
+              rows={4}
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              placeholder="Explain what needs to be revised..."
+            />
+            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+              Minimum 10 characters required
+            </p>
+          </div>
+        </div>
+
+        <DialogActions>
+          <Button color="white" onClick={() => setShowRevisionModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            color="red"
+            onClick={() => {
+              const assignee = (document.getElementById('revisionAssignee') as HTMLSelectElement)?.value;
+              const reason = (document.getElementById('revisionReason') as HTMLTextAreaElement)?.value;
+              handleRevisionRequest({ assignedUserId: assignee, reason });
+            }}
+            disabled={isRequestingRevision}
+          >
+            {isRequestingRevision ? 'Requesting...' : 'Request Revision'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Container>
   );
