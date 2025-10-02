@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling } from '@/lib/api-handler';
+import { StoryLanguage } from '@prisma/client';
 
 const getTranslations = createHandler(
   async (req: NextRequest) => {
@@ -122,8 +123,8 @@ const createTranslation = createHandler(
         });
 
         const existingLanguages = existingTranslations.map(t => t.targetLanguage);
-        const requestedLanguages = translations.map((t: { targetLanguage: string }) => t.targetLanguage);
-        const duplicateLanguages = requestedLanguages.filter((lang: string) => existingLanguages.includes(lang));
+        const requestedLanguages = translations.map((t: { targetLanguage: StoryLanguage }) => t.targetLanguage);
+        const duplicateLanguages = requestedLanguages.filter((lang: StoryLanguage) => existingLanguages.includes(lang));
 
         if (duplicateLanguages.length > 0) {
           throw new Error(`Translation requests already exist for: ${duplicateLanguages.join(', ')}. Please check existing translations.`);
