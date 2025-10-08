@@ -172,9 +172,9 @@ export default function StoryDetailPage() {
 
   // Fetch users for assignment
   const { data: usersData } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['staff-users'],
     queryFn: async () => {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users?perPage=100&userType=STAFF');
       if (!response.ok) throw new Error('Failed to fetch users');
       return response.json();
     },
