@@ -42,65 +42,65 @@ export function NewsroomDashboard() {
 
   const [activeTaskFilter, setActiveTaskFilter] = useState<TaskFilter>('all');
 
-  // Fetch stories for the user (stage-based workflow) - lazy load based on active filter
+  // Fetch stories for the user (stage-based workflow)
   const { data: draftStoriesData } = useStories({
     authorId: userId,
     stage: 'DRAFT',
     page: 1,
     perPage: 20
-  }, { enabled: !!userId });
+  });
 
   const { data: needsReviewStoriesData } = useStories({
     authorId: userId,
     stage: 'NEEDS_JOURNALIST_REVIEW',
     page: 1,
     perPage: 20
-  }, { enabled: !!userId });
+  });
 
   const { data: needsApprovalStoriesData } = useStories({
     authorId: userId,
     stage: 'NEEDS_SUB_EDITOR_APPROVAL',
     page: 1,
     perPage: 20
-  }, { enabled: !!userId });
+  });
 
   const { data: approvedStoriesData } = useStories({
     authorId: userId,
     stage: 'APPROVED',
     page: 1,
     perPage: 20
-  }, { enabled: !!userId });
+  });
 
   const { data: publishedStoriesData } = useStories({
     authorId: userId,
     stage: 'PUBLISHED',
     page: 1,
     perPage: 20
-  }, { enabled: !!userId });
+  });
 
-  // Journalist-specific: stories assigned for review - only load when needed
+  // Journalist-specific: stories assigned for review
   const { data: reviewStoriesData } = useStories({
     assignedReviewerId: userId,
     stage: 'NEEDS_JOURNALIST_REVIEW',
     page: 1,
     perPage: 20
-  }, { enabled: !!userId && (activeTaskFilter === 'all' || activeTaskFilter === 'review') });
+  });
 
-  // Sub-editor specific: stories pending approval - only load when needed
+  // Sub-editor specific: stories pending approval
   const { data: pendingApprovalStoriesData } = useStories({
     stage: 'NEEDS_SUB_EDITOR_APPROVAL',
     page: 1,
     perPage: 20
-  }, { enabled: !!userId && (activeTaskFilter === 'all' || activeTaskFilter === 'approve') });
+  });
 
-  // Sub-editor specific: translated stories ready for publishing - only load when needed
+  // Sub-editor specific: translated stories ready for publishing
   const { data: approvedForPublishingStoriesData } = useStories({
     stage: 'TRANSLATED',
     page: 1,
     perPage: 20
-  }, { enabled: !!userId && (activeTaskFilter === 'all' || activeTaskFilter === 'publish') });
+  });
 
-  // All staff: assigned translation tasks - only load when needed
+  // All staff: assigned translation tasks
   const { data: translationTasksData } = useQuery({
     queryKey: ['translationTasks', userId],
     queryFn: async () => {
@@ -108,7 +108,7 @@ export function NewsroomDashboard() {
       if (!response.ok) throw new Error('Failed to fetch translation tasks');
       return response.json();
     },
-    enabled: !!userId && (activeTaskFilter === 'all' || activeTaskFilter === 'translate'),
+    enabled: !!userId,
   });
 
   const draftStories = draftStoriesData?.stories || [];
