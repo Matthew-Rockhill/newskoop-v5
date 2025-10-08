@@ -198,6 +198,7 @@ export const storySearchSchema = z.object({
   assignedReviewerId: z.string().optional(),
   assignedApproverId: z.string().optional(),
   originalStoryId: z.string().optional(),
+  isTranslation: z.boolean().optional(),
   tagIds: z.array(z.string()).optional(),
   page: z.number().int().positive().default(1),
   perPage: z.number().int().positive().default(10),

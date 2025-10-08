@@ -56,6 +56,12 @@ export function NewsroomDashboard() {
     page: 1,
     perPage: 100
   });
+  const { data: approvedStoriesData } = useStories({
+    authorId: userId,
+    stage: 'APPROVED',
+    page: 1,
+    perPage: 100
+  });
   const { data: publishedStoriesData } = useStories({
     authorId: userId,
     stage: 'PUBLISHED',
@@ -99,6 +105,7 @@ export function NewsroomDashboard() {
   const draftStories = draftStoriesData?.stories || [];
   const needsReviewStories = needsReviewStoriesData?.stories || [];
   const needsApprovalStories = needsApprovalStoriesData?.stories || [];
+  const approvedStories = approvedStoriesData?.stories || [];
   const publishedStories = publishedStoriesData?.stories || [];
   const reviewStories = reviewStoriesData?.stories || [];
   const pendingApprovalStories = pendingApprovalStoriesData?.stories || [];
@@ -106,7 +113,7 @@ export function NewsroomDashboard() {
   const translationTasks = translationTasksData?.stories || [];
 
   // Check if user has any work to show in "My Work" section
-  const hasMyWork = draftStories.length > 0 || needsReviewStories.length > 0 || needsApprovalStories.length > 0 || publishedStories.length > 0;
+  const hasMyWork = draftStories.length > 0 || needsReviewStories.length > 0 || needsApprovalStories.length > 0 || approvedStories.length > 0 || publishedStories.length > 0;
 
   return (
     <Container>
@@ -197,6 +204,47 @@ export function NewsroomDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Approved Stories */}
+            {approvedStories.length > 0 && (
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircleIcon className="h-5 w-5 text-blue-600" />
+                    <Heading level={3}>Approved Stories</Heading>
+                  </div>
+                  <Text className="text-sm text-zinc-600">{approvedStories.length}</Text>
+                </div>
+                <div className="space-y-2">
+                  {approvedStories.slice(0, 5).map((story: any) => (
+                    <div
+                      key={story.id}
+                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                          {story._count?.audioClips > 0 && (
+                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                          )}
+                        </div>
+                        <Text className="text-sm text-zinc-600 dark:text-zinc-400">Ready for translation</Text>
+                      </div>
+                    </div>
+                  ))}
+                  {approvedStories.length > 5 && (
+                    <Button
+                      color="white"
+                      className="w-full mt-2"
+                      onClick={() => router.push(`/newsroom/stories?authorId=${userId}&stage=APPROVED`)}
+                    >
+                      View all {approvedStories.length} stories
+                    </Button>
+                  )}
                 </div>
               </Card>
             )}

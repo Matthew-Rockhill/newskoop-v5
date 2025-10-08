@@ -48,6 +48,7 @@ const getStories = createHandler(
       assignedReviewerId,
       assignedApproverId,
       originalStoryId,
+      isTranslation,
       tagIds,
       page = 1,
       perPage = 10
@@ -55,13 +56,14 @@ const getStories = createHandler(
       ...searchParams,
       page: searchParams.page ? Number(searchParams.page) : 1,
       perPage: searchParams.perPage ? Number(searchParams.perPage) : 10,
+      isTranslation: searchParams.isTranslation === 'true' ? true : searchParams.isTranslation === 'false' ? false : undefined,
       tagIds: searchParams.tagIds ? searchParams.tagIds.split(',') : undefined,
     });
 
     // Build where clause
     const where: Prisma.StoryWhereInput = {
-      // Exclude translations unless specifically querying for them
-      isTranslation: originalStoryId ? true : false,
+      // Handle isTranslation filtering
+      ...(isTranslation !== undefined ? { isTranslation } : { isTranslation: false }),
       ...(query && {
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
