@@ -257,12 +257,28 @@ const getStory = createHandler(
     }
 
     if (user.staffRole === 'JOURNALIST') {
-      const hasAccess = story.authorId === user.id ||
-                       story.assignedToId === user.id ||
-                       story.reviewerId === user.id ||
-                       story.assignedReviewerId === user.id ||
-                       story.assignedApproverId === user.id;
-      if (!hasAccess) {
+      // Check if journalist has direct access
+      const hasDirectAccess = story.authorId === user.id ||
+                              story.assignedToId === user.id ||
+                              story.reviewerId === user.id ||
+                              story.assignedReviewerId === user.id ||
+                              story.assignedApproverId === user.id;
+
+      // Check if this is an original story of a translation they're working on
+      let hasTranslationAccess = false;
+      if (!hasDirectAccess) {
+        const translationByUser = await prisma.story.findFirst({
+          where: {
+            authorId: user.id,
+            originalStoryId: story.id,
+            isTranslation: true,
+          },
+          select: { id: true },
+        });
+        hasTranslationAccess = !!translationByUser;
+      }
+
+      if (!hasDirectAccess && !hasTranslationAccess) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
