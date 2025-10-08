@@ -9,6 +9,7 @@ import {
   MusicalNoteIcon,
   EyeIcon,
   GlobeAltIcon,
+  RocketLaunchIcon,
 } from '@heroicons/react/24/outline';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,8 @@ import { StageBadge } from '@/components/ui/stage-badge';
 import { MiniStageProgress } from '@/components/ui/mini-stage-progress';
 import clsx from 'clsx';
 import type { StoryStage, StaffRole } from '@prisma/client';
+import { useSession } from 'next-auth/react';
+import { canPublishStory } from '@/lib/permissions';
 
 interface Translation {
   id: string;
@@ -129,7 +132,10 @@ const getGroupBorderColor = (
 
 export function StoryGroupRow({ story }: StoryGroupRowProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const translations = story.translations || [];
   const hasTranslations = translations.length > 0;
 
@@ -138,6 +144,16 @@ export function StoryGroupRow({ story }: StoryGroupRowProps) {
     t => t.stage === 'PUBLISHED' || t.stage === 'TRANSLATED' || t.stage === 'APPROVED'
   ).length;
   const totalTranslations = translations.length;
+
+  // Check if entire group is ready to publish together
+  const isGroupReadyToPublish =
+    story.stage === 'TRANSLATED' &&
+    hasTranslations &&
+    translations.every(t => t.stage === 'TRANSLATED');
+
+  // Check user permissions
+  const userRole = session?.user?.staffRole ?? null;
+  const userCanPublish = canPublishStory(userRole);
 
   const formatRelativeTime = (dateString: string | Date) => {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
@@ -156,6 +172,39 @@ export function StoryGroupRow({ story }: StoryGroupRowProps) {
 
   // Get dynamic border color based on story group status
   const borderColor = getGroupBorderColor(story.stage, translations);
+
+  // Handle group publish
+  const handlePublishGroup = async () => {
+    if (!isGroupReadyToPublish || !userCanPublish) return;
+
+    setIsPublishing(true);
+    try {
+      const response = await fetch(`/api/newsroom/stories/${story.id}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          publishImmediately: true,
+          contentReviewed: true,
+          translationsVerified: true,
+          audioQualityChecked: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to publish group');
+      }
+
+      // Refresh the page to show updated status
+      window.location.reload();
+    } catch (error) {
+      console.error('Error publishing group:', error);
+      alert(error instanceof Error ? error.message : 'Failed to publish group');
+    } finally {
+      setIsPublishing(false);
+      setShowPublishModal(false);
+    }
+  };
 
   return (
     <>
@@ -259,6 +308,13 @@ export function StoryGroupRow({ story }: StoryGroupRowProps) {
                         {getStageIcon(t.stage)}
                       </Badge>
                     ))}
+                    {/* Ready to publish indicator */}
+                    {isGroupReadyToPublish && (
+                      <Badge color="green" className="text-xs px-1.5 py-0.5 font-semibold">
+                        <RocketLaunchIcon className="h-3 w-3 inline mr-1" />
+                        Ready to publish
+                      </Badge>
+                    )}
                   </div>
                 )}
               </div>
@@ -270,17 +326,46 @@ export function StoryGroupRow({ story }: StoryGroupRowProps) {
         </td>
         <td className="py-4 px-4">
           <div className="flex items-center gap-2">
-            <Button
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                router.push(`/newsroom/stories/${story.id}`);
-              }}
-              color="white"
-              className="text-sm"
-            >
-              <EyeIcon className="h-4 w-4 mr-1" />
-              View
-            </Button>
+            {/* Show Publish Group button if ready and user has permission */}
+            {isGroupReadyToPublish && userCanPublish ? (
+              <>
+                <Button
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    setShowPublishModal(true);
+                  }}
+                  color="primary"
+                  className="text-sm"
+                  disabled={isPublishing}
+                >
+                  <RocketLaunchIcon className="h-4 w-4 mr-1" />
+                  {isPublishing ? 'Publishing...' : `Publish Group (${1 + translations.length})`}
+                </Button>
+                <Button
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    router.push(`/newsroom/stories/${story.id}`);
+                  }}
+                  color="white"
+                  className="text-sm"
+                >
+                  <EyeIcon className="h-4 w-4 mr-1" />
+                  View
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  router.push(`/newsroom/stories/${story.id}`);
+                }}
+                color="white"
+                className="text-sm"
+              >
+                <EyeIcon className="h-4 w-4 mr-1" />
+                View
+              </Button>
+            )}
           </div>
         </td>
       </tr>
@@ -358,6 +443,84 @@ export function StoryGroupRow({ story }: StoryGroupRowProps) {
             </td>
           </tr>
         ))}
+
+      {/* Publish Group Confirmation Modal */}
+      {showPublishModal && (
+        <tr>
+          <td colSpan={3} className="p-0">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPublishModal(false)}>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <div className="mb-4">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex-shrink-0">
+                      <RocketLaunchIcon className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        Publish Story Group
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        You are about to publish the following stories together:
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-3 mb-4">
+                    <li className="flex items-start gap-2">
+                      <Badge color="blue" className="text-xs mt-0.5 flex-shrink-0 whitespace-nowrap">Original</Badge>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm text-gray-900 dark:text-gray-100 break-words overflow-wrap-anywhere">
+                          {story.title}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {languageMap[story.language] || story.language}
+                        </div>
+                      </div>
+                    </li>
+                    {translations.map((t) => (
+                      <li key={t.id} className="flex items-start gap-2">
+                        <Badge color="purple" className="text-xs mt-0.5 flex-shrink-0 whitespace-nowrap">Translation</Badge>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm text-gray-900 dark:text-gray-100 break-words overflow-wrap-anywhere">
+                            {t.title}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {languageMap[t.language] || t.language}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    All {1 + translations.length} stories will be published immediately and made available to radio stations.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-3">
+                  <Button
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      setShowPublishModal(false);
+                    }}
+                    color="white"
+                    disabled={isPublishing}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      handlePublishGroup();
+                    }}
+                    color="primary"
+                    disabled={isPublishing}
+                  >
+                    {isPublishing ? 'Publishing...' : 'Publish Group'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
     </>
   );
 }
