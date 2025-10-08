@@ -255,7 +255,7 @@ export function NewsroomDashboard() {
             {availableFilters.includes('review') && (
               <Button
                 onClick={() => setActiveTaskFilter('review')}
-                color={activeTaskFilter === 'review' ? 'kelly-green' : 'white'}
+                color={activeTaskFilter === 'review' ? 'primary' : 'white'}
                 className="transition-colors"
               >
                 <EyeIcon className="h-4 w-4 mr-2" />
@@ -265,7 +265,7 @@ export function NewsroomDashboard() {
             {availableFilters.includes('approve') && (
               <Button
                 onClick={() => setActiveTaskFilter('approve')}
-                color={activeTaskFilter === 'approve' ? 'kelly-green' : 'white'}
+                color={activeTaskFilter === 'approve' ? 'primary' : 'white'}
                 className="transition-colors"
               >
                 <CheckCircleIcon className="h-4 w-4 mr-2" />
@@ -275,7 +275,7 @@ export function NewsroomDashboard() {
             {availableFilters.includes('translate') && (
               <Button
                 onClick={() => setActiveTaskFilter('translate')}
-                color={activeTaskFilter === 'translate' ? 'kelly-green' : 'white'}
+                color={activeTaskFilter === 'translate' ? 'primary' : 'white'}
                 className="transition-colors"
               >
                 <DocumentTextIcon className="h-4 w-4 mr-2" />
@@ -285,7 +285,7 @@ export function NewsroomDashboard() {
             {availableFilters.includes('publish') && (
               <Button
                 onClick={() => setActiveTaskFilter('publish')}
-                color={activeTaskFilter === 'publish' ? 'kelly-green' : 'white'}
+                color={activeTaskFilter === 'publish' ? 'primary' : 'white'}
                 className="transition-colors"
               >
                 <CheckCircleIcon className="h-4 w-4 mr-2" />
