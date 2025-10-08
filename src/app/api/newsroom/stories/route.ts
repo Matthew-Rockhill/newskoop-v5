@@ -62,8 +62,8 @@ const getStories = createHandler(
 
     // Build where clause
     const where: Prisma.StoryWhereInput = {
-      // Handle isTranslation filtering
-      ...(isTranslation !== undefined ? { isTranslation } : { isTranslation: false }),
+      // Handle isTranslation filtering - only filter if explicitly specified
+      ...(isTranslation !== undefined && { isTranslation }),
       ...(query && {
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
