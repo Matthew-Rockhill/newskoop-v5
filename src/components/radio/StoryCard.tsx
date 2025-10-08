@@ -24,7 +24,7 @@ interface StoryCardProps {
     createdAt: string | Date;
     publishedAt?: string | Date;
     tags: Array<{ id: string; name: string; category: string }>;
-    audioClips?: Array<{ id: string; url: string; originalName: string; duration: number | null }>;
+    audioClips?: Array<{ id: string; url: string; originalName: string; duration: number | null; mimeType: string }>;
     translations?: Array<{ id: string; title: string; content: string | null; targetLanguage: string }>;
   };
   selectedLanguage?: string;
