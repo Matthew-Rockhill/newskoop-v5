@@ -18,6 +18,9 @@ import {
   EyeIcon,
   MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+
+type TaskFilter = 'review' | 'approve' | 'translate' | 'publish';
 
 export function NewsroomDashboard() {
   const { data: session } = useSession();
@@ -26,6 +29,18 @@ export function NewsroomDashboard() {
   const userRole = session?.user?.staffRole;
   const isJournalist = userRole === 'JOURNALIST';
   const isSubEditor = userRole === 'SUB_EDITOR';
+
+  // Determine available task filters based on role
+  const availableFilters: TaskFilter[] = [];
+  if (isJournalist) {
+    availableFilters.push('review', 'translate');
+  } else if (isSubEditor) {
+    availableFilters.push('approve', 'translate', 'publish');
+  } else {
+    availableFilters.push('translate');
+  }
+
+  const [activeTaskFilter, setActiveTaskFilter] = useState<TaskFilter>(availableFilters[0] || 'translate');
 
   // Fetch stories for the user (stage-based workflow)
   const { data: draftStoriesData } = useStories({ authorId: userId, stage: 'DRAFT', page: 1, perPage: 100 });
@@ -90,6 +105,9 @@ export function NewsroomDashboard() {
   const approvedForPublishingStories = approvedForPublishingStoriesData?.stories || [];
   const translationTasks = translationTasksData?.stories || [];
 
+  // Check if user has any work to show in "My Work" section
+  const hasMyWork = draftStories.length > 0 || needsReviewStories.length > 0 || needsApprovalStories.length > 0 || publishedStories.length > 0;
+
   return (
     <Container>
       <PageHeader
@@ -102,9 +120,10 @@ export function NewsroomDashboard() {
       />
 
       <div className="mt-8 space-y-8">
-        {/* MY WORK SECTION */}
-        <div>
-          <Heading level={2} className="mb-4">My Work</Heading>
+        {/* MY WORK SECTION - Only show if user has work */}
+        {hasMyWork && (
+          <div>
+            <Heading level={2} className="mb-4">My Work</Heading>
           <div className="space-y-4">
             {/* My Drafts */}
             {draftStories.length > 0 && (
@@ -222,25 +241,74 @@ export function NewsroomDashboard() {
               </Card>
             )}
           </div>
-        </div>
+          </div>
+        )}
 
-        {/* EDITORIAL TASKS SECTION */}
-        {(isJournalist || isSubEditor) && (
-          <div>
-            <Heading level={2} className="mb-4">Editorial Tasks</Heading>
-            <div className="space-y-4">
-              {/* Stories to Review (Journalist) */}
-              {isJournalist && reviewStories.length > 0 && (
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <EyeIcon className="h-5 w-5 text-amber-600" />
-                      <Heading level={3}>Stories to Review</Heading>
-                    </div>
-                    <Text className="text-sm text-zinc-600">{reviewStories.length}</Text>
+        {/* MY TASKS SECTION - Always visible with filters */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <Heading level={2}>My Tasks</Heading>
+          </div>
+
+          {/* Filter Buttons */}
+          <div className="flex gap-2 mb-6">
+            {availableFilters.includes('review') && (
+              <Button
+                onClick={() => setActiveTaskFilter('review')}
+                color={activeTaskFilter === 'review' ? 'kelly-green' : 'white'}
+                className="transition-colors"
+              >
+                <EyeIcon className="h-4 w-4 mr-2" />
+                Review ({reviewStories.length})
+              </Button>
+            )}
+            {availableFilters.includes('approve') && (
+              <Button
+                onClick={() => setActiveTaskFilter('approve')}
+                color={activeTaskFilter === 'approve' ? 'kelly-green' : 'white'}
+                className="transition-colors"
+              >
+                <CheckCircleIcon className="h-4 w-4 mr-2" />
+                Approve ({pendingApprovalStories.length})
+              </Button>
+            )}
+            {availableFilters.includes('translate') && (
+              <Button
+                onClick={() => setActiveTaskFilter('translate')}
+                color={activeTaskFilter === 'translate' ? 'kelly-green' : 'white'}
+                className="transition-colors"
+              >
+                <DocumentTextIcon className="h-4 w-4 mr-2" />
+                Translate ({translationTasks.length})
+              </Button>
+            )}
+            {availableFilters.includes('publish') && (
+              <Button
+                onClick={() => setActiveTaskFilter('publish')}
+                color={activeTaskFilter === 'publish' ? 'kelly-green' : 'white'}
+                className="transition-colors"
+              >
+                <CheckCircleIcon className="h-4 w-4 mr-2" />
+                Publish ({approvedForPublishingStories.length})
+              </Button>
+            )}
+          </div>
+
+          {/* Task Content - Review */}
+          {activeTaskFilter === 'review' && (
+            <div>
+              {reviewStories.length === 0 ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <EyeIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No review tasks</Heading>
+                    <Text className="text-gray-600 dark:text-gray-400">Great work! You're all caught up on reviews.</Text>
                   </div>
+                </Card>
+              ) : (
+                <Card className="p-6">
                   <div className="space-y-2">
-                    {reviewStories.slice(0, 5).map((story: any) => (
+                    {reviewStories.map((story: any) => (
                       <div
                         key={story.id}
                         className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
@@ -259,31 +327,27 @@ export function NewsroomDashboard() {
                         </div>
                       </div>
                     ))}
-                    {reviewStories.length > 5 && (
-                      <Button
-                        color="white"
-                        className="w-full mt-2"
-                        onClick={() => router.push(`/newsroom/stories?assignedReviewerId=${userId}&stage=NEEDS_JOURNALIST_REVIEW`)}
-                      >
-                        View all {reviewStories.length} stories
-                      </Button>
-                    )}
                   </div>
                 </Card>
               )}
+            </div>
+          )}
 
-              {/* Stories Needing Approval (Sub-Editor) */}
-              {isSubEditor && pendingApprovalStories.length > 0 && (
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <CheckCircleIcon className="h-5 w-5 text-amber-600" />
-                      <Heading level={3}>Stories Needing Approval</Heading>
-                    </div>
-                    <Text className="text-sm text-zinc-600">{pendingApprovalStories.length}</Text>
+          {/* Task Content - Approve */}
+          {activeTaskFilter === 'approve' && (
+            <div>
+              {pendingApprovalStories.length === 0 ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <CheckCircleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No approval tasks</Heading>
+                    <Text className="text-gray-600 dark:text-gray-400">Great work! You're all caught up on approvals.</Text>
                   </div>
+                </Card>
+              ) : (
+                <Card className="p-6">
                   <div className="space-y-2">
-                    {pendingApprovalStories.slice(0, 5).map((story: any) => (
+                    {pendingApprovalStories.map((story: any) => (
                       <div
                         key={story.id}
                         className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
@@ -302,31 +366,27 @@ export function NewsroomDashboard() {
                         </div>
                       </div>
                     ))}
-                    {pendingApprovalStories.length > 5 && (
-                      <Button
-                        color="white"
-                        className="w-full mt-2"
-                        onClick={() => router.push('/newsroom/stories?stage=NEEDS_SUB_EDITOR_APPROVAL')}
-                      >
-                        View all {pendingApprovalStories.length} stories
-                      </Button>
-                    )}
                   </div>
                 </Card>
               )}
+            </div>
+          )}
 
-              {/* Translation Tasks (Journalist/Sub-Editor assigned as translator) */}
-              {translationTasks.length > 0 && (
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <DocumentTextIcon className="h-5 w-5 text-purple-600" />
-                      <Heading level={3}>Translations to Complete</Heading>
-                    </div>
-                    <Text className="text-sm text-zinc-600">{translationTasks.length}</Text>
+          {/* Task Content - Translate */}
+          {activeTaskFilter === 'translate' && (
+            <div>
+              {translationTasks.length === 0 ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No translation tasks</Heading>
+                    <Text className="text-gray-600 dark:text-gray-400">No translations assigned to you at the moment.</Text>
                   </div>
+                </Card>
+              ) : (
+                <Card className="p-6">
                   <div className="space-y-2">
-                    {translationTasks.slice(0, 5).map((story: any) => (
+                    {translationTasks.map((story: any) => (
                       <div
                         key={story.id}
                         className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
@@ -348,37 +408,27 @@ export function NewsroomDashboard() {
                         </div>
                       </div>
                     ))}
-                    {translationTasks.length > 5 && (
-                      <Button
-                        color="white"
-                        className="w-full mt-2"
-                        onClick={() => router.push(`/newsroom/stories?authorId=${userId}&isTranslation=true&stage=DRAFT`)}
-                      >
-                        View all {translationTasks.length} translations
-                      </Button>
-                    )}
                   </div>
                 </Card>
               )}
-
             </div>
-          </div>
-        )}
+          )}
 
-        {/* PUBLISHING SECTION */}
-        {isSubEditor && approvedForPublishingStories.length > 0 && (
-          <div>
-            <Heading level={2} className="mb-4">Publishing</Heading>
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <DocumentTextIcon className="h-5 w-5 text-green-600" />
-                  <Heading level={3}>Ready for Publishing</Heading>
-                </div>
-                <Text className="text-sm text-zinc-600">{approvedForPublishingStories.length}</Text>
-              </div>
-              <div className="space-y-2">
-                {approvedForPublishingStories.slice(0, 5).map((story: any) => (
+          {/* Task Content - Publish */}
+          {activeTaskFilter === 'publish' && (
+            <div>
+              {approvedForPublishingStories.length === 0 ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <CheckCircleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No stories ready to publish</Heading>
+                    <Text className="text-gray-600 dark:text-gray-400">All translated stories have been published.</Text>
+                  </div>
+                </Card>
+              ) : (
+                <Card className="p-6">
+                  <div className="space-y-2">
+                    {approvedForPublishingStories.map((story: any) => (
                   <div
                     key={story.id}
                     className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
@@ -396,20 +446,13 @@ export function NewsroomDashboard() {
                       </Text>
                     </div>
                   </div>
-                ))}
-                {approvedForPublishingStories.length > 5 && (
-                  <Button
-                    color="white"
-                    className="w-full mt-2"
-                    onClick={() => router.push('/newsroom/stories?stage=TRANSLATED')}
-                  >
-                    View all {approvedForPublishingStories.length} stories
-                  </Button>
-                )}
-              </div>
-            </Card>
-          </div>
-        )}
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </Container>
   );
