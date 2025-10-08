@@ -86,6 +86,16 @@ export async function GET(
                     tag: true,
                   },
                 },
+                audioClips: {
+                  select: {
+                    id: true,
+                    filename: true,
+                    url: true,
+                    duration: true,
+                    mimeType: true,
+                  },
+                  take: 1, // Get only the first audio clip
+                },
               },
             },
           },
@@ -100,7 +110,19 @@ export async function GET(
       return NextResponse.json({ error: 'Bulletin not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ bulletin });
+    // Transform bulletin stories to include audioUrl at story level
+    const transformedBulletin = {
+      ...bulletin,
+      bulletinStories: bulletin.bulletinStories.map((bs: any) => ({
+        ...bs,
+        story: {
+          ...bs.story,
+          audioUrl: bs.story.audioClips?.[0]?.url || null,
+        },
+      })),
+    };
+
+    return NextResponse.json({ bulletin: transformedBulletin });
   } catch (error) {
     console.error('Error fetching bulletin:', error);
     return NextResponse.json(

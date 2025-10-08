@@ -40,12 +40,14 @@ const getStories = createHandler(
       query,
       status,
       stage,
+      language,
       categoryId,
       authorId,
       assignedToId,
       reviewerId,
       assignedReviewerId,
       assignedApproverId,
+      originalStoryId,
       tagIds,
       page = 1,
       perPage = 10
@@ -58,6 +60,8 @@ const getStories = createHandler(
 
     // Build where clause
     const where: Prisma.StoryWhereInput = {
+      // Exclude translations unless specifically querying for them
+      isTranslation: originalStoryId ? true : false,
       ...(query && {
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
@@ -79,12 +83,14 @@ const getStories = createHandler(
       }),
       ...(status && { status }),
       ...(stage && { stage }),
+      ...(language && { language }),
       ...(categoryId && { categoryId }),
       ...(authorId && { authorId }),
       ...(assignedToId && { assignedToId }),
       ...(reviewerId && { reviewerId }),
       ...(assignedReviewerId && { assignedReviewerId }),
       ...(assignedApproverId && { assignedApproverId }),
+      ...(originalStoryId && { originalStoryId }),
       ...(tagIds && tagIds.length > 0 && {
         tags: {
           some: {
@@ -153,6 +159,7 @@ const getStories = createHandler(
             firstName: true,
             lastName: true,
             email: true,
+            staffRole: true,
           },
         },
         assignedTo: {
@@ -208,9 +215,39 @@ const getStories = createHandler(
             duration: true,
           },
         },
+        storyGroup: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        translations: {
+          select: {
+            id: true,
+            title: true,
+            language: true,
+            stage: true,
+            isTranslation: true,
+            authorRole: true,
+            author: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            _count: {
+              select: {
+                audioClips: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             comments: true,
+            audioClips: true,
+            translations: true,
           },
         },
       },
@@ -352,16 +389,46 @@ const createStory = createHandler(
 
     // Prepare create data
     console.log('🏗️ Preparing story data...');
+    let slug = generateSlug(validatedData.title);
+
+    // For translations, append language code to ensure unique slug
+    if (storyData.isTranslation && storyData.language) {
+      slug = `${slug}-${String(storyData.language).toLowerCase()}`;
+    }
+
+    // Check if slug already exists and make it unique if needed
+    const slugExists = await prisma.story.findFirst({
+      where: { slug }
+    });
+
+    if (slugExists) {
+      console.log('⚠️ Slug already exists, generating unique slug...');
+      let counter = 1;
+      let uniqueSlug = `${slug}-${counter}`;
+      while (await prisma.story.findFirst({ where: { slug: uniqueSlug } })) {
+        counter++;
+        uniqueSlug = `${slug}-${counter}`;
+      }
+      slug = uniqueSlug;
+      console.log('✅ Generated unique slug:', slug);
+    }
+
     const createData: Record<string, unknown> = {
       ...cleanStoryData,
       authorId: user.id,
-      slug: generateSlug(validatedData.title),
+      authorRole: user.staffRole, // Capture role at creation time
+      slug,
     };
     console.log('📝 Base create data:', createData);
 
+    // If reviewer is provided, set stage to NEEDS_JOURNALIST_REVIEW
     if (reviewerId) {
-      createData.reviewerId = reviewerId;
-      console.log('👥 Added reviewer:', reviewerId);
+      createData.assignedReviewerId = reviewerId;
+      createData.stage = 'NEEDS_JOURNALIST_REVIEW';
+      console.log('👥 Added reviewer and set stage to NEEDS_JOURNALIST_REVIEW:', reviewerId);
+    } else {
+      // No reviewer, story starts as DRAFT
+      createData.stage = 'DRAFT';
     }
 
     if (tagIds && tagIds.length > 0) {

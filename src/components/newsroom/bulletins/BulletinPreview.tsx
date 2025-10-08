@@ -170,9 +170,6 @@ export function BulletinPreview({
                   <div key={story.id} className="border border-gray-200 rounded-lg p-4 bg-white">
                     {/* Story Header */}
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="flex-shrink-0 flex items-center justify-center w-7 h-7 bg-[#76BD43] text-white rounded-full text-sm font-semibold">
-                        {index + 1}
-                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <Heading level={4} className="font-semibold text-gray-900">
@@ -195,17 +192,26 @@ export function BulletinPreview({
                       </div>
                     </div>
 
+                    {/* Story Content */}
+                    <div className="prose prose-sm max-w-none text-gray-700 mb-3">
+                      {story.content ? (
+                        <div dangerouslySetInnerHTML={{ __html: story.content }} />
+                      ) : (
+                        <p className="text-gray-500 italic">No content available</p>
+                      )}
+                    </div>
+
                     {/* Audio Player */}
                     {(story as any).audioUrl && (
-                      <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                         <div className="flex items-center gap-2 mb-2">
                           <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M9 9a3 3 0 000 6h1.5M12 9v6M9 21V3l3-3 3 3v18" />
                           </svg>
                           <Text className="text-sm font-medium text-blue-900">Audio Version</Text>
                         </div>
-                        <audio 
-                          controls 
+                        <audio
+                          controls
                           className="w-full h-8"
                           preload="metadata"
                         >
@@ -216,15 +222,6 @@ export function BulletinPreview({
                         </audio>
                       </div>
                     )}
-
-                    {/* Story Content */}
-                    <div className="prose prose-sm max-w-none text-gray-700">
-                      {story.content ? (
-                        <div dangerouslySetInnerHTML={{ __html: story.content }} />
-                      ) : (
-                        <p className="text-gray-500 italic">No content available</p>
-                      )}
-                    </div>
 
                     {/* Story Tags */}
                     {story.tags && story.tags.filter(tag => tag.category !== 'LANGUAGE').length > 0 && (

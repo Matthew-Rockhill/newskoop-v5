@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { storyUpdateSchema } from '@/lib/validations';
 import { deleteAudioFile } from '@/lib/vercel-blob';
+import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 
 // Helper function to check permissions
 function hasStoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -32,27 +33,28 @@ async function canEditStory(userId: string, userRole: string | null, storyId: st
 
   const story = await prisma.story.findUnique({
     where: { id: storyId },
-    select: { authorId: true, assignedToId: true, reviewerId: true, status: true },
+    select: {
+      authorId: true,
+      stage: true,
+      assignedReviewerId: true,
+      assignedApproverId: true,
+      isTranslation: true,
+    },
   });
 
   if (!story) return false;
 
-  // Editors and above can edit any story
-  if (['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
-    return true;
-  }
-
-  // Authors can edit their own stories if not published
-  if (story.authorId === userId && story.status !== 'PUBLISHED') {
-    return true;
-  }
-
-  // Assigned users can edit stories assigned to them
-  if (story.assignedToId === userId || story.reviewerId === userId) {
-    return true;
-  }
-
-  return false;
+  // Use stage-based permission checking
+  const { canEditStoryByStage } = await import('@/lib/permissions');
+  return canEditStoryByStage(
+    userRole as any,
+    story.stage,
+    story.authorId,
+    userId,
+    story.assignedReviewerId,
+    story.assignedApproverId,
+    story.isTranslation
+  );
 }
 
 // GET /api/newsroom/stories/[id] - Get a single story
@@ -73,6 +75,9 @@ const getStory = createHandler(
         slug: true,
         content: true,
         status: true,
+        stage: true,
+        assignedReviewerId: true,
+        assignedApproverId: true,
         language: true,
         isTranslation: true,
         originalStoryId: true,
@@ -124,6 +129,24 @@ const getStory = createHandler(
             staffRole: true,
           },
         },
+        assignedReviewer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            staffRole: true,
+          },
+        },
+        assignedApprover: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            staffRole: true,
+          },
+        },
         category: {
           select: {
             id: true,
@@ -147,6 +170,7 @@ const getStory = createHandler(
                 name: true,
                 slug: true,
                 color: true,
+                category: true,
               },
             },
           },
@@ -198,33 +222,27 @@ const getStory = createHandler(
           },
           orderBy: { createdAt: 'desc' },
         },
-        // Include related translation requests for publication unit display
-        translationRequests: {
+        translations: {
           select: {
             id: true,
-            status: true,
-            targetLanguage: true,
-            createdAt: true,
-            updatedAt: true,
-            approvedAt: true,
-            assignedTo: {
+            title: true,
+            language: true,
+            stage: true,
+            isTranslation: true,
+            authorRole: true,
+            author: {
               select: {
                 id: true,
                 firstName: true,
                 lastName: true,
-                email: true,
               },
             },
-            reviewer: {
+            _count: {
               select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
+                audioClips: true,
               },
             },
           },
-          orderBy: { targetLanguage: 'asc' },
         },
       },
     });
@@ -239,21 +257,18 @@ const getStory = createHandler(
     }
 
     if (user.staffRole === 'JOURNALIST') {
-      const hasAccess = story.authorId === user.id || 
-                       story.assignedToId === user.id || 
-                       story.reviewerId === user.id;
+      const hasAccess = story.authorId === user.id ||
+                       story.assignedToId === user.id ||
+                       story.reviewerId === user.id ||
+                       story.assignedReviewerId === user.id ||
+                       story.assignedApproverId === user.id;
       if (!hasAccess) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
 
     // Alias translationRequests as translations for frontend compatibility
-    const storyWithTranslations = {
-      ...story,
-      translations: story.translationRequests
-    };
-    
-    return NextResponse.json(storyWithTranslations);
+    return NextResponse.json(story);
   },
   [withErrorHandling, withAuth]
 );
@@ -263,20 +278,79 @@ const updateStory = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
-    const data = (req as NextRequest & { validatedData: { 
-      status?: string; 
-      categoryId?: string; 
-      tagIds?: string[]; 
+
+    let rawData: Record<string, unknown> = {};
+    const audioFiles: File[] = [];
+
+    // Support both JSON and FormData
+    const contentType = req.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      // Handle JSON body (no file uploads)
+      const body = await req.json();
+
+      // Validate the data
+      try {
+        rawData = body;
+      } catch (error) {
+        console.error('Validation failed:', error);
+        throw error;
+      }
+    } else if (contentType.includes('multipart/form-data')) {
+      // Handle FormData for file uploads
+      const formData = await req.formData();
+
+      for (const [key, value] of formData.entries()) {
+        if (key.startsWith('audioFile_')) {
+          audioFiles.push(value as File);
+        } else if (key === 'removedAudioIds') {
+          rawData[key] = JSON.parse(value as string);
+        } else if (key === 'tagIds') {
+          rawData[key] = JSON.parse(value as string);
+        } else if (key !== 'audioFilesCount') {
+          rawData[key] = value as string;
+        }
+      }
+    } else {
+      return NextResponse.json({ error: 'Unsupported Content-Type' }, { status: 415 });
+    }
+
+    // Validate the data
+    let data: {
       title?: string;
       content?: string;
-      assignedToId?: string;
-      reviewerId?: string;
-      [key: string]: unknown;
-    } }).validatedData;
+      categoryId?: string;
+      tagIds?: string[];
+      removedAudioIds?: string[];
+      status?: string;
+      slug?: string;
+    };
 
-    const canEdit = await canEditStory(user.id, user.staffRole, id);
-    if (!canEdit) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    try {
+      data = storyUpdateSchema.parse(rawData);
+    } catch (error) {
+      console.error('Validation failed:', error);
+      throw error;
+    }
+
+    // Check if this is only a categorisation update (categoryId and/or tagIds)
+    const isCategorisationOnly =
+      (data.categoryId !== undefined || data.tagIds !== undefined) &&
+      !data.title && !data.content;
+
+    // Sub-editors and above can always update categorisation
+    const canUpdateCategorisation =
+      user.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(user.staffRole);
+
+    // Check permissions
+    if (isCategorisationOnly && canUpdateCategorisation) {
+      // Allow categorisation updates for sub-editors and above
+    } else {
+      // For other updates, check standard edit permissions
+      const canEdit = await canEditStory(user.id, user.staffRole, id);
+      if (!canEdit) {
+        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      }
     }
 
     // When updating to APPROVED or READY_TO_PUBLISH, require categoryId
@@ -284,22 +358,128 @@ const updateStory = createHandler(
       return NextResponse.json({ error: 'Category is required to approve or publish a story.' }, { status: 400 });
     }
 
-    // Extract tag IDs from the data
-    const { tagIds, ...storyData } = data;
+    // Handle audio clip deletions
+    if (data.removedAudioIds && data.removedAudioIds.length > 0) {
+      // Fetch audio clips to get their URLs
+      const audioClips = await prisma.audioClip.findMany({
+        where: {
+          id: { in: data.removedAudioIds },
+          storyId: id // Verify they belong to this story
+        },
+        select: { id: true, url: true },
+      });
+
+      // Delete files from storage
+      for (const audioClip of audioClips) {
+        try {
+          await deleteAudioFile(audioClip.url);
+        } catch (error) {
+          console.error(`Failed to delete audio file ${audioClip.url}:`, error);
+          // Continue with deletion even if some files fail
+        }
+      }
+
+      // Delete audio clip records from database
+      await prisma.audioClip.deleteMany({
+        where: {
+          id: { in: data.removedAudioIds },
+          storyId: id // Verify they belong to this story
+        },
+      });
+    }
+
+    // Process new audio file uploads
+    const uploadedAudioFiles = [];
+    if (audioFiles.length > 0) {
+      try {
+        for (let i = 0; i < audioFiles.length; i++) {
+          const file = audioFiles[i];
+
+          // Validate audio file
+          const validation = validateAudioFile(file);
+          if (!validation.valid) {
+            return NextResponse.json({ error: validation.error }, { status: 400 });
+          }
+
+          // Save file and get file info
+          const uploadedFile = await saveUploadedFile(file);
+
+          uploadedAudioFiles.push({
+            filename: uploadedFile.filename,
+            originalName: uploadedFile.originalName,
+            url: uploadedFile.url,
+            fileSize: uploadedFile.size,
+            mimeType: uploadedFile.mimeType,
+            uploadedBy: user.id,
+          });
+        }
+      } catch (error) {
+        console.error('Error processing audio files:', error);
+        throw error;
+      }
+    }
+
+    // Extract tag IDs and removedAudioIds from the data
+    const { tagIds, removedAudioIds, ...storyData } = data;
 
     // Generate new slug if title is being updated
     if (storyData.title) {
-      storyData.slug = generateSlug(storyData.title);
+      // Fetch story to check if it's a translation
+      const existingStory = await prisma.story.findUnique({
+        where: { id },
+        select: { isTranslation: true, language: true, slug: true }
+      });
+
+      let slug = generateSlug(storyData.title);
+
+      // For translations, append language code to ensure unique slug
+      if (existingStory?.isTranslation && existingStory?.language) {
+        slug = `${slug}-${existingStory.language.toLowerCase()}`;
+      }
+
+      // Check if the new slug is different from the current one
+      // If it's the same, don't update it to avoid unique constraint errors
+      if (existingStory?.slug === slug) {
+        delete storyData.slug;
+      } else {
+        // Check if slug already exists (for other stories)
+        const slugExists = await prisma.story.findFirst({
+          where: {
+            slug,
+            id: { not: id } // Exclude current story
+          }
+        });
+
+        if (slugExists) {
+          // Append a counter to make it unique
+          let counter = 1;
+          let uniqueSlug = `${slug}-${counter}`;
+          while (await prisma.story.findFirst({ where: { slug: uniqueSlug, id: { not: id } } })) {
+            counter++;
+            uniqueSlug = `${slug}-${counter}`;
+          }
+          slug = uniqueSlug;
+        }
+
+        storyData.slug = slug;
+      }
     }
 
     const updateData: Record<string, unknown> = { ...storyData };
-    
+
     if (tagIds !== undefined) {
       updateData.tags = {
         deleteMany: {}, // Remove all existing tags
         create: tagIds.map((tagId: string) => ({
           tag: { connect: { id: tagId } }
         }))
+      };
+    }
+
+    // Add new audio clips if any were uploaded
+    if (uploadedAudioFiles.length > 0) {
+      updateData.audioClips = {
+        create: uploadedAudioFiles
       };
     }
 
@@ -347,6 +527,7 @@ const updateStory = createHandler(
                 name: true,
                 slug: true,
                 color: true,
+                category: true,
               },
             },
           },
@@ -371,7 +552,6 @@ const updateStory = createHandler(
   [
     withErrorHandling,
     withAuth,
-    withValidation(storyUpdateSchema),
     withAudit('story.update'),
   ]
 );

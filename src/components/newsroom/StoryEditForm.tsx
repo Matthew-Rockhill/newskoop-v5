@@ -5,7 +5,8 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { MusicalNoteIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { useQuery } from '@tanstack/react-query';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -19,15 +20,26 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
+import { FileUpload } from '@/components/ui/file-upload';
 import { ReviewerSelectionModal } from './ReviewerSelectionModal';
-import { SubEditorSelectionModal } from './SubEditorSelectionModal';
-import { RevisionNotes } from './RevisionNotes';
-import { 
-  canApproveStory, 
+import { RevisionRequestBanner } from '@/components/ui/revision-request-banner';
+import { ReviewStatusBanner } from '@/components/ui/review-status-banner';
+import { StageProgress } from '@/components/ui/stage-progress';
+import {
+  canApproveStory,
   canPublishStory,
   getAvailableStatusTransitions,
 } from '@/lib/permissions';
-import { StoryStatus } from '@prisma/client';
+import { StoryStatus, StaffRole, StoryStage } from '@prisma/client';
+
+// Audio file interface for uploads
+interface AudioFile {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  duration?: number;
+}
 
 // Story type interface
 interface Story {
@@ -35,6 +47,7 @@ interface Story {
   title: string;
   content: string | null;
   status: StoryStatus;
+  stage: StoryStage | null;
   categoryId: string | null;
   authorId: string;
   createdAt: string;
@@ -43,6 +56,19 @@ interface Story {
     id: string;
     firstName: string;
     lastName: string;
+    staffRole: StaffRole;
+  };
+  assignedReviewer?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    staffRole: StaffRole;
+  };
+  assignedApprover?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    staffRole: StaffRole;
   };
   audioClips?: Array<{
     id: string;
@@ -65,20 +91,6 @@ const storyEditSchema = z.object({
 
 type StoryEditFormData = z.infer<typeof storyEditSchema>;
 
-// Status badge colors
-const statusColors = {
-  DRAFT: 'zinc',
-  IN_REVIEW: 'amber',
-  NEEDS_REVISION: 'red',
-  PENDING_APPROVAL: 'blue',
-  APPROVED: 'lime',
-  PENDING_TRANSLATION: 'purple',
-  READY_TO_PUBLISH: 'emerald',
-  PUBLISHED: 'emerald',
-  ARCHIVED: 'zinc',
-} as const;
-
-
 interface StoryEditFormProps {
   storyId: string;
 }
@@ -93,12 +105,11 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   const [story, setStory] = useState<Story | null>(null);
   const [content, setContent] = useState('');
   const [showReviewerModal, setShowReviewerModal] = useState(false);
-  const [showSubEditorModal, setShowSubEditorModal] = useState(false);
+  const [removedAudioIds, setRemovedAudioIds] = useState<string[]>([]);
+  const [newAudioFiles, setNewAudioFiles] = useState<AudioFile[]>([]);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
   const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
-  const [hasUnresolvedRevisions, setHasUnresolvedRevisions] = useState(false);
-  const [activeRevisionCount, setActiveRevisionCount] = useState(0);
 
   const {
     register,
@@ -109,6 +120,21 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   } = useForm<StoryEditFormData>({
     resolver: zodResolver(storyEditSchema),
   });
+
+  // Fetch revision requests for this story
+  const { data: revisionRequestsData } = useQuery({
+    queryKey: ['revisionRequests', storyId],
+    queryFn: async () => {
+      const response = await fetch(`/api/newsroom/stories/${storyId}/revisions`);
+      if (!response.ok) throw new Error('Failed to fetch revision requests');
+      return response.json();
+    },
+    enabled: !!storyId,
+  });
+
+  const unresolvedRevisions = revisionRequestsData?.revisionRequests?.filter(
+    (r: any) => !r.resolvedAt
+  ) || [];
 
   // Load story data
   useEffect(() => {
@@ -142,11 +168,42 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   const onSubmit: SubmitHandler<StoryEditFormData> = async (data) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/newsroom/stories/${storyId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      let response;
+
+      // If there are new audio files, use FormData
+      if (newAudioFiles.length > 0) {
+        const formData = new FormData();
+
+        // Add story data
+        formData.append('title', data.title);
+        formData.append('content', data.content);
+
+        // Add removed audio IDs
+        if (removedAudioIds.length > 0) {
+          formData.append('removedAudioIds', JSON.stringify(removedAudioIds));
+        }
+
+        // Add new audio files
+        newAudioFiles.forEach((audioFile, index) => {
+          formData.append(`audioFile_${index}`, audioFile.file);
+        });
+        formData.append('audioFilesCount', String(newAudioFiles.length));
+
+        response = await fetch(`/api/newsroom/stories/${storyId}`, {
+          method: 'PATCH',
+          body: formData,
+        });
+      } else {
+        // No new files, use JSON
+        response = await fetch(`/api/newsroom/stories/${storyId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...data,
+            removedAudioIds: removedAudioIds.length > 0 ? removedAudioIds : undefined,
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -154,8 +211,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
       }
 
       toast.success('Story updated successfully!');
-      // Stay on the edit page for continued editing
-      // No redirect needed - user can continue editing or use navigation
+      router.push(`/newsroom/stories/${storyId}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update story');
     } finally {
@@ -164,12 +220,8 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   };
 
   const handleSubmitForReview = () => {
-    // Show the appropriate modal based on user role
-    if (session?.user?.staffRole === 'JOURNALIST') {
-      setShowSubEditorModal(true);
-    } else {
-      setShowReviewerModal(true);
-    }
+    // Show the reviewer modal
+    setShowReviewerModal(true);
   };
 
   const handleStatusAction = async (action: { label: string; status: string; color: string }) => {
@@ -180,10 +232,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     
     // Handle different status transitions
     switch (action.status) {
-      case 'REVIEW_PAGE':
-        // Redirect journalist to review page to complete checklist
-        router.push(`/newsroom/stories/${storyId}/review`);
-        break;
       case 'IN_REVIEW':
         handleSubmitForReview();
         break;
@@ -253,51 +301,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     }
   };
 
-  const handleSubEditorSelected = async (subEditorId: string) => {
-    setIsSubmitting(true);
-    setShowSubEditorModal(false);
-    
-    try {
-      // First save the current changes using form values
-      const titleElement = document.getElementById('title') as HTMLInputElement;
-      const formData = {
-        title: titleElement?.value || story?.title || '',
-        content: content,
-      };
-
-      const updateResponse = await fetch(`/api/newsroom/stories/${storyId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (!updateResponse.ok) {
-        throw new Error('Failed to save changes');
-      }
-
-      // Then update status to PENDING_APPROVAL with sub-editor assignment
-      const statusResponse = await fetch(`/api/newsroom/stories/${storyId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          status: 'PENDING_APPROVAL',
-          assignedToId: subEditorId 
-        }),
-      });
-
-      if (!statusResponse.ok) {
-        throw new Error('Failed to submit for approval');
-      }
-
-      toast.success('Story submitted for approval!');
-      router.push(`/newsroom/stories/${storyId}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to submit for approval');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -320,16 +323,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     
     // Get available transitions for the current user role and status
     const availableTransitions = getAvailableStatusTransitions(userRole, currentStatus);
-    
-    // Add "Review Story" button for journalists who are authors of DRAFT stories
-    if (userRole === 'JOURNALIST' && isAuthor && currentStatus === 'DRAFT') {
-      actions.push({
-        label: 'Review Story',
-        status: 'REVIEW_PAGE',
-        color: 'primary' as const,
-      });
-    }
-    
+
     // Map transitions to action buttons
     availableTransitions.forEach((newStatus) => {
       switch (newStatus) {
@@ -424,11 +418,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
   };
 
-  const handleRevisionStatusChanged = (allActiveResolved: boolean, activeCount: number) => {
-    setHasUnresolvedRevisions(!allActiveResolved);
-    setActiveRevisionCount(activeCount);
-  };
-
   if (isLoading) {
     return (
       <Container>
@@ -456,19 +445,70 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
 
   return (
     <Container>
+      {/* Review Status Banner - Show when story is under review */}
+      {story.authorId === session?.user?.id &&
+       story.stage === 'NEEDS_JOURNALIST_REVIEW' &&
+       story.assignedReviewer && (
+        <ReviewStatusBanner
+          stage={story.stage}
+          reviewer={story.assignedReviewer}
+          updatedAt={story.updatedAt}
+          className="mb-6"
+        />
+      )}
+
+      {/* Review Status Banner - Show when story is awaiting approval */}
+      {story.authorId === session?.user?.id &&
+       story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
+       story.assignedApprover && (
+        <ReviewStatusBanner
+          stage={story.stage}
+          reviewer={story.assignedApprover}
+          updatedAt={story.updatedAt}
+          className="mb-6"
+        />
+      )}
+
+      {/* Approval Sent Banner - For Reviewer who sent for approval */}
+      {story.authorId !== session?.user?.id &&
+       story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
+       story.assignedReviewer?.id === session?.user?.id &&
+       story.assignedApprover && (
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+          <div className="flex items-start gap-3">
+            <CheckCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                Sent for Approval
+              </h3>
+              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                You sent this story to {story.assignedApprover.firstName} {story.assignedApprover.lastName} for approval. They have been notified and will review it.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revision Request Banner - Show when there are unresolved revisions */}
+      {unresolvedRevisions.length > 0 && story.authorId === session?.user?.id && (
+        <RevisionRequestBanner
+          revisionRequests={unresolvedRevisions}
+          className="mb-6"
+        />
+      )}
+
+      {/* Stage Progress Bar */}
+      {story.stage && story.author.staffRole && (
+        <StageProgress
+          currentStage={story.stage as StoryStage}
+          authorRole={story.author.staffRole as StaffRole}
+          className="mb-8"
+        />
+      )}
+
       <div className="space-y-6">
         <PageHeader
           title={story.title}
-          description={
-            <div className="flex items-center gap-4 mt-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
-                <Badge color={statusColors[story.status] || 'zinc'}>
-                  {story.status.replace('_', ' ')}
-                </Badge>
-              </div>
-            </div>
-          }
           metadata={{
             sections: [
               {
@@ -504,23 +544,16 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
           actions={
             <div className="flex items-center space-x-3">
               {/* Status Actions */}
-              {statusActions.map((action) => {
-                // Disable submit/resubmit for review if there are unresolved revisions
-                const isReviewAction = action.status === 'IN_REVIEW';
-                const isDisabledByRevisions = isReviewAction && hasUnresolvedRevisions;
-                
-                return (
-                  <Button
-                    key={action.status}
-                    color={action.color}
-                    onClick={() => handleStatusAction(action)}
-                    disabled={isSubmitting || isDisabledByRevisions}
-                    title={isDisabledByRevisions ? `Please resolve all ${activeRevisionCount} revision note${activeRevisionCount !== 1 ? 's' : ''} before resubmitting` : undefined}
-                  >
-                    {action.label}
-                  </Button>
-                );
-              })}
+              {statusActions.map((action) => (
+                <Button
+                  key={action.status}
+                  color={action.color}
+                  onClick={() => handleStatusAction(action)}
+                  disabled={isSubmitting}
+                >
+                  {action.label}
+                </Button>
+              ))}
               
               {/* Back to Dashboard Button */}
               <Button color="secondary" href="/newsroom">
@@ -530,10 +563,8 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
           }
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <div className="max-w-5xl">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
               {/* Story Content */}
               <Card className="p-6">
                 <Heading level={2} className="mb-6">Story Content</Heading>
@@ -577,44 +608,63 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                 <div className="flex items-center justify-between mb-4">
                   <Heading level={3}>Audio Clips</Heading>
                   <Badge color="zinc">
-                    {story.audioClips?.length || 0} clips
+                    {story.audioClips?.filter((clip) => !removedAudioIds.includes(clip.id)).length || 0} clips
                   </Badge>
                 </div>
-                
-                {!story.audioClips || story.audioClips.length === 0 ? (
+
+                {/* Existing audio clips */}
+                {(!story.audioClips || story.audioClips.length === 0) ? (
                   <div className="text-center py-8 text-gray-500">
                     <MusicalNoteIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                     <p>No audio clips have been attached to this story</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {story.audioClips.map((clip) => (
-                      <CustomAudioPlayer
-                        key={clip.id}
-                        clip={{
-                          ...clip,
-                          url: clip.url, // Use the direct URL from storage
-                          originalName: clip.originalName || clip.filename,
-                          duration: clip.duration ?? null
-                        }}
-                        isPlaying={playingAudioId === clip.id}
-                        currentTime={audioProgress[clip.id] || 0}
-                        duration={audioDuration[clip.id] || 0}
-                        onPlay={handleAudioPlay}
-                        onStop={handleAudioStop}
-                        onRestart={handleAudioRestart}
-                        onSeek={handleAudioSeek}
-                        onTimeUpdate={handleAudioTimeUpdate}
-                        onLoadedMetadata={handleAudioLoadedMetadata}
-                        onEnded={() => setPlayingAudioId(null)}
-                        onError={() => {
-                          toast.error('Failed to play audio file');
-                          setPlayingAudioId(null);
-                        }}
-                      />
+                    {story.audioClips.filter((clip) => !removedAudioIds.includes(clip.id)).map((clip) => (
+                      <div key={clip.id} className="relative">
+                        <CustomAudioPlayer
+                          clip={{
+                            ...clip,
+                            url: clip.url, // Use the direct URL from storage
+                            originalName: clip.originalName || clip.filename,
+                            duration: clip.duration ?? null
+                          }}
+                          isPlaying={playingAudioId === clip.id}
+                          currentTime={audioProgress[clip.id] || 0}
+                          duration={audioDuration[clip.id] || 0}
+                          onPlay={handleAudioPlay}
+                          onStop={handleAudioStop}
+                          onRestart={handleAudioRestart}
+                          onSeek={handleAudioSeek}
+                          onTimeUpdate={handleAudioTimeUpdate}
+                          onLoadedMetadata={handleAudioLoadedMetadata}
+                          onEnded={() => setPlayingAudioId(null)}
+                          onError={() => {
+                            toast.error('Failed to play audio file');
+                            setPlayingAudioId(null);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          color="red"
+                          className="absolute top-2 right-2"
+                          onClick={() => setRemovedAudioIds(ids => [...ids, clip.id])}
+                        >
+                          Remove
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 )}
+
+                {/* Upload new audio files */}
+                <div className="mt-6">
+                  <FileUpload
+                    onFilesChange={setNewAudioFiles}
+                    maxFiles={5}
+                    maxFileSize={50}
+                  />
+                </div>
               </Card>
 
               <Divider />
@@ -637,16 +687,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                 </Button>
               </div>
             </form>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Revision Notes */}
-            <RevisionNotes 
-              storyId={storyId} 
-              onRevisionStatusChanged={handleRevisionStatusChanged}
-            />
-          </div>
         </div>
       </div>
 
@@ -655,15 +695,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
         isOpen={showReviewerModal}
         onClose={() => setShowReviewerModal(false)}
         onConfirm={handleReviewerSelected}
-        storyTitle={story?.title || ''}
-        isLoading={isSubmitting}
-      />
-
-      {/* Sub-Editor Selection Modal */}
-      <SubEditorSelectionModal
-        isOpen={showSubEditorModal}
-        onClose={() => setShowSubEditorModal(false)}
-        onConfirm={handleSubEditorSelected}
         storyTitle={story?.title || ''}
         isLoading={isSubmitting}
       />

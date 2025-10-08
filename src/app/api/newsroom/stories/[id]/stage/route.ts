@@ -20,6 +20,7 @@ const stageTransitionSchema = z.object({
     'approve_story',
     'send_for_translation',
     'publish_story',
+    'mark_as_translated',
   ]),
   assignedUserId: z.string().optional(),
   checklistData: z.record(z.boolean()).optional(),
@@ -66,6 +67,13 @@ export async function POST(
         assignedApprover: {
           select: { id: true, firstName: true, lastName: true, staffRole: true },
         },
+        tags: {
+          include: {
+            tag: {
+              select: { id: true, name: true, category: true },
+            },
+          },
+        },
       },
     });
 
@@ -82,7 +90,7 @@ export async function POST(
     switch (validatedData.action) {
       case 'submit_for_review':
         // Intern submitting for journalist review
-        if (story.authorRole !== 'INTERN') {
+        if (story.author.staffRole !== 'INTERN') {
           return NextResponse.json(
             { error: 'Only intern stories need journalist review' },
             { status: 400 }
@@ -122,14 +130,14 @@ export async function POST(
           );
         }
 
-        if (story.authorRole === 'INTERN' && story.stage !== 'NEEDS_JOURNALIST_REVIEW') {
+        if (story.author.staffRole === 'INTERN' && story.stage !== 'NEEDS_JOURNALIST_REVIEW') {
           return NextResponse.json(
             { error: `Cannot send for approval from ${story.stage} stage` },
             { status: 400 }
           );
         }
 
-        if (story.authorRole === 'JOURNALIST' && story.stage !== 'DRAFT') {
+        if (story.author.staffRole === 'JOURNALIST' && story.stage !== 'DRAFT') {
           return NextResponse.json(
             { error: `Cannot send for approval from ${story.stage} stage` },
             { status: 400 }
@@ -164,7 +172,7 @@ export async function POST(
 
         if (
           story.stage !== 'NEEDS_SUB_EDITOR_APPROVAL' &&
-          !(story.stage === 'DRAFT' && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(story.authorRole!))
+          !(story.stage === 'DRAFT' && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(story.author.staffRole!))
         ) {
           return NextResponse.json(
             { error: `Cannot approve story from ${story.stage} stage` },
@@ -180,7 +188,27 @@ export async function POST(
           );
         }
 
-        newStage = 'APPROVED';
+        // Check for required language tag
+        const hasLanguageTag = story.tags.some(st => st.tag.category === 'LANGUAGE');
+        if (!hasLanguageTag) {
+          return NextResponse.json(
+            { error: 'Story must have a language tag before approval' },
+            { status: 400 }
+          );
+        }
+
+        // Check for required religion tag
+        const hasReligionTag = story.tags.some(st => st.tag.category === 'RELIGION');
+        if (!hasReligionTag) {
+          return NextResponse.json(
+            { error: 'Story must have a religion tag before approval' },
+            { status: 400 }
+          );
+        }
+
+        // For translations, approve them as TRANSLATED instead of APPROVED
+        // This makes translations ready for publishing immediately
+        newStage = story.isTranslation ? 'TRANSLATED' : 'APPROVED';
         updateData = {
           stage: newStage,
           approverChecklist: validatedData.checklistData || {},
@@ -219,32 +247,61 @@ export async function POST(
         };
         break;
 
+      case 'mark_as_translated':
+        // Mark APPROVED story as TRANSLATED when translations are complete
+        if (!['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+          return NextResponse.json(
+            { error: 'Insufficient permissions to mark as translated' },
+            { status: 403 }
+          );
+        }
+
+        if (story.stage !== 'APPROVED') {
+          return NextResponse.json(
+            { error: `Cannot mark as translated from ${story.stage} stage` },
+            { status: 400 }
+          );
+        }
+
+        newStage = 'TRANSLATED';
+        updateData = {
+          stage: newStage,
+        };
+        auditAction = 'MARK_AS_TRANSLATED';
+        break;
+
+      case 'publish_story':
+        // Publish story (Sub-Editor and above)
+        if (!['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+          return NextResponse.json(
+            { error: 'Insufficient permissions to publish story' },
+            { status: 403 }
+          );
+        }
+
+        if (story.stage !== 'TRANSLATED') {
+          return NextResponse.json(
+            { error: `Cannot publish story from ${story.stage} stage. Story must be in TRANSLATED stage.` },
+            { status: 400 }
+          );
+        }
+
+        newStage = 'PUBLISHED';
+        updateData = {
+          stage: newStage,
+          publishedAt: new Date(),
+          publishedBy: session.user.id,
+          translationChecklist: validatedData.checklistData || {},
+        };
+        auditAction = 'PUBLISH_STORY';
+        break;
+
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
     // Update story in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Handle translation creation separately
-      if (validatedData.action === 'send_for_translation' && validatedData.translationLanguages) {
-        // Create translation requests
-        for (const translation of validatedData.translationLanguages) {
-          await tx.translation.create({
-            data: {
-              originalStoryId: id,
-              assignedToId: translation.translatorId,
-              targetLanguage: translation.language as any,
-              status: 'PENDING',
-            },
-          });
-        }
-
-        // Update story to APPROVED stage (translations will handle moving to TRANSLATED)
-        updateData = {
-          stage: 'APPROVED',
-        };
-      }
-
       const updatedStory = await tx.story.update({
         where: { id },
         data: {
@@ -266,6 +323,114 @@ export async function POST(
           },
         },
       });
+
+      // If we just published a story, also publish all its translations
+      if (validatedData.action === 'publish_story' && !story.isTranslation) {
+        // Find all translations for this story
+        const translations = await tx.story.findMany({
+          where: {
+            originalStoryId: id,
+            isTranslation: true,
+          },
+          select: { id: true },
+        });
+
+        // Publish all translations
+        if (translations.length > 0) {
+          await tx.story.updateMany({
+            where: {
+              id: { in: translations.map(t => t.id) },
+            },
+            data: {
+              stage: 'PUBLISHED',
+              publishedAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+
+          // Log audit for each translation
+          for (const translation of translations) {
+            await logAudit({
+              userId: session.user.id,
+              action: 'AUTO_PUBLISH_TRANSLATION',
+              details: {
+                entityType: 'STORY',
+                entityId: translation.id,
+                trigger: 'Original story published',
+                originalStoryId: id,
+              },
+              ipAddress:
+                request.headers.get('x-forwarded-for') ||
+                request.headers.get('x-real-ip') ||
+                'unknown',
+              userAgent: request.headers.get('user-agent') || 'unknown',
+              targetId: translation.id,
+              targetType: 'STORY',
+            });
+          }
+        }
+      }
+
+      // If we just approved a translation, check if all translations are approved
+      // and auto-transition the original story to TRANSLATED stage
+      if (validatedData.action === 'approve_story' && story.isTranslation && story.originalStoryId) {
+        // Get all translations for this original story
+        const allTranslations = await tx.story.findMany({
+          where: {
+            originalStoryId: story.originalStoryId,
+            isTranslation: true,
+          },
+          select: {
+            id: true,
+            stage: true,
+          },
+        });
+
+        // Check if all translations are approved or beyond
+        const allTranslationsComplete = allTranslations.every(
+          (t) => t.stage === 'APPROVED' || t.stage === 'TRANSLATED' || t.stage === 'PUBLISHED'
+        );
+
+        if (allTranslationsComplete) {
+          // Get the original story
+          const originalStory = await tx.story.findUnique({
+            where: { id: story.originalStoryId },
+            select: { id: true, stage: true },
+          });
+
+          // Auto-transition original to TRANSLATED if it's still at APPROVED
+          if (originalStory && originalStory.stage === 'APPROVED') {
+            await tx.story.update({
+              where: { id: story.originalStoryId },
+              data: {
+                stage: 'TRANSLATED',
+                updatedAt: new Date(),
+              },
+            });
+
+            // Log audit for auto-transition
+            await logAudit({
+              userId: session.user.id,
+              action: 'AUTO_MARK_AS_TRANSLATED',
+              details: {
+                entityType: 'STORY',
+                entityId: story.originalStoryId,
+                previousStage: 'APPROVED',
+                newStage: 'TRANSLATED',
+                trigger: 'All translations approved',
+                triggerStoryId: id,
+              },
+              ipAddress:
+                request.headers.get('x-forwarded-for') ||
+                request.headers.get('x-real-ip') ||
+                'unknown',
+              userAgent: request.headers.get('user-agent') || 'unknown',
+              targetId: story.originalStoryId,
+              targetType: 'STORY',
+            });
+          }
+        }
+      }
 
       return updatedStory;
     });

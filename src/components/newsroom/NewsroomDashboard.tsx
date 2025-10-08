@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { PageHeader } from '@/components/ui/page-header';
+import { Badge } from '@/components/ui/badge';
 import { useStories } from '@/hooks/use-stories';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -15,6 +16,7 @@ import {
   CheckCircleIcon,
   DocumentTextIcon,
   EyeIcon,
+  MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
 
 export function NewsroomDashboard() {
@@ -61,23 +63,22 @@ export function NewsroomDashboard() {
     perPage: 100
   });
 
-  // Sub-editor specific: approved stories ready for translation/publishing
+  // Sub-editor specific: translated stories ready for publishing
   const { data: approvedForPublishingStoriesData } = useStories({
-    stage: 'APPROVED',
+    stage: 'TRANSLATED',
     page: 1,
     perPage: 100
   });
 
-  // Sub-editor specific: translations pending review
-  const { data: pendingTranslationReviewsData } = useQuery({
-    queryKey: ['pendingTranslationReviews'],
+  // Journalist/Translator: assigned translation tasks
+  const { data: translationTasksData } = useQuery({
+    queryKey: ['translationTasks', userId],
     queryFn: async () => {
-      const response = await fetch(`/api/newsroom/translations?status=NEEDS_REVIEW`);
-      if (!response.ok) throw new Error('Failed to fetch pending translation reviews');
-      const data = await response.json();
-      return data.translations || [];
+      const response = await fetch(`/api/newsroom/stories?authorId=${userId}&isTranslation=true&stage=DRAFT`);
+      if (!response.ok) throw new Error('Failed to fetch translation tasks');
+      return response.json();
     },
-    enabled: isSubEditor,
+    enabled: !!userId && (isJournalist || isSubEditor),
   });
 
   const draftStories = draftStoriesData?.stories || [];
@@ -87,76 +88,7 @@ export function NewsroomDashboard() {
   const reviewStories = reviewStoriesData?.stories || [];
   const pendingApprovalStories = pendingApprovalStoriesData?.stories || [];
   const approvedForPublishingStories = approvedForPublishingStoriesData?.stories || [];
-  const pendingTranslationReviews = pendingTranslationReviewsData || [];
-
-  // Quick action cards for different roles
-  const quickActions = isSubEditor ? [
-    {
-      title: 'Stories Needing Approval',
-      count: pendingApprovalStories.length,
-      icon: CheckCircleIcon,
-      href: '/newsroom/stories?stage=NEEDS_SUB_EDITOR_APPROVAL',
-      color: 'amber',
-    },
-    {
-      title: 'Translation Reviews',
-      count: pendingTranslationReviews.length,
-      icon: EyeIcon,
-      href: '/newsroom/translations?status=NEEDS_REVIEW',
-      color: 'blue',
-    },
-    {
-      title: 'Ready for Publishing',
-      count: approvedForPublishingStories.length,
-      icon: DocumentTextIcon,
-      href: '/newsroom/stories?stage=APPROVED',
-      color: 'green',
-    },
-  ] : isJournalist ? [
-    {
-      title: 'Stories to Review',
-      count: reviewStories.length,
-      icon: EyeIcon,
-      href: `/newsroom/stories?assignedReviewerId=${userId}&stage=NEEDS_JOURNALIST_REVIEW`,
-      color: 'amber',
-    },
-    {
-      title: 'My Drafts',
-      count: draftStories.length,
-      icon: PencilIcon,
-      href: `/newsroom/stories?authorId=${userId}&stage=DRAFT`,
-      color: 'blue',
-    },
-    {
-      title: 'My Published Stories',
-      count: publishedStories.length,
-      icon: CheckCircleIcon,
-      href: `/newsroom/stories?authorId=${userId}&stage=PUBLISHED`,
-      color: 'green',
-    },
-  ] : [
-    {
-      title: 'My Drafts',
-      count: draftStories.length,
-      icon: PencilIcon,
-      href: `/newsroom/stories?authorId=${userId}&stage=DRAFT`,
-      color: 'blue',
-    },
-    {
-      title: 'In Review',
-      count: needsReviewStories.length + needsApprovalStories.length,
-      icon: ClockIcon,
-      href: `/newsroom/stories?authorId=${userId}`,
-      color: 'amber',
-    },
-    {
-      title: 'My Published Stories',
-      count: publishedStories.length,
-      icon: CheckCircleIcon,
-      href: `/newsroom/stories?authorId=${userId}&stage=PUBLISHED`,
-      color: 'green',
-    },
-  ];
+  const translationTasks = translationTasksData?.stories || [];
 
   return (
     <Container>
@@ -169,137 +101,316 @@ export function NewsroomDashboard() {
         } : undefined}
       />
 
-      {/* Quick Action Cards */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {quickActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <Card
-              key={action.title}
-              className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => router.push(action.href)}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <Text className="text-sm text-zinc-600 dark:text-zinc-400">{action.title}</Text>
-                  <Heading level={2} className="mt-2">{action.count}</Heading>
+      <div className="mt-8 space-y-8">
+        {/* MY WORK SECTION */}
+        <div>
+          <Heading level={2} className="mb-4">My Work</Heading>
+          <div className="space-y-4">
+            {/* My Drafts */}
+            {draftStories.length > 0 && (
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <PencilIcon className="h-5 w-5 text-blue-600" />
+                    <Heading level={3}>My Drafts</Heading>
+                  </div>
+                  <Text className="text-sm text-zinc-600">{draftStories.length}</Text>
                 </div>
-                <Icon className="h-8 w-8 text-zinc-600" />
+                <div className="space-y-2">
+                  {draftStories.slice(0, 5).map((story: any) => (
+                    <div
+                      key={story.id}
+                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                          {story._count?.audioClips > 0 && (
+                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {draftStories.length > 5 && (
+                    <Button
+                      color="white"
+                      className="w-full mt-2"
+                      onClick={() => router.push(`/newsroom/stories?authorId=${userId}&stage=DRAFT`)}
+                    >
+                      View all {draftStories.length} drafts
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Stories in Review (Intern) */}
+            {!isJournalist && !isSubEditor && (needsReviewStories.length > 0 || needsApprovalStories.length > 0) && (
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <ClockIcon className="h-5 w-5 text-amber-600" />
+                    <Heading level={3}>Stories in Review</Heading>
+                  </div>
+                  <Text className="text-sm text-zinc-600">{needsReviewStories.length + needsApprovalStories.length}</Text>
+                </div>
+                <div className="space-y-2">
+                  {[...needsReviewStories, ...needsApprovalStories].slice(0, 5).map((story: any) => (
+                    <div
+                      key={story.id}
+                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                          {story._count?.audioClips > 0 && (
+                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                          )}
+                        </div>
+                        <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                          {story.stage === 'NEEDS_JOURNALIST_REVIEW'
+                            ? `Being reviewed by ${story.assignedReviewer?.firstName || 'journalist'}`
+                            : 'Awaiting sub-editor approval'}
+                        </Text>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* My Published Stories */}
+            {publishedStories.length > 0 && (
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                    <Heading level={3}>My Published Stories</Heading>
+                  </div>
+                  <Text className="text-sm text-zinc-600">{publishedStories.length}</Text>
+                </div>
+                <div className="space-y-2">
+                  {publishedStories.slice(0, 5).map((story: any) => (
+                    <div
+                      key={story.id}
+                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                          {story._count?.audioClips > 0 && (
+                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {publishedStories.length > 5 && (
+                    <Button
+                      color="white"
+                      className="w-full mt-2"
+                      onClick={() => router.push(`/newsroom/stories?authorId=${userId}&stage=PUBLISHED`)}
+                    >
+                      View all {publishedStories.length} stories
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* EDITORIAL TASKS SECTION */}
+        {(isJournalist || isSubEditor) && (
+          <div>
+            <Heading level={2} className="mb-4">Editorial Tasks</Heading>
+            <div className="space-y-4">
+              {/* Stories to Review (Journalist) */}
+              {isJournalist && reviewStories.length > 0 && (
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <EyeIcon className="h-5 w-5 text-amber-600" />
+                      <Heading level={3}>Stories to Review</Heading>
+                    </div>
+                    <Text className="text-sm text-zinc-600">{reviewStories.length}</Text>
+                  </div>
+                  <div className="space-y-2">
+                    {reviewStories.slice(0, 5).map((story: any) => (
+                      <div
+                        key={story.id}
+                        className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                            )}
+                          </div>
+                          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                            by {story.author.firstName} {story.author.lastName}
+                          </Text>
+                        </div>
+                      </div>
+                    ))}
+                    {reviewStories.length > 5 && (
+                      <Button
+                        color="white"
+                        className="w-full mt-2"
+                        onClick={() => router.push(`/newsroom/stories?assignedReviewerId=${userId}&stage=NEEDS_JOURNALIST_REVIEW`)}
+                      >
+                        View all {reviewStories.length} stories
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Stories Needing Approval (Sub-Editor) */}
+              {isSubEditor && pendingApprovalStories.length > 0 && (
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <CheckCircleIcon className="h-5 w-5 text-amber-600" />
+                      <Heading level={3}>Stories Needing Approval</Heading>
+                    </div>
+                    <Text className="text-sm text-zinc-600">{pendingApprovalStories.length}</Text>
+                  </div>
+                  <div className="space-y-2">
+                    {pendingApprovalStories.slice(0, 5).map((story: any) => (
+                      <div
+                        key={story.id}
+                        className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                            )}
+                          </div>
+                          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                            by {story.author.firstName} {story.author.lastName}
+                          </Text>
+                        </div>
+                      </div>
+                    ))}
+                    {pendingApprovalStories.length > 5 && (
+                      <Button
+                        color="white"
+                        className="w-full mt-2"
+                        onClick={() => router.push('/newsroom/stories?stage=NEEDS_SUB_EDITOR_APPROVAL')}
+                      >
+                        View all {pendingApprovalStories.length} stories
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Translation Tasks (Journalist/Sub-Editor assigned as translator) */}
+              {translationTasks.length > 0 && (
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <DocumentTextIcon className="h-5 w-5 text-purple-600" />
+                      <Heading level={3}>Translations to Complete</Heading>
+                    </div>
+                    <Text className="text-sm text-zinc-600">{translationTasks.length}</Text>
+                  </div>
+                  <div className="space-y-2">
+                    {translationTasks.slice(0, 5).map((story: any) => (
+                      <div
+                        key={story.id}
+                        className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story.language && (
+                              <Badge color="purple">{story.language}</Badge>
+                            )}
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                            )}
+                          </div>
+                          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                            Translation not yet started
+                          </Text>
+                        </div>
+                      </div>
+                    ))}
+                    {translationTasks.length > 5 && (
+                      <Button
+                        color="white"
+                        className="w-full mt-2"
+                        onClick={() => router.push(`/newsroom/stories?authorId=${userId}&isTranslation=true&stage=DRAFT`)}
+                      >
+                        View all {translationTasks.length} translations
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+            </div>
+          </div>
+        )}
+
+        {/* PUBLISHING SECTION */}
+        {isSubEditor && approvedForPublishingStories.length > 0 && (
+          <div>
+            <Heading level={2} className="mb-4">Publishing</Heading>
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <DocumentTextIcon className="h-5 w-5 text-green-600" />
+                  <Heading level={3}>Ready for Publishing</Heading>
+                </div>
+                <Text className="text-sm text-zinc-600">{approvedForPublishingStories.length}</Text>
               </div>
-              <Button color="white" className="w-full mt-4">
-                View All
-              </Button>
+              <div className="space-y-2">
+                {approvedForPublishingStories.slice(0, 5).map((story: any) => (
+                  <div
+                    key={story.id}
+                    className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                    onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                        {story._count?.audioClips > 0 && (
+                          <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                        )}
+                      </div>
+                      <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                        by {story.author.firstName} {story.author.lastName}
+                      </Text>
+                    </div>
+                  </div>
+                ))}
+                {approvedForPublishingStories.length > 5 && (
+                  <Button
+                    color="white"
+                    className="w-full mt-2"
+                    onClick={() => router.push('/newsroom/stories?stage=TRANSLATED')}
+                  >
+                    View all {approvedForPublishingStories.length} stories
+                  </Button>
+                )}
+              </div>
             </Card>
-          );
-        })}
+          </div>
+        )}
       </div>
-
-      {/* Task Lists - Journalist */}
-      {isJournalist && reviewStories.length > 0 && (
-        <div className="mt-8">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Heading level={3}>Stories to Review</Heading>
-              <Text className="text-sm text-zinc-600">{reviewStories.length} stories</Text>
-            </div>
-            <div className="space-y-3">
-              {reviewStories.slice(0, 5).map((story: any) => (
-                <div
-                  key={story.id}
-                  className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-                  onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                >
-                  <div className="flex-1">
-                    <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
-                    <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                      by {story.author.firstName} {story.author.lastName}
-                    </Text>
-                  </div>
-                  <EyeIcon className="h-5 w-5 text-zinc-400" />
-                </div>
-              ))}
-              {reviewStories.length > 5 && (
-                <Button
-                  color="white"
-                  className="w-full"
-                  onClick={() => router.push(`/newsroom/stories?assignedReviewerId=${userId}&stage=NEEDS_JOURNALIST_REVIEW`)}
-                >
-                  View all {reviewStories.length} stories
-                </Button>
-              )}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Task Lists - Sub-Editor */}
-      {isSubEditor && pendingApprovalStories.length > 0 && (
-        <div className="mt-8">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Heading level={3}>Stories Needing Approval</Heading>
-              <Text className="text-sm text-zinc-600">{pendingApprovalStories.length} stories</Text>
-            </div>
-            <div className="space-y-3">
-              {pendingApprovalStories.slice(0, 5).map((story: any) => (
-                <div
-                  key={story.id}
-                  className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-                  onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                >
-                  <div className="flex-1">
-                    <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
-                    <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                      by {story.author.firstName} {story.author.lastName}
-                    </Text>
-                  </div>
-                  <CheckCircleIcon className="h-5 w-5 text-zinc-400" />
-                </div>
-              ))}
-              {pendingApprovalStories.length > 5 && (
-                <Button
-                  color="white"
-                  className="w-full"
-                  onClick={() => router.push('/newsroom/stories?stage=NEEDS_SUB_EDITOR_APPROVAL')}
-                >
-                  View all {pendingApprovalStories.length} stories
-                </Button>
-              )}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Task Lists - Intern (Stories in Review) */}
-      {!isJournalist && !isSubEditor && (needsReviewStories.length > 0 || needsApprovalStories.length > 0) && (
-        <div className="mt-8">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Heading level={3}>Your Stories in Review</Heading>
-              <Text className="text-sm text-zinc-600">{needsReviewStories.length + needsApprovalStories.length} stories</Text>
-            </div>
-            <div className="space-y-3">
-              {[...needsReviewStories, ...needsApprovalStories].slice(0, 5).map((story: any) => (
-                <div
-                  key={story.id}
-                  className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-                  onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                >
-                  <div className="flex-1">
-                    <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
-                    <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {story.stage === 'NEEDS_JOURNALIST_REVIEW'
-                        ? `Being reviewed by ${story.assignedReviewer?.firstName || 'journalist'}`
-                        : 'Awaiting sub-editor approval'}
-                    </Text>
-                  </div>
-                  <ClockIcon className="h-5 w-5 text-zinc-400" />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
     </Container>
   );
 }

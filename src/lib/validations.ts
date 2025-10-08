@@ -174,6 +174,7 @@ export const storyUpdateSchema = z.object({
   content: z.string().min(1).optional(),
   categoryId: z.string().optional(),
   tagIds: z.array(z.string()).optional(),
+  removedAudioIds: z.array(z.string()).optional(),
 });
 
 export const storyStatusUpdateSchema = z.object({
@@ -189,12 +190,14 @@ export const storySearchSchema = z.object({
   query: z.string().optional(),
   status: z.nativeEnum(StoryStatus).optional(),
   stage: z.nativeEnum(StoryStage).optional(),
+  language: z.nativeEnum(StoryLanguage).optional(),
   categoryId: z.string().optional(),
   authorId: z.string().optional(),
   assignedToId: z.string().optional(),
   reviewerId: z.string().optional(),
   assignedReviewerId: z.string().optional(),
   assignedApproverId: z.string().optional(),
+  originalStoryId: z.string().optional(),
   tagIds: z.array(z.string()).optional(),
   page: z.number().int().positive().default(1),
   perPage: z.number().int().positive().default(10),

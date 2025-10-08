@@ -7,13 +7,14 @@ import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Text } from '@/components/ui/text';
-import { 
+import {
   MagnifyingGlassIcon,
   PlusIcon,
   ClockIcon,
   UserIcon,
   DocumentTextIcon,
   TagIcon,
+  SpeakerWaveIcon,
 } from '@heroicons/react/24/outline';
 import { debounce } from 'lodash';
 
@@ -22,6 +23,11 @@ interface Story {
   title: string;
   content: string | null;
   publishedAt: string;
+  audioClips?: Array<{
+    id: string;
+    url: string;
+    duration: number | null;
+  }>;
   author: {
     firstName: string;
     lastName: string;
@@ -72,7 +78,7 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
     queryKey: ['published-stories', searchQuery, categoryFilter, tagFilter, language, page],
     queryFn: async () => {
       const params = new URLSearchParams({
-        status: 'PUBLISHED',
+        stage: 'PUBLISHED',
         language,
         page: page.toString(),
         perPage: '10',
@@ -251,6 +257,12 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
                       <Badge color="green">
                         {story.category.name}
                       </Badge>
+                      {story.audioClips && story.audioClips.length > 0 && (
+                        <Badge color="purple" className="flex items-center gap-1">
+                          <SpeakerWaveIcon className="h-3 w-3" />
+                          Audio
+                        </Badge>
+                      )}
                     </div>
 
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">

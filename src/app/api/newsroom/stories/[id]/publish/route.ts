@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
-import { canPublishStory, canUpdateStoryStatus } from '@/lib/permissions';
-import { TranslationStatus } from '@prisma/client';
+import { canPublishStory, canUpdateStoryStage } from '@/lib/permissions';
 
 const publishSchema = z.object({
   followUpDate: z.string().optional().transform((str, ctx) => {
@@ -75,11 +74,6 @@ export async function POST(
       include: {
         author: true,
         category: true,
-        translationRequests: {
-          include: {
-            assignedTo: true,
-          }
-        },
         audioClips: true,
       }
     });
@@ -88,35 +82,22 @@ export async function POST(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
-    // Verify story can be published - must be in READY_TO_PUBLISH status
-    if (story.status !== 'READY_TO_PUBLISH') {
-      return NextResponse.json({ 
-        error: `Story must be in READY_TO_PUBLISH status. Current status: ${story.status}. Ensure all translations are approved first.`
+    // Verify story can be published - must be in TRANSLATED stage
+    if (story.stage !== 'TRANSLATED') {
+      return NextResponse.json({
+        error: `Story must be in TRANSLATED stage. Current stage: ${story.stage}. Ensure all translations are approved first.`
       }, { status: 400 });
     }
 
     // Verify user has permission to publish
-    if (!canUpdateStoryStatus(userRole, story.status, 'PUBLISHED')) {
-      return NextResponse.json({ 
-        error: `Insufficient permissions to publish story` 
+    if (!canUpdateStoryStage(userRole, story.stage, 'PUBLISHED')) {
+      return NextResponse.json({
+        error: `Insufficient permissions to publish story`
       }, { status: 403 });
     }
 
-    // Double-check that story has required translations (should always be true for READY_TO_PUBLISH)
-    if (story.translationRequests.length === 0) {
-      return NextResponse.json({ 
-        error: 'Story must have translations before publishing'
-      }, { status: 400 });
-    }
-
-    // Double-check that all translations are approved (should always be true for READY_TO_PUBLISH)
-    const pendingTranslations = story.translationRequests.filter(t => t.status !== 'APPROVED');
-    if (pendingTranslations.length > 0) {
-      return NextResponse.json({ 
-        error: 'All translations must be approved before publishing',
-        pendingTranslations: pendingTranslations.length
-      }, { status: 400 });
-    }
+    // Note: Translation checks have been simplified in the new system
+    // Translations are now separate Story records with isTranslation=true
 
     // Determine publish date
     let publishDate: Date;
@@ -134,9 +115,9 @@ export async function POST(
 
     // Prepare update data with safe date handling
     const updateData: any = {
-      // Only change status to PUBLISHED if publishing immediately
-      // For scheduled publishing, keep current READY_TO_PUBLISH status
-      ...(validatedData.publishImmediately && { status: 'PUBLISHED' }),
+      // Only change stage to PUBLISHED if publishing immediately
+      // For scheduled publishing, keep current TRANSLATED stage
+      ...(validatedData.publishImmediately && { stage: 'PUBLISHED', status: 'PUBLISHED' }),
       publishedAt: validatedData.publishImmediately ? publishDate : null,
       publishedBy: session.user.id,
       followUpNote: validatedData.followUpNote || null,
@@ -162,20 +143,24 @@ export async function POST(
           author: true,
           category: true,
           publisher: true,
-          translationRequests: true,
         }
       });
 
-      // Mark all approved translations as published if publishing immediately
+      // Mark all approved/translated translation stories as published if publishing immediately
       if (validatedData.publishImmediately) {
-        await tx.translation.updateMany({
+        await tx.story.updateMany({
           where: {
             originalStoryId: id,
-            status: 'APPROVED'
+            isTranslation: true,
+            stage: {
+              in: ['APPROVED', 'TRANSLATED']
+            }
           },
           data: {
-            status: TranslationStatus.PUBLISHED,
+            stage: 'PUBLISHED',
+            status: 'PUBLISHED',
             publishedAt: new Date(),
+            publishedBy: session.user.id,
           }
         });
       }
@@ -210,6 +195,24 @@ export async function POST(
       });
     }
 
+    // Count translation stories
+    const translationsCount = await prisma.story.count({
+      where: {
+        originalStoryId: id,
+        isTranslation: true
+      }
+    });
+
+    const publishedTranslationsCount = validatedData.publishImmediately
+      ? await prisma.story.count({
+          where: {
+            originalStoryId: id,
+            isTranslation: true,
+            stage: 'PUBLISHED'
+          }
+        })
+      : 0;
+
     // Log the publish activity
     await logAudit({
       userId: session.user.id,
@@ -220,7 +223,7 @@ export async function POST(
         storyTitle: story.title,
         publishDate: publishDate,
         followUpDate: validatedData.followUpDate || null,
-        translationsCount: story.translationRequests.length,
+        translationsCount,
         checklist: {
           contentReviewed: validatedData.contentReviewed,
           translationsVerified: validatedData.translationsVerified,
@@ -242,7 +245,7 @@ export async function POST(
       story: updatedStory,
       publishedAt: publishDate,
       followUpDate: validatedData.followUpDate || null,
-      translationsPublished: validatedData.publishImmediately ? updatedStory.translationRequests.filter(t => t.status === 'APPROVED').length : 0,
+      translationsPublished: publishedTranslationsCount,
     });
 
   } catch (error: unknown) {
@@ -262,7 +265,10 @@ export async function POST(
   }
 }
 
-// GET endpoint to check if story can be published
+/**
+ * GET /api/newsroom/stories/[id]/publish
+ * Check if story can be published based on stage, permissions, and requirements
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<Record<string, string>> }
@@ -277,7 +283,6 @@ export async function GET(
     const story = await prisma.story.findUnique({
       where: { id },
       include: {
-        translationRequests: true,
         category: true,
         audioClips: true,
       }
@@ -287,22 +292,36 @@ export async function GET(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
+    // Count translation stories
+    const translationsCount = await prisma.story.count({
+      where: {
+        originalStoryId: id,
+        isTranslation: true
+      }
+    });
+
+    const approvedTranslationsCount = await prisma.story.count({
+      where: {
+        originalStoryId: id,
+        isTranslation: true,
+        stage: {
+          in: ['APPROVED', 'TRANSLATED', 'PUBLISHED']
+        }
+      }
+    });
+
     const userRole = session.user.staffRole ?? null;
     const canPublish = canPublishStory(userRole);
-    const isReadyToPublishStatus = story.status === 'READY_TO_PUBLISH';
-    const canChangeStatus = canUpdateStoryStatus(userRole, story.status, 'PUBLISHED');
-    const hasTranslations = story.translationRequests.length > 0;
-    const allTranslationsApproved = story.translationRequests.every(t => t.status === 'APPROVED');
+    const isTranslatedStage = story.stage === 'TRANSLATED';
+    const canChangeStage = canUpdateStoryStage(userRole, story.stage, 'PUBLISHED');
     const hasCategory = !!story.categoryId;
 
-    const readyToPublish = canPublish && isReadyToPublishStatus && canChangeStatus && hasTranslations && allTranslationsApproved && hasCategory;
+    const readyToPublish = canPublish && isTranslatedStage && canChangeStage && hasCategory;
 
     const issues = [];
     if (!canPublish) issues.push('User does not have publish permissions');
-    if (!isReadyToPublishStatus) issues.push(`Story must be in READY_TO_PUBLISH status (current: ${story.status}). Ensure all translations are approved first.`);
-    if (!canChangeStatus) issues.push(`Cannot publish story with current permissions and status`);
-    if (!hasTranslations) issues.push('Story must have translations before publishing');
-    if (!allTranslationsApproved) issues.push('All translations must be approved before publishing');
+    if (!isTranslatedStage) issues.push(`Story must be in TRANSLATED stage (current: ${story.stage}). Ensure all translations are approved first.`);
+    if (!canChangeStage) issues.push(`Cannot publish story with current permissions and stage`);
     if (!hasCategory) issues.push('Story must have a category assigned');
 
     return NextResponse.json({
@@ -310,14 +329,12 @@ export async function GET(
       issues,
       checks: {
         hasPermission: canPublish,
-        hasCorrectStatus: isReadyToPublishStatus,
-        canChangeStatus: canChangeStatus,
-        hasTranslations,
-        translationsApproved: allTranslationsApproved,
+        hasCorrectStage: isTranslatedStage,
+        canChangeStage: canChangeStage,
         hasCategory,
-        currentStatus: story.status,
-        translationsCount: story.translationRequests.length,
-        approvedTranslations: story.translationRequests.filter(t => t.status === 'APPROVED').length,
+        currentStage: story.stage,
+        translationsCount,
+        approvedTranslations: approvedTranslationsCount,
       }
     });
 

@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { CloudArrowUpIcon, XMarkIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { CloudArrowUpIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from './button';
+import { CustomAudioPlayer } from './audio-player';
 import clsx from 'clsx';
 
 interface AudioFile {
@@ -11,7 +12,6 @@ interface AudioFile {
   name: string;
   size: number;
   duration?: number;
-  description?: string;
 }
 
 interface FileUploadProps {
@@ -34,30 +34,37 @@ export function FileUpload({
   const [error, setError] = useState<string | null>(null);
 
   const handleFiles = useCallback((newFiles: File[]) => {
+    console.log('📁 FileUpload: handleFiles called with', newFiles.length, 'files');
     setError(null);
-    
+
     // Validate files
     const validFiles: AudioFile[] = [];
-    
+
     for (const file of newFiles) {
+      console.log('📁 Processing file:', file.name, 'type:', file.type, 'size:', file.size);
+
       // Check file type
       if (!acceptedTypes.includes(file.type)) {
+        console.error('❌ Invalid file type:', file.type, 'Expected:', acceptedTypes);
         setError(`Invalid file type: ${file.name}. Please upload audio files only.`);
         continue;
       }
-      
+
       // Check file size
       if (file.size > maxFileSize * 1024 * 1024) {
+        console.error('❌ File too large:', file.size);
         setError(`File too large: ${file.name}. Maximum size is ${maxFileSize}MB.`);
         continue;
       }
-      
+
       // Check total files limit
       if (files.length + validFiles.length >= maxFiles) {
+        console.error('❌ Max files reached');
         setError(`Maximum ${maxFiles} files allowed.`);
         break;
       }
-      
+
+      console.log('✅ File validated:', file.name);
       validFiles.push({
         id: `${Date.now()}-${Math.random()}`,
         file,
@@ -65,9 +72,11 @@ export function FileUpload({
         size: file.size,
       });
     }
-    
+
+    console.log('📁 Valid files:', validFiles.length);
     if (validFiles.length > 0) {
       const updatedFiles = [...files, ...validFiles];
+      console.log('📁 Updating state with', updatedFiles.length, 'total files');
       setFiles(updatedFiles);
       onFilesChange(updatedFiles);
     }
@@ -91,22 +100,6 @@ export function FileUpload({
     const updatedFiles = files.filter(file => file.id !== id);
     setFiles(updatedFiles);
     onFilesChange(updatedFiles);
-  };
-
-  const updateFileDescription = (id: string, description: string) => {
-    const updatedFiles = files.map(file => 
-      file.id === id ? { ...file, description } : file
-    );
-    setFiles(updatedFiles);
-    onFilesChange(updatedFiles);
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -160,42 +153,30 @@ export function FileUpload({
 
       {/* File List */}
       {files.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <h4 className="text-sm font-medium text-gray-900">
             Uploaded Files ({files.length}/{maxFiles})
           </h4>
           {files.map((audioFile) => (
-            <div
-              key={audioFile.id}
-              className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg"
-            >
-              <MusicalNoteIcon className="h-8 w-8 text-[#76BD43] flex-shrink-0 mt-1" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {audioFile.name}
-                  </p>
-                  <Button
-                    type="button"
-                    onClick={() => removeFile(audioFile.id)}
-                    className="text-gray-400 hover:text-red-500 ml-2"
-                  >
-                    <XMarkIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {formatFileSize(audioFile.size)}
-                </p>
-                <div className="mt-2">
-                  <input
-                    type="text"
-                    placeholder="Add description (optional)..."
-                    value={audioFile.description || ''}
-                    onChange={(e) => updateFileDescription(audioFile.id, e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#76BD43] focus:border-transparent"
-                  />
-                </div>
-              </div>
+            <div key={audioFile.id} className="relative">
+              {/* Remove Button */}
+              <button
+                type="button"
+                onClick={() => removeFile(audioFile.id)}
+                className="absolute top-2 right-2 z-10 p-1 bg-white dark:bg-gray-900 rounded-full shadow-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 hover:text-red-700 transition-colors"
+                aria-label="Remove file"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+
+              {/* Audio Player */}
+              <CustomAudioPlayer
+                localFile={{
+                  id: audioFile.id,
+                  file: audioFile.file,
+                  name: audioFile.name,
+                }}
+              />
             </div>
           ))}
         </div>

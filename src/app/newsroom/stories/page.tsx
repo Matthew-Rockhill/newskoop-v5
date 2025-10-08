@@ -2,11 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
+import {
   DocumentTextIcon,
-  ChatBubbleLeftRightIcon,
-  ClockIcon,
-  TagIcon,
   CheckCircleIcon,
   PencilIcon,
   EyeIcon,
@@ -24,8 +21,6 @@ type StoryWithRelations = Story & {
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
 import { Table } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -33,7 +28,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { useStories, type StoryFilters } from '@/hooks/use-stories';
 import { useSession } from 'next-auth/react';
 import { StoryStage } from '@prisma/client';
-import { StageBadge } from '@/components/ui/stage-badge';
+import { StoryGroupRow } from '@/components/newsroom/StoryGroupRow';
 
 // Stage filter options for the new workflow
 const stageFilters = [
@@ -97,25 +92,6 @@ function StoriesPageContent() {
 
   const handlePageChange = (page: number) => {
     setFilters(prev => ({ ...prev, page }));
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 48) return 'Yesterday';
-    return formatDate(dateString);
   };
 
   if (error) {
@@ -195,62 +171,7 @@ function StoriesPageContent() {
             </thead>
             <tbody>
               {stories.map((story: StoryWithRelations) => (
-                <tr
-                  key={story.id}
-                  onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                  className="cursor-pointer hover:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
-                >
-                  <td className="py-4">
-                    <div className="flex items-center gap-4">
-                      <Avatar
-                        className="h-12 w-12 flex-shrink-0"
-                        name={`${story.author.firstName} ${story.author.lastName}`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="font-medium text-gray-900 truncate">
-                            {story.title}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-600 truncate">
-                          by {story.author.firstName} {story.author.lastName}
-                        </div>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <TagIcon className="h-3 w-3" />
-                            {story.category ? story.category.name : <span className="italic text-zinc-400">No category</span>}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <ChatBubbleLeftRightIcon className="h-3 w-3" />
-                            {story._count?.comments || 0} comments
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <ClockIcon className="h-3 w-3" />
-                            {formatRelativeTime(typeof story.updatedAt === 'string' ? story.updatedAt : story.updatedAt.toISOString())}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4">
-                    {story.stage && <StageBadge stage={story.stage as StoryStage} />}
-                  </td>
-                  <td className="py-4">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          router.push(`/newsroom/stories/${story.id}`);
-                        }}
-                        color="white"
-                        className="text-sm"
-                      >
-                        <EyeIcon className="h-4 w-4 mr-1" />
-                        View Story
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+                <StoryGroupRow key={story.id} story={story as any} />
               ))}
             </tbody>
           </Table>

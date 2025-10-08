@@ -90,16 +90,6 @@ enum AnnouncementTargetAudience {
   RADIO
 }
 
-// Translation workflow enums
-enum TranslationStatus {
-  PENDING
-  IN_PROGRESS
-  NEEDS_REVIEW
-  APPROVED
-  REJECTED
-  PUBLISHED
-}
-
 enum StoryLanguage {
   ENGLISH
   AFRIKAANS
@@ -182,9 +172,6 @@ model User {
   revisionRequestsMade     RevisionRequest[] @relation("RevisionRequester")
   revisionRequestsAssigned RevisionRequest[] @relation("RevisionAssignee")
 
-  // Translation relationships
-  assignedTranslations Translation[] @relation("AssignedTranslations")
-  reviewedTranslations Translation[] @relation("ReviewedTranslations")
 
   // Announcement relationships
   authoredAnnouncements  Announcement[]              @relation("AuthoredAnnouncements")
@@ -311,10 +298,6 @@ model Story {
 
   // Comments
   comments Comment[]
-
-  // Translation workflow
-  translationRequests  Translation[] @relation("OriginalStory")
-  assignedTranslations Translation[] @relation("TranslatedStory")
 
   // Timestamps
   createdAt           DateTime  @default(now())
@@ -475,49 +458,6 @@ model Comment {
 
   @@index([storyId])
   @@index([authorId])
-}
-
-// TRANSLATION WORKFLOW MODELS
-
-model Translation {
-  id             String            @id @default(cuid())
-  status         TranslationStatus @default(PENDING)
-  targetLanguage StoryLanguage
-
-  // Story relationships
-  originalStoryId   String
-  originalStory     Story   @relation("OriginalStory", fields: [originalStoryId], references: [id], onDelete: Cascade)
-  translatedStoryId String?
-  translatedStory   Story?  @relation("TranslatedStory", fields: [translatedStoryId], references: [id])
-
-  // Assignment and workflow
-  assignedToId String?
-  assignedTo   User?   @relation("AssignedTranslations", fields: [assignedToId], references: [id])
-  reviewerId   String?
-  reviewer     User?   @relation("ReviewedTranslations", fields: [reviewerId], references: [id])
-
-  // Progress tracking
-  startedAt   DateTime?
-  completedAt DateTime?
-  reviewedAt  DateTime?
-  approvedAt  DateTime?
-  rejectedAt  DateTime?
-  publishedAt DateTime?
-
-  // Notes and feedback
-  translatorNotes String? @db.Text
-  reviewerNotes   String? @db.Text
-  rejectionReason String? @db.Text
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([status])
-  @@index([originalStoryId])
-  @@index([translatedStoryId])
-  @@index([assignedToId])
-  @@index([targetLanguage])
 }
 
 model StoryGroup {

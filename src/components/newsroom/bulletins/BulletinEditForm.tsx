@@ -31,6 +31,11 @@ interface SelectedStory {
   title: string;
   content: string | null;
   audioUrl?: string;
+  audioClips?: Array<{
+    id: string;
+    url: string;
+    duration: number | null;
+  }>;
   author: {
     firstName: string;
     lastName: string;
@@ -90,6 +95,7 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
           title: bulletinStory.story.title,
           content: bulletinStory.story.content,
           audioUrl: bulletinStory.story.audioUrl,
+          audioClips: bulletinStory.story.audioClips || [],
           author: bulletinStory.story.author,
           category: bulletinStory.story.category,
           tags: bulletinStory.story.tags?.map((storyTag: any) => ({

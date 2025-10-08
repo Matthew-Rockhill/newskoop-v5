@@ -5,6 +5,7 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -16,7 +17,8 @@ import { Heading } from '@/components/ui/heading';
 import { Divider } from '@/components/ui/divider';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { FileUpload } from '@/components/ui/file-upload';
-import { ReviewerSelectionModal } from './ReviewerSelectionModal';
+import { StageTransitionModal } from '@/components/ui/stage-transition-modal';
+import { StaffRole } from '@prisma/client';
 
 interface AudioFile {
   id: string;
@@ -24,7 +26,6 @@ interface AudioFile {
   name: string;
   size: number;
   duration?: number;
-  description?: string;
 }
 
 // Story creation schema - works for all roles
@@ -42,9 +43,20 @@ export function StoryCreateForm() {
   const [content, setContent] = useState('');
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [showReviewerModal, setShowReviewerModal] = useState(false);
-  const [showSubEditorModal, setShowSubEditorModal] = useState(false);
   const [submitAction, setSubmitAction] = useState<'draft' | 'review'>('draft');
   const [pendingFormData, setPendingFormData] = useState<StoryCreateFormData | null>(null);
+
+  // Fetch users for assignment
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await fetch('/api/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
+  });
+
+  const users = usersData?.users || [];
 
   const {
     register,
@@ -57,20 +69,12 @@ export function StoryCreateForm() {
 
   const onSubmit: SubmitHandler<StoryCreateFormData> = async (data) => {
     if (submitAction === 'review') {
-      // For journalists: save story as draft and redirect to review page
-      if (session?.user?.staffRole === 'JOURNALIST') {
+      // For journalists and editors+: save story as draft and redirect to detail page
+      // where they can use "Send for Approval" button
+      if (session?.user?.staffRole && ['JOURNALIST', 'EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
         const story = await createStory(data, 'DRAFT');
         if (story) {
-          router.push(`/newsroom/stories/${story.id}/review`);
-        }
-        return;
-      }
-
-      // For editors and above: save as draft and redirect to review page (they can self-approve)
-      if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
-        const story = await createStory(data, 'DRAFT');
-        if (story) {
-          router.push(`/newsroom/stories/${story.id}/review`);
+          router.push(`/newsroom/stories/${story.id}`);
         }
         return;
       }
@@ -140,15 +144,18 @@ export function StoryCreateForm() {
     }
   };
 
-  const handleReviewerSelected = async (reviewerId: string) => {
-    setShowReviewerModal(false);
-    
+  const handleReviewerSelected = async (data: { assignedUserId?: string; checklistData?: Record<string, boolean> }) => {
+    if (!data.assignedUserId) {
+      toast.error('Please select a reviewer');
+      return;
+    }
+
     if (!pendingFormData) {
       toast.error('Form data not available');
       return;
     }
-    
-    await createStory(pendingFormData, 'IN_REVIEW', reviewerId);
+
+    await createStory(pendingFormData, 'IN_REVIEW', data.assignedUserId);
     setPendingFormData(null);
   };
 
@@ -249,9 +256,9 @@ export function StoryCreateForm() {
                 onClick={() => setSubmitAction('review')}
               >
                 {isSubmitting && submitAction === 'review'
-                  ? 'Submitting...'
+                  ? 'Creating...'
                   : (session?.user?.staffRole === 'JOURNALIST' || ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session?.user?.staffRole || ''))
-                    ? 'Review Story'
+                    ? 'Create Story'
                     : 'Submit for Review'
                 }
               </Button>
@@ -260,13 +267,28 @@ export function StoryCreateForm() {
         </form>
       </div>
 
-      {/* Reviewer Selection Modal */}
-      <ReviewerSelectionModal
+      {/* Reviewer Selection Modal with Checklist */}
+      <StageTransitionModal
         isOpen={showReviewerModal}
-        onClose={() => setShowReviewerModal(false)}
-        onConfirm={handleReviewerSelected}
-        storyTitle={pendingFormData?.title || 'Untitled Story'}
-        isLoading={isSubmitting}
+        onClose={() => {
+          setShowReviewerModal(false);
+          setPendingFormData(null);
+        }}
+        onSubmit={handleReviewerSelected}
+        title="Submit for Review"
+        description="Complete the checklist below and assign a journalist to review your story."
+        actionLabel="Submit for Review"
+        actionColor="primary"
+        requiresAssignment={true}
+        assignmentLabel="Assign Journalist Reviewer"
+        assignmentRoles={['JOURNALIST' as StaffRole]}
+        users={users}
+        checklistItems={[
+          { id: 'content', label: 'Content is complete and accurate', checked: false, required: true },
+          { id: 'grammar', label: 'Grammar and spelling checked', checked: false, required: true },
+          { id: 'sources', label: 'Sources verified', checked: false, required: true },
+        ]}
+        isSubmitting={isSubmitting}
       />
     </Container>
   );

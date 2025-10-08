@@ -138,7 +138,7 @@ export function TranslationSelectionModal({
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <Dialog.Title as={Heading} level={3}>
-                Send for Translation
+                Create Translation
               </Dialog.Title>
               <Button
                 type="button"
@@ -153,7 +153,7 @@ export function TranslationSelectionModal({
             {/* Content */}
             <div className="space-y-4">
               <Text className="text-gray-600">
-                Select target languages and translators for this story:
+                Create translation copies of this story in the selected languages:
               </Text>
               <div className="bg-gray-50 p-3 rounded-lg">
                 <Text className="font-medium text-gray-900">&ldquo;{storyTitle}&rdquo;</Text>
@@ -262,7 +262,7 @@ export function TranslationSelectionModal({
                 onClick={handleConfirm}
                 disabled={!isFormValid || isLoading || isLoadingTranslators}
               >
-                {isLoading ? 'Sending...' : 'Send for Translation'}
+                {isLoading ? 'Creating...' : 'Create Translation'}
               </Button>
             </div>
           </div>

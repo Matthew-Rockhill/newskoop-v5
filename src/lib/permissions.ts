@@ -269,17 +269,27 @@ export function canWorkOnTranslation(userRole: StaffRole | null, translationAssi
 
 /**
  * Check if user can edit a story based on stage
+ * Extended version that also checks assignedReviewerId and assignedApproverId
  */
 export function canEditStoryByStage(
   userRole: StaffRole | null,
   stage: StoryStage | null,
   storyAuthorId: string,
-  currentUserId: string
+  currentUserId: string,
+  assignedReviewerId?: string | null,
+  assignedApproverId?: string | null,
+  isTranslation?: boolean
 ): boolean {
   if (!userRole || !stage) return false;
 
-  // Editors and above can edit any story in DRAFT
-  if (stage === 'DRAFT' && ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+  // Translations can ONLY be edited by the assigned translator (author)
+  // Sub-editors/editors cannot override translation editing
+  if (isTranslation) {
+    return storyAuthorId === currentUserId;
+  }
+
+  // Sub-editors and above can edit any NON-TRANSLATION story in DRAFT
+  if (stage === 'DRAFT' && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
     return true;
   }
 
@@ -288,8 +298,27 @@ export function canEditStoryByStage(
     return storyAuthorId === currentUserId;
   }
 
-  // Stories in review/approval stages are locked
-  if (stage === 'NEEDS_JOURNALIST_REVIEW' || stage === 'NEEDS_SUB_EDITOR_APPROVAL') {
+  // Stories in NEEDS_JOURNALIST_REVIEW can be edited by the assigned reviewer
+  if (stage === 'NEEDS_JOURNALIST_REVIEW') {
+    if (assignedReviewerId === currentUserId && canReviewStory(userRole)) {
+      return true;
+    }
+    // Sub-editors and above can always edit
+    if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      return true;
+    }
+    return false;
+  }
+
+  // Stories in NEEDS_SUB_EDITOR_APPROVAL can be edited by the assigned approver
+  if (stage === 'NEEDS_SUB_EDITOR_APPROVAL') {
+    if (assignedApproverId === currentUserId && canApproveStoryStage(userRole)) {
+      return true;
+    }
+    // Sub-editors and above can always edit
+    if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      return true;
+    }
     return false;
   }
 
@@ -464,4 +493,70 @@ export function getStageLockReason(stage: StoryStage | null): string | null {
     default:
       return null;
   }
+}
+
+/**
+ * Check if user can transition from one stage to another
+ */
+export function canUpdateStoryStage(
+  userRole: StaffRole | null,
+  currentStage: StoryStage | null,
+  targetStage: StoryStage | null
+): boolean {
+  if (!userRole || !currentStage || !targetStage) return false;
+
+  // Define allowed stage transitions by role
+  const stageTransitions: Record<StaffRole, Record<StoryStage, StoryStage[]>> = {
+    INTERN: {
+      DRAFT: ['NEEDS_JOURNALIST_REVIEW'],
+      NEEDS_JOURNALIST_REVIEW: [],
+      NEEDS_SUB_EDITOR_APPROVAL: [],
+      APPROVED: [],
+      TRANSLATED: [],
+      PUBLISHED: [],
+    },
+    JOURNALIST: {
+      DRAFT: ['NEEDS_SUB_EDITOR_APPROVAL'],
+      NEEDS_JOURNALIST_REVIEW: ['NEEDS_SUB_EDITOR_APPROVAL', 'DRAFT'], // Can approve or send back
+      NEEDS_SUB_EDITOR_APPROVAL: [],
+      APPROVED: [],
+      TRANSLATED: [],
+      PUBLISHED: [],
+    },
+    SUB_EDITOR: {
+      DRAFT: ['NEEDS_JOURNALIST_REVIEW', 'NEEDS_SUB_EDITOR_APPROVAL', 'APPROVED'],
+      NEEDS_JOURNALIST_REVIEW: ['NEEDS_SUB_EDITOR_APPROVAL', 'DRAFT'],
+      NEEDS_SUB_EDITOR_APPROVAL: ['APPROVED', 'DRAFT'],
+      APPROVED: ['TRANSLATED', 'DRAFT'], // Can send for translation or send back
+      TRANSLATED: ['PUBLISHED', 'APPROVED'], // Can publish or send back
+      PUBLISHED: [],
+    },
+    EDITOR: {
+      DRAFT: ['NEEDS_JOURNALIST_REVIEW', 'NEEDS_SUB_EDITOR_APPROVAL', 'APPROVED', 'TRANSLATED', 'PUBLISHED'],
+      NEEDS_JOURNALIST_REVIEW: ['NEEDS_SUB_EDITOR_APPROVAL', 'APPROVED', 'DRAFT'],
+      NEEDS_SUB_EDITOR_APPROVAL: ['APPROVED', 'DRAFT'],
+      APPROVED: ['TRANSLATED', 'DRAFT'],
+      TRANSLATED: ['PUBLISHED', 'APPROVED'],
+      PUBLISHED: ['DRAFT'], // Can unpublish
+    },
+    ADMIN: {
+      DRAFT: Object.values(StoryStage).filter(s => s !== 'DRAFT'),
+      NEEDS_JOURNALIST_REVIEW: Object.values(StoryStage).filter(s => s !== 'NEEDS_JOURNALIST_REVIEW'),
+      NEEDS_SUB_EDITOR_APPROVAL: Object.values(StoryStage).filter(s => s !== 'NEEDS_SUB_EDITOR_APPROVAL'),
+      APPROVED: Object.values(StoryStage).filter(s => s !== 'APPROVED'),
+      TRANSLATED: Object.values(StoryStage).filter(s => s !== 'TRANSLATED'),
+      PUBLISHED: Object.values(StoryStage).filter(s => s !== 'PUBLISHED'),
+    },
+    SUPERADMIN: {
+      DRAFT: Object.values(StoryStage).filter(s => s !== 'DRAFT'),
+      NEEDS_JOURNALIST_REVIEW: Object.values(StoryStage).filter(s => s !== 'NEEDS_JOURNALIST_REVIEW'),
+      NEEDS_SUB_EDITOR_APPROVAL: Object.values(StoryStage).filter(s => s !== 'NEEDS_SUB_EDITOR_APPROVAL'),
+      APPROVED: Object.values(StoryStage).filter(s => s !== 'APPROVED'),
+      TRANSLATED: Object.values(StoryStage).filter(s => s !== 'TRANSLATED'),
+      PUBLISHED: Object.values(StoryStage).filter(s => s !== 'PUBLISHED'),
+    },
+  };
+
+  const allowedTransitions = stageTransitions[userRole]?.[currentStage] || [];
+  return allowedTransitions.includes(targetStage);
 } 

@@ -38,6 +38,7 @@ interface CategoryModalProps {
   categories: Category[];
   selectedCategoryId?: string;
   isLoading?: boolean;
+  filterEditable?: boolean; // Only show editable categories (for admin/editor context)
 }
 
 // Helper to build breadcrumb path
@@ -58,6 +59,7 @@ export function CategoryModal({
   categories,
   selectedCategoryId,
   isLoading = false,
+  filterEditable = true, // Default to true for backwards compatibility
 }: CategoryModalProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>(selectedCategoryId || '');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -67,16 +69,18 @@ export function CategoryModal({
     setSelectedCategory(selectedCategoryId || '');
   }, [selectedCategoryId]);
 
-  // Filter to only show editable categories (level 2+)
-  const editableCategories = categories.filter(category => category.isEditable);
+  // Filter categories based on context
+  const availableCategories = filterEditable
+    ? categories.filter(category => category.isEditable)
+    : categories.filter(category => category.level >= 2); // For story assignment, show level 2+ categories (subcategories)
 
   // Filter categories based on search query
-  const filteredCategories = editableCategories.filter(category => {
+  const filteredCategories = availableCategories.filter(category => {
     if (!searchQuery.trim()) return true;
-    
+
     const breadcrumb = getCategoryBreadcrumb(category).toLowerCase();
     const searchLower = searchQuery.toLowerCase();
-    
+
     return breadcrumb.includes(searchLower);
   });
 
@@ -92,7 +96,7 @@ export function CategoryModal({
     }
   };
 
-  const selectedCategoryData = editableCategories.find(c => c.id === selectedCategory);
+  const selectedCategoryData = availableCategories.find(c => c.id === selectedCategory);
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -121,7 +125,7 @@ export function CategoryModal({
             {/* Content */}
             <div className="space-y-4">
               <Text className="text-gray-600">
-                Choose the most appropriate category for this story. Only editable subcategories are shown.
+                Choose the most appropriate category for this story. {filterEditable ? 'Only editable subcategories are shown.' : 'Select from available subcategories.'}
               </Text>
 
               {/* Search Bar */}
@@ -142,7 +146,7 @@ export function CategoryModal({
                 <div className="text-center py-8 text-gray-500">
                   <FolderIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                   <Text>
-                    {searchQuery ? 'No categories found matching your search' : 'No editable categories available'}
+                    {searchQuery ? 'No categories found matching your search' : 'No categories available'}
                   </Text>
                   {searchQuery && (
                     <Text className="text-sm">Try a different search term</Text>

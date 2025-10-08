@@ -121,6 +121,16 @@ export async function PATCH(
                     tag: true,
                   },
                 },
+                audioClips: {
+                  select: {
+                    id: true,
+                    filename: true,
+                    url: true,
+                    duration: true,
+                    mimeType: true,
+                  },
+                  take: 1, // Get only the first audio clip
+                },
               },
             },
           },
@@ -144,7 +154,19 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ bulletin: updatedBulletin });
+    // Transform bulletin stories to include audioUrl at story level
+    const transformedBulletin = {
+      ...updatedBulletin,
+      bulletinStories: updatedBulletin?.bulletinStories.map((bs: any) => ({
+        ...bs,
+        story: {
+          ...bs.story,
+          audioUrl: bs.story.audioClips?.[0]?.url || null,
+        },
+      })) || [],
+    };
+
+    return NextResponse.json({ bulletin: transformedBulletin });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

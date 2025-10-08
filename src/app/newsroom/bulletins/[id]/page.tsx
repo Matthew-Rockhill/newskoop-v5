@@ -240,11 +240,17 @@ export default function BulletinViewPage() {
                       {index + 1}
                     </div>
 
+                    {/* Story Content */}
+                    <div
+                      className="prose prose-sm max-w-none mb-4"
+                      dangerouslySetInnerHTML={{ __html: bulletinStory.story?.content || '' }}
+                    />
+
                     {/* Audio Player */}
                     {bulletinStory.story?.audioUrl && (
-                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <audio 
-                          controls 
+                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <audio
+                          controls
                           className="w-full"
                           preload="metadata"
                         >
@@ -255,12 +261,6 @@ export default function BulletinViewPage() {
                         </audio>
                       </div>
                     )}
-
-                    {/* Story Content */}
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: bulletinStory.story?.content || '' }}
-                    />
                   </div>
                 ))}
             </div>

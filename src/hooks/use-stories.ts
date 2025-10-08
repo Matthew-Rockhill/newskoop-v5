@@ -96,6 +96,8 @@ export interface Story {
   }>;
   _count?: {
     comments: number;
+    audioClips: number;
+    translations: number;
   };
   reviewChecklist?: {
     storyStructure?: boolean;
@@ -103,6 +105,27 @@ export interface Story {
     factChecking?: boolean;
     audioQuality?: boolean;
   };
+  storyGroup?: {
+    id: string;
+    name: string;
+  };
+  translations?: Array<{
+    id: string;
+    title: string;
+    language: string;
+    stage: string;
+    isTranslation: boolean;
+    authorRole?: string;
+    author: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    };
+    _count: {
+      audioClips: number;
+    };
+  }>;
+  authorRole?: string;
   translationRequests?: Array<{
     id: string;
     status: string;

@@ -18,7 +18,8 @@ export const LANGUAGE_DISPLAY_NAMES: Record<LanguageCode, string> = {
  * @param languageCode - The technical language code (e.g., 'AFRIKAANS')
  * @returns The formatted display name (e.g., 'Afrikaans')
  */
-export function formatLanguage(languageCode: string): string {
+export function formatLanguage(languageCode: string | undefined | null): string {
+  if (!languageCode) return '';
   const upperCode = languageCode.toUpperCase() as LanguageCode;
   return LANGUAGE_DISPLAY_NAMES[upperCode] || languageCode;
 }

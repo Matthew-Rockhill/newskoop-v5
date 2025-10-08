@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Translation, AudioClip } from "@prisma/client";
+import { AudioClip } from "@prisma/client";
 
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -78,7 +78,9 @@ export default function PublishStoryPage() {
 
   // Calculate auto-validation state early so we can use it in schema creation
   const translations = story?.translations || [];
-  const allTranslationsApproved = translations.length > 0 && translations.every((t: Translation) => t.status === "APPROVED");
+  const allTranslationsApproved = translations.length > 0 && translations.every((t: any) =>
+    t.stage === "APPROVED" || t.stage === "TRANSLATED" || t.stage === "PUBLISHED"
+  );
 
   // Create memoized resolver to update when auto-validation state changes
   const publishResolver = useMemo(() => 
@@ -265,7 +267,7 @@ export default function PublishStoryPage() {
             <div className="flex items-center gap-4 mt-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
-                <Badge color="green">{story.status.replace('_', ' ')}</Badge>
+                <Badge color="green">{story.stage?.replace('_', ' ') || 'Unknown'}</Badge>
               </div>
             </div>
           }
@@ -446,13 +448,15 @@ export default function PublishStoryPage() {
                 </div>
 {translations.length > 0 ? (
                   <div className="space-y-3">
-                    {translations.map((t: Translation) => (
+                    {translations.map((t: any) => (
                       <div key={t.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="font-medium">{formatLanguage(t.targetLanguage)}</span>
-                          <Badge color={t.status === "APPROVED" ? "green" : "amber"}>{t.status}</Badge>
+                          <span className="font-medium">{formatLanguage(t.language)}</span>
+                          <Badge color={(t.stage === "APPROVED" || t.stage === "TRANSLATED" || t.stage === "PUBLISHED") ? "green" : "amber"}>
+                            {t.stage?.replace('_', ' ') || 'Unknown'}
+                          </Badge>
                         </div>
-                        {t.status === "APPROVED" && (
+                        {(t.stage === "APPROVED" || t.stage === "TRANSLATED" || t.stage === "PUBLISHED") && (
                           <CheckCircleIcon className="h-5 w-5 text-green-600" />
                         )}
                       </div>
