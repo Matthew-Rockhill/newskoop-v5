@@ -521,7 +521,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {originalStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>) => (
+                    {originalStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration' | 'mimeType'>) => (
                       <CustomAudioPlayer
                         key={clip.id}
                         clip={clip}
@@ -624,7 +624,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {translatedStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>) => (
+                      {translatedStory.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration' | 'mimeType'>) => (
                         <CustomAudioPlayer
                           key={clip.id}
                           clip={clip}
