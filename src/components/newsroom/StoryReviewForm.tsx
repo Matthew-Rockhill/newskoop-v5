@@ -670,7 +670,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {story.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration'>) => (
+                  {story.audioClips.map((clip: Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration' | 'mimeType'>) => (
                     <CustomAudioPlayer
                       key={clip.id}
                       clip={clip}
