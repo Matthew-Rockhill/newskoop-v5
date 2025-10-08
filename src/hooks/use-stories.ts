@@ -158,6 +158,7 @@ export interface StoryFilters {
   reviewerId?: string;
   assignedReviewerId?: string;
   assignedApproverId?: string;
+  isTranslation?: boolean;
   tagIds?: string[];
   page?: number;
   perPage?: number;

@@ -49,6 +49,9 @@ function StoriesPageContent() {
     page: 1,
     perPage: 10,
   });
+
+  // Always exclude translations from main list - they appear grouped with originals
+  const queryFilters = { ...filters, isTranslation: false };
   
   // Read URL parameters and set initial filters
   useEffect(() => {
@@ -76,8 +79,8 @@ function StoriesPageContent() {
 
     setFilters(urlFilters);
   }, [searchParams]);
-  
-  const { data, isLoading, error } = useStories(filters);
+
+  const { data, isLoading, error } = useStories(queryFilters);
 
   const stories = data?.stories || [];
   const pagination = data?.pagination;
