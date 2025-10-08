@@ -70,7 +70,7 @@ export function NewsroomDashboard() {
     perPage: 100
   });
 
-  // Journalist/Translator: assigned translation tasks
+  // All staff: assigned translation tasks
   const { data: translationTasksData } = useQuery({
     queryKey: ['translationTasks', userId],
     queryFn: async () => {
@@ -78,7 +78,7 @@ export function NewsroomDashboard() {
       if (!response.ok) throw new Error('Failed to fetch translation tasks');
       return response.json();
     },
-    enabled: !!userId && (isJournalist || isSubEditor),
+    enabled: !!userId,
   });
 
   const draftStories = draftStoriesData?.stories || [];
