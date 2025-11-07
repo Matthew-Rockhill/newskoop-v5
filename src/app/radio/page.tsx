@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Container } from '@/components/ui/container';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
@@ -93,12 +94,12 @@ export default function RadioDashboard() {
     enabled: !!session,
   });
 
-  // Fetch latest show episodes (from Speciality category or similar)
-  const { data: episodesData, isLoading: episodesLoading } = useQuery({
-    queryKey: ['radio-episodes'],
+  // Fetch shows for the shows section
+  const { data: showsData, isLoading: showsLoading } = useQuery({
+    queryKey: ['radio-shows-home'],
     queryFn: async () => {
-      const response = await fetch(`/api/radio/stories?category=speciality&perPage=12`);
-      if (!response.ok) throw new Error('Failed to fetch episodes');
+      const response = await fetch(`/api/radio/shows?perPage=6`);
+      if (!response.ok) throw new Error('Failed to fetch shows');
       return response.json();
     },
     enabled: !!session,
@@ -108,7 +109,7 @@ export default function RadioDashboard() {
   const station = storiesData?.station;
   const categories = categoriesData?.categories || [];
   const bulletins = bulletinsData?.stories || [];
-  const episodes = episodesData?.stories || [];
+  const shows = showsData?.shows || [];
 
   // Fetch announcements
   const { data: announcementsData } = useQuery({
@@ -151,10 +152,10 @@ export default function RadioDashboard() {
     return languageTags.some((tag: any) => tag.name === selectedBulletinLanguage);
   });
 
-  // Filter episodes by selected language
-  const filteredEpisodes = episodes.filter((episode: any) => {
+  // Filter shows by selected language
+  const filteredShows = shows.filter((show: any) => {
     if (!selectedEpisodeLanguage) return true;
-    const languageTags = episode.tags?.filter((tag: any) => tag.category === 'LANGUAGE') || [];
+    const languageTags = show.tags?.map((st: any) => st.tag).filter((tag: any) => tag.category === 'LANGUAGE') || [];
     return languageTags.some((tag: any) => tag.name === selectedEpisodeLanguage);
   });
 
@@ -525,7 +526,7 @@ export default function RadioDashboard() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="p-6 animate-pulse bg-white">
                   <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
@@ -536,7 +537,7 @@ export default function RadioDashboard() {
               ))}
             </div>
           ) : filteredStories.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredStories.slice(0, 6).map((story: any) => (
                 <StoryCard 
                   key={story.id} 
@@ -558,18 +559,18 @@ export default function RadioDashboard() {
           )}
         </div>
 
-        {/* Latest Show Episodes */}
+        {/* Latest Shows */}
         <div className="mb-12">
           <div className="flex justify-between items-center mb-6">
             <Heading level={2} className="text-2xl font-semibold text-gray-900">
-              Latest Show Episodes
+              Latest Shows
               <Badge color="blue" className="ml-3">
                 {selectedEpisodeLanguage}
               </Badge>
             </Heading>
             <div className="flex items-center gap-4">
               <Text className="text-gray-500">
-                {filteredEpisodes.length} of {episodes.length} episodes
+                {filteredShows.length} of {shows.length} shows
               </Text>
               {/* Language Filter */}
               <div className="flex items-center gap-2">
@@ -594,7 +595,7 @@ export default function RadioDashboard() {
               </div>
               <Button
                 color="white"
-                onClick={() => window.location.href = '/radio/speciality'}
+                onClick={() => window.location.href = '/radio/shows'}
                 className="flex items-center gap-2"
               >
                 View All
@@ -602,32 +603,73 @@ export default function RadioDashboard() {
             </div>
           </div>
 
-          {episodesLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {showsLoading ? (
+            <div className="space-y-4">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="p-6 animate-pulse bg-white">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-20 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                  <div className="flex gap-6">
+                    <div className="w-32 h-32 bg-gray-200 rounded-lg flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <div className="h-5 bg-gray-200 rounded w-3/4 mb-3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  </div>
                 </Card>
               ))}
             </div>
-          ) : filteredEpisodes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEpisodes.slice(0, 6).map((episode: any) => (
-                <StoryCard 
-                  key={episode.id} 
-                  story={episode}
-                  selectedLanguage={selectedEpisodeLanguage}
-                />
+          ) : filteredShows.length > 0 ? (
+            <div className="space-y-4">
+              {filteredShows.slice(0, 6).map((show: any) => (
+                <Link
+                  key={show.id}
+                  href={`/radio/shows/${show.slug}`}
+                  className="flex gap-6 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 group"
+                >
+                  {/* Show Cover Image */}
+                  <div className="w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                    {show.coverImageUrl ? (
+                      <img
+                        src={show.coverImageUrl}
+                        alt={show.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-kelly-green to-kelly-green-dark">
+                        <SpeakerWaveIcon className="h-12 w-12 text-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show Details */}
+                  <div className="flex-1 min-w-0">
+                    <Heading level={3} className="text-xl font-semibold text-gray-900 group-hover:text-kelly-green transition-colors mb-2">
+                      {show.title}
+                    </Heading>
+                    {show.description && (
+                      <Text className="text-gray-600 mb-3 line-clamp-2">
+                        {show.description}
+                      </Text>
+                    )}
+                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <Badge color="blue" className="text-xs">
+                        {show._count?.episodes || 0} Episodes
+                      </Badge>
+                      {show.tags?.map((st: any) => st.tag).filter((tag: any) => tag.category === 'LANGUAGE').slice(0, 2).map((tag: any) => (
+                        <Badge key={tag.id} color="zinc" className="text-xs">
+                          {tag.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           ) : (
             <Card className="p-12 text-center bg-white">
               <SpeakerWaveIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <Heading level={3} className="text-gray-500 mb-2">
-                No episodes available in {selectedEpisodeLanguage}
+                No shows available in {selectedEpisodeLanguage}
               </Heading>
               <Text className="text-gray-400">
                 Try switching to a different language or check back later.

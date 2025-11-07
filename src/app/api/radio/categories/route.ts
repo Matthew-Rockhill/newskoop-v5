@@ -68,15 +68,44 @@ export async function GET(req: NextRequest) {
         slug: true,
         description: true,
         color: true,
+        children: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            level: true,
+          },
+          orderBy: {
+            name: 'asc',
+          },
+        },
       },
-      orderBy: {
-        name: 'asc',
-      },
+    });
+
+    // Define the desired display order
+    const categoryOrder = [
+      'news-stories',
+      'news-bulletins',
+      'finance',
+      'sports',
+      'speciality',
+    ];
+
+    // Sort categories by the defined order
+    const sortedCategories = categories.sort((a, b) => {
+      const indexA = categoryOrder.indexOf(a.slug);
+      const indexB = categoryOrder.indexOf(b.slug);
+
+      // If not in order array, put at end
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+
+      return indexA - indexB;
     });
 
     // Get story counts for each category
     const categoriesWithCounts = await Promise.all(
-      categories.map(async (category) => {
+      sortedCategories.map(async (category) => {
         // Get language tags that match station's allowed languages
         const languageTags = await prisma.tag.findMany({
           where: {
@@ -99,29 +128,41 @@ export async function GET(req: NextRequest) {
           select: { id: true },
         });
 
-        // Count stories in this category that match station filters
+        // Count stories in this category AND all child categories
+        // Build category IDs to include parent and all children
+        const categoryIds = [category.id];
+        if (category.children && category.children.length > 0) {
+          categoryIds.push(...category.children.map(c => c.id));
+        }
+
         const storyCount = await prisma.story.count({
           where: {
             status: 'PUBLISHED',
-            categoryId: category.id,
-            // Must have at least one allowed language tag
-            tags: {
-              some: {
-                tagId: {
-                  in: languageTags.map(t => t.id),
-                },
-              },
+            categoryId: {
+              in: categoryIds,
             },
-            // Must have at least one allowed religion tag
-            AND: {
-              tags: {
-                some: {
-                  tagId: {
-                    in: religionTags.map(t => t.id),
+            AND: [
+              // Must have at least one allowed language tag
+              {
+                tags: {
+                  some: {
+                    tagId: {
+                      in: languageTags.map(t => t.id),
+                    },
                   },
                 },
               },
-            },
+              // Must have at least one allowed religion tag
+              {
+                tags: {
+                  some: {
+                    tagId: {
+                      in: religionTags.map(t => t.id),
+                    },
+                  },
+                },
+              },
+            ],
           },
         });
 
