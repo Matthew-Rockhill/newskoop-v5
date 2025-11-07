@@ -5,6 +5,8 @@ export interface Tag {
   id: string;
   name: string;
   slug: string;
+  nameAfrikaans?: string;
+  descriptionAfrikaans?: string;
   color?: string;
   category: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
   isRequired: boolean;
@@ -18,6 +20,8 @@ export interface Tag {
 
 export interface CreateTagData {
   name: string;
+  nameAfrikaans?: string;
+  descriptionAfrikaans?: string;
   color?: string;
   category: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
   isRequired?: boolean;
@@ -26,6 +30,8 @@ export interface CreateTagData {
 
 export interface UpdateTagData {
   name?: string;
+  nameAfrikaans?: string;
+  descriptionAfrikaans?: string;
   color?: string;
   category?: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
   isRequired?: boolean;

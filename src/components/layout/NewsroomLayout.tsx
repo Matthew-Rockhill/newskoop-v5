@@ -67,7 +67,12 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
 
     // All editorial staff can see stories
     navigation.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
-    
+
+    // Shows - SUB_EDITOR and above
+    if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
+      navigation.push({ name: 'Shows', href: '/newsroom/shows', icon: SpeakerWaveIcon })
+    }
+
     // Bulletins - SUB_EDITOR and above
     if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR'].includes(session.user.staffRole)) {
       navigation.push({ name: 'Bulletins', href: '/newsroom/bulletins', icon: RadioIcon })

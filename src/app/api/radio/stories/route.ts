@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
     const perPage = parseInt(url.searchParams.get('perPage') || '20');
     const skip = (page - 1) * perPage;
     const category = url.searchParams.get('category'); // Category slug filter
+    const subCategory = url.searchParams.get('subCategory'); // Sub-category slug filter
     const language = url.searchParams.get('language'); // Language filter
 
     // Build the where clause for filtering
@@ -86,15 +87,50 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    // Add category filter if specified
-    if (category) {
+    // Add sub-category filter if specified (takes precedence over category)
+    if (subCategory) {
+      const subCategoryRecord = await prisma.category.findUnique({
+        where: { slug: subCategory },
+        select: {
+          id: true,
+          parentId: true,
+        },
+      });
+
+      if (subCategoryRecord && !station.blockedCategories.includes(subCategoryRecord.id)) {
+        // Filter to this specific sub-category only
+        whereClause.categoryId = subCategoryRecord.id;
+      } else {
+        // Sub-category not found or blocked - return no results
+        whereClause.categoryId = 'invalid-category-id';
+      }
+    }
+    // Add category filter if specified (and no subCategory)
+    else if (category) {
       const categoryRecord = await prisma.category.findUnique({
         where: { slug: category },
-        select: { id: true },
+        select: {
+          id: true,
+          isParent: true,
+          children: { select: { id: true } }
+        },
       });
-      
-      if (categoryRecord) {
-        whereClause.categoryId = categoryRecord.id;
+
+      if (categoryRecord && !station.blockedCategories.includes(categoryRecord.id)) {
+        // If parent category, include all child categories
+        if (categoryRecord.isParent && categoryRecord.children.length > 0) {
+          const categoryIds = [
+            categoryRecord.id,
+            ...categoryRecord.children.map(c => c.id)
+          ];
+          whereClause.categoryId = { in: categoryIds };
+        } else {
+          // Regular category or no children - filter by this category only
+          whereClause.categoryId = categoryRecord.id;
+        }
+      } else {
+        // Category not found or blocked - return no results
+        whereClause.categoryId = 'invalid-category-id';
       }
     }
 
@@ -135,24 +171,28 @@ export async function GET(req: NextRequest) {
     const total = await prisma.story.count({
       where: {
         ...whereClause,
-        // Must have at least one allowed language tag
-        tags: {
-          some: {
-            tagId: {
-              in: languageTags.map(t => t.id),
-            },
-          },
-        },
-        // Must have at least one allowed religion tag
-        AND: {
-          tags: {
-            some: {
-              tagId: {
-                in: religionTags.map(t => t.id),
+        AND: [
+          // Must have at least one allowed language tag
+          {
+            tags: {
+              some: {
+                tagId: {
+                  in: languageTags.map(t => t.id),
+                },
               },
             },
           },
-        },
+          // Must have at least one allowed religion tag
+          {
+            tags: {
+              some: {
+                tagId: {
+                  in: religionTags.map(t => t.id),
+                },
+              },
+            },
+          },
+        ],
       },
     });
 
@@ -160,24 +200,28 @@ export async function GET(req: NextRequest) {
     const stories = await prisma.story.findMany({
       where: {
         ...whereClause,
-        // Must have at least one allowed language tag
-        tags: {
-          some: {
-            tagId: {
-              in: languageTags.map(t => t.id),
-            },
-          },
-        },
-        // Must have at least one allowed religion tag
-        AND: {
-          tags: {
-            some: {
-              tagId: {
-                in: religionTags.map(t => t.id),
+        AND: [
+          // Must have at least one allowed language tag
+          {
+            tags: {
+              some: {
+                tagId: {
+                  in: languageTags.map(t => t.id),
+                },
               },
             },
           },
-        },
+          // Must have at least one allowed religion tag
+          {
+            tags: {
+              some: {
+                tagId: {
+                  in: religionTags.map(t => t.id),
+                },
+              },
+            },
+          },
+        ],
       },
       include: {
         author: {

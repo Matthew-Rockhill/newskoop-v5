@@ -5,10 +5,31 @@ import { stationSearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
 import { createAndSendMagicLink } from '@/lib/magic-link';
 import { generatePassword } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
+    // Authentication check
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Authorization check - only ADMIN and SUPERADMIN can create stations
+    const userRole = session.user.staffRole;
+    if (!userRole || !['ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      return NextResponse.json(
+        { success: false, error: 'Insufficient permissions. Only admins can create stations.' },
+        { status: 403 }
+      );
+    }
+
     const data = await request.json();
 
     // Validate that primary contact data is provided

@@ -1,0 +1,104 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+// GET /api/radio/shows/[id] - Get a single show
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const show = await prisma.show.findUnique({
+      where: {
+        id: params.id,
+        isActive: true,
+        isPublished: true,
+      },
+      include: {
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+        episodes: {
+          where: {
+            status: 'PUBLISHED',
+          },
+          include: {
+            audioClips: true,
+          },
+          orderBy: {
+            episodeNumber: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!show) {
+      return NextResponse.json(
+        { error: 'Show not found' },
+        { status: 404 }
+      );
+    }
+
+    // For RADIO users, check station permissions
+    if (session.user.userType === 'RADIO') {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { radioStation: true },
+      });
+
+      if (!user?.radioStation) {
+        return NextResponse.json(
+          { error: 'No station associated with user' },
+          { status: 400 }
+        );
+      }
+
+      const station = user.radioStation;
+
+      // Check if category is blocked
+      if (show.categoryId && station.blockedCategories.includes(show.categoryId)) {
+        return NextResponse.json(
+          { error: 'This show is not available for your station' },
+          { status: 403 }
+        );
+      }
+
+      // Check language tags
+      const languageTags = show.tags
+        .filter(st => st.tag.category === 'LANGUAGE')
+        .map(st => st.tag.name);
+
+      const hasAllowedLanguage = languageTags.some(lang =>
+        station.allowedLanguages.includes(lang)
+      );
+
+      if (languageTags.length > 0 && !hasAllowedLanguage) {
+        return NextResponse.json(
+          { error: 'This show is not available in your allowed languages' },
+          { status: 403 }
+        );
+      }
+    }
+
+    return NextResponse.json({ show });
+  } catch (error) {
+    console.error('Error fetching show:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch show' },
+      { status: 500 }
+    );
+  }
+}

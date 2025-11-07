@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Checkbox, CheckboxField } from '@/components/ui/checkbox';
 import { Field, FieldGroup, Fieldset, Label, Description, ErrorMessage } from '@/components/ui/fieldset';
@@ -27,7 +28,9 @@ const stationSchema = z.object({
   province: z.nativeEnum(Province, { required_error: 'Province is required' }),
   contactEmail: z.string().email('Invalid email address').optional().or(z.literal('')),
   contactNumber: z.string().optional(),
-  
+  description: z.string().optional(),
+  website: z.string().url('Invalid URL format').optional().or(z.literal('')),
+
   // Content Access
   hasContentAccess: z.boolean(),
   
@@ -42,20 +45,14 @@ const stationSchema = z.object({
     lastName: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email address'),
     mobileNumber: z.string().optional(),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string()
-  }).refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
   }),
-  
+
   // Additional Users
   additionalUsers: z.array(z.object({
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email address'),
     mobileNumber: z.string().optional(),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
   }))
 });
 
@@ -133,7 +130,7 @@ export default function StationCreationForm() {
         if (step2Valid) setCurrentStep(currentStep + 1);
         break;
       case 3:
-        const step3Valid = await trigger(['primaryContact.firstName', 'primaryContact.lastName', 'primaryContact.email', 'primaryContact.mobileNumber', 'primaryContact.password', 'primaryContact.confirmPassword']);
+        const step3Valid = await trigger(['primaryContact.firstName', 'primaryContact.lastName', 'primaryContact.email', 'primaryContact.mobileNumber']);
         if (step3Valid) setCurrentStep(currentStep + 1);
         break;
     }
@@ -189,7 +186,6 @@ export default function StationCreationForm() {
       lastName: '',
       email: '',
       mobileNumber: '',
-      password: '',
     });
   };
 
@@ -300,6 +296,32 @@ export default function StationCreationForm() {
                   type="tel"
                   {...register('contactNumber')}
                 />
+              </Field>
+
+              <Field>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  {...register('description')}
+                  placeholder="Enter station description (optional)"
+                  rows={3}
+                />
+                {errors.description && (
+                  <ErrorMessage>{errors.description.message}</ErrorMessage>
+                )}
+              </Field>
+
+              <Field>
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  type="url"
+                  {...register('website')}
+                  placeholder="https://example.com"
+                />
+                {errors.website && (
+                  <ErrorMessage>{errors.website.message}</ErrorMessage>
+                )}
               </Field>
             </FieldGroup>
           </Fieldset>
@@ -474,35 +496,19 @@ export default function StationCreationForm() {
                   {...register('primaryContact.mobileNumber')}
                 />
               </Field>
-
-              <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-                <Field>
-                  <Label htmlFor="primaryContact.password">Password *</Label>
-                  <Input
-                    id="primaryContact.password"
-                    type="password"
-                    {...register('primaryContact.password')}
-                    invalid={!!errors.primaryContact?.password}
-                  />
-                  {errors.primaryContact?.password && (
-                    <ErrorMessage>{errors.primaryContact.password.message}</ErrorMessage>
-                  )}
-                </Field>
-
-                <Field>
-                  <Label htmlFor="primaryContact.confirmPassword">Confirm Password *</Label>
-                  <Input
-                    id="primaryContact.confirmPassword"
-                    type="password"
-                    {...register('primaryContact.confirmPassword')}
-                    invalid={!!errors.primaryContact?.confirmPassword}
-                  />
-                  {errors.primaryContact?.confirmPassword && (
-                    <ErrorMessage>{errors.primaryContact.confirmPassword.message}</ErrorMessage>
-                  )}
-                </Field>
-              </div>
             </FieldGroup>
+
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <strong className="text-gray-900">Account Setup</strong>
+                  <p className="text-sm mt-1 text-gray-700">
+                    The primary contact will receive a magic link email to set up their account and create a password. No need to enter a password here.
+                  </p>
+                </div>
+              </div>
+            </div>
           </Fieldset>
         )}
 
@@ -584,48 +590,33 @@ export default function StationCreationForm() {
                         )}
                       </Field>
 
-                      <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-                        <Field>
-                          <Label htmlFor={`additionalUsers.${index}.mobileNumber`}>Mobile Number</Label>
-                          <Input
-                            id={`additionalUsers.${index}.mobileNumber`}
-                            type="tel"
-                            {...register(`additionalUsers.${index}.mobileNumber`)}
-                          />
-                        </Field>
-
-                        <Field>
-                          <Label htmlFor={`additionalUsers.${index}.password`}>Password *</Label>
-                          <Input
-                            id={`additionalUsers.${index}.password`}
-                            type="password"
-                            {...register(`additionalUsers.${index}.password`)}
-                            invalid={!!errors.additionalUsers?.[index]?.password}
-                          />
-                          {errors.additionalUsers?.[index]?.password && (
-                            <ErrorMessage>{errors.additionalUsers[index]?.password?.message}</ErrorMessage>
-                          )}
-                        </Field>
-                      </div>
+                      <Field>
+                        <Label htmlFor={`additionalUsers.${index}.mobileNumber`}>Mobile Number</Label>
+                        <Input
+                          id={`additionalUsers.${index}.mobileNumber`}
+                          type="tel"
+                          {...register(`additionalUsers.${index}.mobileNumber`)}
+                        />
+                      </Field>
                     </FieldGroup>
                   </div>
                 ))
               )}
             </div>
             
-            {fields.length > 0 && (
-              <div className="mt-6 p-4 bg-white-smoke border border-kelly-green rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <InfoIcon className="h-5 w-5 text-kelly-green mt-0.5" />
-                  <div>
-                    <strong className="text-black-custom">User Access</strong>
-                    <p className="text-sm mt-1 text-black-custom">
-                      Each user will receive an email with instructions to set up their password.
-                    </p>
-                  </div>
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <strong className="text-gray-900">Account Setup</strong>
+                  <p className="text-sm mt-1 text-gray-700">
+                    {fields.length > 0
+                      ? 'Each additional user will receive a magic link email to set up their account and create a password.'
+                      : 'You can skip this step if no additional users are needed. They can be added later from the station management page.'}
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
           </Fieldset>
         )}
 

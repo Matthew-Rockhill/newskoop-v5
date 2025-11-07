@@ -116,8 +116,12 @@ const createTag = createHandler(
       data: {
         name: data.name,
         slug,
+        nameAfrikaans: data.nameAfrikaans,
+        descriptionAfrikaans: data.descriptionAfrikaans,
         category: data.category as TagCategory,
         color: data.color,
+        isRequired: data.isRequired,
+        isPreset: data.isPreset,
       },
       include: {
         _count: {

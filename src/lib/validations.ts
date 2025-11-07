@@ -104,16 +104,36 @@ export const userUpdateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// Station schema
+// Station schema for basic station operations
 export const stationSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().min(2, 'Station name is required'),
   province: z.nativeEnum(Province),
-  address: z.string().min(5),
-  phone: z.string(),
-  email: z.string().email(),
-  website: z.string().url().optional(),
+  contactEmail: z.string().email('Invalid email address').optional(),
+  contactNumber: z.string().optional(),
+  description: z.string().optional(),
+  website: z.string().url('Invalid URL format').optional(),
+  hasContentAccess: z.boolean().default(true),
   isActive: z.boolean().default(true),
-  notes: z.string().optional(),
+  allowedLanguages: z.array(z.string()).optional(),
+  allowedReligions: z.array(z.string()).optional(),
+  blockedCategories: z.array(z.string()).optional(),
+});
+
+// Station creation schema (includes nested user data)
+export const stationCreateSchema = z.object({
+  ...stationSchema.shape,
+  primaryContact: z.object({
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    email: z.string().email('Invalid email address'),
+    mobileNumber: z.string().optional(),
+  }),
+  additionalUsers: z.array(z.object({
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    email: z.string().email('Invalid email address'),
+    mobileNumber: z.string().optional(),
+  })).optional(),
 });
 
 // Password update schema
@@ -207,7 +227,9 @@ export const storySearchSchema = z.object({
 // Category schemas
 export const categoryCreateSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
+  nameAfrikaans: z.string().max(100).optional(),
   description: z.string().optional(),
+  descriptionAfrikaans: z.string().optional(),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
   parentId: z.string().optional(),
 });
@@ -222,8 +244,12 @@ export const categoryUpdateSchema = z.object({
 // Tag schemas
 export const tagCreateSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50),
+  nameAfrikaans: z.string().max(50).optional(),
+  descriptionAfrikaans: z.string().optional(),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
-  category: z.enum(['LOCALITY', 'GENERAL']).optional(),
+  category: z.enum(['LANGUAGE', 'RELIGION', 'LOCALITY', 'GENERAL']).optional(),
+  isRequired: z.boolean().optional(),
+  isPreset: z.boolean().optional(),
 });
 
 export const tagUpdateSchema = z.object({

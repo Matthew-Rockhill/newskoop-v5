@@ -8,6 +8,7 @@ import { randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma) as any,
   session: {
     strategy: 'jwt',

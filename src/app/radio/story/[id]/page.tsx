@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { LanguageToggle } from '@/components/radio/LanguageToggle';
-import { 
+import {
   ArrowLeftIcon,
   CalendarIcon,
   UserIcon,
@@ -21,6 +21,7 @@ import {
   LanguageIcon,
   TagIcon,
   PrinterIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
 export default function StoryDetailPage() {
@@ -244,6 +245,46 @@ export default function StoryDetailPage() {
     };
   };
 
+  const handleDownload = () => {
+    if (!displayContent || !story) return;
+
+    const publishedDate = story?.publishedAt
+      ? new Date(story.publishedAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'Date not available';
+
+    // Create text content
+    const textContent = `
+${displayContent.title}
+
+Published: ${publishedDate}
+Author: ${story.author ? `${story.author.firstName} ${story.author.lastName}` : 'NewsKoop'}
+Category: ${story.category ? story.category.name : 'Uncategorized'}
+${isTranslation ? `Language: ${selectedLanguage} Translation` : ''}
+
+${displayContent.content ? displayContent.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ') : 'Content not available'}
+
+${story.audioClips?.length > 0 ? `\n---\nThis story includes ${story.audioClips.length} audio clip${story.audioClips.length !== 1 ? 's' : ''}\n` : ''}
+
+---
+Downloaded from NewsKoop Radio Station Zone
+    `.trim();
+
+    // Create blob and download
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${displayContent.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading) {
     return (
       <Container className="py-12">
@@ -373,6 +414,14 @@ export default function StoryDetailPage() {
                     availableLanguages={availableLanguages}
                   />
                 )}
+                <Button
+                  color="white"
+                  onClick={handleDownload}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  Download
+                </Button>
                 <Button
                   color="white"
                   onClick={handlePrint}

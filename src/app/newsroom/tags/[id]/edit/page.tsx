@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { useTags, useUpdateTag, useDeleteTag } from "@/hooks/use-tags";
@@ -24,7 +25,9 @@ import { useSession } from "next-auth/react";
 
 const tagSchema = z.object({
   name: z.string().min(1, "Name is required").max(50),
-  category: z.enum(["LOCALITY", "GENERAL"]).default("GENERAL"),
+  nameAfrikaans: z.string().max(50).optional(),
+  descriptionAfrikaans: z.string().optional(),
+  category: z.enum(["LANGUAGE", "RELIGION", "LOCALITY", "GENERAL"]).default("GENERAL"),
 });
 
 type TagFormData = z.infer<typeof tagSchema>;
@@ -60,6 +63,8 @@ export default function EditTagPage() {
     if (tag) {
       reset({
         name: tag.name,
+        nameAfrikaans: tag.nameAfrikaans || '',
+        descriptionAfrikaans: tag.descriptionAfrikaans || '',
         category: tag.category,
       });
     }
@@ -137,7 +142,7 @@ export default function EditTagPage() {
             <Fieldset>
               <FieldGroup>
                 <Field>
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="name">Name (English) *</Label>
                   <Input
                     id="name"
                     {...register("name")}
@@ -145,6 +150,27 @@ export default function EditTagPage() {
                     disabled={!canEdit}
                   />
                   {errors.name && <ErrorMessage>{errors.name.message}</ErrorMessage>}
+                </Field>
+                <Field>
+                  <Label htmlFor="nameAfrikaans">Name (Afrikaans)</Label>
+                  <Input
+                    id="nameAfrikaans"
+                    {...register("nameAfrikaans")}
+                    placeholder="Enter Afrikaans tag name..."
+                    disabled={!canEdit}
+                  />
+                  {errors.nameAfrikaans && <ErrorMessage>{errors.nameAfrikaans.message}</ErrorMessage>}
+                </Field>
+                <Field>
+                  <Label htmlFor="descriptionAfrikaans">Description (Afrikaans)</Label>
+                  <Textarea
+                    id="descriptionAfrikaans"
+                    {...register("descriptionAfrikaans")}
+                    placeholder="Enter Afrikaans description..."
+                    rows={3}
+                    disabled={!canEdit}
+                  />
+                  {errors.descriptionAfrikaans && <ErrorMessage>{errors.descriptionAfrikaans.message}</ErrorMessage>}
                 </Field>
                 <Field>
                   <Label htmlFor="category">Category</Label>
@@ -155,6 +181,8 @@ export default function EditTagPage() {
                     disabled={!canEdit}
                   >
                     <option value="GENERAL">General</option>
+                    <option value="LANGUAGE">Language</option>
+                    <option value="RELIGION">Religion</option>
                     <option value="LOCALITY">Locality</option>
                   </Select>
                 </Field>

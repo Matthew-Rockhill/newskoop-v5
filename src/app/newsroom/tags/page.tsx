@@ -17,27 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table } from '@/components/ui/table';
 import { EmptyState } from '@/components/ui/empty-state';
 
-import { useTags } from '@/hooks/use-tags';
+import { useTags, Tag as TagType } from '@/hooks/use-tags';
 import { useSession } from 'next-auth/react';
 
 // Tag categories for organization
-type TagCategory = 'LANGUAGE' | 'LOCALITY' | 'GENERAL';
-
-// Mock function to determine tag category (this will be from the database later)
-const getTagCategory = (tagName: string): TagCategory => {
-  const languageTags = ['english', 'afrikaans', 'xhosa', 'zulu', 'sotho', 'tswana', 'venda', 'tsonga', 'ndebele', 'swati', 'khoi'];
-  const localityTags = ['eastern cape', 'western cape', 'gauteng', 'kwazulu-natal', 'free state', 'limpopo', 'mpumalanga', 'northern cape', 'north west', 'cape town', 'johannesburg', 'durban', 'pretoria', 'port elizabeth', 'bloemfontein'];
-  
-  const lowerName = tagName.toLowerCase();
-  
-  if (languageTags.some(lang => lowerName.includes(lang))) {
-    return 'LANGUAGE';
-  }
-  if (localityTags.some(loc => lowerName.includes(loc))) {
-    return 'LOCALITY';
-  }
-  return 'GENERAL';
-};
+type TagCategory = 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
 
 export default function TagsPage() {
   const router = useRouter();
@@ -48,17 +32,12 @@ export default function TagsPage() {
   const { data, isLoading, error } = useTags();
   const tags = data?.tags || [];
 
-  // Add category information to tags
-  const tagsWithCategories = tags.map((tag: Tag & { _count?: { stories?: number } }) => ({
-    ...tag,
-    category: getTagCategory(tag.name)
-  }));
-
   // Filter tags based on search and category
-  const filteredTags = tagsWithCategories.filter((tag: Tag & { category: TagCategory; _count?: { stories?: number } }) => {
-    const matchesSearch = tag.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredTags = tags.filter((tag: TagType) => {
+    const matchesSearch = tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (tag.nameAfrikaans && tag.nameAfrikaans.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = categoryFilter === undefined || tag.category === categoryFilter;
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -69,18 +48,18 @@ export default function TagsPage() {
   };
 
   // Check if user can edit a specific tag
-  const canEditTag = (tag: Tag & { category: TagCategory }) => {
+  const canEditTag = (tag: TagType) => {
     const userRole = session?.user?.staffRole;
     if (!userRole) return false;
-    
+
     // SUPERADMIN can edit everything
     if (userRole === 'SUPERADMIN') return true;
-    
-    // ADMIN and EDITOR can only edit general tags
+
+    // ADMIN, EDITOR can edit all tags
     if (['ADMIN', 'EDITOR'].includes(userRole)) {
-      return tag.category === 'GENERAL';
+      return true;
     }
-    
+
     return false;
   };
 
@@ -185,6 +164,14 @@ export default function TagsPage() {
             Locality Tags
           </Button>
           <Button
+            onClick={() => setCategoryFilter('RELIGION')}
+            color={categoryFilter === 'RELIGION' ? 'primary' : 'white'}
+            className="text-sm"
+          >
+            <TagIcon className="h-4 w-4" />
+            Religion Tags
+          </Button>
+          <Button
             onClick={() => setCategoryFilter('GENERAL')}
             color={categoryFilter === 'GENERAL' ? 'primary' : 'white'}
             className="text-sm"
@@ -220,9 +207,9 @@ export default function TagsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredTags.map((tag: Tag & { category: TagCategory; _count?: { stories?: number } }) => {
+              {filteredTags.map((tag: TagType) => {
                 const CategoryIcon = getCategoryIcon(tag.category);
-                
+
                 return (
                   <tr
                   key={tag.id}
@@ -240,6 +227,9 @@ export default function TagsPage() {
                     <div className="flex items-center gap-2">
                             <div className="font-medium text-gray-900 truncate">
                               {tag.name}
+                              {tag.nameAfrikaans && (
+                                <span className="text-gray-500 font-normal"> / {tag.nameAfrikaans}</span>
+                              )}
                     </div>
                             {!canEditTag(tag) && (
                               <Badge color="red" className="text-xs">

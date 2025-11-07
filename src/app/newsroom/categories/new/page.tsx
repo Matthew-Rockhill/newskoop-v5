@@ -15,13 +15,16 @@ import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
+import { Textarea } from "@/components/ui/textarea";
 import { useCategories, useCreateCategory } from "@/hooks/use-categories";
 import { Select } from "@/components/ui/select";
 import { Category } from '@/types';
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
+  nameAfrikaans: z.string().max(100).optional(),
   description: z.string().optional(),
+  descriptionAfrikaans: z.string().optional(),
   parentId: z.string().optional(),
   color: z.string().optional(),
 });
@@ -81,7 +84,7 @@ export default function NewCategoryPage() {
             <Fieldset>
               <FieldGroup>
                 <Field>
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="name">Name (English) *</Label>
                   <Input
                     id="name"
                     {...register("name")}
@@ -90,13 +93,33 @@ export default function NewCategoryPage() {
                   {errors.name && <ErrorMessage>{errors.name.message}</ErrorMessage>}
                 </Field>
                 <Field>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="nameAfrikaans">Name (Afrikaans)</Label>
                   <Input
+                    id="nameAfrikaans"
+                    {...register("nameAfrikaans")}
+                    placeholder="Enter Afrikaans category name..."
+                  />
+                  {errors.nameAfrikaans && <ErrorMessage>{errors.nameAfrikaans.message}</ErrorMessage>}
+                </Field>
+                <Field>
+                  <Label htmlFor="description">Description (English)</Label>
+                  <Textarea
                     id="description"
                     {...register("description")}
                     placeholder="Enter description (optional)"
+                    rows={2}
                   />
                   {errors.description && <ErrorMessage>{errors.description.message}</ErrorMessage>}
+                </Field>
+                <Field>
+                  <Label htmlFor="descriptionAfrikaans">Description (Afrikaans)</Label>
+                  <Textarea
+                    id="descriptionAfrikaans"
+                    {...register("descriptionAfrikaans")}
+                    placeholder="Enter Afrikaans description (optional)"
+                    rows={2}
+                  />
+                  {errors.descriptionAfrikaans && <ErrorMessage>{errors.descriptionAfrikaans.message}</ErrorMessage>}
                 </Field>
                 <Field>
                   <Label htmlFor="parentId">Parent Category</Label>

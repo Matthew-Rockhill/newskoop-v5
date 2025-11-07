@@ -11,9 +11,9 @@ export async function GET(
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    
-    // Check if user is authenticated and is a radio user
-    if (!session?.user || session.user.userType !== 'RADIO') {
+
+    // Check if user is authenticated
+    if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -26,19 +26,49 @@ export async function GET(
       include: { radioStation: true },
     });
 
-    if (!user?.radioStation) {
-      return NextResponse.json(
-        { error: 'No station associated with user' },
-        { status: 400 }
-      );
-    }
+    // Handle different user types
+    let station = null;
+    let allowedLanguages = ['English', 'Afrikaans', 'Xhosa']; // Default for STAFF users
+    let hasContentAccess = true;
 
-    const station = user.radioStation;
+    if (session.user.userType === 'RADIO') {
+      // Radio users must have an associated station
+      if (!user?.radioStation) {
+        return NextResponse.json(
+          { error: 'No station associated with user' },
+          { status: 400 }
+        );
+      }
 
-    // Check if station has content access
-    if (!station.isActive || !station.hasContentAccess) {
+      station = user.radioStation;
+
+      // Check if station has content access
+      if (!station.isActive || !station.hasContentAccess) {
+        return NextResponse.json(
+          { error: 'Station does not have content access' },
+          { status: 403 }
+        );
+      }
+
+      allowedLanguages = station.allowedLanguages;
+      hasContentAccess = station.hasContentAccess;
+    } else if (session.user.userType === 'STAFF') {
+      // STAFF users can access all content without station restrictions
+      station = {
+        id: 'staff-access',
+        name: 'Newskoop',
+        allowedLanguages: ['English', 'Afrikaans', 'Xhosa'],
+        allowedReligions: ['Christian', 'Muslim', 'Neutral'],
+        hasContentAccess: true,
+        isActive: true,
+        blockedCategories: [],
+      };
+      allowedLanguages = station.allowedLanguages;
+      hasContentAccess = station.hasContentAccess;
+    } else {
+      // Fallback for any unexpected user types
       return NextResponse.json(
-        { error: 'Station does not have content access' },
+        { error: 'Invalid user type for radio access' },
         { status: 403 }
       );
     }
@@ -99,7 +129,7 @@ export async function GET(
     }
 
     // Check if story category is blocked by station
-    if (story.categoryId && station.blockedCategories.includes(story.categoryId)) {
+    if (story.categoryId && (station as any).blockedCategories?.includes(story.categoryId)) {
       return NextResponse.json(
         { error: 'Story not available for your station' },
         { status: 403 }
@@ -111,18 +141,22 @@ export async function GET(
       where: {
         category: 'LANGUAGE',
         name: {
-          in: station.allowedLanguages,
+          in: allowedLanguages,
         },
       },
       select: { id: true },
     });
 
-    // Get religion tags that match station's allowed religions
+    // Get religion tags - for STAFF users, include all religions
+    const allowedReligions = session.user.userType === 'STAFF'
+      ? ['Christian', 'Muslim', 'Neutral'] // All religions for staff
+      : (station as any)?.allowedReligions || ['Christian', 'Muslim', 'Neutral'];
+
     const religionTags = await prisma.tag.findMany({
       where: {
         category: 'RELIGION',
         name: {
-          in: station.allowedReligions,
+          in: allowedReligions,
         },
       },
       select: { id: true },
@@ -161,9 +195,9 @@ export async function GET(
     return NextResponse.json({
       story: transformedStory,
       station: {
-        name: station.name,
-        allowedLanguages: station.allowedLanguages,
-        allowedReligions: station.allowedReligions,
+        name: station?.name || 'Newskoop',
+        allowedLanguages: allowedLanguages,
+        allowedReligions: allowedReligions,
       },
     });
 

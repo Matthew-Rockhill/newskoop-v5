@@ -559,4 +559,75 @@ export function canUpdateStoryStage(
 
   const allowedTransitions = stageTransitions[userRole]?.[currentStage] || [];
   return allowedTransitions.includes(targetStage);
+}
+
+// ============================================================================
+// SHOW & EPISODE PERMISSIONS
+// ============================================================================
+
+/**
+ * Show permissions matrix
+ * Sub-editors and above can create and manage shows
+ */
+const showPermissions = {
+  INTERN: ['read'],
+  JOURNALIST: ['read'],
+  SUB_EDITOR: ['create', 'read', 'update', 'delete'],
+  EDITOR: ['create', 'read', 'update', 'delete'],
+  ADMIN: ['create', 'read', 'update', 'delete'],
+  SUPERADMIN: ['create', 'read', 'update', 'delete'],
+};
+
+export function hasShowPermission(userRole: StaffRole | null, action: PermissionAction): boolean {
+  if (!userRole) return false;
+  return showPermissions[userRole]?.includes(action) || false;
+}
+
+/**
+ * Check if user can manage shows (create/edit/delete)
+ */
+export function canManageShows(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+/**
+ * Check if user can publish episodes
+ */
+export function canPublishEpisode(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+/**
+ * Check if user can edit a show
+ * Only creator or editors and above can edit
+ */
+export function canEditShow(
+  userRole: StaffRole | null,
+  showCreatorId: string,
+  currentUserId: string
+): boolean {
+  if (!userRole) return false;
+
+  // Editors and above can edit any show
+  if (['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+    return true;
+  }
+
+  // Sub-editors can only edit their own shows
+  if (userRole === 'SUB_EDITOR') {
+    return showCreatorId === currentUserId;
+  }
+
+  return false;
+}
+
+/**
+ * Check if user can delete a show
+ * Only editors and above can delete shows
+ */
+export function canDeleteShow(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 } 

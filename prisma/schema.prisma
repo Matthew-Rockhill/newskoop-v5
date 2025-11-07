@@ -183,6 +183,10 @@ model User {
   publishedBulletins Bulletin[]         @relation("PublishedBulletins")
   bulletinSchedules  BulletinSchedule[]
 
+  // Show relationships
+  createdShows      Show[]    @relation("CreatedShows")
+  publishedEpisodes Episode[] @relation("PublishedEpisodes")
+
   @@index([email])
   @@index([userType])
   @@index([radioStationId])
@@ -362,11 +366,14 @@ model RevisionRequest {
 }
 
 model Category {
-  id          String  @id @default(cuid())
-  name        String  @unique
-  slug        String  @unique
-  description String?
-  color       String?
+  id                   String  @id @default(cuid())
+  name                 String  @unique
+  slug                 String  @unique
+  nameAfrikaans        String?
+  description          String?
+  descriptionAfrikaans String? @db.Text
+
+  color String?
 
   parentId String?
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
@@ -378,6 +385,7 @@ model Category {
 
   stories   Story[]
   bulletins Bulletin[]
+  shows     Show[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -387,16 +395,19 @@ model Category {
 }
 
 model Tag {
-  id         String      @id @default(cuid())
-  name       String      @unique
-  slug       String      @unique
-  color      String?
-  category   TagCategory @default(GENERAL)
-  isRequired Boolean     @default(false) // For LANGUAGE and RELIGION tags
-  isPreset   Boolean     @default(false) // For LOCALITY tags (provinces)
-  stories    StoryTag[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id                   String      @id @default(cuid())
+  name                 String      @unique
+  slug                 String      @unique
+  nameAfrikaans        String?
+  descriptionAfrikaans String?     @db.Text
+  color                String?
+  category             TagCategory @default(GENERAL)
+  isRequired           Boolean     @default(false) // For LANGUAGE and RELIGION tags
+  isPreset             Boolean     @default(false) // For LOCALITY tags (provinces)
+  stories              StoryTag[]
+  shows                ShowTag[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
   @@index([category])
   @@index([isRequired])
@@ -420,8 +431,12 @@ model AudioClip {
   fileSize     Int?
   mimeType     String
 
-  storyId String
-  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  // Support both stories and episodes
+  storyId   String?
+  story     Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  episodeId String?
+  episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
   uploadedBy String
   uploader   User   @relation(fields: [uploadedBy], references: [id])
@@ -430,6 +445,7 @@ model AudioClip {
   updatedAt DateTime @updatedAt
 
   @@index([storyId])
+  @@index([episodeId])
 }
 
 model Comment {
@@ -643,4 +659,90 @@ model BulletinStory {
 
   @@unique([bulletinId, storyId])
   @@index([bulletinId, order])
+}
+
+// SHOWS & EPISODES MODELS
+
+enum EpisodeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Show {
+  id          String  @id @default(cuid())
+  title       String
+  slug        String  @unique
+  description String? @db.Text
+  coverImage  String? // Vercel Blob URL
+
+  // Categorization
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  tags       ShowTag[]
+
+  // Ownership
+  createdById String
+  createdBy   User   @relation("CreatedShows", fields: [createdById], references: [id])
+
+  // Status
+  isActive    Boolean @default(true)
+  isPublished Boolean @default(false)
+
+  // Relationships
+  episodes Episode[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isPublished])
+  @@index([createdById])
+}
+
+model Episode {
+  id             String        @id @default(cuid())
+  showId         String
+  show           Show          @relation(fields: [showId], references: [id], onDelete: Cascade)
+
+  title          String
+  slug           String        @unique
+  description    String?       @db.Text
+  episodeNumber  Int
+
+  // Content
+  content        String?       @db.Text // Rich text show notes
+  coverImage     String?       // Optional episode-specific cover image
+  audioClips     AudioClip[]
+
+  // Publishing
+  status            EpisodeStatus @default(DRAFT)
+  scheduledPublishAt DateTime?
+  publishedAt       DateTime?
+  publishedBy       String?
+  publisher         User?         @relation("PublishedEpisodes", fields: [publishedBy], references: [id])
+
+  // Metadata
+  duration Int? // in seconds, calculated from audio
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([showId, episodeNumber])
+  @@index([showId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([scheduledPublishAt])
+}
+
+model ShowTag {
+  showId String
+  tagId  String
+  show   Show   @relation(fields: [showId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([showId, tagId])
 }

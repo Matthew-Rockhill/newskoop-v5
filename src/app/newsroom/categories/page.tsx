@@ -79,6 +79,9 @@ export default function CategoriesPage() {
               <div className="flex items-center gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
                 <div className="font-medium text-gray-900 truncate">
                   {category.name}
+                  {category.nameAfrikaans && (
+                    <span className="text-gray-500 font-normal"> / {category.nameAfrikaans}</span>
+                  )}
           </div>
           <Badge 
                   color={category.level === 1 ? 'blue' : category.level === 2 ? 'purple' : 'zinc'} 

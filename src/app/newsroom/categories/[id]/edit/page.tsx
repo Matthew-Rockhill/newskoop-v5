@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useCategories, useUpdateCategory, useDeleteCategory } from "@/hooks/use-categories";
 import { useSession } from "next-auth/react";
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
@@ -25,7 +26,9 @@ import { Category } from '@/types';
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
+  nameAfrikaans: z.string().max(100).optional(),
   description: z.string().optional(),
+  descriptionAfrikaans: z.string().optional(),
   parentId: z.string().optional(),
 });
 
@@ -62,7 +65,9 @@ export default function EditCategoryPage() {
     if (category) {
       reset({
         name: category.name,
+        nameAfrikaans: category.nameAfrikaans || "",
         description: category.description || "",
+        descriptionAfrikaans: category.descriptionAfrikaans || "",
         parentId: category.parent?.id || "",
       });
     }
@@ -140,7 +145,7 @@ export default function EditCategoryPage() {
             <Fieldset>
               <FieldGroup>
                 <Field>
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="name">Name (English) *</Label>
                   <Input
                     id="name"
                     {...register("name")}
@@ -150,14 +155,36 @@ export default function EditCategoryPage() {
                   {errors.name && <ErrorMessage>{errors.name.message}</ErrorMessage>}
                 </Field>
                 <Field>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="nameAfrikaans">Name (Afrikaans)</Label>
                   <Input
+                    id="nameAfrikaans"
+                    {...register("nameAfrikaans")}
+                    placeholder="Enter Afrikaans category name..."
+                    disabled={!canEdit}
+                  />
+                  {errors.nameAfrikaans && <ErrorMessage>{errors.nameAfrikaans.message}</ErrorMessage>}
+                </Field>
+                <Field>
+                  <Label htmlFor="description">Description (English)</Label>
+                  <Textarea
                     id="description"
                     {...register("description")}
                     placeholder="Enter description (optional)"
+                    rows={2}
                     disabled={!canEdit}
                   />
                   {errors.description && <ErrorMessage>{errors.description.message}</ErrorMessage>}
+                </Field>
+                <Field>
+                  <Label htmlFor="descriptionAfrikaans">Description (Afrikaans)</Label>
+                  <Textarea
+                    id="descriptionAfrikaans"
+                    {...register("descriptionAfrikaans")}
+                    placeholder="Enter Afrikaans description (optional)"
+                    rows={2}
+                    disabled={!canEdit}
+                  />
+                  {errors.descriptionAfrikaans && <ErrorMessage>{errors.descriptionAfrikaans.message}</ErrorMessage>}
                 </Field>
                 <Field>
                   <Label htmlFor="parentId">Parent Category</Label>

@@ -21,6 +21,32 @@ interface StationFilters {
   perPage?: number;
 }
 
+// Station creation data interface matching form structure
+export interface CreateStationData {
+  name: string;
+  province: Province;
+  contactEmail?: string;
+  contactNumber?: string;
+  description?: string;
+  website?: string;
+  hasContentAccess?: boolean;
+  allowedLanguages?: string[];
+  allowedReligions?: string[];
+  blockedCategories?: string[];
+  primaryContact: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobileNumber?: string;
+  };
+  additionalUsers?: Array<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobileNumber?: string;
+  }>;
+}
+
 async function fetchStations(filters: StationFilters = {}): Promise<StationsResponse> {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -36,7 +62,7 @@ async function fetchStations(filters: StationFilters = {}): Promise<StationsResp
   return response.json();
 }
 
-async function createStation(data: Partial<Station>): Promise<Station> {
+async function createStation(data: CreateStationData): Promise<Station> {
   const response = await fetch('/api/stations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

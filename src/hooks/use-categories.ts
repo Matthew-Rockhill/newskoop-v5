@@ -5,7 +5,9 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
+  nameAfrikaans?: string;
   description?: string;
+  descriptionAfrikaans?: string;
   color?: string;
   level: number;
   isParent: boolean;
@@ -26,14 +28,18 @@ export interface Category {
 
 export interface CreateCategoryData {
   name: string;
+  nameAfrikaans?: string;
   description?: string;
+  descriptionAfrikaans?: string;
   color?: string;
   parentId?: string;
 }
 
 export interface UpdateCategoryData {
   name?: string;
+  nameAfrikaans?: string;
   description?: string;
+  descriptionAfrikaans?: string;
   color?: string;
   parentId?: string;
 }

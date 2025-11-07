@@ -23,7 +23,6 @@ import { CategoryMegaMenu } from './CategoryMegaMenu';
 export function RadioNavbar() {
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openMegaMenu, setOpenMegaMenu] = useState<string | null>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
   // Fetch user profile to get profile picture
@@ -48,24 +47,7 @@ export function RadioNavbar() {
     enabled: !!session,
   });
 
-  // Sort categories in specific order
-  const categoryOrder = ['News Bulletins', 'News Stories', 'Sports', 'Finance', 'Speciality'];
-  const categories = (categoriesData?.categories || []).sort((a: any, b: any) => {
-    const aIndex = categoryOrder.indexOf(a.name);
-    const bIndex = categoryOrder.indexOf(b.name);
-    
-    // If both categories are in the predefined order, sort by that order
-    if (aIndex !== -1 && bIndex !== -1) {
-      return aIndex - bIndex;
-    }
-    
-    // If only one is in the predefined order, prioritize it
-    if (aIndex !== -1) return -1;
-    if (bIndex !== -1) return 1;
-    
-    // If neither is in the predefined order, sort alphabetically
-    return a.name.localeCompare(b.name);
-  });
+  const categories = categoriesData?.categories || [];
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -79,14 +61,6 @@ export function RadioNavbar() {
       document.body.style.overflow = 'unset';
     };
   }, [isMobileMenuOpen]);
-
-  const handleCategoryHover = (categorySlug: string) => {
-    setOpenMegaMenu(categorySlug);
-  };
-
-  const handleCategoryLeave = () => {
-    setOpenMegaMenu(null);
-  };
 
   return (
     <>
@@ -107,30 +81,66 @@ export function RadioNavbar() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              {categories.map((category: any) => (
-                <div
-                  key={category.slug}
-                  className="relative"
-                  onMouseEnter={() => handleCategoryHover(category.slug)}
-                  onMouseLeave={handleCategoryLeave}
-                >
-                  <Link
-                    href={`/radio/${category.slug}`}
-                    className="flex items-center gap-1 px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
-                  >
-                    {category.name}
-                    <ChevronDownIcon className="h-4 w-4" />
-                  </Link>
+              {/* Home Link */}
+              <Link
+                href="/radio"
+                className="px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
+              >
+                Home
+              </Link>
 
-                  {/* Mega Menu */}
-                  {openMegaMenu === category.slug && (
-                    <CategoryMegaMenu
-                      category={category}
-                      onClose={() => setOpenMegaMenu(null)}
-                    />
-                  )}
-                </div>
-              ))}
+              {/* Dynamic Category Links */}
+              {categories.map((category: any) => {
+                const hasChildren = category.children && category.children.length > 0;
+
+                if (!hasChildren) {
+                  // Direct link for categories without children (News Bulletins, Shows)
+                  return (
+                    <Link
+                      key={category.id}
+                      href={`/radio/${category.slug}`}
+                      className="px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
+                    >
+                      {category.name}
+                    </Link>
+                  );
+                }
+
+                // Dropdown for categories with children
+                return (
+                  <div key={category.id} className="relative group">
+                    <Link
+                      href={`/radio/${category.slug}`}
+                      className="px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium flex items-center gap-1"
+                    >
+                      {category.name}
+                      <ChevronDownIcon className="h-4 w-4" />
+                    </Link>
+
+                    {/* Dropdown Menu - Pure CSS hover */}
+                    <div className="absolute left-0 pt-2 hidden group-hover:block">
+                      <div className="w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                        <Link
+                          href={`/radio/${category.slug}`}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-kelly-green/5 hover:text-kelly-green font-medium"
+                        >
+                          All {category.name}
+                        </Link>
+                        <div className="border-t border-gray-100 my-1"></div>
+                        {category.children.map((child: any) => (
+                          <Link
+                            key={child.id}
+                            href={`/radio/${category.slug}/${child.slug}`}
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-kelly-green/5 hover:text-kelly-green"
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* User Menu */}
@@ -260,23 +270,61 @@ export function RadioNavbar() {
           <div className="fixed top-20 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
             <Container className="py-4">
 
-              {/* Categories */}
+              {/* Navigation Links */}
               <div className="space-y-1 mb-6">
-                {categories.map((category: any) => (
-                  <Link
-                    key={category.slug}
-                    href={`/radio/${category.slug}`}
-                    className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {category.name}
-                    {category.storyCount > 0 && (
-                      <Badge color="zinc" className="ml-2 text-xs">
-                        {category.storyCount}
-                      </Badge>
-                    )}
-                  </Link>
-                ))}
+                {/* Home Link */}
+                <Link
+                  href="/radio"
+                  className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Home
+                </Link>
+
+                {/* Dynamic Category Links */}
+                {categories.map((category: any) => {
+                  const hasChildren = category.children && category.children.length > 0;
+
+                  if (!hasChildren) {
+                    // Direct link for categories without children
+                    return (
+                      <Link
+                        key={category.id}
+                        href={`/radio/${category.slug}`}
+                        className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {category.name}
+                      </Link>
+                    );
+                  }
+
+                  // Category with sub-categories
+                  return (
+                    <div key={category.id} className="space-y-1">
+                      <Link
+                        href={`/radio/${category.slug}`}
+                        className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {category.name}
+                      </Link>
+                      {/* Sub-categories */}
+                      <div className="pl-4 space-y-1">
+                        {category.children.map((child: any) => (
+                          <Link
+                            key={child.id}
+                            href={`/radio/${category.slug}/${child.slug}`}
+                            className="block px-4 py-2 text-sm text-gray-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* User Info */}
