@@ -83,6 +83,22 @@ export default function StoryDetailPage() {
   const displayContent = getDisplayContent();
   const isTranslation = displayContent?.id !== story?.id;
 
+  // Track view after story loads
+  useEffect(() => {
+    if (story?.id) {
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contentType: 'STORY',
+          contentId: story.id,
+          language: selectedLanguage,
+          category: story.category?.name,
+        }),
+      }).catch(err => console.error('Analytics tracking error:', err));
+    }
+  }, [story?.id, selectedLanguage, story?.category?.name]);
+
   // Available languages for this story
   const availableLanguages: string[] = [];
   if (story?.language === 'ENGLISH') availableLanguages.push('English');

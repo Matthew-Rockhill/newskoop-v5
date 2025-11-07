@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Container } from '@/components/ui/container';
@@ -84,6 +84,21 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
 
   const show = data?.show;
   const episodes = show?.episodes || [];
+
+  // Track view after show loads
+  useEffect(() => {
+    if (show?.id) {
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contentType: 'SHOW',
+          contentId: show.id,
+          category: show.category?.name,
+        }),
+      }).catch(err => console.error('Analytics tracking error:', err));
+    }
+  }, [show?.id, show?.category?.name]);
 
   // Filter episodes by language
   const filteredEpisodes = selectedLanguage === 'all'

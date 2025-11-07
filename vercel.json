@@ -23,5 +23,11 @@
   "github": {
     "autoJobCancelation": false
   },
-  "regions": ["cpt1"]
+  "regions": ["cpt1"],
+  "crons": [
+    {
+      "path": "/api/cron/aggregate-analytics",
+      "schedule": "0 2 * * *"
+    }
+  ]
 }

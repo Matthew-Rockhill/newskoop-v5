@@ -16,6 +16,7 @@ import {
   ArrowLeftIcon,
   UserIcon,
   NewspaperIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -67,6 +68,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     navigation.push({ name: 'Users', href: '/admin/users', icon: UsersIcon })
     navigation.push({ name: 'Radio Stations', href: '/admin/stations', icon: RadioIcon })
     navigation.push({ name: 'Announcements', href: '/admin/announcements', icon: MegaphoneIcon })
+    navigation.push({ name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon })
 
     return navigation
   }

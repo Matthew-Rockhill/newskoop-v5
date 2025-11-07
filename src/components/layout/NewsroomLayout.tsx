@@ -18,6 +18,7 @@ import {
   UserIcon,
   CogIcon,
   RadioIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -76,6 +77,11 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
     // Bulletins - SUB_EDITOR and above
     if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR'].includes(session.user.staffRole)) {
       navigation.push({ name: 'Bulletins', href: '/newsroom/bulletins', icon: RadioIcon })
+    }
+
+    // Editorial Dashboard - SUB_EDITOR and above (EDITOR role)
+    if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
+      navigation.push({ name: 'Editorial Dashboard', href: '/newsroom/editorial-dashboard', icon: ChartBarIcon })
     }
     
     // Categories and Tags - SUB_EDITOR and above

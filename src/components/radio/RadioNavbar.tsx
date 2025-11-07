@@ -141,6 +141,14 @@ export function RadioNavbar() {
                   </div>
                 );
               })}
+
+              {/* Shows Link - after all categories */}
+              <Link
+                href="/radio/shows"
+                className="px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
+              >
+                Shows
+              </Link>
             </div>
 
             {/* User Menu */}
@@ -325,6 +333,15 @@ export function RadioNavbar() {
                     </div>
                   );
                 })}
+
+                {/* Shows Link - after all categories */}
+                <Link
+                  href="/radio/shows"
+                  className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Shows
+                </Link>
               </div>
 
               {/* User Info */}

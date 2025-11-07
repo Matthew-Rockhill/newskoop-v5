@@ -187,6 +187,9 @@ model User {
   createdShows      Show[]    @relation("CreatedShows")
   publishedEpisodes Episode[] @relation("PublishedEpisodes")
 
+  // Analytics relationships
+  contentViews ContentView[]
+
   @@index([email])
   @@index([userType])
   @@index([radioStationId])
@@ -215,7 +218,9 @@ model Station {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users User[]
+  users              User[]
+  contentViews       ContentView[]
+  contentAnalytics   ContentAnalytics[]
 
   @@index([province])
   @@index([isActive])
@@ -745,4 +750,82 @@ model ShowTag {
   tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([showId, tagId])
+}
+
+// ============================================================================
+// ANALYTICS MODELS
+// ============================================================================
+
+enum ContentType {
+  STORY
+  BULLETIN
+  SHOW
+  EPISODE
+}
+
+enum PeriodType {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+// Event tracking for content views
+model ContentView {
+  id         String   @id @default(cuid())
+
+  // Content references (polymorphic - what was viewed)
+  contentType ContentType
+  contentId   String
+
+  // User/Station tracking (who viewed)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  stationId  String?
+  station    Station? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+
+  // Metadata
+  language   String?  // Which language version was viewed
+  category   String?  // Content category for filtering
+  ipAddress  String?  // Anonymized (xxx.xxx.xxx.0)
+  userAgent  String?
+
+  viewedAt   DateTime @default(now())
+
+  @@index([contentType, contentId, viewedAt])
+  @@index([stationId, viewedAt])
+  @@index([userId, viewedAt])
+  @@index([viewedAt])
+}
+
+// Pre-aggregated analytics for performance
+model ContentAnalytics {
+  id         String   @id @default(cuid())
+
+  // Time bucket
+  date       DateTime // Start of day/hour
+  periodType PeriodType
+
+  // Content reference
+  contentType ContentType
+  contentId   String
+
+  // Station (optional - for per-station breakdown)
+  stationId  String?
+  station    Station? @relation(fields: [stationId], references: [id], onDelete: Cascade)
+
+  // Metrics
+  viewCount     Int @default(0)
+  uniqueUsers   Int @default(0)
+
+  // Top metadata (JSON for flexibility)
+  topLanguages Json? // {"English": 45, "Afrikaans": 30}
+  topStations  Json? // For admin view
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([contentType, contentId, periodType, date, stationId])
+  @@index([contentType, contentId, date])
+  @@index([date, periodType])
 }
