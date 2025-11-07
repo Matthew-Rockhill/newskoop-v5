@@ -109,7 +109,7 @@ export function FileUpload({
         className={clsx(
           'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
           isDragOver
-            ? 'border-[#76BD43] bg-[#76BD43]/5'
+            ? 'border-kelly-green bg-kelly-green/5'
             : 'border-gray-300 hover:border-gray-400'
         )}
         onDrop={handleDrop}
@@ -123,7 +123,7 @@ export function FileUpload({
         <div className="mt-4">
           <p className="text-sm text-gray-600">
             <label htmlFor="file-upload" className="cursor-pointer">
-              <span className="text-[#76BD43] hover:text-[#5fa013]">
+              <span className="text-kelly-green hover:text-kelly-green/80">
                 Click to upload audio files
               </span>
               <input

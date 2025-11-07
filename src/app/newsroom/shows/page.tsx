@@ -33,9 +33,9 @@ export default function ShowsPage() {
   const canManage = canManageShows(userRole as any);
   const canDelete = canDeleteShowPerm(userRole as any);
 
-  const handleCreate = async (data: CreateShowData) => {
+  const handleCreate = async (data: CreateShowData | UpdateShowData) => {
     try {
-      await createShow.mutateAsync(data);
+      await createShow.mutateAsync(data as CreateShowData);
       toast.success('Show created successfully');
       setIsCreateModalOpen(false);
     } catch (error: any) {

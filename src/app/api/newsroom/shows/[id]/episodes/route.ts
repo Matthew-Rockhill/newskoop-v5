@@ -13,12 +13,13 @@ const episodeCreateSchema = z.object({
 
 // GET /api/newsroom/shows/[id]/episodes - List episodes for a show
 const getEpisodes = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     // Verify show exists
     const show = await prisma.show.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!show) {
@@ -28,7 +29,7 @@ const getEpisodes = createHandler(
     // Get episodes
     const episodes = await prisma.episode.findMany({
       where: {
-        showId: params.id,
+        showId: id,
       },
       include: {
         audioClips: true,
@@ -52,7 +53,8 @@ const getEpisodes = createHandler(
 
 // POST /api/newsroom/shows/[id]/episodes - Create a new episode
 const createEpisode = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canManageShows(user.staffRole as any)) {
@@ -61,7 +63,7 @@ const createEpisode = createHandler(
 
     // Verify show exists
     const show = await prisma.show.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!show) {
@@ -93,7 +95,7 @@ const createEpisode = createHandler(
 
     // Get the next episode number
     const lastEpisode = await prisma.episode.findFirst({
-      where: { showId: params.id },
+      where: { showId: id },
       orderBy: { episodeNumber: 'desc' },
     });
 
@@ -108,7 +110,7 @@ const createEpisode = createHandler(
         content: data.content,
         coverImage: data.coverImage,
         episodeNumber,
-        showId: params.id,
+        showId: id,
       },
       include: {
         audioClips: true,

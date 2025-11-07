@@ -7,7 +7,8 @@ import { del } from '@vercel/blob';
 
 // POST /api/newsroom/shows/[id]/episodes/[episodeId]/audio - Upload audio file
 const uploadAudio = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string; episodeId: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id, episodeId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canManageShows(user.staffRole as any)) {
@@ -15,14 +16,14 @@ const uploadAudio = createHandler(
     }
 
     const episode = await prisma.episode.findUnique({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
     });
 
     if (!episode) {
       return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
     }
 
-    if (episode.showId !== params.id) {
+    if (episode.showId !== id) {
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
@@ -53,7 +54,7 @@ const uploadAudio = createHandler(
           url: uploadedFile.url,
           fileSize: uploadedFile.size,
           mimeType: uploadedFile.mimeType,
-          episodeId: params.episodeId,
+          episodeId: episodeId,
           uploadedBy: user.id,
         },
       });
@@ -67,14 +68,14 @@ const uploadAudio = createHandler(
     // Update episode duration
     if (totalDuration > 0) {
       await prisma.episode.update({
-        where: { id: params.episodeId },
+        where: { id: episodeId },
         data: { duration: totalDuration },
       });
     }
 
     // Fetch the complete updated episode with all audio clips
     const updatedEpisode = await prisma.episode.findUnique({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
       include: {
         audioClips: true,
         show: true,
@@ -95,7 +96,8 @@ const uploadAudio = createHandler(
 
 // DELETE /api/newsroom/shows/[id]/episodes/[episodeId]/audio - Delete audio file
 const deleteAudio = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string; episodeId: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id, episodeId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canManageShows(user.staffRole as any)) {
@@ -117,7 +119,7 @@ const deleteAudio = createHandler(
       return NextResponse.json({ error: 'Audio clip not found' }, { status: 404 });
     }
 
-    if (audioClip.episodeId !== params.episodeId) {
+    if (audioClip.episodeId !== episodeId) {
       return NextResponse.json({ error: 'Audio clip does not belong to this episode' }, { status: 400 });
     }
 
@@ -135,19 +137,19 @@ const deleteAudio = createHandler(
 
     // Recalculate episode duration
     const remainingClips = await prisma.audioClip.findMany({
-      where: { episodeId: params.episodeId },
+      where: { episodeId: episodeId },
     });
 
     const totalDuration = remainingClips.reduce((sum, clip) => sum + (clip.duration || 0), 0);
 
     await prisma.episode.update({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
       data: { duration: totalDuration || null },
     });
 
     // Fetch the complete updated episode with remaining audio clips
     const updatedEpisode = await prisma.episode.findUnique({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
       include: {
         audioClips: true,
         show: true,

@@ -42,14 +42,14 @@ export async function POST(req: NextRequest) {
 
     // Get user/station info if available
     let userId = session?.user?.id;
-    let stationId = null;
+    let stationId: string | undefined = undefined;
 
     if (session?.user?.userType === 'RADIO') {
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
         select: { radioStationId: true },
       });
-      stationId = user?.radioStationId || null;
+      stationId = user?.radioStationId || undefined;
     }
 
     // Get IP address (respecting proxies)

@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 // GET /api/radio/shows/[id]/episodes - Get published episodes for a show
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,10 +18,12 @@ export async function GET(
       );
     }
 
+    const { id } = await params;
+
     // Verify show exists and is published
     const show = await prisma.show.findUnique({
       where: {
-        id: params.id,
+        id,
         isActive: true,
         isPublished: true,
       },
@@ -44,7 +46,7 @@ export async function GET(
     const [episodes, total] = await Promise.all([
       prisma.episode.findMany({
         where: {
-          showId: params.id,
+          showId: id,
           status: 'PUBLISHED',
         },
         include: {
@@ -65,7 +67,7 @@ export async function GET(
       }),
       prisma.episode.count({
         where: {
-          showId: params.id,
+          showId: id,
           status: 'PUBLISHED',
         },
       }),

@@ -78,6 +78,50 @@ export async function GET(req: NextRequest) {
     const subCategory = url.searchParams.get('subCategory'); // Sub-category slug filter
     const language = url.searchParams.get('language'); // Language filter
 
+    // Parallel fetch: category lookups and tag filters
+    const [subCategoryRecord, categoryRecord, languageTags, allowedReligions] = await Promise.all([
+      // Sub-category lookup (only if subCategory param exists)
+      subCategory ? prisma.category.findUnique({
+        where: { slug: subCategory },
+        select: { id: true, parentId: true },
+      }) : null,
+
+      // Category lookup (only if category param exists and no subCategory)
+      category && !subCategory ? prisma.category.findUnique({
+        where: { slug: category },
+        select: { id: true, isParent: true, children: { select: { id: true } } },
+      }) : null,
+
+      // Language tags lookup
+      prisma.tag.findMany({
+        where: {
+          category: 'LANGUAGE',
+          name: {
+            in: language && allowedLanguages.includes(language)
+              ? [language]
+              : allowedLanguages,
+          },
+        },
+        select: { id: true },
+      }),
+
+      // Return allowed religions for next query
+      Promise.resolve(
+        session.user.userType === 'STAFF'
+          ? ['Christian', 'Muslim', 'Neutral']
+          : (station as any)?.allowedReligions || ['Christian', 'Muslim', 'Neutral']
+      ),
+    ]);
+
+    // Get religion tags
+    const religionTags = await prisma.tag.findMany({
+      where: {
+        category: 'RELIGION',
+        name: { in: allowedReligions },
+      },
+      select: { id: true },
+    });
+
     // Build the where clause for filtering
     const whereClause: any = {
       status: 'PUBLISHED',
@@ -88,35 +132,18 @@ export async function GET(req: NextRequest) {
     };
 
     // Add sub-category filter if specified (takes precedence over category)
-    if (subCategory) {
-      const subCategoryRecord = await prisma.category.findUnique({
-        where: { slug: subCategory },
-        select: {
-          id: true,
-          parentId: true,
-        },
-      });
-
-      if (subCategoryRecord && !station.blockedCategories.includes(subCategoryRecord.id)) {
+    if (subCategory && subCategoryRecord) {
+      if (!(station.blockedCategories as string[]).includes(subCategoryRecord.id)) {
         // Filter to this specific sub-category only
         whereClause.categoryId = subCategoryRecord.id;
       } else {
-        // Sub-category not found or blocked - return no results
+        // Sub-category blocked - return no results
         whereClause.categoryId = 'invalid-category-id';
       }
     }
     // Add category filter if specified (and no subCategory)
-    else if (category) {
-      const categoryRecord = await prisma.category.findUnique({
-        where: { slug: category },
-        select: {
-          id: true,
-          isParent: true,
-          children: { select: { id: true } }
-        },
-      });
-
-      if (categoryRecord && !station.blockedCategories.includes(categoryRecord.id)) {
+    else if (category && categoryRecord) {
+      if (!(station.blockedCategories as string[]).includes(categoryRecord.id)) {
         // If parent category, include all child categories
         if (categoryRecord.isParent && categoryRecord.children.length > 0) {
           const categoryIds = [
@@ -129,135 +156,82 @@ export async function GET(req: NextRequest) {
           whereClause.categoryId = categoryRecord.id;
         }
       } else {
-        // Category not found or blocked - return no results
+        // Category blocked - return no results
         whereClause.categoryId = 'invalid-category-id';
       }
+    } else if ((subCategory && !subCategoryRecord) || (category && !categoryRecord)) {
+      // Category/subcategory not found - return no results
+      whereClause.categoryId = 'invalid-category-id';
     }
 
-    // Get language tags that match allowed languages
-    let languageFilter = allowedLanguages;
-    
-    // If specific language requested, filter to just that language
-    if (language && allowedLanguages.includes(language)) {
-      languageFilter = [language];
-    }
-    
-    const languageTags = await prisma.tag.findMany({
-      where: {
-        category: 'LANGUAGE',
-        name: {
-          in: languageFilter,
-        },
-      },
-      select: { id: true },
-    });
-
-    // Get religion tags - for STAFF users, include all religions
-    const allowedReligions = session.user.userType === 'STAFF' 
-      ? ['Christian', 'Muslim', 'Neutral'] // All religions for staff
-      : (station as any)?.allowedReligions || ['Christian', 'Muslim', 'Neutral'];
-
-    const religionTags = await prisma.tag.findMany({
-      where: {
-        category: 'RELIGION',
-        name: {
-          in: allowedReligions,
-        },
-      },
-      select: { id: true },
-    });
-
-    // Get total count
-    const total = await prisma.story.count({
-      where: {
-        ...whereClause,
-        AND: [
-          // Must have at least one allowed language tag
-          {
-            tags: {
-              some: {
-                tagId: {
-                  in: languageTags.map(t => t.id),
-                },
+    // Build shared filter for both count and findMany
+    const sharedWhere = {
+      ...whereClause,
+      AND: [
+        // Must have at least one allowed language tag
+        {
+          tags: {
+            some: {
+              tagId: {
+                in: languageTags.map(t => t.id),
               },
             },
           },
-          // Must have at least one allowed religion tag
-          {
-            tags: {
-              some: {
-                tagId: {
-                  in: religionTags.map(t => t.id),
-                },
+        },
+        // Must have at least one allowed religion tag
+        {
+          tags: {
+            some: {
+              tagId: {
+                in: religionTags.map(t => t.id),
               },
             },
           },
-        ],
-      },
-    });
+        },
+      ],
+    };
 
-    // Get filtered stories
-    const stories = await prisma.story.findMany({
-      where: {
-        ...whereClause,
-        AND: [
-          // Must have at least one allowed language tag
-          {
-            tags: {
-              some: {
-                tagId: {
-                  in: languageTags.map(t => t.id),
-                },
-              },
+    // Parallel fetch: count and stories
+    const [total, stories] = await Promise.all([
+      prisma.story.count({ where: sharedWhere }),
+      prisma.story.findMany({
+        where: sharedWhere,
+        include: {
+          author: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
             },
           },
-          // Must have at least one allowed religion tag
-          {
-            tags: {
-              some: {
-                tagId: {
-                  in: religionTags.map(t => t.id),
-                },
-              },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
             },
           },
-        ],
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+          audioClips: {
+            select: {
+              id: true,
+              filename: true,
+              url: true,
+              duration: true,
+            },
           },
         },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
+        orderBy: {
+          publishedAt: 'desc',
         },
-        tags: {
-          include: {
-            tag: true,
-          },
-        },
-        audioClips: {
-          select: {
-            id: true,
-            filename: true,
-            url: true,
-            duration: true,
-          },
-        },
-      },
-      orderBy: {
-        publishedAt: 'desc',
-      },
-      skip,
-      take: perPage,
-    });
+        skip,
+        take: perPage,
+      }),
+    ]);
 
     // Transform the data to include tag details
     const transformedStories = stories.map(story => ({
@@ -280,8 +254,15 @@ export async function GET(req: NextRequest) {
       },
     };
 
-
-    return NextResponse.json(responseData);
+    // Return with cache headers for better performance
+    return new Response(JSON.stringify(responseData), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        // Cache for 60 seconds, revalidate in background for 2 minutes
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     console.error('Error fetching radio stories:', error);
     return NextResponse.json(

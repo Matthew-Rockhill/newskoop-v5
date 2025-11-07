@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 // GET /api/radio/shows/[id] - Get a single show
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,9 +18,11 @@ export async function GET(
       );
     }
 
+    const { id } = await params;
+
     const show = await prisma.show.findUnique({
       where: {
-        id: params.id,
+        id,
         isActive: true,
         isPublished: true,
       },

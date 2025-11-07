@@ -35,7 +35,7 @@ function generateSlug(name: string): string {
 
 // GET /api/newsroom/tags - List tags
 const getTags = createHandler(
-  async (req: NextRequest) => {
+  async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasTagPermission(user.staffRole, 'read')) {
@@ -61,25 +61,25 @@ const getTags = createHandler(
       where.category = category as TagCategory;
     }
 
-    // Get total count
-    const total = await prisma.tag.count({ where });
-
-    // Get paginated tags
-    const tags = await prisma.tag.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            stories: true,
+    // Parallel fetch: count and tags
+    const [total, tags] = await Promise.all([
+      prisma.tag.count({ where }),
+      prisma.tag.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              stories: true,
+            },
           },
         },
-      },
-      orderBy: { name: 'asc' },
-      skip: (page - 1) * perPage,
-      take: perPage,
-    });
+        orderBy: { name: 'asc' },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      }),
+    ]);
 
-    return NextResponse.json({
+    const responseData = {
       tags,
       pagination: {
         total,
@@ -87,16 +87,21 @@ const getTags = createHandler(
         perPage,
         totalPages: Math.ceil(total / perPage),
       },
-    });
+    };
+
+    const response = NextResponse.json(responseData);
+    // Cache for 5 minutes, revalidate in background for 10 minutes
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return response;
   },
   [withErrorHandling, withAuth]
 );
 
 // POST /api/newsroom/tags - Create a new tag
 const createTag = createHandler(
-  async (req: NextRequest) => {
+  async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
-    const data = (req as NextRequest & { validatedData: { name: string; category?: string; color?: string; description?: string } }).validatedData;
+    const data = (req as NextRequest & { validatedData: { name: string; nameAfrikaans?: string; descriptionAfrikaans?: string; category?: string; color?: string; isRequired?: boolean; isPreset?: boolean } }).validatedData;
 
     if (!hasTagPermission(user.staffRole, 'create')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });

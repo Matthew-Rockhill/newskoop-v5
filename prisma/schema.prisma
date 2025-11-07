@@ -250,6 +250,8 @@ model AuditLog {
 
   @@index([userId])
   @@index([createdAt])
+  // Performance indexes
+  @@index([action, entityType, entityId])
 }
 
 // NEWSROOM MODELS
@@ -344,6 +346,14 @@ model Story {
   @@index([storyGroupId])
   @@index([assignedReviewerId])
   @@index([assignedApproverId])
+  // Performance indexes
+  @@index([publishedAt])
+  @@index([updatedAt])
+  @@index([followUpDate])
+  @@index([scheduledPublishAt])
+  @@index([status, language])
+  @@index([categoryId, status])
+  @@index([language, status])
 }
 
 model RevisionRequest {
@@ -538,6 +548,8 @@ model EmailLog {
   @@index([status])
   @@index([type])
   @@index([createdAt])
+  // Performance indexes
+  @@index([to])
 }
 
 // Announcement models

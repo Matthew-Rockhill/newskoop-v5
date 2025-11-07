@@ -34,7 +34,7 @@ function generateSlug(name: string): string {
 
 // GET /api/newsroom/categories - List categories with hierarchy
 const getCategories = createHandler(
-  async (req: NextRequest) => {
+  async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasCategoryPermission(user.staffRole, 'read')) {
@@ -84,7 +84,10 @@ const getCategories = createHandler(
         ],
       });
 
-      return NextResponse.json({ categories });
+      const response = NextResponse.json({ categories });
+      // Cache for 5 minutes, revalidate in background for 10 minutes
+      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      return response;
     }
 
     // Return hierarchical structure
@@ -120,14 +123,17 @@ const getCategories = createHandler(
       orderBy: { name: 'asc' },
     });
 
-    return NextResponse.json({ categories });
+    const response = NextResponse.json({ categories });
+    // Cache for 5 minutes, revalidate in background for 10 minutes
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return response;
   },
   [withErrorHandling, withAuth]
 );
 
 // POST /api/newsroom/categories - Create a new category
 const createCategory = createHandler(
-  async (req: NextRequest) => {
+  async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     const data = (req as NextRequest & { validatedData: { name: string; parentId?: string; description?: string } }).validatedData;
 

@@ -6,11 +6,12 @@ import { put, del } from '@vercel/blob';
 
 // POST /api/newsroom/shows/[id]/cover - Upload cover image
 const uploadCover = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     const show = await prisma.show.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!show) {
@@ -66,7 +67,7 @@ const uploadCover = createHandler(
 
     // Update show with new cover image URL
     const updatedShow = await prisma.show.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         coverImage: blob.url,
       },
@@ -90,11 +91,12 @@ const uploadCover = createHandler(
 
 // DELETE /api/newsroom/shows/[id]/cover - Delete cover image
 const deleteCover = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     const show = await prisma.show.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!show) {
@@ -118,7 +120,7 @@ const deleteCover = createHandler(
 
     // Update show
     const updatedShow = await prisma.show.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         coverImage: null,
       },

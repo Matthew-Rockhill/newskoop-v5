@@ -17,7 +17,7 @@ import { logAudit } from '@/lib/audit';
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -31,7 +31,7 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const storyId = params.id;
+    const { id: storyId } = await params;
     const body = await req.json();
     const { type, assignedToId, note } = body;
 
@@ -113,8 +113,10 @@ export async function POST(
       await logAudit({
         userId: session.user.id,
         action: 'STORY_REASSIGNED',
-        resourceType: 'STORY',
-        resourceId: storyId,
+        targetType: 'STORY',
+        targetId: storyId,
+        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        userAgent: req.headers.get('user-agent') || 'unknown',
         details: {
           type: 'reviewer',
           previousReviewerId: story.assignedReviewerId,
@@ -154,8 +156,10 @@ export async function POST(
       await logAudit({
         userId: session.user.id,
         action: 'STORY_REASSIGNED',
-        resourceType: 'STORY',
-        resourceId: storyId,
+        targetType: 'STORY',
+        targetId: storyId,
+        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        userAgent: req.headers.get('user-agent') || 'unknown',
         details: {
           type: 'approver',
           previousApproverId: story.assignedApproverId,

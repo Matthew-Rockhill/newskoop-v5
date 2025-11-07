@@ -14,11 +14,12 @@ const episodeUpdateSchema = z.object({
 
 // GET /api/newsroom/shows/[id]/episodes/[episodeId] - Get a single episode
 const getEpisode = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string; episodeId: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id, episodeId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     const episode = await prisma.episode.findUnique({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
       include: {
         show: {
           include: {
@@ -47,7 +48,7 @@ const getEpisode = createHandler(
       return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
     }
 
-    if (episode.showId !== params.id) {
+    if (episode.showId !== id) {
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
@@ -58,7 +59,8 @@ const getEpisode = createHandler(
 
 // PATCH /api/newsroom/shows/[id]/episodes/[episodeId] - Update an episode
 const updateEpisode = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string; episodeId: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id, episodeId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canManageShows(user.staffRole as any)) {
@@ -66,14 +68,14 @@ const updateEpisode = createHandler(
     }
 
     const episode = await prisma.episode.findUnique({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
     });
 
     if (!episode) {
       return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
     }
 
-    if (episode.showId !== params.id) {
+    if (episode.showId !== id) {
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
@@ -93,7 +95,7 @@ const updateEpisode = createHandler(
 
     // Update episode
     const updatedEpisode = await prisma.episode.update({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
       data: {
         ...(data.title && { title: data.title }),
         ...(data.slug && { slug: data.slug }),
@@ -120,7 +122,8 @@ const updateEpisode = createHandler(
 
 // DELETE /api/newsroom/shows/[id]/episodes/[episodeId] - Delete an episode
 const deleteEpisode = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string; episodeId: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id, episodeId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canDeleteShow(user.staffRole as any)) {
@@ -128,20 +131,20 @@ const deleteEpisode = createHandler(
     }
 
     const episode = await prisma.episode.findUnique({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
     });
 
     if (!episode) {
       return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
     }
 
-    if (episode.showId !== params.id) {
+    if (episode.showId !== id) {
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
     // Delete episode (this will cascade delete audio clips)
     await prisma.episode.delete({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
     });
 
     return NextResponse.json({ message: 'Episode deleted successfully' });

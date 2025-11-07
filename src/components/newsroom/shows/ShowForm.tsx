@@ -24,7 +24,7 @@ type ShowFormData = z.infer<typeof showSchema>;
 
 interface ShowFormProps {
   show?: Show;
-  onSubmit: (data: CreateShowData | UpdateShowData) => void;
+  onSubmit: (data: CreateShowData | UpdateShowData) => void | Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
 }

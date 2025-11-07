@@ -278,7 +278,7 @@ export default function EpisodeDetailPage({
                     {updateEpisode.isPending ? 'Saving...' : 'Save Changes'}
                   </Button>
                   {episode.status === 'PUBLISHED' && canPublish && (
-                    <Button color="amber" onClick={handleUnpublish}>
+                    <Button color="red" onClick={handleUnpublish}>
                       Unpublish
                     </Button>
                   )}
@@ -374,7 +374,7 @@ export default function EpisodeDetailPage({
               {episode.audioClips.map((clip) => (
                 <div key={clip.id} className="space-y-2">
                   <CustomAudioPlayer
-                    clip={clip}
+                    clip={{ ...clip, duration: clip.duration ?? null }}
                     isPlaying={playingAudioId === clip.id}
                     currentTime={audioProgress[clip.id] || 0}
                     duration={audioDuration[clip.id] || 0}
@@ -399,7 +399,6 @@ export default function EpisodeDetailPage({
                     </div>
                     {canManage && (
                       <Button
-                        size="sm"
                         color="red"
                         onClick={() => handleAudioDelete(clip.id)}
                         disabled={deleteAudio.isPending}

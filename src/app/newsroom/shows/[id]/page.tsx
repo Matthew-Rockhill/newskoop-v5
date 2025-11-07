@@ -12,8 +12,8 @@ import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Dialog, DialogTitle, DialogDescription, DialogBody, DialogActions } from '@/components/ui/dialog';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
-import { useShow, useUpdateShow } from '@/hooks/use-shows';
-import { useEpisodes, useCreateEpisode, useDeleteEpisode, CreateEpisodeData } from '@/hooks/use-episodes';
+import { useShow, useUpdateShow, CreateEpisodeData } from '@/hooks/use-shows';
+import { useEpisodes, useCreateEpisode, useDeleteEpisode } from '@/hooks/use-episodes';
 import { canManageShows, canDeleteShow as canDeleteShowPerm } from '@/lib/permissions';
 import { PlusIcon, PencilIcon, TrashIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
@@ -228,7 +228,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                   <TableCell className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                     {canManage && (
-                      <Button size="sm" color="red" onClick={() => handleDeleteEpisode(episode.id)}>
+                      <Button color="red" onClick={() => handleDeleteEpisode(episode.id)}>
                         <TrashIcon className="w-4 h-4" />
                       </Button>
                     )}

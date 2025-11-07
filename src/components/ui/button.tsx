@@ -12,7 +12,7 @@ const styles = {
     // Sizing
     'px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)] sm:text-sm/6',
     // Focus
-    'focus:not-data-focus:outline-hidden data-focus:outline-2 data-focus:outline-offset-2 data-focus:outline-[#76BD43]',
+    'focus:not-data-focus:outline-hidden data-focus:outline-2 data-focus:outline-offset-2 data-focus:outline-kelly-green',
     // Disabled
     'data-disabled:opacity-50',
     // Icon
@@ -60,7 +60,7 @@ const styles = {
   ],
   colors: {
     primary: [
-      'text-white [--btn-hover-overlay:var(--color-white)]/10 [--btn-bg:#76BD43] [--btn-border:#76BD43]/90',
+      'text-white [--btn-hover-overlay:var(--color-white)]/10 [--btn-bg:var(--color-kelly-green)] [--btn-border:var(--color-kelly-green)]/90',
       '[--btn-icon:var(--color-white)]/60 data-active:[--btn-icon:var(--color-white)]/80 data-hover:[--btn-icon:var(--color-white)]/80',
     ],
     secondary: [

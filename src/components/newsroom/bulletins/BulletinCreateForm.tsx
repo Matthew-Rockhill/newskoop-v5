@@ -5,17 +5,26 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { StorySelector } from '@/components/newsroom/bulletins/StorySelector';
 import { StoryList } from '@/components/newsroom/bulletins/StoryList';
 import { BulletinPreview } from '@/components/newsroom/bulletins/BulletinPreview';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
+
+// Dynamically import RichTextEditor to reduce initial bundle size
+const RichTextEditor = dynamic(
+  () => import('@/components/ui/rich-text-editor').then(mod => ({ default: mod.RichTextEditor })),
+  {
+    loading: () => <div className="border border-gray-300 rounded-lg p-4 min-h-[200px] animate-pulse bg-gray-50">Loading editor...</div>,
+    ssr: false
+  }
+);
 
 const bulletinSchema = z.object({
   scheduleId: z.string().min(1, 'Please select a schedule'),

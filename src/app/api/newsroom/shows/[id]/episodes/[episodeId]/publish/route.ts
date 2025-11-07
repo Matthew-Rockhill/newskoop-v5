@@ -10,7 +10,8 @@ const publishSchema = z.object({
 
 // POST /api/newsroom/shows/[id]/episodes/[episodeId]/publish - Publish or schedule an episode
 const publishEpisode = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string; episodeId: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id, episodeId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canPublishEpisode(user.staffRole as any)) {
@@ -18,7 +19,7 @@ const publishEpisode = createHandler(
     }
 
     const episode = await prisma.episode.findUnique({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
       include: {
         audioClips: true,
       },
@@ -28,7 +29,7 @@ const publishEpisode = createHandler(
       return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
     }
 
-    if (episode.showId !== params.id) {
+    if (episode.showId !== id) {
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
@@ -48,7 +49,7 @@ const publishEpisode = createHandler(
 
     // Update episode
     const updatedEpisode = await prisma.episode.update({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
       data: {
         status: shouldPublishNow ? 'PUBLISHED' : 'DRAFT',
         publishedAt: shouldPublishNow ? now : null,
@@ -78,7 +79,8 @@ const publishEpisode = createHandler(
 
 // DELETE /api/newsroom/shows/[id]/episodes/[episodeId]/publish - Unpublish an episode
 const unpublishEpisode = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string; episodeId: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id, episodeId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canPublishEpisode(user.staffRole as any)) {
@@ -86,20 +88,20 @@ const unpublishEpisode = createHandler(
     }
 
     const episode = await prisma.episode.findUnique({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
     });
 
     if (!episode) {
       return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
     }
 
-    if (episode.showId !== params.id) {
+    if (episode.showId !== id) {
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
     // Update episode to draft
     const updatedEpisode = await prisma.episode.update({
-      where: { id: params.episodeId },
+      where: { id: episodeId },
       data: {
         status: 'DRAFT',
         publishedAt: null,

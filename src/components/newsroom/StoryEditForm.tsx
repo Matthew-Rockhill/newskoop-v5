@@ -7,6 +7,7 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { MusicalNoteIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { useQuery } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -16,7 +17,6 @@ import { Card } from '@/components/ui/card';
 import { Field, FieldGroup, Fieldset, Label, ErrorMessage } from '@/components/ui/fieldset';
 import { Heading } from '@/components/ui/heading';
 import { Divider } from '@/components/ui/divider';
-import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
@@ -25,6 +25,15 @@ import { ReviewerSelectionModal } from './ReviewerSelectionModal';
 import { RevisionRequestBanner } from '@/components/ui/revision-request-banner';
 import { ReviewStatusBanner } from '@/components/ui/review-status-banner';
 import { StageProgress } from '@/components/ui/stage-progress';
+
+// Dynamically import RichTextEditor to reduce initial bundle size
+const RichTextEditor = dynamic(
+  () => import('@/components/ui/rich-text-editor').then(mod => ({ default: mod.RichTextEditor })),
+  {
+    loading: () => <div className="border border-gray-300 rounded-lg p-4 min-h-[200px] animate-pulse bg-gray-50">Loading editor...</div>,
+    ssr: false
+  }
+);
 import {
   canApproveStory,
   canPublishStory,

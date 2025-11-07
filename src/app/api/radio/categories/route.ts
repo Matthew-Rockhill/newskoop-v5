@@ -103,31 +103,31 @@ export async function GET(req: NextRequest) {
       return indexA - indexB;
     });
 
-    // Get story counts for each category
+    // Fetch language and religion tags once (outside the loop)
+    const [languageTags, religionTags] = await Promise.all([
+      prisma.tag.findMany({
+        where: {
+          category: 'LANGUAGE',
+          name: {
+            in: station?.allowedLanguages || [],
+          },
+        },
+        select: { id: true },
+      }),
+      prisma.tag.findMany({
+        where: {
+          category: 'RELIGION',
+          name: {
+            in: station?.allowedReligions || [],
+          },
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    // Get story counts for each category in parallel
     const categoriesWithCounts = await Promise.all(
       sortedCategories.map(async (category) => {
-        // Get language tags that match station's allowed languages
-        const languageTags = await prisma.tag.findMany({
-          where: {
-            category: 'LANGUAGE',
-            name: {
-              in: station?.allowedLanguages || [],
-            },
-          },
-          select: { id: true },
-        });
-
-        // Get religion tags that match station's allowed religions  
-        const religionTags = await prisma.tag.findMany({
-          where: {
-            category: 'RELIGION',
-            name: {
-              in: station?.allowedReligions || [],
-            },
-          },
-          select: { id: true },
-        });
-
         // Count stories in this category AND all child categories
         // Build category IDs to include parent and all children
         const categoryIds = [category.id];
@@ -173,13 +173,23 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    return NextResponse.json({
+    const responseData = {
       categories: categoriesWithCounts,
       station: {
         name: station?.name || 'Unknown',
         allowedLanguages: station?.allowedLanguages || [],
         allowedReligions: station?.allowedReligions || [],
         blockedCategories: station?.blockedCategories || [],
+      },
+    };
+
+    // Return with cache headers for better performance
+    return new Response(JSON.stringify(responseData), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        // Cache for 2 minutes, revalidate in background for 5 minutes
+        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
       },
     });
 

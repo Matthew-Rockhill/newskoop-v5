@@ -24,7 +24,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             {...props}
             className={`col-start-1 row-start-1 w-full appearance-none rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 shadow-sm ring-1 ring-inset ${
-              invalid || error ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 focus:ring-[#76BD43]'
+              invalid || error ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 focus:ring-kelly-green'
             } focus:ring-2 focus:ring-inset sm:text-sm/6 ${className}`}
           >
             {/* Render children if provided, otherwise use options */}

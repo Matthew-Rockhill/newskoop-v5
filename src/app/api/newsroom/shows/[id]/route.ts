@@ -16,7 +16,8 @@ const showUpdateSchema = z.object({
 
 // GET /api/newsroom/shows/[id] - Get a single show
 const getShow = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!hasShowPermission(user.staffRole as any, 'read')) {
@@ -24,7 +25,7 @@ const getShow = createHandler(
     }
 
     const show = await prisma.show.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         category: true,
         tags: {
@@ -69,11 +70,12 @@ const getShow = createHandler(
 
 // PATCH /api/newsroom/shows/[id] - Update a show
 const updateShow = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     const show = await prisma.show.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!show) {
@@ -100,7 +102,7 @@ const updateShow = createHandler(
 
     // Update show
     const updatedShow = await prisma.show.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(data.title && { title: data.title }),
         ...(data.slug && { slug: data.slug }),
@@ -142,7 +144,8 @@ const updateShow = createHandler(
 
 // DELETE /api/newsroom/shows/[id] - Delete a show
 const deleteShow = createHandler(
-  async (req: NextRequest, { params }: { params: { id: string } }) => {
+  async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canDeleteShow(user.staffRole as any)) {
@@ -150,7 +153,7 @@ const deleteShow = createHandler(
     }
 
     const show = await prisma.show.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         _count: {
           select: {
@@ -166,7 +169,7 @@ const deleteShow = createHandler(
 
     // Soft delete by setting isActive to false
     await prisma.show.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { isActive: false },
     });
 
