@@ -46,5 +46,13 @@ next-env.d.ts
 
 /src/generated/prisma
 
-# Claude Code
-.claude/
+# Claude Code - build reports and temp files
+.claude/BUILD_REPORT.md
+.claude/TEACHING_REPORT.md
+.claude/build-output.txt
+
+# But keep the configuration files
+!.claude/subagents/
+!.claude/build-patterns.json
+!.claude/build-errors.json
+!.claude/coding-insights.json
