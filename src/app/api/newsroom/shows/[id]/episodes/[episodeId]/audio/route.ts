@@ -63,7 +63,7 @@ const uploadAudio = createHandler(
     }
 
     // Calculate total duration if we have audio clips
-    const totalDuration = audioClips.reduce((sum, clip) => sum + (clip.duration || 0), 0);
+    const totalDuration = audioClips.reduce((sum, clip) => sum + (clip.duration ?? 0), 0);
 
     // Update episode duration
     if (totalDuration > 0) {
@@ -140,11 +140,11 @@ const deleteAudio = createHandler(
       where: { episodeId: episodeId },
     });
 
-    const totalDuration = remainingClips.reduce((sum, clip) => sum + (clip.duration || 0), 0);
+    const totalDuration = remainingClips.reduce((sum, clip) => sum + (clip.duration ?? 0), 0);
 
     await prisma.episode.update({
       where: { id: episodeId },
-      data: { duration: totalDuration || null },
+      data: { duration: totalDuration > 0 ? totalDuration : null },
     });
 
     // Fetch the complete updated episode with remaining audio clips

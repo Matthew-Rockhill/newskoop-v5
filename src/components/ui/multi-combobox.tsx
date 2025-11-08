@@ -6,6 +6,20 @@ import { useState } from 'react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Badge } from './badge'
 
+type MultiComboboxProps<T extends { id: string; name: string }> = {
+  options: T[]
+  value?: string[]
+  onChange: (value: string[]) => void
+  displayValue: (value: T | null) => string | undefined
+  filter?: (value: T, query: string) => boolean
+  className?: string
+  placeholder?: string
+  autoFocus?: boolean
+  'aria-label'?: string
+  children: (value: NonNullable<T>) => React.ReactElement
+  anchor?: 'top' | 'bottom'
+}
+
 export function MultiCombobox<T extends { id: string; name: string }>({
   options,
   value = [],
@@ -18,19 +32,7 @@ export function MultiCombobox<T extends { id: string; name: string }>({
   autoFocus,
   'aria-label': ariaLabel,
   children,
-  ...props
-}: {
-  options: T[]
-  value?: string[]
-  onChange: (value: string[]) => void
-  displayValue: (value: T | null) => string | undefined
-  filter?: (value: T, query: string) => boolean
-  className?: string
-  placeholder?: string
-  autoFocus?: boolean
-  'aria-label'?: string
-  children: (value: NonNullable<T>) => React.ReactElement
-} & Omit<Headless.ComboboxProps<string[], T, true>, 'as' | 'multiple' | 'children' | 'value' | 'onChange'> & { anchor?: 'top' | 'bottom' }) {
+}: MultiComboboxProps<T>) {
   const [query, setQuery] = useState('')
 
   // Get selected items
@@ -73,10 +75,9 @@ export function MultiCombobox<T extends { id: string; name: string }>({
       <Headless.Combobox
         value={value}
         onChange={onChange}
-        multiple={true}
-        virtual={{ options: filteredOptions }}
+        multiple
+        virtual={{ options: filteredOptions as any }}
         onClose={() => setQuery('')}
-        {...props}
       >
         <span
           data-slot="control"

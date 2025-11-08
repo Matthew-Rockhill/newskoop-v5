@@ -6,7 +6,6 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { Tag } from "@prisma/client";
 
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -20,7 +19,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 import { TrashIcon } from '@heroicons/react/24/outline';
-import { useTags, useUpdateTag, useDeleteTag } from "@/hooks/use-tags";
+import { useTags, useUpdateTag, useDeleteTag, type Tag } from "@/hooks/use-tags";
 import { useSession } from "next-auth/react";
 
 const tagSchema = z.object({

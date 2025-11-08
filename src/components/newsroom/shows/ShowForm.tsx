@@ -13,11 +13,12 @@ import { MultiCombobox, MultiComboboxOption, MultiComboboxLabel } from '@/compon
 import { useTags } from '@/hooks/use-tags';
 import { Show, CreateShowData, UpdateShowData } from '@/hooks/use-shows';
 
+// Schema for form validation - defaults are handled by useForm's defaultValues
 const showSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   tagIds: z.array(z.string()).optional(),
-  isPublished: z.boolean().default(false),
+  isPublished: z.boolean(),
 });
 
 type ShowFormData = z.infer<typeof showSchema>;
@@ -41,14 +42,14 @@ export function ShowForm({ show, onSubmit, onCancel, isSubmitting = false }: Sho
   } = useForm<ShowFormData>({
     resolver: zodResolver(showSchema),
     defaultValues: {
-      title: show?.title || '',
-      description: show?.description || '',
-      tagIds: show?.tags?.map(t => t.tag.id) || [],
-      isPublished: show?.isPublished || false,
+      title: show?.title ?? '',
+      description: show?.description ?? '',
+      tagIds: show?.tags?.map(t => t.tag.id) ?? [],
+      isPublished: show?.isPublished ?? false,
     },
   });
 
-  const selectedTagIds = watch('tagIds') || [];
+  const selectedTagIds = watch('tagIds') ?? [];
   const isPublished = watch('isPublished');
 
   return (
@@ -79,7 +80,7 @@ export function ShowForm({ show, onSubmit, onCancel, isSubmitting = false }: Sho
               At least one language is required for the show to appear on radio stations.
             </Description>
             <MultiCombobox
-              options={tagsData?.tags || []}
+              options={tagsData?.tags ?? []}
               value={selectedTagIds}
               onChange={(tagIds) => setValue('tagIds', tagIds)}
               displayValue={(tag) => tag?.name}

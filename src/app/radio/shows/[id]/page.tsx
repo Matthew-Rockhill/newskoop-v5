@@ -17,13 +17,14 @@ import {
 } from '@heroicons/react/24/outline';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 
+// AudioClip type aligned with Prisma schema
 interface AudioClip {
   id: string;
   filename: string;
   originalName: string;
   url: string;
-  duration?: number;
-  fileSize?: number;
+  duration: number | null;
+  fileSize: number | null;
   mimeType: string;
 }
 
@@ -371,15 +372,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                                   {(isCurrentClip || (!playingAudioId && index === 0) || (!currentEpisodeId && index === 0)) && (
                                     <CustomAudioPlayer
                                       clip={clip}
-                                      isPlaying={isPlaying}
-                                      currentTime={audioProgress[clip.id] || 0}
-                                      duration={audioDuration[clip.id] || 0}
                                       onPlay={() => handleAudioPlay(clip.id, episode.id, index)}
-                                      onStop={handleAudioStop}
-                                      onRestart={() => handleAudioRestart(clip.id)}
-                                      onSeek={(time) => handleAudioSeek(clip.id, time)}
-                                      onTimeUpdate={(time) => handleAudioTimeUpdate(clip.id, time)}
-                                      onLoadedMetadata={(duration) => handleAudioLoadedMetadata(clip.id, duration)}
                                       onEnded={() => handleAudioEnded(episode, index)}
                                       onError={() => {
                                         setPlayingAudioId(null);

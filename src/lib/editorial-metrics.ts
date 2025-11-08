@@ -28,7 +28,7 @@ export interface StoryQueueItem {
   id: string;
   title: string;
   slug: string;
-  stage: StoryStage;
+  stage: StoryStage | null;
   authorId: string;
   authorName: string;
   assignedToId: string | null;
@@ -501,7 +501,7 @@ export interface TimeSensitiveStory {
   id: string;
   title: string;
   slug: string;
-  stage: StoryStage;
+  stage: StoryStage | null;
   authorName: string;
   followUpDate: Date | null;
   scheduledPublishAt: Date | null;

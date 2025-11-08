@@ -50,7 +50,7 @@ export interface Episode {
   content?: string;
   coverImage?: string;
   status: EpisodeStatus;
-  duration?: number;
+  duration: number | null;
   scheduledPublishAt?: string;
   publishedAt?: string;
   createdAt: string;
@@ -61,7 +61,7 @@ export interface Episode {
     filename: string;
     originalName: string;
     url: string;
-    duration?: number;
+    duration: number | null;
     fileSize?: number;
     mimeType: string;
     createdAt: string;

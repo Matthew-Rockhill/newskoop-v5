@@ -93,7 +93,7 @@ export function TimeSensitiveContent({
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                           <span className="px-2 py-1 bg-white text-gray-700 rounded text-xs font-medium">
-                            {STAGE_LABELS[story.stage] || story.stage}
+                            {story.stage ? (STAGE_LABELS[story.stage] || story.stage) : 'Unknown'}
                           </span>
 
                           <div className="flex items-center gap-1 text-gray-600">
@@ -161,7 +161,7 @@ export function TimeSensitiveContent({
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                           <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                            {STAGE_LABELS[story.stage] || story.stage}
+                            {story.stage ? (STAGE_LABELS[story.stage] || story.stage) : 'Unknown'}
                           </span>
 
                           <div className="flex items-center gap-1 text-gray-600">

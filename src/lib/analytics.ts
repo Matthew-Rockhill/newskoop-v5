@@ -45,7 +45,7 @@ export async function trackContentView(params: TrackViewParams): Promise<void> {
         stationId: params.stationId,
         language: params.language,
         category: params.category,
-        ipAddress: anonymizeIP(params.ipAddress),
+        ipAddress: anonymizeIP(params.ipAddress ?? null),
         userAgent: params.userAgent,
       },
     });
@@ -174,19 +174,25 @@ export async function getTimeSeriesData(params: {
   if (stationId) where.stationId = stationId;
   if (contentType) where.contentType = contentType;
 
+  // Build WHERE clauses
+  const stationClause = stationId ? `AND "stationId" = '${stationId}'` : '';
+  const contentTypeClause = contentType ? `AND "contentType" = '${contentType}'` : '';
+
   // Group by date (day)
-  const views = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-    SELECT
+  const views = await prisma.$queryRawUnsafe<Array<{ date: Date; count: bigint }>>(
+    `SELECT
       DATE_TRUNC('day', "viewedAt") as date,
       COUNT(*)::int as count
     FROM "ContentView"
-    WHERE "viewedAt" >= ${startDate}
-      AND "viewedAt" <= ${endDate}
-      ${stationId ? prisma.$queryRawUnsafe`AND "stationId" = '${stationId}'` : prisma.$queryRawUnsafe``}
-      ${contentType ? prisma.$queryRawUnsafe`AND "contentType" = '${contentType}'` : prisma.$queryRawUnsafe``}
+    WHERE "viewedAt" >= $1
+      AND "viewedAt" <= $2
+      ${stationClause}
+      ${contentTypeClause}
     GROUP BY DATE_TRUNC('day', "viewedAt")
-    ORDER BY date ASC
-  `;
+    ORDER BY date ASC`,
+    startDate,
+    endDate
+  );
 
   return views.map(v => ({
     date: v.date,
@@ -537,13 +543,13 @@ export async function aggregateDailyViews(date: Date) {
           contentId: data.contentId,
           periodType: 'DAILY',
           date: startOfDate,
-          stationId: data.stationId,
+          stationId: data.stationId ?? '',
         },
       },
       create: {
         contentType: data.contentType,
         contentId: data.contentId,
-        stationId: data.stationId,
+        stationId: data.stationId ?? '',
         periodType: 'DAILY',
         date: startOfDate,
         viewCount: data.viewCount,

@@ -85,7 +85,6 @@ export function ShowList({ shows, onEdit, onDelete, canEdit = true, canDelete = 
             <TableCell className="px-4 py-3">
             <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
               <Button
-                size="sm"
                 color="white"
                 onClick={() => router.push(`/newsroom/shows/${show.id}`)}
               >
@@ -93,7 +92,6 @@ export function ShowList({ shows, onEdit, onDelete, canEdit = true, canDelete = 
               </Button>
               {canEdit && onEdit && (
                 <Button
-                  size="sm"
                   color="white"
                   onClick={() => onEdit(show)}
                 >
@@ -102,7 +100,6 @@ export function ShowList({ shows, onEdit, onDelete, canEdit = true, canDelete = 
               )}
               {canDelete && onDelete && (
                 <Button
-                  size="sm"
                   color="red"
                   onClick={() => onDelete(show)}
                 >

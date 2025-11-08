@@ -5,21 +5,21 @@ import { hasShowPermission, canManageShows } from '@/lib/permissions';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
-// Show search schema
+// Show search schema - validation only, defaults handled in code
 const showSearchSchema = z.object({
   query: z.string().optional(),
   isPublished: z.boolean().optional(),
   tagIds: z.array(z.string()).optional(),
-  page: z.number().int().min(1).default(1),
-  perPage: z.number().int().min(1).max(100).default(10),
+  page: z.number().int().min(1).optional(),
+  perPage: z.number().int().min(1).max(100).optional(),
 });
 
-// Show create/update schema
+// Show create/update schema - validation only, defaults handled in code
 const showSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   tagIds: z.array(z.string()).optional(),
-  isPublished: z.boolean().default(false),
+  isPublished: z.boolean(),
   coverImage: z.string().optional(),
 });
 
@@ -35,19 +35,20 @@ const getShows = createHandler(
     const url = new URL(req.url);
     const searchParams = Object.fromEntries(url.searchParams);
 
-    const {
-      query,
-      isPublished,
-      tagIds,
-      page,
-      perPage
-    } = showSearchSchema.parse({
+    const validated = showSearchSchema.parse({
       ...searchParams,
-      page: searchParams.page ? Number(searchParams.page) : 1,
-      perPage: searchParams.perPage ? Number(searchParams.perPage) : 10,
+      page: searchParams.page ? Number(searchParams.page) : undefined,
+      perPage: searchParams.perPage ? Number(searchParams.perPage) : undefined,
       isPublished: searchParams.isPublished === 'true' ? true : searchParams.isPublished === 'false' ? false : undefined,
       tagIds: searchParams.tagIds ? searchParams.tagIds.split(',') : undefined,
     });
+
+    // Apply defaults using ?? operator
+    const query = validated.query;
+    const isPublished = validated.isPublished;
+    const tagIds = validated.tagIds;
+    const page = validated.page ?? 1;
+    const perPage = validated.perPage ?? 10;
 
     // Build where clause
     const where: Prisma.ShowWhereInput = {

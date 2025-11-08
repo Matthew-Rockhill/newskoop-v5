@@ -47,11 +47,11 @@ export interface TagFilters {
 
 // Fetch tags
 export function useTags(query?: string, category?: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL', page?: number, perPage?: number) {
-  return useQuery({
+  return useQuery<{ tags: Tag[]; total: number; page: number; perPage: number }>({
     queryKey: ['tags', { query, category, page, perPage }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      
+
       if (query) params.set('query', query);
       if (category) params.set('category', category);
       if (page) params.set('page', String(page));

@@ -246,7 +246,7 @@ export default function TagsPage() {
                       {tag._count?.stories || 0} stories
                     </div>
                             <div className="flex items-center gap-1">
-                              <span>Created {formatDate(typeof tag.createdAt === 'string' ? tag.createdAt : tag.createdAt.toISOString())}</span>
+                              <span>Created {formatDate(tag.createdAt)}</span>
                             </div>
                           </div>
                         </div>
