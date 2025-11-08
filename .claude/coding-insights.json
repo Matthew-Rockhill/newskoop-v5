@@ -1,0 +1,319 @@
+{
+  "version": "1.1.0",
+  "description": "Learning database to track Claude's coding patterns and improvements",
+  "lastUpdated": "2025-11-08T00:00:00Z",
+  "commonMistakes": {
+    "asyncParamsHandling": {
+      "pattern": "Not awaiting params in Next.js 15 API routes",
+      "occurrences": 15,
+      "firstSeen": "2025-11-08T00:00:00Z",
+      "lastSeen": "2025-11-08T00:00:00Z",
+      "severity": "high",
+      "correctPattern": "Always await params Promise in Next.js 15 route handlers",
+      "memoryAid": "Next.js 15: params is Promise<Record<string, string>>, must await it",
+      "examples": [
+        {
+          "wrong": "async (req, { params }: { params: { id: string } }) => { use params.id }",
+          "correct": "async (req, { params }: { params: Promise<Record<string, string>> }) => { const { id } = await params; }",
+          "context": "Next.js 15 API route handlers"
+        }
+      ],
+      "relatedFiles": [
+        "src/app/api/newsroom/shows/[id]/route.ts",
+        "src/app/api/newsroom/shows/[id]/episodes/route.ts",
+        "src/app/api/newsroom/shows/[id]/episodes/[episodeId]/route.ts",
+        "src/app/api/radio/shows/[id]/route.ts",
+        "src/app/api/radio/shows/[id]/episodes/route.ts"
+      ]
+    },
+    "nullVsUndefined": {
+      "pattern": "Using null for optional values instead of undefined",
+      "occurrences": 2,
+      "firstSeen": "2025-11-08T00:00:00Z",
+      "lastSeen": "2025-11-08T00:00:00Z",
+      "severity": "medium",
+      "correctPattern": "Use undefined for truly optional values, null for explicit absence",
+      "memoryAid": "undefined = not provided, null = explicitly no value, choose based on context",
+      "examples": [
+        {
+          "wrong": "let stationId = null; stationId = user?.radioStationId || null;",
+          "correct": "let stationId: string | undefined = undefined; stationId = user?.radioStationId || undefined;",
+          "context": "Optional values that may not exist"
+        }
+      ],
+      "relatedFiles": [
+        "src/app/api/analytics/track/route.ts"
+      ]
+    },
+    "hardcodedColors": {
+      "pattern": "Hardcoded hex colors instead of Tailwind CSS variables",
+      "occurrences": 5,
+      "firstSeen": "2025-11-08T00:00:00Z",
+      "lastSeen": "2025-11-08T00:00:00Z",
+      "severity": "low",
+      "correctPattern": "Use Tailwind CSS color variables for consistency",
+      "memoryAid": "Replace #76BD43 with var(--color-kelly-green) for theme consistency",
+      "examples": [
+        {
+          "wrong": "[--btn-bg:#76BD43]",
+          "correct": "[--btn-bg:var(--color-kelly-green)]",
+          "context": "UI component styling"
+        }
+      ],
+      "relatedFiles": [
+        "src/components/ui/button.tsx",
+        "src/components/ui/input.tsx",
+        "src/components/ui/select.tsx",
+        "src/components/ui/textarea.tsx",
+        "src/components/ui/file-upload.tsx"
+      ]
+    },
+    "invalidComponentProps": {
+      "pattern": "Using non-existent props on custom components",
+      "occurrences": 1,
+      "firstSeen": "2025-11-08T00:00:00Z",
+      "lastSeen": "2025-11-08T00:00:00Z",
+      "severity": "low",
+      "correctPattern": "Check component prop types before using",
+      "memoryAid": "Button component doesn't have size prop in this codebase",
+      "examples": [
+        {
+          "wrong": "<Button size=\"sm\">",
+          "correct": "<Button>",
+          "context": "Custom Button component usage"
+        }
+      ],
+      "relatedFiles": [
+        "src/components/newsroom/shows/ShowForm.tsx"
+      ]
+    },
+    "wrongAuditLogFields": {
+      "pattern": "Using deprecated audit log field names",
+      "occurrences": 3,
+      "firstSeen": "2025-11-08T00:00:00Z",
+      "lastSeen": "2025-11-08T00:00:00Z",
+      "severity": "medium",
+      "correctPattern": "Use targetType and targetId instead of resourceType and resourceId",
+      "memoryAid": "Audit log schema uses targetType/targetId, not resourceType/resourceId",
+      "examples": [
+        {
+          "wrong": "resourceType: 'TAG', resourceId: tag.id",
+          "correct": "targetType: 'TAG', targetId: tag.id",
+          "context": "Creating audit log entries"
+        }
+      ],
+      "relatedFiles": [
+        "src/app/api/newsroom/tags/route.ts",
+        "src/app/api/newsroom/categories/route.ts"
+      ]
+    },
+    "responseTypeInconsistency": {
+      "pattern": "Using Response instead of NextResponse in API routes",
+      "occurrences": 2,
+      "firstSeen": "2025-11-08T00:00:00Z",
+      "lastSeen": "2025-11-08T00:00:00Z",
+      "severity": "low",
+      "correctPattern": "Always use NextResponse for consistency and better TypeScript support",
+      "memoryAid": "NextResponse provides better type safety and header management",
+      "examples": [
+        {
+          "wrong": "return Response.json(data);",
+          "correct": "return NextResponse.json(data);",
+          "context": "API route return statements"
+        }
+      ],
+      "relatedFiles": [
+        "src/app/api/newsroom/categories/route.ts",
+        "src/app/api/newsroom/tags/route.ts"
+      ]
+    },
+    "nullableTypeHandling": {
+      "pattern": "duration?: number instead of duration: number | null",
+      "occurrences": 0,
+      "firstSeen": null,
+      "lastSeen": null,
+      "severity": "high",
+      "correctPattern": "Always use Type | null for Prisma nullable fields (Int?, String?)",
+      "memoryAid": "Prisma Int? = number | null (never undefined)",
+      "examples": [
+        {
+          "wrong": "duration?: number;",
+          "correct": "duration: number | null;",
+          "context": "Interface matching Prisma schema"
+        }
+      ],
+      "relatedFiles": []
+    },
+    "booleanDefaultOperator": {
+      "pattern": "Using || instead of ?? for boolean defaults",
+      "occurrences": 0,
+      "firstSeen": null,
+      "lastSeen": null,
+      "severity": "medium",
+      "correctPattern": "Use ?? for nullish coalescing with booleans/nullables",
+      "memoryAid": "?? for nullish (null/undefined), || for falsy (includes false/0/'')",
+      "examples": [
+        {
+          "wrong": "isPublished: data?.isPublished || false",
+          "correct": "isPublished: data?.isPublished ?? false",
+          "context": "React Hook Form defaultValues"
+        }
+      ],
+      "relatedFiles": []
+    },
+    "zodDefaultInApiSchemas": {
+      "pattern": "Using .default() in Zod schemas for API routes",
+      "occurrences": 0,
+      "firstSeen": null,
+      "lastSeen": null,
+      "severity": "low",
+      "correctPattern": "Move defaults to handler code, keep schemas for validation only",
+      "memoryAid": "Validation in schema, defaults in code",
+      "examples": [
+        {
+          "wrong": "page: z.number().default(1)",
+          "correct": "page: z.number().optional()\n// In handler:\nconst page = validated.page ?? 1;",
+          "context": "API route query param schemas"
+        }
+      ],
+      "relatedFiles": []
+    },
+    "prismaTypeImports": {
+      "pattern": "Importing Prisma types in client components",
+      "occurrences": 0,
+      "firstSeen": null,
+      "lastSeen": null,
+      "severity": "medium",
+      "correctPattern": "Import serialized types from hooks in components",
+      "memoryAid": "Hooks serialize (Date → string), use hook types in components",
+      "examples": [
+        {
+          "wrong": "import { Tag } from '@prisma/client'",
+          "correct": "import { type Tag } from '@/hooks/use-tags'",
+          "context": "Client component imports"
+        }
+      ],
+      "relatedFiles": []
+    },
+    "missingNullChecks": {
+      "pattern": "Using nullable value as index without null check",
+      "occurrences": 0,
+      "firstSeen": null,
+      "lastSeen": null,
+      "severity": "high",
+      "correctPattern": "Always check for null before using as index",
+      "memoryAid": "field ? LABELS[field] : 'default'",
+      "examples": [
+        {
+          "wrong": "STAGE_LABELS[story.stage]",
+          "correct": "story.stage ? STAGE_LABELS[story.stage] : 'Unknown'",
+          "context": "Index access on nullable field"
+        }
+      ],
+      "relatedFiles": []
+    }
+  },
+  "improvements": {
+    "learned": [
+      {
+        "pattern": "Dynamic imports for code splitting",
+        "description": "Using Next.js dynamic imports to reduce initial bundle size",
+        "dateImplemented": "2025-11-08T00:00:00Z",
+        "examples": [
+          {
+            "file": "src/components/newsroom/StoryCreateForm.tsx",
+            "implementation": "Dynamic import of RichTextEditor with loading state"
+          }
+        ]
+      },
+      {
+        "pattern": "Parallel database queries",
+        "description": "Using Promise.all to fetch count and data simultaneously",
+        "dateImplemented": "2025-11-08T00:00:00Z",
+        "examples": [
+          {
+            "file": "src/app/api/newsroom/tags/route.ts",
+            "implementation": "const [total, tags] = await Promise.all([prisma.tag.count(), prisma.tag.findMany()])"
+          }
+        ]
+      },
+      {
+        "pattern": "HTTP caching headers",
+        "description": "Adding Cache-Control headers for better performance",
+        "dateImplemented": "2025-11-08T00:00:00Z",
+        "examples": [
+          {
+            "file": "src/app/api/newsroom/tags/route.ts",
+            "implementation": "response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')"
+          }
+        ]
+      },
+      {
+        "pattern": "React Query optimizations",
+        "description": "Improved staleTime, gcTime, and refetch strategies",
+        "dateImplemented": "2025-11-08T00:00:00Z",
+        "examples": [
+          {
+            "file": "src/components/providers/QueryProvider.tsx",
+            "implementation": "Increased staleTime to 5 minutes, added gcTime, disabled window focus refetch"
+          }
+        ]
+      }
+    ]
+  },
+  "trends": {
+    "improving": [
+      "Bundle size optimization via dynamic imports",
+      "Database query performance via parallel fetching",
+      "API response caching strategy"
+    ],
+    "regressing": [],
+    "stable": [
+      "Form validation patterns",
+      "Type safety with Prisma"
+    ]
+  },
+  "preFlight Checklist": {
+    "beforeNextJs15ApiRoutes": [
+      "Params type is Promise<Record<string, string>>",
+      "Must await params before accessing properties",
+      "Use NextResponse, not Response",
+      "Add proper caching headers for GET routes"
+    ],
+    "beforeForms": [
+      "Use z.infer<typeof schema> for types",
+      "Put defaults in useForm({ defaultValues }), NOT Zod schema",
+      "Use ?? for boolean/nullable defaults",
+      "Schema validates, code provides defaults"
+    ],
+    "beforeInterfaces": [
+      "Check Prisma schema first",
+      "Nullable fields are Type | null, never Type | undefined",
+      "Use hook types in components, Prisma types only in API routes",
+      "Remember hooks serialize Date → string"
+    ],
+    "beforeNullableLogic": [
+      "Add null check before index access",
+      "Use ?? not || for null handling",
+      "Use optional chaining: obj?.field ?? default"
+    ],
+    "beforeUiComponents": [
+      "Check component prop types in definition",
+      "Use Tailwind CSS variables, not hardcoded hex colors",
+      "Use var(--color-kelly-green) instead of #76BD43",
+      "Consider dynamic imports for large components"
+    ],
+    "beforeAuditLogs": [
+      "Use targetType and targetId (not resourceType/resourceId)",
+      "Include userId and action",
+      "Add metadata for important context"
+    ]
+  },
+  "statistics": {
+    "totalBuilds": 1,
+    "totalErrorsFixed": 28,
+    "averageErrorsPerBuild": 28,
+    "mostCommonError": "asyncParamsHandling",
+    "improvementRate": "100%"
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "version": "1.0.0",
+  "description": "Common build error patterns and their automated fixes",
+  "patterns": {
+    "orToNullishCoalescing": {
+      "name": "|| operator to ?? nullish coalescing",
+      "category": "anti-pattern",
+      "severity": "medium",
+      "autoFixable": true,
+      "detection": {
+        "regex": "\\|\\|\\s*(false|0|''|\\[\\]|null|undefined)",
+        "contexts": ["defaultValues", "fallback values", "optional props"]
+      },
+      "fix": {
+        "find": "||",
+        "replace": "??",
+        "conditions": ["Working with booleans", "Working with nullable types", "React Hook Form defaultValues"]
+      },
+      "examples": [
+        {
+          "before": "isPublished: show?.isPublished || false",
+          "after": "isPublished: show?.isPublished ?? false",
+          "reason": "|| treats false as falsy and returns the default, ?? only checks null/undefined"
+        },
+        {
+          "before": "tagIds: show?.tags?.map(t => t.id) || []",
+          "after": "tagIds: show?.tags?.map(t => t.id) ?? []",
+          "reason": "Safer null handling, empty array is truthy"
+        }
+      ]
+    },
+    "durationTypeMismatch": {
+      "name": "Duration type mismatch (undefined vs null)",
+      "category": "typescript",
+      "severity": "high",
+      "autoFixable": true,
+      "detection": {
+        "regex": "duration\\?:\\s*number",
+        "filePatterns": ["**/*.ts", "**/*.tsx"],
+        "excludePatterns": ["**/node_modules/**"]
+      },
+      "fix": {
+        "find": "duration?: number",
+        "replace": "duration: number | null",
+        "reason": "Prisma returns null for nullable fields, not undefined"
+      },
+      "relatedFields": ["fileSize", "coverImage", "publishedAt"],
+      "examples": [
+        {
+          "before": "duration?: number;",
+          "after": "duration: number | null;",
+          "reason": "Aligns with Prisma schema Int? type which maps to number | null"
+        }
+      ]
+    },
+    "zodDefaultInSchema": {
+      "name": ".default() in Zod API schemas",
+      "category": "anti-pattern",
+      "severity": "medium",
+      "autoFixable": true,
+      "detection": {
+        "regex": "\\.default\\([^)]+\\)",
+        "filePatterns": ["**/api/**/*.ts"],
+        "contexts": ["API routes", "Server-side validation"]
+      },
+      "fix": {
+        "action": "remove",
+        "explanation": "Move defaults to handler code with ?? operator",
+        "steps": [
+          "Remove .default() from schema",
+          "Make field optional()",
+          "Apply default in handler: field ?? defaultValue"
+        ]
+      },
+      "exceptions": ["Form validation schemas in components"],
+      "examples": [
+        {
+          "before": "page: z.number().int().min(1).default(1)",
+          "after": "page: z.number().int().min(1).optional()\n// In handler:\nconst page = validated.page ?? 1;",
+          "reason": "Separates validation from business logic"
+        }
+      ]
+    },
+    "prismaTypeImport": {
+      "name": "Importing Prisma types in components",
+      "category": "architecture",
+      "severity": "low",
+      "autoFixable": true,
+      "detection": {
+        "regex": "import.*\\{.*Tag.*\\}.*from.*['\"]@prisma/client['\"]",
+        "filePatterns": ["**/components/**/*.tsx", "**/app/**/*.tsx"]
+      },
+      "fix": {
+        "steps": [
+          "Remove Prisma import",
+          "Import from hook instead: import { type Tag } from '@/hooks/use-tags'"
+        ]
+      },
+      "reason": "Components should use serialized types from hooks, not Prisma types (Date vs string)",
+      "examples": [
+        {
+          "before": "import { Tag } from '@prisma/client'",
+          "after": "import { type Tag } from '@/hooks/use-tags'",
+          "reason": "Hook types are already serialized (Date → string) for client components"
+        }
+      ]
+    },
+    "missingNullCheck": {
+      "name": "Index access on nullable type",
+      "category": "typescript",
+      "severity": "high",
+      "autoFixable": true,
+      "detection": {
+        "error": "Type 'null' cannot be used as an index type",
+        "pattern": "LABELS\\[obj\\.field\\]"
+      },
+      "fix": {
+        "template": "obj.field ? LABELS[obj.field] : 'Default'",
+        "alternatives": [
+          "obj.field && LABELS[obj.field]",
+          "LABELS[obj.field ?? 'DEFAULT_KEY']"
+        ]
+      },
+      "examples": [
+        {
+          "before": "STAGE_LABELS[story.stage]",
+          "after": "story.stage ? STAGE_LABELS[story.stage] : 'Unknown'",
+          "reason": "story.stage can be null, must check before using as index"
+        }
+      ]
+    },
+    "buttonSizeProp": {
+      "name": "Invalid Button size prop",
+      "category": "component-api",
+      "severity": "low",
+      "autoFixable": true,
+      "detection": {
+        "error": "Property 'size' does not exist on type",
+        "component": "Button"
+      },
+      "fix": {
+        "action": "remove",
+        "prop": "size"
+      },
+      "reason": "Button component doesn't support size prop in this codebase"
+    },
+    "headlessUITypeConflict": {
+      "name": "Headless UI prop type conflict",
+      "category": "typescript",
+      "severity": "medium",
+      "autoFixable": true,
+      "detection": {
+        "library": "@headlessui/react",
+        "error": "incompatible with index signature"
+      },
+      "fix": {
+        "action": "define explicit prop type",
+        "avoid": "Omit<HeadlessUIProps, ...>",
+        "prefer": "Define custom interface without extending Headless UI"
+      }
+    },
+    "queryRawMixing": {
+      "name": "Mixing $queryRaw and $queryRawUnsafe",
+      "category": "prisma",
+      "severity": "high",
+      "autoFixable": false,
+      "detection": {
+        "pattern": "\\$queryRaw.*\\$queryRawUnsafe",
+        "error": "cannot mix template literals"
+      },
+      "fix": {
+        "action": "manual",
+        "suggestion": "Use $queryRawUnsafe with string interpolation for dynamic WHERE clauses"
+      },
+      "examples": [
+        {
+          "problem": "prisma.$queryRaw`SELECT ... ${prisma.$queryRawUnsafe`AND ...`}`",
+          "solution": "Build WHERE clause as string, then: prisma.$queryRawUnsafe(`SELECT ... ${whereClause}`, ...params)"
+        }
+      ]
+    }
+  },
+  "statistics": {
+    "totalPatterns": 8,
+    "autoFixable": 6,
+    "manualReview": 2
+  }
+}
