@@ -35,7 +35,7 @@ function generateSlug(name: string): string {
 
 // GET /api/newsroom/tags - List tags
 const getTags = createHandler(
-  async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+  async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasTagPermission(user.staffRole, 'read')) {
@@ -99,7 +99,7 @@ const getTags = createHandler(
 
 // POST /api/newsroom/tags - Create a new tag
 const createTag = createHandler(
-  async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+  async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     const data = (req as NextRequest & { validatedData: { name: string; nameAfrikaans?: string; descriptionAfrikaans?: string; category?: string; color?: string; isRequired?: boolean; isPreset?: boolean } }).validatedData;
 

@@ -34,7 +34,7 @@ function generateSlug(name: string): string {
 
 // GET /api/newsroom/categories - List categories with hierarchy
 const getCategories = createHandler(
-  async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+  async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     
     if (!hasCategoryPermission(user.staffRole, 'read')) {
@@ -133,7 +133,7 @@ const getCategories = createHandler(
 
 // POST /api/newsroom/categories - Create a new category
 const createCategory = createHandler(
-  async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+  async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     const data = (req as NextRequest & { validatedData: { name: string; parentId?: string; description?: string } }).validatedData;
 
