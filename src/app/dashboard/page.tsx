@@ -32,8 +32,13 @@ export default function DashboardRouter() {
       console.log('📻 Dashboard Router - RADIO user, redirecting to /radio');
       router.push('/radio');
     }
-    // Editorial staff (including EDITOR) go to newsroom
-    else if (staffRole === 'INTERN' || staffRole === 'JOURNALIST' || staffRole === 'SUB_EDITOR' || staffRole === 'EDITOR') {
+    // EDITOR goes to editorial dashboard
+    else if (staffRole === 'EDITOR') {
+      console.log('📊 Dashboard Router - EDITOR, redirecting to /newsroom/editorial-dashboard');
+      router.push('/newsroom/editorial-dashboard');
+    }
+    // Other editorial staff go to personal newsroom dashboard
+    else if (staffRole === 'INTERN' || staffRole === 'JOURNALIST' || staffRole === 'SUB_EDITOR') {
       console.log('📰 Dashboard Router - Editorial staff, redirecting to /newsroom');
       router.push('/newsroom');
     } 

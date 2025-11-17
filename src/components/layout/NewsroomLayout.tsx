@@ -63,8 +63,9 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
   const getNavigation = (): NavigationItem[] => {
     const navigation: NavigationItem[] = []
 
-    // Dashboard - always newsroom for editorial staff
-    navigation.push({ name: 'Dashboard', href: '/newsroom', icon: HomeIcon })
+    // Dashboard - editorial dashboard for EDITOR, personal dashboard for others
+    const dashboardHref = session?.user?.staffRole === 'EDITOR' ? '/newsroom/editorial-dashboard' : '/newsroom'
+    navigation.push({ name: 'Dashboard', href: dashboardHref, icon: HomeIcon })
 
     // All editorial staff can see stories
     navigation.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
