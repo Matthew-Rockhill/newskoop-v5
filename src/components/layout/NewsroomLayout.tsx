@@ -80,8 +80,8 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
       navigation.push({ name: 'Bulletins', href: '/newsroom/bulletins', icon: RadioIcon })
     }
 
-    // Editorial Dashboard - SUB_EDITOR and above (EDITOR role)
-    if (session?.user?.staffRole && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole)) {
+    // Editorial Dashboard - EDITOR only
+    if (session?.user?.staffRole === 'EDITOR') {
       navigation.push({ name: 'Editorial Dashboard', href: '/newsroom/editorial-dashboard', icon: ChartBarIcon })
     }
     
