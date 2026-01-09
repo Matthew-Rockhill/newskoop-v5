@@ -15,16 +15,17 @@ import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateTag } from "@/hooks/use-tags";
 import { useSession } from "next-auth/react";
+import { hasTagPermission } from "@/lib/permissions";
+import { StaffRole } from "@prisma/client";
 
 const tagSchema = z.object({
   name: z.string().min(1, "Name is required").max(50),
   nameAfrikaans: z.string().max(50).optional(),
   descriptionAfrikaans: z.string().optional(),
-  category: z.enum(["LANGUAGE", "RELIGION", "LOCALITY", "GENERAL"]).default("GENERAL"),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional().or(z.literal('')),
 });
 
 type TagFormData = z.infer<typeof tagSchema>;
@@ -36,8 +37,8 @@ export default function NewTagPage() {
   const createTag = useCreateTag();
 
   // Permission check
-  const userRole = session?.user?.staffRole;
-  const canCreate = userRole && ["SUPERADMIN", "ADMIN", "EDITOR"].includes(userRole);
+  const userRole = session?.user?.staffRole as StaffRole | null;
+  const canCreate = hasTagPermission(userRole, 'create');
 
   const {
     register,
@@ -45,15 +46,17 @@ export default function NewTagPage() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(tagSchema),
-    defaultValues: {
-      category: "GENERAL",
-    },
   });
 
   const onSubmit: SubmitHandler<TagFormData> = async (formData) => {
     setIsSubmitting(true);
     try {
-      await createTag.mutateAsync(formData);
+      await createTag.mutateAsync({
+        name: formData.name,
+        nameAfrikaans: formData.nameAfrikaans || undefined,
+        descriptionAfrikaans: formData.descriptionAfrikaans || undefined,
+        color: formData.color || undefined,
+      });
       toast.success("Tag created successfully!");
       router.push("/newsroom/tags");
     } catch (error: unknown) {
@@ -92,6 +95,9 @@ export default function NewTagPage() {
             <Heading level={2} className="mb-6">
               Tag Details
             </Heading>
+            <p className="text-sm text-zinc-500 mb-4">
+              Tags are topical labels for organizing stories. For language, religion, and locality, use Classifications.
+            </p>
             <Fieldset>
               <FieldGroup>
                 <Field>
@@ -123,15 +129,21 @@ export default function NewTagPage() {
                   {errors.descriptionAfrikaans && <ErrorMessage>{errors.descriptionAfrikaans.message}</ErrorMessage>}
                 </Field>
                 <Field>
-                  <Label htmlFor="category">Category</Label>
-                  <Select id="category" {...register("category")}
-                    error={errors.category?.message}
-                  >
-                    <option value="GENERAL">General</option>
-                    <option value="LANGUAGE">Language</option>
-                    <option value="RELIGION">Religion</option>
-                    <option value="LOCALITY">Locality</option>
-                  </Select>
+                  <Label htmlFor="color">Color (optional)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="color"
+                      type="color"
+                      {...register("color")}
+                      className="w-14 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      {...register("color")}
+                      placeholder="#000000"
+                      className="flex-1"
+                    />
+                  </div>
+                  {errors.color && <ErrorMessage>{errors.color.message}</ErrorMessage>}
                 </Field>
               </FieldGroup>
             </Fieldset>
@@ -153,4 +165,4 @@ export default function NewTagPage() {
       </div>
     </Container>
   );
-} 
+}

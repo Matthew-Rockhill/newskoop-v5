@@ -1,66 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   TagIcon,
   DocumentTextIcon,
-  LanguageIcon,
-  MapPinIcon,
+  PencilIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
-import { Tag, $Enums } from '@prisma/client';
+import { Input, InputGroup } from '@/components/ui/input';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table } from '@/components/ui/table';
-import { EmptyState } from '@/components/ui/empty-state';
+import { DataList, type DataListColumn, type RowAction } from '@/components/ui/data-list';
 
-import { useTags, Tag as TagType } from '@/hooks/use-tags';
+import { useTags, Tag } from '@/hooks/use-tags';
 import { useSession } from 'next-auth/react';
-
-// Tag categories for organization
-type TagCategory = 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
+import { hasTagPermission } from '@/lib/permissions';
+import { StaffRole } from '@prisma/client';
 
 export default function TagsPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<TagCategory | undefined>(undefined);
 
   const { data, isLoading, error } = useTags();
   const tags = data?.tags || [];
 
-  // Filter tags based on search and category
-  const filteredTags = tags.filter((tag: TagType) => {
-    const matchesSearch = tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (tag.nameAfrikaans && tag.nameAfrikaans.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = categoryFilter === undefined || tag.category === categoryFilter;
-
-    return matchesSearch && matchesCategory;
-  });
+  // Filter tags based on search
+  const filteredTags = useMemo(() => {
+    return tags.filter((tag: Tag) => {
+      return tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (tag.nameAfrikaans && tag.nameAfrikaans.toLowerCase().includes(searchQuery.toLowerCase()));
+    });
+  }, [tags, searchQuery]);
 
   // Check if user can create tags
   const canCreateTag = () => {
-    const userRole = session?.user?.staffRole;
-    return userRole && ['SUPERADMIN', 'ADMIN', 'EDITOR'].includes(userRole);
+    const userRole = session?.user?.staffRole as StaffRole | null;
+    return hasTagPermission(userRole, 'create');
   };
 
   // Check if user can edit a specific tag
-  const canEditTag = (tag: TagType) => {
-    const userRole = session?.user?.staffRole;
-    if (!userRole) return false;
-
-    // SUPERADMIN can edit everything
-    if (userRole === 'SUPERADMIN') return true;
-
-    // ADMIN, EDITOR can edit all tags
-    if (['ADMIN', 'EDITOR'].includes(userRole)) {
-      return true;
-    }
-
-    return false;
+  const canEditTag = (tag: Tag) => {
+    const userRole = session?.user?.staffRole as StaffRole | null;
+    return hasTagPermission(userRole, 'update');
   };
 
   const formatDate = (dateString: string) => {
@@ -71,65 +56,106 @@ export default function TagsPage() {
     });
   };
 
-  const getCategoryIcon = (category: TagCategory) => {
-    switch (category) {
-      case 'LANGUAGE':
-        return LanguageIcon;
-      case 'LOCALITY':
-        return MapPinIcon;
-      case 'GENERAL':
-        return TagIcon;
-      default:
-        return TagIcon;
-    }
-  };
-
-  const getCategoryColor = (category: TagCategory) => {
-    switch (category) {
-      case 'LANGUAGE':
-        return 'blue';
-      case 'LOCALITY':
-        return 'purple';
-      case 'GENERAL':
-        return 'zinc';
-      default:
-        return 'zinc';
-    }
-  };
-
-  const getCategoryName = (category: TagCategory) => {
-    switch (category) {
-      case 'LANGUAGE':
-        return 'Language';
-      case 'LOCALITY':
-        return 'Locality';
-      case 'GENERAL':
-        return 'General';
-      default:
-        return 'Unknown';
-    }
-  };
-
-  if (error) {
-    return (
-      <Container>
-        <div className="text-center py-12">
-          <p className="text-red-600">Error loading tags: {error instanceof Error ? error.message : 'Unknown error'}</p>
+  // Define columns for the DataList
+  const columns: DataListColumn<Tag>[] = useMemo(() => [
+    {
+      key: 'tag',
+      header: 'Tag',
+      priority: 1,
+      width: 'expand',
+      render: (tag) => (
+        <div className="flex items-center gap-4">
+          <div className="flex-shrink-0">
+            <div
+              className="h-12 w-12 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: tag.color ? `${tag.color}20` : '#f4f4f5'
+              }}
+            >
+              <TagIcon
+                className="h-6 w-6"
+                style={{ color: tag.color || '#71717a' }}
+              />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <div className="font-medium text-zinc-900 dark:text-white truncate">
+                {tag.name}
+                {tag.nameAfrikaans && (
+                  <span className="text-zinc-500 font-normal"> / {tag.nameAfrikaans}</span>
+                )}
+              </div>
+              {!canEditTag(tag) && (
+                <Badge color="red" className="text-xs">
+                  Protected
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-4 mt-1 text-xs text-zinc-500">
+              <div className="flex items-center gap-1.5">
+                <DocumentTextIcon className="h-3.5 w-3.5" />
+                {tag._count?.stories || 0} stories
+              </div>
+              <span>Created {formatDate(tag.createdAt)}</span>
+            </div>
+          </div>
         </div>
-      </Container>
-    );
-  }
+      ),
+      mobileRender: (tag) => (
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div
+              className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{
+                backgroundColor: tag.color ? `${tag.color}20` : '#f4f4f5'
+              }}
+            >
+              <TagIcon
+                className="h-5 w-5"
+                style={{ color: tag.color || '#71717a' }}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-zinc-900 dark:text-white truncate">
+                {tag.name}
+              </div>
+              {tag.nameAfrikaans && (
+                <div className="text-sm text-zinc-500 truncate">{tag.nameAfrikaans}</div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <div className="flex items-center gap-1.5">
+              <DocumentTextIcon className="h-3.5 w-3.5" />
+              {tag._count?.stories || 0} stories
+            </div>
+            {!canEditTag(tag) && (
+              <Badge color="red" className="text-xs">Protected</Badge>
+            )}
+          </div>
+        </div>
+      ),
+    },
+  ], [session?.user?.staffRole]);
+
+  // Define row actions
+  const rowActions: RowAction<Tag>[] = useMemo(() => [
+    {
+      key: 'edit',
+      label: 'Edit',
+      icon: PencilIcon,
+      href: (tag) => `/newsroom/tags/${tag.id}/edit`,
+      onAction: () => {},
+      isHidden: (tag) => !canEditTag(tag),
+    },
+  ], [session?.user?.staffRole]);
 
   return (
     <Container>
       <div className="space-y-6">
-      <PageHeader
-        title="Tags"
-          searchProps={{
-            value: searchQuery,
-            onChange: setSearchQuery,
-            placeholder: "Search tags..."
-          }}
+        <PageHeader
+          title="Tags"
           action={
             canCreateTag() ? {
               label: "New Tag",
@@ -138,148 +164,48 @@ export default function TagsPage() {
           }
         />
 
-        {/* Filter Buttons */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => setCategoryFilter(undefined)}
-            color={categoryFilter === undefined ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            All Tags
-          </Button>
-          <Button
-            onClick={() => setCategoryFilter('LANGUAGE')}
-            color={categoryFilter === 'LANGUAGE' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <LanguageIcon className="h-4 w-4" />
-            Language Tags
-          </Button>
-          <Button
-            onClick={() => setCategoryFilter('LOCALITY')}
-            color={categoryFilter === 'LOCALITY' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <MapPinIcon className="h-4 w-4" />
-            Locality Tags
-          </Button>
-          <Button
-            onClick={() => setCategoryFilter('RELIGION')}
-            color={categoryFilter === 'RELIGION' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <TagIcon className="h-4 w-4" />
-            Religion Tags
-          </Button>
-          <Button
-            onClick={() => setCategoryFilter('GENERAL')}
-            color={categoryFilter === 'GENERAL' ? 'primary' : 'white'}
-            className="text-sm"
-          >
-            <TagIcon className="h-4 w-4" />
-            General Tags
-          </Button>
-      </div>
+        <p className="text-sm text-zinc-500">
+          Tags are topical labels that can be applied to stories. For language, religion, and locality filtering, use Classifications.
+        </p>
 
-      {isLoading ? (
-        <div className="text-center py-12">
-          <p>Loading tags...</p>
+        {/* Search */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:max-w-xs">
+            <InputGroup>
+              <MagnifyingGlassIcon data-slot="icon" />
+              <Input
+                type="search"
+                placeholder="Search tags..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search tags"
+              />
+            </InputGroup>
+          </div>
         </div>
-      ) : filteredTags.length === 0 ? (
-        <EmptyState
-          icon={TagIcon}
-          title="No tags found"
-          description="Get started by creating your first tag."
-          action={
-              canCreateTag() ? {
-                label: "New Tag",
-                onClick: () => router.push('/newsroom/tags/new')
-              } : undefined
-          }
+
+        <DataList<Tag>
+          items={filteredTags}
+          isLoading={isLoading}
+          error={error instanceof Error ? error : null}
+          variant="table"
+          columns={columns}
+          striped
+          rowActions={rowActions}
+          onRowClick={(tag) => canEditTag(tag) && router.push(`/newsroom/tags/${tag.id}/edit`)}
+          getRowHref={(tag) => canEditTag(tag) ? `/newsroom/tags/${tag.id}/edit` : undefined}
+          emptyState={{
+            icon: TagIcon,
+            title: "No tags found",
+            description: "Get started by creating your first tag to organize stories by topic.",
+            action: canCreateTag() ? {
+              label: "New Tag",
+              onClick: () => router.push('/newsroom/tags/new'),
+            } : undefined,
+          }}
+          ariaLabel="Tags list"
         />
-      ) : (
-          <Table striped>
-            <thead>
-              <tr>
-                <th className="w-2/3">Tag</th>
-                <th className="w-1/6">Category</th>
-                <th className="w-1/6">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTags.map((tag: TagType) => {
-                const CategoryIcon = getCategoryIcon(tag.category);
-
-                return (
-                  <tr
-                  key={tag.id}
-                    onClick={() => canEditTag(tag) && router.push(`/newsroom/tags/${tag.id}/edit`)}
-                    className={`${canEditTag(tag) ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'} focus:outline-none border-b border-gray-100 last:border-b-0`}
-                  >
-                    <td className="py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-shrink-0">
-                          <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-                            <CategoryIcon className="h-6 w-6 text-gray-500" />
-                          </div>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                            <div className="font-medium text-gray-900 truncate">
-                              {tag.name}
-                              {tag.nameAfrikaans && (
-                                <span className="text-gray-500 font-normal"> / {tag.nameAfrikaans}</span>
-                              )}
-                    </div>
-                            {!canEditTag(tag) && (
-                              <Badge color="red" className="text-xs">
-                                Protected
-                              </Badge>
-                      )}
-                    </div>
-                          <div className="text-sm text-gray-600 truncate">
-                            {getCategoryName(tag.category)} tag
-                          </div>
-                          <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                            <div className="flex items-center gap-1">
-                              <DocumentTextIcon className="h-3 w-3" />
-                      {tag._count?.stories || 0} stories
-                    </div>
-                            <div className="flex items-center gap-1">
-                              <span>Created {formatDate(tag.createdAt)}</span>
-                            </div>
-                          </div>
-                        </div>
-                    </div>
-                    </td>
-                    <td className="py-4">
-                      <Badge color={getCategoryColor(tag.category)}>
-                        {getCategoryName(tag.category)}
-                      </Badge>
-                    </td>
-                    <td className="py-4">
-                      {canEditTag(tag) ? (
-                    <Button
-                          onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        router.push(`/newsroom/tags/${tag.id}/edit`);
-                      }}
-                          outline
-                          className="text-sm"
-                    >
-                          Edit
-                    </Button>
-                      ) : (
-                        <span className="text-sm text-gray-400">Protected</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        )}
-        </div>
+      </div>
     </Container>
   );
-} 
+}

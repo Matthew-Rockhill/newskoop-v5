@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { ClassificationType } from '@prisma/client';
 
 // GET /api/radio/stories/[id] - Get individual story for radio stations
 export async function GET(
@@ -96,6 +97,11 @@ export async function GET(
             tag: true,
           },
         },
+        classifications: {
+          include: {
+            classification: true,
+          },
+        },
         audioClips: {
           select: {
             id: true,
@@ -121,7 +127,7 @@ export async function GET(
     }
 
     // Check if story is published
-    if (story.status !== 'PUBLISHED') {
+    if (story.stage !== 'PUBLISHED') {
       return NextResponse.json(
         { error: 'Story not available' },
         { status: 403 }
@@ -136,50 +142,49 @@ export async function GET(
       );
     }
 
-    // Get language tags that match station's allowed languages
-    const languageTags = await prisma.tag.findMany({
-      where: {
-        category: 'LANGUAGE',
-        name: {
-          in: allowedLanguages,
-        },
-      },
-      select: { id: true },
-    });
-
-    // Get religion tags - for STAFF users, include all religions
+    // Get religion classifications - for STAFF users, include all religions
     const allowedReligions = session.user.userType === 'STAFF'
       ? ['Christian', 'Muslim', 'Neutral'] // All religions for staff
       : (station as any)?.allowedReligions || ['Christian', 'Muslim', 'Neutral'];
 
-    const religionTags = await prisma.tag.findMany({
-      where: {
-        category: 'RELIGION',
-        name: {
-          in: allowedReligions,
+    // Fetch language and religion classifications in parallel for better performance
+    const [languageClassifications, religionClassifications] = await Promise.all([
+      prisma.classification.findMany({
+        where: {
+          type: ClassificationType.LANGUAGE,
+          isActive: true,
+          name: { in: allowedLanguages },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      }),
+      prisma.classification.findMany({
+        where: {
+          type: ClassificationType.RELIGION,
+          isActive: true,
+          name: { in: allowedReligions },
+        },
+        select: { id: true },
+      }),
+    ]);
 
-    // Check if story has allowed language tag
-    const storyLanguageTags = story.tags.filter(st => 
-      languageTags.some(lt => lt.id === st.tagId)
+    // Check if story has allowed language classification
+    const storyLanguageClassifications = story.classifications.filter(sc =>
+      languageClassifications.some(lc => lc.id === sc.classificationId)
     );
 
-    if (storyLanguageTags.length === 0) {
+    if (storyLanguageClassifications.length === 0) {
       return NextResponse.json(
         { error: 'Story not available in allowed languages' },
         { status: 403 }
       );
     }
 
-    // Check if story has allowed religion tag
-    const storyReligionTags = story.tags.filter(st => 
-      religionTags.some(rt => rt.id === st.tagId)
+    // Check if story has allowed religion classification
+    const storyReligionClassifications = story.classifications.filter(sc =>
+      religionClassifications.some(rc => rc.id === sc.classificationId)
     );
 
-    if (storyReligionTags.length === 0) {
+    if (storyReligionClassifications.length === 0) {
       return NextResponse.json(
         { error: 'Story not available for allowed religions' },
         { status: 403 }

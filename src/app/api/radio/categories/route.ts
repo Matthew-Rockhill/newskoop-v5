@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { ClassificationType } from '@prisma/client';
 
 // GET /api/radio/categories - Get categories available to the radio station
 export async function GET(req: NextRequest) {
@@ -103,20 +104,22 @@ export async function GET(req: NextRequest) {
       return indexA - indexB;
     });
 
-    // Fetch language and religion tags once (outside the loop)
-    const [languageTags, religionTags] = await Promise.all([
-      prisma.tag.findMany({
+    // Fetch language and religion classifications once (outside the loop)
+    const [languageClassifications, religionClassifications] = await Promise.all([
+      prisma.classification.findMany({
         where: {
-          category: 'LANGUAGE',
+          type: ClassificationType.LANGUAGE,
+          isActive: true,
           name: {
             in: station?.allowedLanguages || [],
           },
         },
         select: { id: true },
       }),
-      prisma.tag.findMany({
+      prisma.classification.findMany({
         where: {
-          category: 'RELIGION',
+          type: ClassificationType.RELIGION,
+          isActive: true,
           name: {
             in: station?.allowedReligions || [],
           },
@@ -137,27 +140,27 @@ export async function GET(req: NextRequest) {
 
         const storyCount = await prisma.story.count({
           where: {
-            status: 'PUBLISHED',
+            stage: 'PUBLISHED',
             categoryId: {
               in: categoryIds,
             },
             AND: [
-              // Must have at least one allowed language tag
+              // Must have at least one allowed language classification
               {
-                tags: {
+                classifications: {
                   some: {
-                    tagId: {
-                      in: languageTags.map(t => t.id),
+                    classificationId: {
+                      in: languageClassifications.map((c: { id: string }) => c.id),
                     },
                   },
                 },
               },
-              // Must have at least one allowed religion tag
+              // Must have at least one allowed religion classification
               {
-                tags: {
+                classifications: {
                   some: {
-                    tagId: {
-                      in: religionTags.map(t => t.id),
+                    classificationId: {
+                      in: religionClassifications.map((c: { id: string }) => c.id),
                     },
                   },
                 },

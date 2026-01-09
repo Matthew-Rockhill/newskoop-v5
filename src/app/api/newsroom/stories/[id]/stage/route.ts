@@ -3,14 +3,14 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
-import { logAudit } from '@/lib/audit';
+import { logAudit, logAuditTx } from '@/lib/audit';
 import {
   canReviewStory,
   canApproveStoryStage,
   canSendForTranslation,
   canRequestRevision,
 } from '@/lib/permissions';
-import { StoryStage, StaffRole } from '@prisma/client';
+import { StoryStage, StaffRole, ClassificationType } from '@prisma/client';
 
 // Validation schema for stage transitions
 const stageTransitionSchema = z.object({
@@ -67,10 +67,10 @@ export async function POST(
         assignedApprover: {
           select: { id: true, firstName: true, lastName: true, staffRole: true },
         },
-        tags: {
+        classifications: {
           include: {
-            tag: {
-              select: { id: true, name: true, category: true },
+            classification: {
+              select: { id: true, name: true, type: true },
             },
           },
         },
@@ -188,20 +188,20 @@ export async function POST(
           );
         }
 
-        // Check for required language tag
-        const hasLanguageTag = story.tags.some(st => st.tag.category === 'LANGUAGE');
-        if (!hasLanguageTag) {
+        // Check for required language classification
+        const hasLanguageClassification = story.classifications.some(sc => sc.classification.type === ClassificationType.LANGUAGE);
+        if (!hasLanguageClassification) {
           return NextResponse.json(
-            { error: 'Story must have a language tag before approval' },
+            { error: 'Story must have a language classification before approval' },
             { status: 400 }
           );
         }
 
-        // Check for required religion tag
-        const hasReligionTag = story.tags.some(st => st.tag.category === 'RELIGION');
-        if (!hasReligionTag) {
+        // Check for required religion classification
+        const hasReligionClassification = story.classifications.some(sc => sc.classification.type === ClassificationType.RELIGION);
+        if (!hasReligionClassification) {
           return NextResponse.json(
-            { error: 'Story must have a religion tag before approval' },
+            { error: 'Story must have a religion classification before approval' },
             { status: 400 }
           );
         }
@@ -289,6 +289,7 @@ export async function POST(
         newStage = 'PUBLISHED';
         updateData = {
           stage: newStage,
+          status: 'PUBLISHED', // Also update legacy status field for backwards compatibility
           publishedAt: new Date(),
           publishedBy: session.user.id,
           translationChecklist: validatedData.checklistData || {},
@@ -343,14 +344,15 @@ export async function POST(
             },
             data: {
               stage: 'PUBLISHED',
+              status: 'PUBLISHED', // Also update legacy status field
               publishedAt: new Date(),
               updatedAt: new Date(),
             },
           });
 
-          // Log audit for each translation
+          // Log audit for each translation (inside transaction for consistency)
           for (const translation of translations) {
-            await logAudit({
+            await logAuditTx(tx, {
               userId: session.user.id,
               action: 'AUTO_PUBLISH_TRANSLATION',
               details: {
@@ -408,8 +410,8 @@ export async function POST(
               },
             });
 
-            // Log audit for auto-transition
-            await logAudit({
+            // Log audit for auto-transition (inside transaction for consistency)
+            await logAuditTx(tx, {
               userId: session.user.id,
               action: 'AUTO_MARK_AS_TRANSLATED',
               details: {
@@ -432,28 +434,28 @@ export async function POST(
         }
       }
 
-      return updatedStory;
-    });
+      // Log main audit trail (inside transaction for consistency)
+      await logAuditTx(tx, {
+        userId: session.user.id,
+        action: auditAction,
+        details: {
+          entityType: 'STORY',
+          entityId: id,
+          storyTitle: story.title,
+          previousStage: story.stage,
+          newStage,
+          ...auditDetails,
+        },
+        ipAddress:
+          request.headers.get('x-forwarded-for') ||
+          request.headers.get('x-real-ip') ||
+          'unknown',
+        userAgent: request.headers.get('user-agent') || 'unknown',
+        targetId: id,
+        targetType: 'STORY',
+      });
 
-    // Log audit trail
-    await logAudit({
-      userId: session.user.id,
-      action: auditAction,
-      details: {
-        entityType: 'STORY',
-        entityId: id,
-        storyTitle: story.title,
-        previousStage: story.stage,
-        newStage,
-        ...auditDetails,
-      },
-      ipAddress:
-        request.headers.get('x-forwarded-for') ||
-        request.headers.get('x-real-ip') ||
-        'unknown',
-      userAgent: request.headers.get('user-agent') || 'unknown',
-      targetId: id,
-      targetType: 'STORY',
+      return updatedStory;
     });
 
     return NextResponse.json({

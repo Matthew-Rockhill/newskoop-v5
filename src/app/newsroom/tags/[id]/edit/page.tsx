@@ -15,18 +15,19 @@ import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { useTags, useUpdateTag, useDeleteTag, type Tag } from "@/hooks/use-tags";
 import { useSession } from "next-auth/react";
+import { hasTagPermission } from "@/lib/permissions";
+import { StaffRole } from "@prisma/client";
 
 const tagSchema = z.object({
   name: z.string().min(1, "Name is required").max(50),
   nameAfrikaans: z.string().max(50).optional(),
   descriptionAfrikaans: z.string().optional(),
-  category: z.enum(["LANGUAGE", "RELIGION", "LOCALITY", "GENERAL"]).default("GENERAL"),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional().or(z.literal('')),
 });
 
 type TagFormData = z.infer<typeof tagSchema>;
@@ -44,10 +45,10 @@ export default function EditTagPage() {
 
   const tag = tags.find((t: Tag) => t.id === tagId);
 
-  // Permission check: only allow edit if user can edit this tag
-  const userRole = session?.user?.staffRole;
-  const canEdit = userRole === "SUPERADMIN" || (userRole && ["ADMIN", "EDITOR"].includes(userRole) && tag?.category === "GENERAL");
-  const canDelete = canEdit;
+  // Permission check using centralized permissions
+  const userRole = session?.user?.staffRole as StaffRole | null;
+  const canEdit = hasTagPermission(userRole, 'update');
+  const canDelete = hasTagPermission(userRole, 'delete');
 
   const {
     register,
@@ -64,7 +65,7 @@ export default function EditTagPage() {
         name: tag.name,
         nameAfrikaans: tag.nameAfrikaans || '',
         descriptionAfrikaans: tag.descriptionAfrikaans || '',
-        category: tag.category,
+        color: tag.color || '',
       });
     }
   }, [tag, reset]);
@@ -72,7 +73,15 @@ export default function EditTagPage() {
   const onSubmit: SubmitHandler<TagFormData> = async (formData) => {
     if (!canEdit) return;
     try {
-      await updateTag.mutateAsync({ id: tagId, data: formData });
+      await updateTag.mutateAsync({
+        id: tagId,
+        data: {
+          name: formData.name,
+          nameAfrikaans: formData.nameAfrikaans || undefined,
+          descriptionAfrikaans: formData.descriptionAfrikaans || undefined,
+          color: formData.color || undefined,
+        }
+      });
       toast.success("Tag updated successfully!");
       router.push("/newsroom/tags");
     } catch (error: unknown) {
@@ -172,18 +181,23 @@ export default function EditTagPage() {
                   {errors.descriptionAfrikaans && <ErrorMessage>{errors.descriptionAfrikaans.message}</ErrorMessage>}
                 </Field>
                 <Field>
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    id="category"
-                    {...register("category")}
-                    error={errors.category?.message}
-                    disabled={!canEdit}
-                  >
-                    <option value="GENERAL">General</option>
-                    <option value="LANGUAGE">Language</option>
-                    <option value="RELIGION">Religion</option>
-                    <option value="LOCALITY">Locality</option>
-                  </Select>
+                  <Label htmlFor="color">Color (optional)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="color"
+                      type="color"
+                      {...register("color")}
+                      className="w-14 h-10 p-1 cursor-pointer"
+                      disabled={!canEdit}
+                    />
+                    <Input
+                      {...register("color")}
+                      placeholder="#000000"
+                      disabled={!canEdit}
+                      className="flex-1"
+                    />
+                  </div>
+                  {errors.color && <ErrorMessage>{errors.color.message}</ErrorMessage>}
                 </Field>
               </FieldGroup>
             </Fieldset>
@@ -193,7 +207,7 @@ export default function EditTagPage() {
             <div>
               {canDelete && (
                 <Button type="button" color="red" onClick={() => setShowDeleteModal(true)} disabled={deleteTag.isPending} className="font-bold flex items-center gap-2">
-                  <TrashIcon className="h-5 w-5 text-red-600" />
+                  <TrashIcon className="h-5 w-5" />
                   {deleteTag.isPending ? "Deleting..." : "Delete Tag"}
                 </Button>
               )}
@@ -223,7 +237,7 @@ export default function EditTagPage() {
               Cancel
             </Button>
             <Button color="red" onClick={handleDelete} disabled={deleteTag.isPending} className="font-bold flex items-center gap-2">
-              <TrashIcon className="h-5 w-5 text-red-600" />
+              <TrashIcon className="h-5 w-5" />
               {deleteTag.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogActions>
@@ -231,4 +245,4 @@ export default function EditTagPage() {
       </div>
     </Container>
   );
-} 
+}

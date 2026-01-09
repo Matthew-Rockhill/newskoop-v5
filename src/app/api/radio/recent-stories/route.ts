@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { ClassificationType } from '@prisma/client';
 
 // GET /api/radio/recent-stories - Get recent stories by category
 export async function GET(req: NextRequest) {
@@ -57,47 +58,57 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get language tags that match station's allowed languages
-    const languageTags = await prisma.tag.findMany({
-      where: {
-        category: 'LANGUAGE',
-        name: {
-          in: station.allowedLanguages,
+    // Check if category is blocked for this station
+    const blockedCategories = station.blockedCategories as string[];
+    if (blockedCategories.includes(category.id)) {
+      return NextResponse.json({
+        stories: [],
+        category: {
+          name: category.name,
+          description: category.description,
         },
-      },
-      select: { id: true },
-    });
+      });
+    }
 
-    // Get religion tags that match station's allowed religions  
-    const religionTags = await prisma.tag.findMany({
-      where: {
-        category: 'RELIGION',
-        name: {
-          in: station.allowedReligions,
+    // Fetch language and religion classifications in parallel for better performance
+    const [languageClassifications, religionClassifications] = await Promise.all([
+      prisma.classification.findMany({
+        where: {
+          type: ClassificationType.LANGUAGE,
+          isActive: true,
+          name: { in: station.allowedLanguages },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      }),
+      prisma.classification.findMany({
+        where: {
+          type: ClassificationType.RELIGION,
+          isActive: true,
+          name: { in: station.allowedReligions },
+        },
+        select: { id: true },
+      }),
+    ]);
 
     // Get recent stories in this category that match station filters
     const stories = await prisma.story.findMany({
       where: {
-        status: 'PUBLISHED',
+        stage: 'PUBLISHED',
         categoryId: category.id,
-        // Must have at least one allowed language tag
-        tags: {
+        // Must have at least one allowed language classification
+        classifications: {
           some: {
-            tagId: {
-              in: languageTags.map(t => t.id),
+            classificationId: {
+              in: languageClassifications.map(c => c.id),
             },
           },
         },
-        // Must have at least one allowed religion tag
+        // Must have at least one allowed religion classification
         AND: {
-          tags: {
+          classifications: {
             some: {
-              tagId: {
-                in: religionTags.map(t => t.id),
+              classificationId: {
+                in: religionClassifications.map(c => c.id),
               },
             },
           },

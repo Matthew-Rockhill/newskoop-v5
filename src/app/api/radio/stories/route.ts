@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { ClassificationType } from '@prisma/client';
 
 // GET /api/radio/stories - Get filtered stories for radio stations
 export async function GET(req: NextRequest) {
@@ -78,8 +79,13 @@ export async function GET(req: NextRequest) {
     const subCategory = url.searchParams.get('subCategory'); // Sub-category slug filter
     const language = url.searchParams.get('language'); // Language filter
 
-    // Parallel fetch: category lookups and tag filters
-    const [subCategoryRecord, categoryRecord, languageTags, allowedReligions] = await Promise.all([
+    // Compute allowed religions before parallel fetch
+    const allowedReligions = session.user.userType === 'STAFF'
+      ? ['Christian', 'Muslim', 'Neutral']
+      : (station as any)?.allowedReligions || ['Christian', 'Muslim', 'Neutral'];
+
+    // Parallel fetch: category lookups and classification filters (all queries in parallel for performance)
+    const [subCategoryRecord, categoryRecord, languageClassifications, religionClassifications] = await Promise.all([
       // Sub-category lookup (only if subCategory param exists)
       subCategory ? prisma.category.findUnique({
         where: { slug: subCategory },
@@ -92,10 +98,11 @@ export async function GET(req: NextRequest) {
         select: { id: true, isParent: true, children: { select: { id: true } } },
       }) : null,
 
-      // Language tags lookup
-      prisma.tag.findMany({
+      // Language classifications lookup
+      prisma.classification.findMany({
         where: {
-          category: 'LANGUAGE',
+          type: ClassificationType.LANGUAGE,
+          isActive: true,
           name: {
             in: language && allowedLanguages.includes(language)
               ? [language]
@@ -105,26 +112,20 @@ export async function GET(req: NextRequest) {
         select: { id: true },
       }),
 
-      // Return allowed religions for next query
-      Promise.resolve(
-        session.user.userType === 'STAFF'
-          ? ['Christian', 'Muslim', 'Neutral']
-          : (station as any)?.allowedReligions || ['Christian', 'Muslim', 'Neutral']
-      ),
+      // Religion classifications lookup (now in parallel)
+      prisma.classification.findMany({
+        where: {
+          type: ClassificationType.RELIGION,
+          isActive: true,
+          name: { in: allowedReligions },
+        },
+        select: { id: true },
+      }),
     ]);
-
-    // Get religion tags
-    const religionTags = await prisma.tag.findMany({
-      where: {
-        category: 'RELIGION',
-        name: { in: allowedReligions },
-      },
-      select: { id: true },
-    });
 
     // Build the where clause for filtering
     const whereClause: any = {
-      status: 'PUBLISHED',
+      stage: 'PUBLISHED',
       // Filter out stories from blocked categories
       categoryId: {
         notIn: station.blockedCategories,
@@ -133,22 +134,31 @@ export async function GET(req: NextRequest) {
 
     // Add sub-category filter if specified (takes precedence over category)
     if (subCategory && subCategoryRecord) {
-      if (!(station.blockedCategories as string[]).includes(subCategoryRecord.id)) {
+      const blockedCategories = station.blockedCategories as string[];
+      // Check if sub-category itself is blocked OR its parent is blocked
+      const isSubCategoryBlocked = blockedCategories.includes(subCategoryRecord.id);
+      const isParentBlocked = subCategoryRecord.parentId && blockedCategories.includes(subCategoryRecord.parentId);
+
+      if (!isSubCategoryBlocked && !isParentBlocked) {
         // Filter to this specific sub-category only
         whereClause.categoryId = subCategoryRecord.id;
       } else {
-        // Sub-category blocked - return no results
+        // Sub-category or parent blocked - return no results
         whereClause.categoryId = 'invalid-category-id';
       }
     }
     // Add category filter if specified (and no subCategory)
     else if (category && categoryRecord) {
-      if (!(station.blockedCategories as string[]).includes(categoryRecord.id)) {
-        // If parent category, include all child categories
+      const blockedCategories = station.blockedCategories as string[];
+      if (!blockedCategories.includes(categoryRecord.id)) {
+        // If parent category, include all non-blocked child categories
         if (categoryRecord.isParent && categoryRecord.children.length > 0) {
+          const allowedChildIds = categoryRecord.children
+            .filter(c => !blockedCategories.includes(c.id))
+            .map(c => c.id);
           const categoryIds = [
             categoryRecord.id,
-            ...categoryRecord.children.map(c => c.id)
+            ...allowedChildIds
           ];
           whereClause.categoryId = { in: categoryIds };
         } else {
@@ -168,22 +178,22 @@ export async function GET(req: NextRequest) {
     const sharedWhere = {
       ...whereClause,
       AND: [
-        // Must have at least one allowed language tag
+        // Must have at least one allowed language classification
         {
-          tags: {
+          classifications: {
             some: {
-              tagId: {
-                in: languageTags.map(t => t.id),
+              classificationId: {
+                in: languageClassifications.map((c: { id: string }) => c.id),
               },
             },
           },
         },
-        // Must have at least one allowed religion tag
+        // Must have at least one allowed religion classification
         {
-          tags: {
+          classifications: {
             some: {
-              tagId: {
-                in: religionTags.map(t => t.id),
+              classificationId: {
+                in: religionClassifications.map((c: { id: string }) => c.id),
               },
             },
           },
@@ -216,6 +226,11 @@ export async function GET(req: NextRequest) {
               tag: true,
             },
           },
+          classifications: {
+            include: {
+              classification: true,
+            },
+          },
           audioClips: {
             select: {
               id: true,
@@ -233,10 +248,11 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    // Transform the data to include tag details
+    // Transform the data to include tag and classification details
     const transformedStories = stories.map(story => ({
       ...story,
-      tags: story.tags.map(st => st.tag),
+      tags: story.tags.map((st: any) => st.tag),
+      classifications: story.classifications.map((sc: any) => sc.classification),
     }));
 
     const responseData = {
