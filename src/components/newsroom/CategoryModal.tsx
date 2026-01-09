@@ -124,7 +124,7 @@ export function CategoryModal({
 
             {/* Content */}
             <div className="space-y-4">
-              <Text className="text-gray-600">
+              <Text className="text-zinc-600">
                 Choose the most appropriate category for this story. {filterEditable ? 'Only editable subcategories are shown.' : 'Select from available subcategories.'}
               </Text>
 
@@ -143,8 +143,8 @@ export function CategoryModal({
               </InputGroup>
 
               {filteredCategories.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <FolderIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                <div className="text-center py-8 text-zinc-500">
+                  <FolderIcon className="h-12 w-12 mx-auto mb-2 text-zinc-300" />
                   <Text>
                     {searchQuery ? 'No categories found matching your search' : 'No categories available'}
                   </Text>
@@ -157,7 +157,7 @@ export function CategoryModal({
                   {filteredCategories.map((category) => (
                     <label 
                       key={category.id} 
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer border border-gray-200 hover:border-kelly-green/30"
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-zinc-50 cursor-pointer border border-zinc-200 hover:border-kelly-green/30"
                     >
                       <Checkbox
                         checked={selectedCategory === category.id}
@@ -170,7 +170,7 @@ export function CategoryModal({
                             Level {category.level}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500">
                           <div className="flex items-center gap-1">
                             <span>{category._count?.stories || 0} stories</span>
                           </div>

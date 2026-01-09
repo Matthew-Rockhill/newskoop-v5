@@ -387,7 +387,7 @@ export default function PublishStoryPage() {
                 </div>
                 <div className="prose max-w-none">
                   <div 
-                    className="text-gray-900 leading-relaxed space-y-4"
+                    className="text-zinc-900 leading-relaxed space-y-4"
                     dangerouslySetInnerHTML={{ __html: story.content }}
                   />
                 </div>
@@ -403,12 +403,12 @@ export default function PublishStoryPage() {
                 </div>
                 
                 {!story.audioClips || story.audioClips.length === 0 ? (
-                  <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
+                  <div className="p-4 border border-zinc-200 bg-zinc-50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <MusicalNoteIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      <MusicalNoteIcon className="h-5 w-5 text-zinc-400 flex-shrink-0" />
                       <div>
-                        <Text className="text-sm font-medium text-gray-700">No Audio Clips Added</Text>
-                        <Text className="text-xs text-gray-500">This story has no audio content attached</Text>
+                        <Text className="text-sm font-medium text-zinc-700">No Audio Clips Added</Text>
+                        <Text className="text-xs text-zinc-500">This story has no audio content attached</Text>
                       </div>
                     </div>
                   </div>
@@ -449,7 +449,7 @@ export default function PublishStoryPage() {
 {translations.length > 0 ? (
                   <div className="space-y-3">
                     {translations.map((t: any) => (
-                      <div key={t.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div key={t.id} className="flex items-center justify-between p-3 border border-zinc-200 rounded-lg">
                         <div className="flex items-center gap-3">
                           <span className="font-medium">{formatLanguage(t.language)}</span>
                           <Badge color={(t.stage === "APPROVED" || t.stage === "TRANSLATED" || t.stage === "PUBLISHED") ? "green" : "amber"}>
@@ -610,7 +610,7 @@ export default function PublishStoryPage() {
                     </Description>
                     {!watch('publishImmediately') && (
                       <div className="mt-3 ml-6">
-                        <label htmlFor="scheduledPublishAt" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="scheduledPublishAt" className="block text-sm font-medium text-zinc-700 mb-1">
                           Publish Date & Time
                         </label>
                         <Input
@@ -652,7 +652,7 @@ export default function PublishStoryPage() {
                         id="followUpNote"
                         {...register("followUpNote")}
                         placeholder="Add a note for the follow-up"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-kelly-green focus:border-kelly-green"
+                        className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-kelly-green focus:border-kelly-green"
                         rows={3}
                       />
                     </Field>

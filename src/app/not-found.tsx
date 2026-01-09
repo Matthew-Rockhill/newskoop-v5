@@ -43,11 +43,11 @@ export default function NotFound() {
         <div className="bg-white px-6 py-12 shadow-sm sm:rounded-lg sm:px-12 text-center">
           <div className="space-y-6">
             <div>
-              <p className="text-6xl font-bold text-[#76BD43] mb-4">404</p>
+              <p className="text-6xl font-bold text-kelly-green mb-4">404</p>
               <h1 className="text-3xl font-semibold text-[#272727] mb-4">
                 Oops! Page not found
         </h1>
-              <p className="text-gray-500 mb-8">
+              <p className="text-zinc-500 mb-8">
                 The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
             </div>
@@ -60,9 +60,9 @@ export default function NotFound() {
           </div>
         </div>
         
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-10 text-center text-sm text-zinc-500">
           Need help?{' '}
-          <Link href="/contact" className="font-semibold text-[#76BD43] hover:underline">
+          <Link href="/contact" className="font-semibold text-kelly-green hover:underline">
             Contact support
           </Link>
         </p>

@@ -170,35 +170,16 @@ export function RevisionRequestModal({
             </div>
 
             {/* Content - Scrollable */}
-            <div 
+            <div
               className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[60vh]"
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#d1d5db #f3f4f6'
-              }}
+              style={{ scrollbarWidth: 'thin' }}
             >
-              <style jsx>{`
-                div::-webkit-scrollbar {
-                  width: 8px;
-                }
-                div::-webkit-scrollbar-track {
-                  background: #f3f4f6;
-                  border-radius: 4px;
-                }
-                div::-webkit-scrollbar-thumb {
-                  background: #d1d5db;
-                  border-radius: 4px;
-                }
-                div::-webkit-scrollbar-thumb:hover {
-                  background: #9ca3af;
-                }
-              `}</style>
-              <Text className="text-gray-600">
+              <Text className="text-zinc-600">
                 Please provide detailed notes about what needs to be revised in this story:
               </Text>
               
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <Text className="font-medium text-gray-900">&ldquo;{storyTitle}&rdquo;</Text>
+              <div className="bg-zinc-50 p-3 rounded-lg">
+                <Text className="font-medium text-zinc-900">&ldquo;{storyTitle}&rdquo;</Text>
               </div>
 
               {errors.general && (
@@ -223,9 +204,9 @@ export function RevisionRequestModal({
                 </div>
 
                 {revisionNotes.map((note, index) => (
-                  <div key={note.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div key={note.id} className="border border-zinc-200 rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <Text className="text-sm font-medium text-gray-700">
+                      <Text className="text-sm font-medium text-zinc-700">
                         Note #{index + 1}
                       </Text>
                       {revisionNotes.length > 1 && (
@@ -265,7 +246,7 @@ export function RevisionRequestModal({
                           <Label htmlFor={`content-${note.id}`}>
                             Revision Details * 
                             {note.category && (
-                              <span className="text-gray-500 font-normal"> - {note.category}</span>
+                              <span className="text-zinc-500 font-normal"> - {note.category}</span>
                             )}
                           </Label>
                           <Textarea
@@ -299,7 +280,7 @@ export function RevisionRequestModal({
             </div>
 
             {/* Actions - Fixed at bottom */}
-            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200 flex-shrink-0">
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-zinc-200 flex-shrink-0">
               <Button
                 type="button"
                 color="white"

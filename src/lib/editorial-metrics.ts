@@ -67,6 +67,7 @@ export const SLA_THRESHOLDS: Record<StoryStage, number> = {
 
 /**
  * Get metrics for each stage in the workflow pipeline
+ * Optimized: Single query instead of N+1 (one per stage)
  */
 export async function getPipelineMetrics(): Promise<StageMetrics[]> {
   const stages: StoryStage[] = [
@@ -77,60 +78,62 @@ export async function getPipelineMetrics(): Promise<StageMetrics[]> {
     'TRANSLATED',
   ];
 
-  const metrics = await Promise.all(
-    stages.map(async (stage) => {
-      // Get all stories in this stage
-      const stories = await prisma.story.findMany({
-        where: {
-          stage,
-          isTranslation: false, // Exclude translations from main pipeline
-        },
-        select: {
-          id: true,
-          title: true,
-          updatedAt: true,
-          createdAt: true,
-        },
-        orderBy: {
-          updatedAt: 'asc', // Oldest first
-        },
-      });
+  // Single query to get all stories in pipeline stages
+  const allStories = await prisma.story.findMany({
+    where: {
+      stage: { in: stages },
+      isTranslation: false,
+    },
+    select: {
+      id: true,
+      title: true,
+      stage: true,
+      updatedAt: true,
+      createdAt: true,
+    },
+    orderBy: {
+      updatedAt: 'asc',
+    },
+  });
 
-      const count = stories.length;
-      const now = new Date();
+  const now = new Date();
 
-      // Calculate days in stage for each story
-      const daysInStage = stories.map((story) => {
-        const stageEntry = story.updatedAt || story.createdAt;
-        const diffMs = now.getTime() - stageEntry.getTime();
-        return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      });
+  // Group stories by stage and calculate metrics in memory
+  const metrics = stages.map((stage) => {
+    const stageStories = allStories.filter((s) => s.stage === stage);
+    const count = stageStories.length;
 
-      // Find oldest story
-      const oldestStory = stories[0] || null;
-      const oldestDays = daysInStage[0] || null;
+    // Calculate days in stage for each story
+    const daysInStage = stageStories.map((story) => {
+      const stageEntry = story.updatedAt || story.createdAt;
+      const diffMs = now.getTime() - stageEntry.getTime();
+      return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    });
 
-      // Calculate average
-      const averageDays =
-        daysInStage.length > 0
-          ? daysInStage.reduce((sum, days) => sum + days, 0) / daysInStage.length
-          : 0;
+    // Find oldest story (already sorted by updatedAt asc)
+    const oldestStory = stageStories[0] || null;
+    const oldestDays = daysInStage[0] || null;
 
-      // Count stories exceeding SLA
-      const slaThreshold = SLA_THRESHOLDS[stage];
-      const exceedingSLA = daysInStage.filter((days) => days > slaThreshold).length;
+    // Calculate average
+    const averageDays =
+      daysInStage.length > 0
+        ? daysInStage.reduce((sum, days) => sum + days, 0) / daysInStage.length
+        : 0;
 
-      return {
-        stage,
-        count,
-        oldestStoryId: oldestStory?.id || null,
-        oldestStoryTitle: oldestStory?.title || null,
-        oldestStoryDays: oldestDays,
-        averageDaysInStage: Math.round(averageDays * 10) / 10,
-        storiesExceedingSLA: exceedingSLA,
-      };
-    })
-  );
+    // Count stories exceeding SLA
+    const slaThreshold = SLA_THRESHOLDS[stage];
+    const exceedingSLA = daysInStage.filter((days) => days > slaThreshold).length;
+
+    return {
+      stage,
+      count,
+      oldestStoryId: oldestStory?.id || null,
+      oldestStoryTitle: oldestStory?.title || null,
+      oldestStoryDays: oldestDays,
+      averageDaysInStage: Math.round(averageDays * 10) / 10,
+      storiesExceedingSLA: exceedingSLA,
+    };
+  });
 
   return metrics;
 }
@@ -141,127 +144,151 @@ export async function getPipelineMetrics(): Promise<StageMetrics[]> {
 
 /**
  * Get workload distribution for journalists (tier 1 reviewers)
+ * Optimized: 2 queries instead of N+1 (one per journalist)
  */
 export async function getJournalistWorkload(): Promise<ReviewerWorkload[]> {
-  // Get all journalists
-  const journalists = await prisma.user.findMany({
-    where: {
-      userType: 'STAFF',
-      staffRole: 'JOURNALIST',
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-    },
+  // Parallel fetch: journalists and their assigned stories
+  const [journalists, assignedStories] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        userType: 'STAFF',
+        staffRole: 'JOURNALIST',
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    }),
+    prisma.story.findMany({
+      where: {
+        stage: 'NEEDS_JOURNALIST_REVIEW',
+        assignedReviewerId: { not: null },
+      },
+      select: {
+        id: true,
+        assignedReviewerId: true,
+        updatedAt: true,
+        createdAt: true,
+      },
+      orderBy: {
+        updatedAt: 'asc',
+      },
+    }),
+  ]);
+
+  const now = new Date();
+
+  // Group stories by reviewer in memory
+  const storiesByReviewer = new Map<string, typeof assignedStories>();
+  for (const story of assignedStories) {
+    if (story.assignedReviewerId) {
+      const existing = storiesByReviewer.get(story.assignedReviewerId) || [];
+      existing.push(story);
+      storiesByReviewer.set(story.assignedReviewerId, existing);
+    }
+  }
+
+  const workload = journalists.map((journalist) => {
+    const stories = storiesByReviewer.get(journalist.id) || [];
+    const count = stories.length;
+
+    // Calculate oldest assigned story
+    let oldestDays: number | null = null;
+    if (stories.length > 0) {
+      const oldest = stories[0]; // Already sorted by updatedAt asc
+      const stageEntry = oldest.updatedAt || oldest.createdAt;
+      const diffMs = now.getTime() - stageEntry.getTime();
+      oldestDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    }
+
+    return {
+      userId: journalist.id,
+      name: `${journalist.firstName} ${journalist.lastName}`,
+      email: journalist.email,
+      storiesAssigned: count,
+      oldestAssignedDays: oldestDays,
+      role: 'JOURNALIST',
+    };
   });
-
-  const workload = await Promise.all(
-    journalists.map(async (journalist) => {
-      // Get stories assigned for review
-      const assignedStories = await prisma.story.findMany({
-        where: {
-          stage: 'NEEDS_JOURNALIST_REVIEW',
-          assignedReviewerId: journalist.id,
-        },
-        select: {
-          id: true,
-          updatedAt: true,
-          createdAt: true,
-        },
-        orderBy: {
-          updatedAt: 'asc',
-        },
-      });
-
-      const count = assignedStories.length;
-      const now = new Date();
-
-      // Calculate oldest assigned story
-      let oldestDays: number | null = null;
-      if (assignedStories.length > 0) {
-        const oldest = assignedStories[0];
-        const stageEntry = oldest.updatedAt || oldest.createdAt;
-        const diffMs = now.getTime() - stageEntry.getTime();
-        oldestDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      }
-
-      return {
-        userId: journalist.id,
-        name: `${journalist.firstName} ${journalist.lastName}`,
-        email: journalist.email,
-        storiesAssigned: count,
-        oldestAssignedDays: oldestDays,
-        role: 'JOURNALIST',
-      };
-    })
-  );
 
   return workload.sort((a, b) => b.storiesAssigned - a.storiesAssigned);
 }
 
 /**
  * Get workload distribution for sub-editors (tier 2 approvers)
+ * Optimized: 2 queries instead of N+1 (one per sub-editor)
  */
 export async function getSubEditorWorkload(): Promise<ReviewerWorkload[]> {
-  // Get all sub-editors
-  const subEditors = await prisma.user.findMany({
-    where: {
-      userType: 'STAFF',
-      staffRole: {
-        in: ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'],
+  // Parallel fetch: sub-editors and their assigned stories
+  const [subEditors, assignedStories] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        userType: 'STAFF',
+        staffRole: {
+          in: ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'],
+        },
       },
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      staffRole: true,
-    },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        staffRole: true,
+      },
+    }),
+    prisma.story.findMany({
+      where: {
+        stage: 'NEEDS_SUB_EDITOR_APPROVAL',
+        assignedApproverId: { not: null },
+      },
+      select: {
+        id: true,
+        assignedApproverId: true,
+        updatedAt: true,
+        createdAt: true,
+      },
+      orderBy: {
+        updatedAt: 'asc',
+      },
+    }),
+  ]);
+
+  const now = new Date();
+
+  // Group stories by approver in memory
+  const storiesByApprover = new Map<string, typeof assignedStories>();
+  for (const story of assignedStories) {
+    if (story.assignedApproverId) {
+      const existing = storiesByApprover.get(story.assignedApproverId) || [];
+      existing.push(story);
+      storiesByApprover.set(story.assignedApproverId, existing);
+    }
+  }
+
+  const workload = subEditors.map((editor) => {
+    const stories = storiesByApprover.get(editor.id) || [];
+    const count = stories.length;
+
+    // Calculate oldest assigned story
+    let oldestDays: number | null = null;
+    if (stories.length > 0) {
+      const oldest = stories[0]; // Already sorted by updatedAt asc
+      const stageEntry = oldest.updatedAt || oldest.createdAt;
+      const diffMs = now.getTime() - stageEntry.getTime();
+      oldestDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    }
+
+    return {
+      userId: editor.id,
+      name: `${editor.firstName} ${editor.lastName}`,
+      email: editor.email,
+      storiesAssigned: count,
+      oldestAssignedDays: oldestDays,
+      role: editor.staffRole || 'SUB_EDITOR',
+    };
   });
-
-  const workload = await Promise.all(
-    subEditors.map(async (editor) => {
-      // Get stories assigned for approval
-      const assignedStories = await prisma.story.findMany({
-        where: {
-          stage: 'NEEDS_SUB_EDITOR_APPROVAL',
-          assignedApproverId: editor.id,
-        },
-        select: {
-          id: true,
-          updatedAt: true,
-          createdAt: true,
-        },
-        orderBy: {
-          updatedAt: 'asc',
-        },
-      });
-
-      const count = assignedStories.length;
-      const now = new Date();
-
-      // Calculate oldest assigned story
-      let oldestDays: number | null = null;
-      if (assignedStories.length > 0) {
-        const oldest = assignedStories[0];
-        const stageEntry = oldest.updatedAt || oldest.createdAt;
-        const diffMs = now.getTime() - stageEntry.getTime();
-        oldestDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      }
-
-      return {
-        userId: editor.id,
-        name: `${editor.firstName} ${editor.lastName}`,
-        email: editor.email,
-        storiesAssigned: count,
-        oldestAssignedDays: oldestDays,
-        role: editor.staffRole || 'SUB_EDITOR',
-      };
-    })
-  );
 
   return workload.sort((a, b) => b.storiesAssigned - a.storiesAssigned);
 }
@@ -410,77 +437,60 @@ export async function getApprovalQueueDetails(): Promise<StoryQueueItem[]> {
 
 /**
  * Get overall workflow health metrics
+ * Optimized: Parallel queries instead of sequential
  */
 export async function getWorkflowHealth(): Promise<WorkflowHealth> {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(now);
   weekStart.setDate(weekStart.getDate() - 7);
-
-  // Total stories in pipeline (not published)
-  const totalInPipeline = await prisma.story.count({
-    where: {
-      stage: {
-        not: 'PUBLISHED',
-      },
-      isTranslation: false,
-    },
-  });
-
-  // Stories published today
-  const publishedToday = await prisma.story.count({
-    where: {
-      stage: 'PUBLISHED',
-      publishedAt: {
-        gte: todayStart,
-      },
-    },
-  });
-
-  // Stories published this week
-  const publishedThisWeek = await prisma.story.count({
-    where: {
-      stage: 'PUBLISHED',
-      publishedAt: {
-        gte: weekStart,
-      },
-    },
-  });
-
-  // Calculate average throughput (stories per day over last 30 days)
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const publishedLast30Days = await prisma.story.count({
-    where: {
-      stage: 'PUBLISHED',
-      publishedAt: {
-        gte: thirtyDaysAgo,
-      },
-    },
-  });
+  // Run all queries in parallel
+  const [totalInPipeline, publishedToday, publishedThisWeek, publishedLast30Days, stageCounts] =
+    await Promise.all([
+      // Total stories in pipeline (not published)
+      prisma.story.count({
+        where: {
+          stage: { not: 'PUBLISHED' },
+          isTranslation: false,
+        },
+      }),
+      // Stories published today
+      prisma.story.count({
+        where: {
+          stage: 'PUBLISHED',
+          publishedAt: { gte: todayStart },
+        },
+      }),
+      // Stories published this week
+      prisma.story.count({
+        where: {
+          stage: 'PUBLISHED',
+          publishedAt: { gte: weekStart },
+        },
+      }),
+      // Stories published in last 30 days
+      prisma.story.count({
+        where: {
+          stage: 'PUBLISHED',
+          publishedAt: { gte: thirtyDaysAgo },
+        },
+      }),
+      // Find bottleneck stage (most stories)
+      prisma.story.groupBy({
+        by: ['stage'],
+        where: {
+          stage: { not: 'PUBLISHED' },
+          isTranslation: false,
+        },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+      }),
+    ]);
 
   const averageThroughput = publishedLast30Days / 30;
-
-  // Find bottleneck stage (most stories)
-  const stageCounts = await prisma.story.groupBy({
-    by: ['stage'],
-    where: {
-      stage: {
-        not: 'PUBLISHED',
-      },
-      isTranslation: false,
-    },
-    _count: {
-      id: true,
-    },
-    orderBy: {
-      _count: {
-        id: 'desc',
-      },
-    },
-  });
-
   const bottleneck = stageCounts[0] || null;
 
   return {

@@ -1,13 +1,23 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { KeyboardEvent } from 'react';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Show } from '@/hooks/use-shows';
 import { PencilIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
+
+// Helper for keyboard navigation on clickable elements
+function handleKeyboardNavigation(callback: () => void) {
+  return (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      callback();
+    }
+  };
+}
 
 interface ShowListProps {
   shows: Show[];
@@ -42,7 +52,13 @@ export function ShowList({ shows, onEdit, onDelete, canEdit = true, canDelete = 
       </TableHead>
       <TableBody>
         {shows.map((show) => (
-          <TableRow key={show.id} className="hover:bg-zinc-50 cursor-pointer" onClick={() => router.push(`/newsroom/shows/${show.id}`)}>
+          <TableRow
+            key={show.id}
+            tabIndex={0}
+            className="hover:bg-zinc-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-kelly-green"
+            onClick={() => router.push(`/newsroom/shows/${show.id}`)}
+            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/shows/${show.id}`))}
+          >
             <TableCell className="px-4 py-3">
             {show.coverImage ? (
               <div className="relative w-12 h-12 rounded overflow-hidden bg-zinc-100">
@@ -83,28 +99,34 @@ export function ShowList({ shows, onEdit, onDelete, canEdit = true, canDelete = 
             </span>
             </TableCell>
             <TableCell className="px-4 py-3">
-            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-              <Button
-                color="white"
+            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
                 onClick={() => router.push(`/newsroom/shows/${show.id}`)}
+                className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+                aria-label={`View show: ${show.title}`}
               >
-                <EyeIcon className="w-4 h-4" />
-              </Button>
+                <EyeIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
               {canEdit && onEdit && (
-                <Button
-                  color="white"
+                <button
+                  type="button"
                   onClick={() => onEdit(show)}
+                  className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+                  aria-label={`Edit show: ${show.title}`}
                 >
-                  <PencilIcon className="w-4 h-4" />
-                </Button>
+                  <PencilIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
               )}
               {canDelete && onDelete && (
-                <Button
-                  color="red"
+                <button
+                  type="button"
                   onClick={() => onDelete(show)}
+                  className="rounded-md p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  aria-label={`Delete show: ${show.title}`}
                 >
-                  <TrashIcon className="w-4 h-4" />
-                </Button>
+                  <TrashIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
               )}
             </div>
             </TableCell>

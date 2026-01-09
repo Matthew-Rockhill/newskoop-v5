@@ -36,6 +36,30 @@ export async function logAudit({
   });
 }
 
+/**
+ * Log audit within a transaction context
+ * Use this when you need the audit log to be part of a transaction
+ */
+export async function logAuditTx(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  params: CreateAuditLogParams
+): Promise<AuditLog> {
+  const { userId, action, details, ipAddress, userAgent, targetId, targetType } = params;
+  const sanitizedDetails = details ? sanitizeAuditDetails(details) : undefined;
+
+  return tx.auditLog.create({
+    data: {
+      userId,
+      action,
+      metadata: sanitizedDetails as any,
+      ipAddress,
+      userAgent,
+      entityId: targetId,
+      entityType: targetType,
+    },
+  });
+}
+
 interface GetAuditLogsParams {
   userId?: string;
   action?: string;

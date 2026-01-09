@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { 
-  Bars3Icon, 
+import {
+  Bars3Icon,
   XMarkIcon,
   ChevronDownIcon,
   UserIcon,
@@ -19,6 +19,27 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { CategoryMegaMenu } from './CategoryMegaMenu';
+
+interface MenuItem {
+  id: string;
+  label: string;
+  labelAfrikaans: string | null;
+  type: 'CATEGORY' | 'CUSTOM_LINK' | 'DIVIDER';
+  categoryId: string | null;
+  category: {
+    id: string;
+    name: string;
+    nameAfrikaans: string | null;
+    slug: string;
+  } | null;
+  url: string | null;
+  openInNewTab: boolean;
+  parentId: string | null;
+  sortOrder: number;
+  isVisible: boolean;
+  icon: string | null;
+  children?: MenuItem[];
+}
 
 export function RadioNavbar() {
   const { data: session } = useSession();
@@ -36,18 +57,49 @@ export function RadioNavbar() {
     enabled: !!session,
   });
 
-  // Fetch categories for navigation
-  const { data: categoriesData } = useQuery({
-    queryKey: ['radio-categories'],
+  // Fetch menu items for navigation
+  const { data: menuData } = useQuery({
+    queryKey: ['radio-menu'],
     queryFn: async () => {
-      const response = await fetch('/api/radio/categories');
-      if (!response.ok) throw new Error('Failed to fetch categories');
+      const response = await fetch('/api/radio/menu');
+      if (!response.ok) throw new Error('Failed to fetch menu');
       return response.json();
     },
     enabled: !!session,
   });
 
-  const categories = categoriesData?.categories || [];
+  const menuItems: MenuItem[] = menuData?.menu || [];
+
+  // Get user's language preference for displaying labels
+  const userLanguage = profileData?.user?.defaultLanguagePreference || 'English';
+
+  // Helper to get the appropriate label based on user's language preference
+  const getMenuLabel = (item: MenuItem) => {
+    if (userLanguage === 'Afrikaans' && item.labelAfrikaans) {
+      return item.labelAfrikaans;
+    }
+    return item.label;
+  };
+
+  // Helper to get the category name
+  const getCategoryName = (category: { name: string; nameAfrikaans: string | null } | null) => {
+    if (!category) return '';
+    if (userLanguage === 'Afrikaans' && category.nameAfrikaans) {
+      return category.nameAfrikaans;
+    }
+    return category.name;
+  };
+
+  // Helper to get the URL for a menu item
+  const getMenuUrl = (item: MenuItem): string => {
+    if (item.type === 'CUSTOM_LINK' && item.url) {
+      return item.url;
+    }
+    if (item.type === 'CATEGORY' && item.category) {
+      return `/radio/${item.category.slug}`;
+    }
+    return '#';
+  };
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -64,7 +116,7 @@ export function RadioNavbar() {
 
   return (
     <>
-      <nav className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50 shadow-sm">
+      <nav className="bg-white border-b border-zinc-200 fixed top-0 left-0 right-0 z-50 shadow-sm">
         <Container>
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
@@ -84,71 +136,95 @@ export function RadioNavbar() {
               {/* Home Link */}
               <Link
                 href="/radio"
-                className="px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
+                className="px-4 py-2 rounded-lg text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
               >
                 Home
               </Link>
 
-              {/* Dynamic Category Links */}
-              {categories.map((category: any) => {
-                const hasChildren = category.children && category.children.length > 0;
+              {/* Dynamic Menu Items */}
+              {menuItems.map((item) => {
+                // Skip dividers in main nav
+                if (item.type === 'DIVIDER') return null;
+
+                const hasChildren = item.children && item.children.length > 0;
+                const itemUrl = getMenuUrl(item);
+                const isExternal = item.type === 'CUSTOM_LINK' && item.openInNewTab;
 
                 if (!hasChildren) {
-                  // Direct link for categories without children (News Bulletins, Shows)
-                  return (
-                    <Link
-                      key={category.id}
-                      href={`/radio/${category.slug}`}
-                      className="px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
+                  // Direct link for items without children
+                  return isExternal ? (
+                    <a
+                      key={item.id}
+                      href={itemUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-lg text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
                     >
-                      {category.name}
+                      {getMenuLabel(item)}
+                    </a>
+                  ) : (
+                    <Link
+                      key={item.id}
+                      href={itemUrl}
+                      className="px-4 py-2 rounded-lg text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
+                    >
+                      {getMenuLabel(item)}
                     </Link>
                   );
                 }
 
-                // Dropdown for categories with children
+                // Dropdown for items with children
                 return (
-                  <div key={category.id} className="relative group">
+                  <div key={item.id} className="relative group">
                     <Link
-                      href={`/radio/${category.slug}`}
-                      className="px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium flex items-center gap-1"
+                      href={itemUrl}
+                      className="px-4 py-2 rounded-lg text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium flex items-center gap-1"
                     >
-                      {category.name}
+                      {getMenuLabel(item)}
                       <ChevronDownIcon className="h-4 w-4" />
                     </Link>
 
                     {/* Dropdown Menu - Pure CSS hover */}
                     <div className="absolute left-0 pt-2 hidden group-hover:block">
-                      <div className="w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                      <div className="w-56 bg-white rounded-lg shadow-lg border border-zinc-200 py-2">
                         <Link
-                          href={`/radio/${category.slug}`}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-kelly-green/5 hover:text-kelly-green font-medium"
+                          href={itemUrl}
+                          className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green font-medium"
                         >
-                          All {category.name}
+                          All {getMenuLabel(item)}
                         </Link>
-                        <div className="border-t border-gray-100 my-1"></div>
-                        {category.children.map((child: any) => (
-                          <Link
-                            key={child.id}
-                            href={`/radio/${category.slug}/${child.slug}`}
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-kelly-green/5 hover:text-kelly-green"
-                          >
-                            {child.name}
-                          </Link>
-                        ))}
+                        <div className="border-t border-zinc-100 my-1"></div>
+                        {item.children!.map((child) => {
+                          if (child.type === 'DIVIDER') {
+                            return <div key={child.id} className="border-t border-zinc-100 my-1"></div>;
+                          }
+                          const childUrl = getMenuUrl(child);
+                          const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
+                          return isChildExternal ? (
+                            <a
+                              key={child.id}
+                              href={childUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
+                            >
+                              {getMenuLabel(child)}
+                            </a>
+                          ) : (
+                            <Link
+                              key={child.id}
+                              href={childUrl}
+                              className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
+                            >
+                              {getMenuLabel(child)}
+                            </Link>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
                 );
               })}
-
-              {/* Shows Link - after all categories */}
-              <Link
-                href="/radio/shows"
-                className="px-4 py-2 rounded-lg text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
-              >
-                Shows
-              </Link>
             </div>
 
             {/* User Menu */}
@@ -157,7 +233,7 @@ export function RadioNavbar() {
                 <div className="relative">
                   <button
                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-50 transition-colors"
                   >
                     <Avatar
                       className="h-8 w-8"
@@ -165,11 +241,11 @@ export function RadioNavbar() {
                       src={profileData?.user?.profilePictureUrl}
                     />
                     <div className="hidden lg:block min-w-0 text-left">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-zinc-900">
                         {`${session.user.firstName} ${session.user.lastName}`}
                       </p>
                     </div>
-                    <ChevronDownIcon className={`h-4 w-4 text-gray-500 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDownIcon className={`h-4 w-4 text-zinc-500 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {/* User Dropdown */}
@@ -182,11 +258,11 @@ export function RadioNavbar() {
                       />
                       
                       {/* Dropdown Menu */}
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-zinc-200 z-20">
                         <div className="py-2">
                           {/* Profile Header */}
-                          <div className="px-4 py-3 border-b border-gray-100">
-                            <p className="text-sm font-semibold text-gray-900">
+                          <div className="px-4 py-3 border-b border-zinc-100">
+                            <p className="text-sm font-semibold text-zinc-900">
                               {`${session.user.firstName} ${session.user.lastName}`}
                             </p>
                           </div>
@@ -199,7 +275,7 @@ export function RadioNavbar() {
                                 {(['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole || '')) && (
                                   <Link
                                     href="/admin"
-                                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                                     onClick={() => setIsUserDropdownOpen(false)}
                                   >
                                     <ArrowLeftIcon className="h-4 w-4" />
@@ -210,7 +286,7 @@ export function RadioNavbar() {
                                 {(['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole || '')) && (
                                   <Link
                                     href="/newsroom"
-                                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                                     onClick={() => setIsUserDropdownOpen(false)}
                                   >
                                     <ArrowLeftIcon className="h-4 w-4" />
@@ -218,13 +294,13 @@ export function RadioNavbar() {
                                   </Link>
                                 )}
                                 
-                                <div className="border-t border-gray-100 my-1"></div>
+                                <div className="border-t border-zinc-100 my-1"></div>
                               </>
                             )}
                             
                             <Link
                               href="/radio/profile"
-                              className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                               onClick={() => setIsUserDropdownOpen(false)}
                             >
                               <UserIcon className="h-4 w-4" />
@@ -233,7 +309,7 @@ export function RadioNavbar() {
                           </div>
                           
                           {/* Sign Out */}
-                          <div className="border-t border-gray-100 py-1">
+                          <div className="border-t border-zinc-100 py-1">
                             <button
                               onClick={() => {
                                 setIsUserDropdownOpen(false);
@@ -255,7 +331,7 @@ export function RadioNavbar() {
               {/* Mobile Menu Button */}
               <button
                 type="button"
-                className="md:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                className="md:hidden p-2 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 <span className="sr-only">Open main menu</span>
@@ -275,7 +351,7 @@ export function RadioNavbar() {
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="fixed inset-0 bg-black bg-opacity-25" onClick={() => setIsMobileMenuOpen(false)} />
           
-          <div className="fixed top-20 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
+          <div className="fixed top-20 left-0 right-0 bg-white border-b border-zinc-200 shadow-lg">
             <Container className="py-4">
 
               {/* Navigation Links */}
@@ -283,71 +359,98 @@ export function RadioNavbar() {
                 {/* Home Link */}
                 <Link
                   href="/radio"
-                  className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
+                  className="block px-4 py-3 text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Home
                 </Link>
 
-                {/* Dynamic Category Links */}
-                {categories.map((category: any) => {
-                  const hasChildren = category.children && category.children.length > 0;
+                {/* Dynamic Menu Items */}
+                {menuItems.map((item) => {
+                  // Skip dividers in mobile nav or show as visual separator
+                  if (item.type === 'DIVIDER') {
+                    return <div key={item.id} className="border-t border-zinc-200 my-2"></div>;
+                  }
+
+                  const hasChildren = item.children && item.children.length > 0;
+                  const itemUrl = getMenuUrl(item);
+                  const isExternal = item.type === 'CUSTOM_LINK' && item.openInNewTab;
 
                   if (!hasChildren) {
-                    // Direct link for categories without children
-                    return (
-                      <Link
-                        key={category.id}
-                        href={`/radio/${category.slug}`}
-                        className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
+                    // Direct link for items without children
+                    return isExternal ? (
+                      <a
+                        key={item.id}
+                        href={itemUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block px-4 py-3 text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        {category.name}
+                        {getMenuLabel(item)}
+                      </a>
+                    ) : (
+                      <Link
+                        key={item.id}
+                        href={itemUrl}
+                        className="block px-4 py-3 text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {getMenuLabel(item)}
                       </Link>
                     );
                   }
 
-                  // Category with sub-categories
+                  // Item with children
                   return (
-                    <div key={category.id} className="space-y-1">
+                    <div key={item.id} className="space-y-1">
                       <Link
-                        href={`/radio/${category.slug}`}
-                        className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
+                        href={itemUrl}
+                        className="block px-4 py-3 text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        {category.name}
+                        {getMenuLabel(item)}
                       </Link>
-                      {/* Sub-categories */}
+                      {/* Child items */}
                       <div className="pl-4 space-y-1">
-                        {category.children.map((child: any) => (
-                          <Link
-                            key={child.id}
-                            href={`/radio/${category.slug}/${child.slug}`}
-                            className="block px-4 py-2 text-sm text-gray-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            {child.name}
-                          </Link>
-                        ))}
+                        {item.children!.map((child) => {
+                          if (child.type === 'DIVIDER') {
+                            return <div key={child.id} className="border-t border-zinc-100 my-1 mx-4"></div>;
+                          }
+                          const childUrl = getMenuUrl(child);
+                          const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
+                          return isChildExternal ? (
+                            <a
+                              key={child.id}
+                              href={childUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block px-4 py-2 text-sm text-zinc-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              {getMenuLabel(child)}
+                            </a>
+                          ) : (
+                            <Link
+                              key={child.id}
+                              href={childUrl}
+                              className="block px-4 py-2 text-sm text-zinc-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              {getMenuLabel(child)}
+                            </Link>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 })}
-
-                {/* Shows Link - after all categories */}
-                <Link
-                  href="/radio/shows"
-                  className="block px-4 py-3 text-gray-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Shows
-                </Link>
               </div>
 
               {/* User Info */}
               {session?.user && (
-                <div className="border-t border-gray-200 pt-4">
-                  <div className="px-4 py-3 border-b border-gray-100">
+                <div className="border-t border-zinc-200 pt-4">
+                  <div className="px-4 py-3 border-b border-zinc-100">
                     <div className="flex items-center gap-3">
                       <Avatar
                         className="h-8 w-8"
@@ -355,7 +458,7 @@ export function RadioNavbar() {
                         src={profileData?.user?.profilePictureUrl}
                       />
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-zinc-900">
                           {`${session.user.firstName} ${session.user.lastName}`}
                         </p>
                       </div>
@@ -369,7 +472,7 @@ export function RadioNavbar() {
                         {(['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole || '')) && (
                           <Link
                             href="/admin"
-                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                             onClick={() => setIsMobileMenuOpen(false)}
                           >
                             <ArrowLeftIcon className="h-4 w-4" />
@@ -380,7 +483,7 @@ export function RadioNavbar() {
                         {(['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole || '')) && (
                           <Link
                             href="/newsroom"
-                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                             onClick={() => setIsMobileMenuOpen(false)}
                           >
                             <ArrowLeftIcon className="h-4 w-4" />
@@ -388,13 +491,13 @@ export function RadioNavbar() {
                           </Link>
                         )}
                         
-                        <div className="border-t border-gray-100 my-2"></div>
+                        <div className="border-t border-zinc-100 my-2"></div>
                       </>
                     )}
                     
                     <Link
                       href="/radio/profile"
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <UserIcon className="h-4 w-4" />

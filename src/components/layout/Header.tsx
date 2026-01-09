@@ -32,9 +32,9 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         transparent 
           ? isScrolled 
-            ? 'bg-white shadow-sm border-b border-[#76BD43]' 
+            ? 'bg-white shadow-sm border-b border-kelly-green' 
             : 'bg-transparent'
-          : 'bg-white shadow-sm border-b border-gray-100'
+          : 'bg-white shadow-sm border-b border-zinc-100'
       }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -67,7 +67,7 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className={`md:hidden p-2 rounded-md ${
-              transparent && !isScrolled ? 'text-white' : 'text-gray-600'
+              transparent && !isScrolled ? 'text-white' : 'text-zinc-600'
             }`}
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -77,7 +77,7 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className={`md:hidden py-4 border-t ${
-            transparent && !isScrolled ? 'border-white/20' : 'border-gray-100'
+            transparent && !isScrolled ? 'border-white/20' : 'border-zinc-100'
           }`}>
             <div className="flex flex-col space-y-4">
               {isLoggedIn ? (

@@ -77,9 +77,9 @@ export default function PasswordResetPage() {
             </Button>
           </form>
         </div>
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-10 text-center text-sm text-zinc-500">
           Remembered your password?{' '}
-          <Link href="/login" className="font-semibold text-[#76BD43] hover:underline">
+          <Link href="/login" className="font-semibold text-kelly-green hover:underline">
             Back to login
           </Link>
         </p>

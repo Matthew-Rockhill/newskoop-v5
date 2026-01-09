@@ -14,7 +14,17 @@
       "Bash(npx prisma db push:*)",
       "Bash(npx next build:*)",
       "Bash(find:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(xargs cat:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next lint)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

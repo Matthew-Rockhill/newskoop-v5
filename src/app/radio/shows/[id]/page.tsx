@@ -178,12 +178,12 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="min-h-screen bg-zinc-50 pt-20">
       <Container className="py-8">
         {/* Back Button */}
         <Link
           href="/radio/shows"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-kelly-green mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-zinc-600 hover:text-kelly-green mb-6 transition-colors"
         >
           <ArrowLeftIcon className="h-4 w-4" />
           Back to Shows
@@ -192,9 +192,9 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
         {/* Loading State */}
         {isLoading && (
           <div className="animate-pulse">
-            <div className="bg-gray-200 h-64 rounded-lg mb-6" />
-            <div className="h-8 bg-gray-200 rounded w-1/2 mb-4" />
-            <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div className="bg-zinc-200 h-64 rounded-lg mb-6" />
+            <div className="h-8 bg-zinc-200 rounded w-1/2 mb-4" />
+            <div className="h-4 bg-zinc-200 rounded w-3/4" />
           </div>
         )}
 
@@ -222,7 +222,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                       className="w-full h-64 md:h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-64 md:h-full bg-gray-200" />
+                    <div className="w-full h-64 md:h-full bg-zinc-200" />
                   )}
                 </div>
 
@@ -239,15 +239,15 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                       ))}
                   </div>
 
-                  <Heading level={1} className="text-3xl font-bold text-gray-900 mb-4">
+                  <Heading level={1} className="text-3xl font-bold text-zinc-900 mb-4">
                     {show.title}
                   </Heading>
 
-                  <Text className="text-gray-700 leading-relaxed mb-6">
+                  <Text className="text-zinc-700 leading-relaxed mb-6">
                     {show.description || 'No description available'}
                   </Text>
 
-                  <div className="flex items-center gap-6 text-sm text-gray-600">
+                  <div className="flex items-center gap-6 text-sm text-zinc-600">
                     <div className="flex items-center gap-2">
                       <PlayCircleIcon className="h-5 w-5" />
                       <span>{episodes.length} {episodes.length === 1 ? 'Episode' : 'Episodes'}</span>
@@ -260,7 +260,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
             {/* Episodes Section */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
-                <Heading level={2} className="text-2xl font-bold text-gray-900">
+                <Heading level={2} className="text-2xl font-bold text-zinc-900">
                   Episodes
                 </Heading>
 
@@ -302,17 +302,17 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                           <div className="flex items-center gap-3 mb-2">
                             <Badge color="zinc">Episode {episode.episodeNumber}</Badge>
                             {episode.publishedAt && (
-                              <div className="flex items-center gap-1 text-sm text-gray-500">
+                              <div className="flex items-center gap-1 text-sm text-zinc-500">
                                 <CalendarIcon className="h-4 w-4" />
                                 {formatDate(episode.publishedAt)}
                               </div>
                             )}
                           </div>
-                          <Heading level={3} className="text-xl font-semibold text-gray-900 mb-2">
+                          <Heading level={3} className="text-xl font-semibold text-zinc-900 mb-2">
                             {episode.title}
                           </Heading>
                           {episode.description && (
-                            <Text className="text-gray-600 text-sm">
+                            <Text className="text-zinc-600 text-sm">
                               {episode.description}
                             </Text>
                           )}
@@ -321,9 +321,9 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
 
                       {/* Audio Playlist */}
                       {episode.audioClips.length > 0 ? (
-                        <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="mt-4 pt-4 border-t border-zinc-100">
                           <div className="flex items-center justify-between mb-3">
-                            <Text className="text-sm font-medium text-gray-700">
+                            <Text className="text-sm font-medium text-zinc-700">
                               Audio Playlist ({episode.audioClips.length} {episode.audioClips.length === 1 ? 'clip' : 'clips'})
                             </Text>
                             {currentEpisodeId === episode.id && playingAudioId && (
@@ -344,7 +344,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                                   {/* Clip Header */}
                                   <div className="flex items-center justify-between mb-2 px-1">
                                     <div className="flex items-center gap-2">
-                                      <Text className={`text-sm font-medium ${isCurrentClip ? 'text-kelly-green' : isCompleted ? 'text-gray-400' : 'text-gray-700'}`}>
+                                      <Text className={`text-sm font-medium ${isCurrentClip ? 'text-kelly-green' : isCompleted ? 'text-zinc-400' : 'text-zinc-700'}`}>
                                         Clip {index + 1}: {clip.originalName}
                                       </Text>
                                       {isCurrentClip && (
@@ -383,7 +383,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
 
                                   {/* Show compact info for non-active clips */}
                                   {!isCurrentClip && playingAudioId && currentEpisodeId === episode.id && (
-                                    <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
+                                    <div className="bg-zinc-50 rounded-lg p-3 text-xs text-zinc-500">
                                       <div className="flex items-center gap-3">
                                         {clip.duration && (
                                           <div className="flex items-center gap-1">
@@ -403,8 +403,8 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-                          <Text className="text-gray-500 text-sm">
+                        <div className="mt-4 pt-4 border-t border-zinc-100 text-center">
+                          <Text className="text-zinc-500 text-sm">
                             No audio available for this episode
                           </Text>
                         </div>
@@ -414,11 +414,11 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               ) : (
                 <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                  <PlayCircleIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <Heading level={3} className="text-xl font-semibold text-gray-900 mb-2">
+                  <PlayCircleIcon className="h-16 w-16 text-zinc-300 mx-auto mb-4" />
+                  <Heading level={3} className="text-xl font-semibold text-zinc-900 mb-2">
                     No episodes available
                   </Heading>
-                  <Text className="text-gray-600">
+                  <Text className="text-zinc-600">
                     Check back later for new episodes.
                   </Text>
                 </div>

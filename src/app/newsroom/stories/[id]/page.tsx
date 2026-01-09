@@ -14,11 +14,12 @@ import {
   CheckCircleIcon,
   ArrowUpCircleIcon,
   GlobeAltIcon,
+  ChevronRightIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { Container } from '@/components/ui/container';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
@@ -33,13 +34,15 @@ import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { TranslationSelectionModal } from '@/components/newsroom/TranslationSelectionModal';
 import { StageTransitionModal } from '@/components/ui/stage-transition-modal';
 import { ReviewStatusBanner } from '@/components/ui/review-status-banner';
-import { StageProgress } from '@/components/ui/stage-progress';
+import { WorkflowBar, StageProgressCard } from '@/components/newsroom/WorkflowBar';
 import { CategoryModal } from '@/components/newsroom/CategoryModal';
 import { TagModal } from '@/components/newsroom/TagModal';
 
 import { useStory, useDeleteStory } from '@/hooks/use-stories';
 import { useCategories } from '@/hooks/use-categories';
-import { useTags } from '@/hooks/use-tags';
+import { useTags, useCreateTag } from '@/hooks/use-tags';
+import { useClassifications } from '@/hooks/use-classifications';
+import { ClassificationType } from '@prisma/client';
 import {
   canEditStory,
   canEditStoryByStage,
@@ -140,24 +143,31 @@ export default function StoryDetailPage() {
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [isRequestingRevision, setIsRequestingRevision] = useState(false);
 
-  // Metadata editing state
-  const [isEditingMetadata, setIsEditingMetadata] = useState(false);
+  // Metadata state for modals
   const [metadataCategoryId, setMetadataCategoryId] = useState<string | null>(null);
   const [metadataTagIds, setMetadataTagIds] = useState<string[]>([]);
+  const [metadataLanguageId, setMetadataLanguageId] = useState<string | null>(null);
+  const [metadataReligionId, setMetadataReligionId] = useState<string | null>(null);
+  const [metadataLocalityId, setMetadataLocalityId] = useState<string | null>(null);
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
 
   // Modal visibility state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showReligionModal, setShowReligionModal] = useState(false);
+  const [showLocalityModal, setShowLocalityModal] = useState(false);
   const [showOptionalTagsModal, setShowOptionalTagsModal] = useState(false);
 
   // Fetch single story
   const { data: story, isLoading } = useStory(storyId);
 
-  // Fetch categories and tags for modals
+  // Fetch categories, tags, and classifications for modals
   const { data: categoriesData } = useCategories(true); // flat=true to get all categories including nested
-  const { data: tagsData } = useTags(undefined, undefined, undefined, 200);
+  const { data: tagsData } = useTags();
+  const createTagMutation = useCreateTag();
+  const { data: languageClassificationsData } = useClassifications(ClassificationType.LANGUAGE);
+  const { data: religionClassificationsData } = useClassifications(ClassificationType.RELIGION);
+  const { data: localityClassificationsData } = useClassifications(ClassificationType.LOCALITY);
 
   // Fetch revision requests for this story
   const { data: revisionRequestsData } = useQuery({
@@ -199,12 +209,12 @@ export default function StoryDetailPage() {
 
   // Prepare data for modals
   const allCategories = categoriesData?.categories || [];
-  const allTags = tagsData?.tags || [];
+  const allTags = tagsData?.tags || []; // Tags are now just general topical tags
 
-  // Filter tags by category
-  const languageTags = allTags.filter((tag: any) => tag.category === 'LANGUAGE');
-  const religionTags = allTags.filter((tag: any) => tag.category === 'RELIGION');
-  const optionalTags = allTags.filter((tag: any) => tag.category === 'LOCALITY' || tag.category === 'GENERAL');
+  // Get classifications by type
+  const languageClassifications = languageClassificationsData?.classifications || [];
+  const religionClassifications = religionClassificationsData?.classifications || [];
+  const localityClassifications = localityClassificationsData?.classifications || [];
 
   // Mutations
   const deleteStoryMutation = useDeleteStory();
@@ -511,89 +521,195 @@ export default function StoryDetailPage() {
     setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
   };
 
-  // Initialize metadata when story loads or when editing starts
-  const handleStartEditingMetadata = () => {
-    if (story) {
-      setMetadataCategoryId(story.categoryId);
-      setMetadataTagIds(story.tags?.map((st: any) => st.tag.id) || []);
-      setIsEditingMetadata(true);
-    }
-  };
-
-  const handleCancelEditingMetadata = () => {
-    setIsEditingMetadata(false);
-    setMetadataCategoryId(story?.categoryId || null);
-    setMetadataTagIds(story?.tags?.map((st: any) => st.tag.id) || []);
-  };
-
-  // Modal handlers
-  const handleCategorySelected = (categoryId: string) => {
-    setMetadataCategoryId(categoryId);
-    setShowCategoryModal(false);
-  };
-
-  const handleLanguageSelected = (tagIds: string[]) => {
-    // Replace language tags while keeping others
-    const nonLanguageTags = metadataTagIds.filter((id) => {
-      const tag = allTags.find((t: any) => t.id === id);
-      return tag?.category !== 'LANGUAGE';
-    });
-    setMetadataTagIds([...nonLanguageTags, ...tagIds]);
-    setShowLanguageModal(false);
-  };
-
-  const handleReligionSelected = (tagIds: string[]) => {
-    // Replace religion tags while keeping others
-    const nonReligionTags = metadataTagIds.filter((id) => {
-      const tag = allTags.find((t: any) => t.id === id);
-      return tag?.category !== 'RELIGION';
-    });
-    setMetadataTagIds([...nonReligionTags, ...tagIds]);
-    setShowReligionModal(false);
-  };
-
-  const handleOptionalTagsSelected = (tagIds: string[]) => {
-    // Replace optional tags while keeping required tags
-    const requiredTags = metadataTagIds.filter((id) => {
-      const tag = allTags.find((t: any) => t.id === id);
-      return tag?.category === 'LANGUAGE' || tag?.category === 'RELIGION';
-    });
-    setMetadataTagIds([...requiredTags, ...tagIds]);
-    setShowOptionalTagsModal(false);
-  };
-
-  const handleSaveMetadata = async () => {
-    if (!story) return;
-
+  // Modal handlers - each saves immediately
+  const handleCategorySelected = async (categoryId: string) => {
     setIsSavingMetadata(true);
     try {
+      const formData = new FormData();
+      formData.append('categoryId', categoryId);
+
       const response = await fetch(`/api/newsroom/stories/${storyId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          categoryId: metadataCategoryId,
-          tagIds: metadataTagIds,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update categorisation');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update category');
       }
 
-      toast.success('Categorisation updated successfully!');
-      setIsEditingMetadata(false);
-
-      // Refetch story data
       queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      toast.success('Category updated successfully');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update categorisation');
+      toast.error(error instanceof Error ? error.message : 'Failed to update category');
     } finally {
       setIsSavingMetadata(false);
+      setShowCategoryModal(false);
     }
   };
 
+  const handleLanguageSelected = async (classificationIds: string[]) => {
+    const classificationId = classificationIds.length > 0 ? classificationIds[0] : null;
+    if (!classificationId) {
+      setShowLanguageModal(false);
+      return;
+    }
 
+    setIsSavingMetadata(true);
+    try {
+      // Get current classifications and update language
+      const currentClassifications = story?.classifications || [];
+      const otherClassifications = currentClassifications
+        .filter((sc: any) => sc.classification?.type !== 'LANGUAGE')
+        .map((sc: any) => sc.classification.id);
+
+      const allClassificationIds = [...otherClassifications, classificationId];
+
+      const formData = new FormData();
+      formData.append('classificationIds', JSON.stringify(allClassificationIds));
+
+      const response = await fetch(`/api/newsroom/stories/${storyId}`, {
+        method: 'PATCH',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update language');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      toast.success('Language updated successfully');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update language');
+    } finally {
+      setIsSavingMetadata(false);
+      setShowLanguageModal(false);
+    }
+  };
+
+  const handleReligionSelected = async (classificationIds: string[]) => {
+    const classificationId = classificationIds.length > 0 ? classificationIds[0] : null;
+    if (!classificationId) {
+      setShowReligionModal(false);
+      return;
+    }
+
+    setIsSavingMetadata(true);
+    try {
+      // Get current classifications and update religion
+      const currentClassifications = story?.classifications || [];
+      const otherClassifications = currentClassifications
+        .filter((sc: any) => sc.classification?.type !== 'RELIGION')
+        .map((sc: any) => sc.classification.id);
+
+      const allClassificationIds = [...otherClassifications, classificationId];
+
+      const formData = new FormData();
+      formData.append('classificationIds', JSON.stringify(allClassificationIds));
+
+      const response = await fetch(`/api/newsroom/stories/${storyId}`, {
+        method: 'PATCH',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update religion');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      toast.success('Religion updated successfully');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update religion');
+    } finally {
+      setIsSavingMetadata(false);
+      setShowReligionModal(false);
+    }
+  };
+
+  const handleLocalitySelected = async (classificationIds: string[]) => {
+    const classificationId = classificationIds.length > 0 ? classificationIds[0] : null;
+
+    setIsSavingMetadata(true);
+    try {
+      // Get current classifications and update locality
+      const currentClassifications = story?.classifications || [];
+      const otherClassifications = currentClassifications
+        .filter((sc: any) => sc.classification?.type !== 'LOCALITY')
+        .map((sc: any) => sc.classification.id);
+
+      const allClassificationIds = classificationId
+        ? [...otherClassifications, classificationId]
+        : otherClassifications;
+
+      const formData = new FormData();
+      formData.append('classificationIds', JSON.stringify(allClassificationIds));
+
+      const response = await fetch(`/api/newsroom/stories/${storyId}`, {
+        method: 'PATCH',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update locality');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      toast.success('Locality updated successfully');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update locality');
+    } finally {
+      setIsSavingMetadata(false);
+      setShowLocalityModal(false);
+    }
+  };
+
+  const handleOptionalTagsSelected = async (tagIds: string[]) => {
+    // Save tags immediately
+    setIsSavingMetadata(true);
+    try {
+      const formData = new FormData();
+      formData.append('tagIds', JSON.stringify(tagIds));
+
+      const response = await fetch(`/api/newsroom/stories/${storyId}`, {
+        method: 'PATCH',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update tags');
+      }
+
+      // Refresh story data immediately
+      await queryClient.refetchQueries({ queryKey: ['story', storyId] });
+      toast.success('Tags updated successfully');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update tags');
+    } finally {
+      setIsSavingMetadata(false);
+      setShowOptionalTagsModal(false);
+    }
+  };
+
+  const handleCreateTag = async (name: string) => {
+    try {
+      const newTag = await createTagMutation.mutateAsync({ name });
+      // Return the created tag so the modal can auto-select it
+      return {
+        id: newTag.id,
+        name: newTag.name,
+        slug: newTag.slug,
+        color: newTag.color,
+        _count: { stories: 0 },
+      };
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create tag');
+      return null;
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -605,7 +721,14 @@ export default function StoryDetailPage() {
     });
   };
 
-
+  // Calculate word count from HTML content
+  const getWordCount = (html: string | null | undefined): number => {
+    if (!html) return 0;
+    // Strip HTML tags and get plain text
+    const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!text) return 0;
+    return text.split(/\s+/).length;
+  };
 
   if (isLoading) {
     return (
@@ -635,404 +758,417 @@ export default function StoryDetailPage() {
     (r: any) => r.requestedById === session?.user?.id
   );
 
+  // Helper to get classification by type
+  const getClassificationByType = (type: 'LANGUAGE' | 'RELIGION' | 'LOCALITY') => {
+    return story.classifications?.find((sc: any) => sc.classification?.type === type)?.classification;
+  };
+
+  const languageClassification = getClassificationByType('LANGUAGE');
+  const religionClassification = getClassificationByType('RELIGION');
+  const localityClassification = getClassificationByType('LOCALITY');
+
+  // Workflow bar action handlers
+  const handleMarkReadyToPublish = async () => {
+    try {
+      const response = await fetch(`/api/newsroom/stories/${storyId}/stage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'mark_as_translated',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to mark as ready to publish');
+      }
+
+      toast.success('Story marked as ready to publish');
+      await queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      await queryClient.invalidateQueries({ queryKey: ['stories'] });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to mark as ready to publish';
+      toast.error(errorMessage);
+    }
+  };
+
+  // Determine workflow bar visibility flags
+  const showMarkReadyToPublish = story.stage === 'APPROVED' &&
+    story.translations &&
+    story.translations.length > 0 &&
+    story.translations.every((t: any) => t.stage === 'APPROVED' || t.stage === 'TRANSLATED' || t.stage === 'PUBLISHED') &&
+    session?.user?.staffRole &&
+    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole);
+
+  const showCreateTranslation = !story.isTranslation &&
+    story.stage === 'APPROVED' &&
+    (!story.translations || story.translations.length === 0) &&
+    (!translationsData?.stories || translationsData.stories.length === 0) &&
+    session?.user?.staffRole &&
+    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole);
+
+  const showReviewForPublishing = story.status === 'READY_TO_PUBLISH' &&
+    session?.user?.staffRole &&
+    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole);
+
   // Only render the main page content if story is defined
   return (
     <Container>
-      {/* Review Status Banner - Show when story is under review */}
-      {story.authorId === session?.user?.id &&
-       story.stage === 'NEEDS_JOURNALIST_REVIEW' &&
-       story.assignedReviewer && (
-        <ReviewStatusBanner
-          stage={story.stage}
-          reviewer={story.assignedReviewer}
-          updatedAt={story.updatedAt}
-          className="mb-6"
-        />
-      )}
-
-      {/* Review Status Banner - Show when story is awaiting approval */}
-      {story.authorId === session?.user?.id &&
-       story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
-       story.assignedApprover && (
-        <ReviewStatusBanner
-          stage={story.stage}
-          reviewer={story.assignedApprover}
-          updatedAt={story.updatedAt}
-          className="mb-6"
-        />
-      )}
-
-      {/* Approval Sent Banner - For Reviewer who sent for approval */}
-      {story.authorId !== session?.user?.id &&
-       story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
-       story.assignedReviewerId === session?.user?.id &&
-       story.assignedApprover && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
-          <div className="flex items-start gap-3">
-            <CheckCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                Sent for Approval
-              </h3>
-              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                You sent this story to {story.assignedApprover.firstName} {story.assignedApprover.lastName} for approval. They have been notified and will review it.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Revision Request Banner - For Author */}
-      {unresolvedRevisions.length > 0 && story.authorId === session?.user?.id && (
-        <RevisionRequestBanner
-          revisionRequests={unresolvedRevisions}
-          className="mb-6"
-        />
-      )}
-
-      {/* Revision Requested Banner - For Reviewer/Journalist */}
-      {userRequestedRevision && story.stage === 'DRAFT' && story.authorId !== session?.user?.id && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
-          <div className="flex items-start gap-3">
-            <CheckCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                Revision Requested
-              </h3>
-              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                You requested revision from {story.author.firstName} {story.author.lastName}. They have been notified and can now make the necessary changes.
-              </p>
-              {unresolvedRevisions.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {unresolvedRevisions
-                    .filter((r: any) => r.requestedById === session?.user?.id)
-                    .map((revision: any) => (
-                      <div key={revision.id} className="rounded bg-blue-100 dark:bg-blue-900 p-3">
-                        <p className="text-xs text-blue-600 dark:text-blue-400">
-                          Requested on {new Date(revision.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                        <p className="mt-1 text-sm text-blue-900 dark:text-blue-100">{revision.reason}</p>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Translation Assignment Banner */}
-      {story.isTranslation && story.stage === 'DRAFT' && (!story.content || story.content.trim() === '') && (
-        <div className="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-950">
-          <div className="flex items-start gap-3">
-            <GlobeAltIcon className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-100">
-                {story.authorId === session?.user?.id ? 'Translation Assignment' : 'Translation In Progress'}
-              </h3>
-              <p className="mt-1 text-sm text-purple-700 dark:text-purple-300">
-                {story.authorId === session?.user?.id ? (
-                  <>
-                    You have been assigned to translate this story to <strong>{story.language}</strong>.
-                    Click "Translate" to begin working on the translation.
-                  </>
-                ) : (
-                  <>
-                    This story has been assigned to <strong>{story.author.firstName} {story.author.lastName}</strong> for translation to <strong>{story.language}</strong>.
-                    The translation is in progress.
-                  </>
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stage Progress Bar */}
-      {story.stage && story.author.staffRole && (
-        <StageProgress
-          currentStage={story.stage as StoryStage}
-          authorRole={story.author.staffRole as StaffRole}
-          className="mb-8"
-        />
-      )}
-
-      <PageHeader
-        title={
-          story.isTranslation && (!story.content || story.content.trim() === '')
-            ? `${story.title} (${story.language} - Translation Pending)`
-            : story.title
-        }
-        metadata={{
-          sections: [
-            {
-              title: "Author & Timeline",
-              items: [
-                {
-                  label: "Author",
-                  value: (
-                    <>
-                      <Avatar
-                        className="h-6 w-6"
-                        name={`${story.author.firstName} ${story.author.lastName}`}
-                      />
-                      <span>{story.author.firstName} {story.author.lastName}</span>
-                    </>
-                  ),
-                  type: 'avatar'
-                },
-                {
-                  label: "Created",
-                  value: formatDate(story.createdAt),
-                  type: 'date'
-                },
-                {
-                  label: "Last Updated",
-                  value: formatDate(story.updatedAt),
-                  type: 'date'
-                }
-              ]
-            }
-          ]
-        }}
-        actions={
-          <div className="flex items-center space-x-3">
-            {/* Back to Stories */}
-            <Button
-              color="white"
-              onClick={() => router.push('/newsroom/stories')}
-            >
-              ← Back to Stories
-            </Button>
-
-            {/* Basic Actions */}
-            <div className="flex items-center space-x-2">
-              {/* Translate Button - For empty translation stories */}
-              {story.isTranslation &&
-               (!story.content || story.content.trim() === '') &&
-               canShowEditButton(
-                 session?.user?.staffRole ?? null,
-                 story.authorId,
-                 session?.user?.id || '',
-                 story.stage,
-                 story.assignedReviewerId,
-                 story.assignedApproverId,
-                 story.isTranslation
-               ) && (
-                <Button
-                  color="primary"
-                  onClick={() => router.push(`/newsroom/stories/${story.id}/translate`)}
-                >
-                  <GlobeAltIcon className="h-4 w-4 mr-2" />
-                  Translate
-                </Button>
-              )}
-
-              {/* Edit Button - For non-translations or translations with content */}
-              {(!story.isTranslation || (story.content && story.content.trim() !== '')) &&
-               canShowEditButton(
-                 session?.user?.staffRole ?? null,
-                 story.authorId,
-                 session?.user?.id || '',
-                 story.stage,
-                 story.assignedReviewerId,
-                 story.assignedApproverId,
-                 story.isTranslation
-               ) && (
-                <Button
-                  color="secondary"
-                  onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
-                >
-                  <PencilSquareIcon className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              )}
-
-              {/* Delete Button - Only show if user can delete stories and status is deletable */}
-              {canShowDeleteButton(session?.user?.staffRole ?? null, story.status) && (
-                <Button
-                  color="red"
-                  onClick={() => setShowDeleteModal(true)}
-                  disabled={isDeleting}
-                >
-                  <TrashIcon className="h-4 w-4 mr-2" />
-                  {isDeleting ? 'Deleting...' : 'Delete'}
-                </Button>
-              )}
-            </div>
-
-            {/* Workflow Actions - Visual separator with border */}
-            <div className="flex items-center space-x-2 pl-3 border-l border-gray-300">
-              {/* Request Revision Button */}
-              {showRevisionButton && (
-                <Button
-                  color="secondary"
-                  onClick={() => setShowRevisionModal(true)}
-                >
-                  <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
-                  Request Revision
-                </Button>
-              )}
-
-              {/* Next Stage Action Button */}
-              {nextAction && (
-                <Button
-                  color={nextAction.color}
-                  onClick={() => setShowStageTransitionModal(true)}
-                >
-                  <nextAction.icon className="h-4 w-4 mr-2" />
-                  {nextAction.label}
-                </Button>
-              )}
-
-              {/* Mark as Ready to Publish - For APPROVED stories with completed translations */}
-              {story.stage === 'APPROVED' &&
-               story.translations &&
-               story.translations.length > 0 &&
-               story.translations.every((t: any) => t.stage === 'APPROVED' || t.stage === 'TRANSLATED' || t.stage === 'PUBLISHED') &&
-               session?.user?.staffRole &&
-               ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
-                <Button
-                  color="primary"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(`/api/newsroom/stories/${storyId}/stage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          action: 'mark_as_translated',
-                        }),
-                      });
-
-                      if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.error || 'Failed to mark as ready to publish');
-                      }
-
-                      toast.success('Story marked as ready to publish');
-                      await queryClient.invalidateQueries({ queryKey: ['story', storyId] });
-                      await queryClient.invalidateQueries({ queryKey: ['stories'] });
-                    } catch (error: unknown) {
-                      const errorMessage = error instanceof Error ? error.message : 'Failed to mark as ready to publish';
-                      toast.error(errorMessage);
-                    }
-                  }}
-                >
-                  <CheckCircleIcon className="h-4 w-4 mr-2" />
-                  Mark as Ready to Publish
-                </Button>
-              )}
-
-              {/* Create Translation - For APPROVED original stories without any translations (one-time only) */}
-              {!story.isTranslation &&
-               story.stage === 'APPROVED' &&
-               (!story.translations || story.translations.length === 0) &&
-               (!translationsData?.stories || translationsData.stories.length === 0) &&
-               session?.user?.staffRole &&
-               ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
-                <Button
-                  color="secondary"
-                  onClick={handleSendForTranslation}
-                  disabled={isTranslating}
-                >
-                  {isTranslating ? 'Creating...' : 'Create Translation'}
-                </Button>
-              )}
-
-              {/* Review for Publishing Button - Only for READY_TO_PUBLISH status */}
-              {story.status === 'READY_TO_PUBLISH' && session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
-                <Button
-                  color="primary"
-                  onClick={() => router.push(`/newsroom/stories/${storyId}/publish`)}
-                >
-                  <CheckCircleIcon className="h-4 w-4 mr-2" />
-                  Review for Publishing
-                </Button>
-              )}
-            </div>
-          </div>
-        }
+      {/* Workflow Bar - Sticky navigation and actions */}
+      <WorkflowBar
+        storyId={storyId}
+        stage={story.stage}
+        authorRole={story.author.staffRole}
+        assignedReviewer={story.assignedReviewer}
+        assignedApprover={story.assignedApprover}
+        nextAction={nextAction}
+        showRevisionButton={showRevisionButton}
+        showMarkReadyToPublish={showMarkReadyToPublish}
+        showCreateTranslation={showCreateTranslation}
+        showReviewForPublishing={showReviewForPublishing}
+        isTranslating={isTranslating}
+        onStageTransition={() => setShowStageTransitionModal(true)}
+        onRevisionRequest={() => setShowRevisionModal(true)}
+        onMarkReadyToPublish={handleMarkReadyToPublish}
+        onCreateTranslation={handleSendForTranslation}
+        onReviewForPublishing={() => router.push(`/newsroom/stories/${storyId}/publish`)}
       />
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content - Zone 2: Story Preview */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Story Content */}
-          <Card className="p-6">
-            <div className="max-w-full">
+          {/* Story Preview Card - Mimics frontend display */}
+          <Card className="overflow-hidden">
+            {/* Story Header with Inline Metadata */}
+            <div className="bg-gradient-to-r from-kelly-green/10 to-kelly-green/5 p-6 border-b border-zinc-200">
+              {/* Top Row: Badges + Action Buttons */}
+              <div className="flex items-start justify-between gap-4 mb-4">
+                {/* Inline Metadata Badges */}
+                <div className="flex flex-wrap gap-2">
+                  {story.category && (
+                    <Badge color="blue">{story.category.name}</Badge>
+                  )}
+                  {languageClassification && (
+                    <Badge color="purple">{languageClassification.name}</Badge>
+                  )}
+                  {religionClassification && (
+                    <Badge color="orange">{religionClassification.name}</Badge>
+                  )}
+                  {localityClassification && (
+                    <Badge color="zinc">{localityClassification.name}</Badge>
+                  )}
+                  {story.isTranslation && (
+                    <Badge color="purple">
+                      <GlobeAltIcon className="h-3 w-3 mr-1" />
+                      {story.language} Translation
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Action Buttons - Top Right */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Translate Button - For empty translation stories */}
+                  {story.isTranslation &&
+                   (!story.content || story.content.trim() === '') &&
+                   canShowEditButton(
+                     session?.user?.staffRole ?? null,
+                     story.authorId,
+                     session?.user?.id || '',
+                     story.stage,
+                     story.assignedReviewerId,
+                     story.assignedApproverId,
+                     story.isTranslation
+                   ) && (
+                    <Button
+                      color="primary"
+                      onClick={() => router.push(`/newsroom/stories/${story.id}/translate`)}
+                    >
+                      <GlobeAltIcon className="h-4 w-4 mr-2" />
+                      Translate
+                    </Button>
+                  )}
+
+                  {/* Edit Button */}
+                  {(!story.isTranslation || (story.content && story.content.trim() !== '')) &&
+                   canShowEditButton(
+                     session?.user?.staffRole ?? null,
+                     story.authorId,
+                     session?.user?.id || '',
+                     story.stage,
+                     story.assignedReviewerId,
+                     story.assignedApproverId,
+                     story.isTranslation
+                   ) && (
+                    <Button
+                      color="white"
+                      onClick={() => router.push(`/newsroom/stories/${story.id}/edit`)}
+                    >
+                      <PencilSquareIcon className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
+
+                  {/* Delete Button */}
+                  {canShowDeleteButton(session?.user?.staffRole ?? null, story.status) && (
+                    <Button
+                      color="red"
+                      onClick={() => setShowDeleteModal(true)}
+                      disabled={isDeleting}
+                    >
+                      <TrashIcon className="h-4 w-4 mr-2" />
+                      {isDeleting ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Title */}
+              <Heading level={1} className="text-2xl font-bold text-zinc-900 mb-4">
+                {story.isTranslation && (!story.content || story.content.trim() === '')
+                  ? `${story.title} (Translation Pending)`
+                  : story.title
+                }
+              </Heading>
+
+              {/* Author Byline */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar
+                    className="h-10 w-10"
+                    name={`${story.author.firstName} ${story.author.lastName}`}
+                  />
+                  <div>
+                    <Text className="font-medium text-zinc-900">
+                      {story.author.firstName} {story.author.lastName}
+                    </Text>
+                    <Text className="text-sm text-zinc-500">
+                      {formatDate(story.publishedAt || story.createdAt)}
+                    </Text>
+                  </div>
+                </div>
+                {/* Word Count */}
+                {story.content && story.content.trim() !== '' && (
+                  <div className="flex items-center gap-2">
+                    <Text className="text-sm text-zinc-500">Words</Text>
+                    <Badge color="zinc" className="text-xs">{getWordCount(story.content).toLocaleString()}</Badge>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Story Content */}
+            <div className="p-6">
               {story.isTranslation && (!story.content || story.content.trim() === '') ? (
                 <div className="text-center py-12">
-                  <GlobeAltIcon className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  <GlobeAltIcon className="h-16 w-16 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
                     Translation Not Yet Started
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
                     {story.authorId === session?.user?.id
-                      ? 'This translation is waiting for you to add content. Click "Edit" above to begin translating.'
+                      ? 'This translation is waiting for you to add content. Click "Translate" to begin.'
                       : `This translation is assigned to ${story.author.firstName} ${story.author.lastName} and has not yet been started.`
                     }
                   </p>
                 </div>
               ) : (
                 <div
-                  className="text-gray-900 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
+                  className="prose prose-zinc max-w-none text-zinc-900 leading-relaxed"
                   style={{
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                    whiteSpace: 'normal'
                   }}
                   dangerouslySetInnerHTML={{ __html: story.content }}
                 />
               )}
+
+              {/* Audio Clips - Integrated into content card */}
+              {story.audioClips && story.audioClips.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-zinc-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <MusicalNoteIcon className="h-4 w-4 text-kelly-green" />
+                      <Text className="font-medium text-zinc-700">Audio</Text>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Text className="text-sm text-zinc-500">Clips</Text>
+                      <Badge color="zinc" className="text-xs">{story.audioClips.length}</Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {story.audioClips.map((clip: AudioClip) => (
+                      <CustomAudioPlayer
+                        key={clip.id}
+                        clip={clip}
+                        isPlaying={playingAudioId === clip.id}
+                        currentTime={audioProgress[clip.id] || 0}
+                        duration={audioDuration[clip.id] || 0}
+                        onPlay={handleAudioPlay}
+                        onStop={handleAudioStop}
+                        onRestart={handleAudioRestart}
+                        onSeek={handleAudioSeek}
+                        onTimeUpdate={handleAudioTimeUpdate}
+                        onLoadedMetadata={handleAudioLoadedMetadata}
+                        onEnded={() => setPlayingAudioId(null)}
+                        onError={() => {
+                          toast.error('Failed to play audio file');
+                          setPlayingAudioId(null);
+                        }}
+                        compact
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No audio clips message - only show if story has content */}
+              {(!story.audioClips || story.audioClips.length === 0) &&
+               story.content && story.content.trim() !== '' && (
+                <div className="mt-8 pt-6 border-t border-zinc-200">
+                  <div className="flex items-center justify-between text-zinc-400">
+                    <div className="flex items-center gap-2">
+                      <MusicalNoteIcon className="h-4 w-4" />
+                      <Text className="text-sm">No audio</Text>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Text className="text-sm text-zinc-400">Clips</Text>
+                      <Badge color="zinc" className="text-xs">0</Badge>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tags - Display at bottom of content with inline edit */}
+              <div className="mt-6 pt-6 border-t border-zinc-200">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 flex-wrap flex-1">
+                    {story.tags && story.tags.length > 0 ? (
+                      story.tags.map((storyTag: { tag: { id: string; name: string } }) => (
+                        <Badge key={storyTag.tag.id} color="green">{storyTag.tag.name}</Badge>
+                      ))
+                    ) : (
+                      <Text className="text-sm text-zinc-400 italic">No tags</Text>
+                    )}
+                  </div>
+                  {/* Add/Edit button - for sub-editors and above */}
+                  {session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
+                    <button
+                      onClick={() => {
+                        setMetadataTagIds(story.tags?.map((st: any) => st.tag.id) || []);
+                        setShowOptionalTagsModal(true);
+                      }}
+                      className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-full transition-colors border border-emerald-200 hover:border-emerald-300"
+                      title={story.tags?.length > 0 ? "Edit tags" : "Add tags"}
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </Card>
 
-          {/* Audio Clips Section */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Heading level={3}>Audio Clips</Heading>
-              <Badge color="zinc">
-                {story.audioClips?.length || 0} clips
-              </Badge>
-            </div>
-            
-            {!story.audioClips || story.audioClips.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MusicalNoteIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                <p>No audio clips have been attached to this story</p>
+          {/* Contextual Banners - Moved below story preview */}
+          {/* Review Status Banner - Show when story is under review */}
+          {story.authorId === session?.user?.id &&
+           story.stage === 'NEEDS_JOURNALIST_REVIEW' &&
+           story.assignedReviewer && (
+            <ReviewStatusBanner
+              stage={story.stage}
+              reviewer={story.assignedReviewer}
+              updatedAt={story.updatedAt}
+            />
+          )}
+
+          {/* Review Status Banner - Show when story is awaiting approval */}
+          {story.authorId === session?.user?.id &&
+           story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
+           story.assignedApprover && (
+            <ReviewStatusBanner
+              stage={story.stage}
+              reviewer={story.assignedApprover}
+              updatedAt={story.updatedAt}
+            />
+          )}
+
+          {/* Revision Request Banner - For Author */}
+          {unresolvedRevisions.length > 0 && story.authorId === session?.user?.id && (
+            <RevisionRequestBanner
+              revisionRequests={unresolvedRevisions}
+            />
+          )}
+
+          {/* Approval Sent Banner - For Reviewer who sent for approval */}
+          {story.authorId !== session?.user?.id &&
+           story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
+           story.assignedReviewerId === session?.user?.id &&
+           story.assignedApprover && (
+            <Card className="p-4 bg-blue-50 border-blue-200">
+              <div className="flex items-start gap-3">
+                <CheckCircleIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <Text className="font-semibold text-blue-900">Sent for Approval</Text>
+                  <Text className="text-sm text-blue-700 mt-1">
+                    You sent this story to {story.assignedApprover.firstName} {story.assignedApprover.lastName} for approval.
+                  </Text>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {story.audioClips.map((clip: AudioClip) => (
-                  <CustomAudioPlayer
-                    key={clip.id}
-                    clip={clip}
-                    isPlaying={playingAudioId === clip.id}
-                    currentTime={audioProgress[clip.id] || 0}
-                    duration={audioDuration[clip.id] || 0}
-                    onPlay={handleAudioPlay}
-                    onStop={handleAudioStop}
-                    onRestart={handleAudioRestart}
-                    onSeek={handleAudioSeek}
-                    onTimeUpdate={handleAudioTimeUpdate}
-                    onLoadedMetadata={handleAudioLoadedMetadata}
-                    onEnded={() => setPlayingAudioId(null)}
-                    onError={() => {
-                      toast.error('Failed to play audio file');
-                      setPlayingAudioId(null);
-                    }}
-                  />
-                ))}
+            </Card>
+          )}
+
+          {/* Revision Requested Banner - For Reviewer/Journalist */}
+          {userRequestedRevision && story.stage === 'DRAFT' && story.authorId !== session?.user?.id && (
+            <Card className="p-4 bg-blue-50 border-blue-200">
+              <div className="flex items-start gap-3">
+                <CheckCircleIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <Text className="font-semibold text-blue-900">Revision Requested</Text>
+                  <Text className="text-sm text-blue-700 mt-1">
+                    You requested revision from {story.author.firstName} {story.author.lastName}.
+                  </Text>
+                  {unresolvedRevisions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {unresolvedRevisions
+                        .filter((r: any) => r.requestedById === session?.user?.id)
+                        .map((revision: any) => (
+                          <div key={revision.id} className="rounded bg-blue-100 p-3">
+                            <Text className="text-xs text-blue-600">
+                              Requested on {new Date(revision.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </Text>
+                            <Text className="text-sm text-blue-900 mt-1">{revision.reason}</Text>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </Card>
+            </Card>
+          )}
+
+          {/* Translation Assignment Banner */}
+          {story.isTranslation && story.stage === 'DRAFT' && (!story.content || story.content.trim() === '') && (
+            <Card className="p-4 bg-purple-50 border-purple-200">
+              <div className="flex items-start gap-3">
+                <GlobeAltIcon className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <Text className="font-semibold text-purple-900">
+                    {story.authorId === session?.user?.id ? 'Translation Assignment' : 'Translation In Progress'}
+                  </Text>
+                  <Text className="text-sm text-purple-700 mt-1">
+                    {story.authorId === session?.user?.id ? (
+                      <>You have been assigned to translate this story to <strong>{story.language}</strong>.</>
+                    ) : (
+                      <>This story is assigned to <strong>{story.author.firstName} {story.author.lastName}</strong> for translation.</>
+                    )}
+                  </Text>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -1086,292 +1222,236 @@ export default function StoryDetailPage() {
             </Card>
           )}
 
-          {/* Story Categorisation - Show for sub-editors and above (editable) */}
+          {/* Stage Progress Card */}
+          <Card className="p-6">
+            <Heading level={3} className="mb-4">Workflow</Heading>
+            <StageProgressCard currentStage={story.stage} authorRole={story.author?.role} />
+            <div className="mt-4 pt-4 border-t border-zinc-100">
+              <div className="flex items-center justify-between">
+                <Text className="text-sm text-zinc-500">Last modified</Text>
+                <Text className="text-sm text-zinc-700">
+                  {new Date(story.updatedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </div>
+            </div>
+          </Card>
+
+          {/* Category Card - Show for sub-editors and above (editable independently) */}
           {session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
             <Card className="p-6">
-              <div className="mb-4">
-                <div className="flex items-center justify-between">
-                  <Heading level={3}>Story Categorisation</Heading>
-                  {!isEditingMetadata && (
-                    <Button
-                      color="white"
-                      onClick={handleStartEditingMetadata}
-                      className="text-sm"
-                    >
-                      Edit
-                    </Button>
-                  )}
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <Heading level={3}>Category</Heading>
+                <Button
+                  color="white"
+                  onClick={() => {
+                    setMetadataCategoryId(story.categoryId);
+                    setShowCategoryModal(true);
+                  }}
+                  className="text-sm"
+                >
+                  Edit
+                </Button>
               </div>
 
-              {isEditingMetadata ? (
-                <div className="space-y-4">
-                  {/* Category Selection */}
-                  <Field>
-                    <Label>Category <span className="text-red-500">*</span></Label>
-                    <Description>Category is required before story can be approved</Description>
-                    <div className="mt-2 space-y-2">
-                      <Button
-                        color="white"
-                        onClick={() => setShowCategoryModal(true)}
-                        className="w-full justify-start"
-                      >
-                        {metadataCategoryId ? (
-                          <span>
-                            {allCategories.find((c: any) => c.id === metadataCategoryId)?.name || 'Select Category'}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400">Select Category</span>
-                        )}
-                      </Button>
-                      {metadataCategoryId && (
-                        <div className="bg-kelly-green/10 p-2 rounded border border-kelly-green/20">
-                          <Text className="text-sm text-kelly-green/80">
-                            <strong>Selected:</strong> {allCategories.find((c: any) => c.id === metadataCategoryId)?.name}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                  </Field>
-
-                  {/* Language Selection */}
-                  <Field>
-                    <Label>Language <span className="text-red-500">*</span></Label>
-                    <Description>Language tag is required before story can be approved</Description>
-                    <div className="mt-2 space-y-2">
-                      <Button
-                        color="white"
-                        onClick={() => setShowLanguageModal(true)}
-                        className="w-full justify-start"
-                      >
-                        {metadataTagIds.filter(id => allTags.find((t: any) => t.id === id && t.category === 'LANGUAGE')).length > 0 ? (
-                          <span>
-                            {allTags.find((t: any) => metadataTagIds.includes(t.id) && t.category === 'LANGUAGE')?.name || 'Select Language'}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400">Select Language</span>
-                        )}
-                      </Button>
-                      {metadataTagIds.filter(id => allTags.find((t: any) => t.id === id && t.category === 'LANGUAGE')).length > 0 && (
-                        <div className="bg-kelly-green/10 p-2 rounded border border-kelly-green/20">
-                          <Text className="text-sm text-kelly-green/80">
-                            <strong>Selected:</strong> {allTags.find((t: any) => metadataTagIds.includes(t.id) && t.category === 'LANGUAGE')?.name}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                  </Field>
-
-                  {/* Religion Selection */}
-                  <Field>
-                    <Label>Religion <span className="text-red-500">*</span></Label>
-                    <Description>Religion tag is required before story can be approved</Description>
-                    <div className="mt-2 space-y-2">
-                      <Button
-                        color="white"
-                        onClick={() => setShowReligionModal(true)}
-                        className="w-full justify-start"
-                      >
-                        {metadataTagIds.filter(id => allTags.find((t: any) => t.id === id && t.category === 'RELIGION')).length > 0 ? (
-                          <span>
-                            {allTags.find((t: any) => metadataTagIds.includes(t.id) && t.category === 'RELIGION')?.name || 'Select Religion'}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400">Select Religion</span>
-                        )}
-                      </Button>
-                      {metadataTagIds.filter(id => allTags.find((t: any) => t.id === id && t.category === 'RELIGION')).length > 0 && (
-                        <div className="bg-kelly-green/10 p-2 rounded border border-kelly-green/20">
-                          <Text className="text-sm text-kelly-green/80">
-                            <strong>Selected:</strong> {allTags.find((t: any) => metadataTagIds.includes(t.id) && t.category === 'RELIGION')?.name}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                  </Field>
-
-                  {/* Optional Tags Selection */}
-                  <Field>
-                    <Label>Additional Tags</Label>
-                    <Description>Optional tags for locality and general categorization</Description>
-                    <div className="mt-2 space-y-2">
-                      <Button
-                        color="white"
-                        onClick={() => setShowOptionalTagsModal(true)}
-                        className="w-full justify-start"
-                      >
-                        {metadataTagIds.filter(id => {
-                          const tag = allTags.find((t: any) => t.id === id);
-                          return tag && (tag.category === 'LOCALITY' || tag.category === 'GENERAL');
-                        }).length > 0 ? (
-                          <span>
-                            {metadataTagIds.filter(id => {
-                              const tag = allTags.find((t: any) => t.id === id);
-                              return tag && (tag.category === 'LOCALITY' || tag.category === 'GENERAL');
-                            }).length} tags selected
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400">Select Optional Tags</span>
-                        )}
-                      </Button>
-                      {metadataTagIds.filter(id => {
-                        const tag = allTags.find((t: any) => t.id === id);
-                        return tag && (tag.category === 'LOCALITY' || tag.category === 'GENERAL');
-                      }).length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {allTags
-                            .filter((t: any) => metadataTagIds.includes(t.id) && (t.category === 'LOCALITY' || t.category === 'GENERAL'))
-                            .map((tag: any) => (
-                              <Badge key={tag.id} color="zinc">
-                                {tag.name}
-                              </Badge>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </Field>
-
-                  <div className="flex justify-end space-x-2 pt-4 border-t">
-                    <Button
-                      color="white"
-                      onClick={handleCancelEditingMetadata}
-                      disabled={isSavingMetadata}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSaveMetadata}
-                      disabled={isSavingMetadata}
-                    >
-                      {isSavingMetadata ? 'Saving...' : 'Save Categorisation'}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <DescriptionList>
-                  <DescriptionTerm>Category</DescriptionTerm>
-                  <DescriptionDetails>
-                    <div className="flex items-center space-x-2">
-                      {story.category ? (
-                        <span>{story.category.name}</span>
-                      ) : (
-                        <span className="italic text-zinc-400">No category assigned</span>
-                      )}
-                    </div>
-                  </DescriptionDetails>
-
-                  <DescriptionTerm>Language</DescriptionTerm>
-                  <DescriptionDetails>
-                    {story.tags?.some((st: any) => st.tag.category === 'LANGUAGE') ? (
-                      <div className="flex flex-wrap gap-1">
-                        {story.tags
-                          .filter((st: any) => st.tag.category === 'LANGUAGE')
-                          .map((storyTag: any) => (
-                            <Badge key={storyTag.tag.id} color="blue">
-                              {storyTag.tag.name}
-                            </Badge>
-                          ))}
-                      </div>
-                    ) : (
-                      <span className="italic text-zinc-400">No language assigned</span>
-                    )}
-                  </DescriptionDetails>
-
-                  <DescriptionTerm>Religion</DescriptionTerm>
-                  <DescriptionDetails>
-                    {story.tags?.some((st: any) => st.tag.category === 'RELIGION') ? (
-                      <div className="flex flex-wrap gap-1">
-                        {story.tags
-                          .filter((st: any) => st.tag.category === 'RELIGION')
-                          .map((storyTag: any) => (
-                            <Badge key={storyTag.tag.id} color="purple">
-                              {storyTag.tag.name}
-                            </Badge>
-                          ))}
-                      </div>
-                    ) : (
-                      <span className="italic text-zinc-400">No religion assigned</span>
-                    )}
-                  </DescriptionDetails>
-
-                  {story.tags?.some((st: any) => st.tag.category === 'LOCALITY' || st.tag.category === 'GENERAL') && (
+              {story.category ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {story.category.parent && (
                     <>
-                      <DescriptionTerm>Additional Tags</DescriptionTerm>
-                      <DescriptionDetails>
-                        <div className="flex flex-wrap gap-1">
-                          {story.tags
-                            .filter((st: any) => st.tag.category === 'LOCALITY' || st.tag.category === 'GENERAL')
-                            .map((storyTag: any) => (
-                              <Badge key={storyTag.tag.id} color="zinc">
-                                {storyTag.tag.name}
-                              </Badge>
-                            ))}
-                        </div>
-                      </DescriptionDetails>
+                      <Badge color="blue">{story.category.parent.name}</Badge>
+                      <ChevronRightIcon className="h-4 w-4 text-zinc-400" />
                     </>
                   )}
-                </DescriptionList>
+                  <Badge color={story.category.parent ? "purple" : "blue"}>{story.category.name}</Badge>
+                </div>
+              ) : (
+                <span className="italic text-zinc-400">No category assigned</span>
               )}
-
-              {/* Validation warnings */}
-              {!isEditingMetadata && story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' && (
-                <div className="mt-4 space-y-2">
-                  {!story.categoryId && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
-                      <ExclamationTriangleIcon className="h-4 w-4" />
-                      <span>Category required for approval</span>
-                    </div>
-                  )}
-                  {!story.tags?.some((st: any) => st.tag.category === 'LANGUAGE') && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
-                      <ExclamationTriangleIcon className="h-4 w-4" />
-                      <span>Language tag required for approval</span>
-                    </div>
-                  )}
-                  {!story.tags?.some((st: any) => st.tag.category === 'RELIGION') && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
-                      <ExclamationTriangleIcon className="h-4 w-4" />
-                      <span>Religion tag required for approval</span>
-                    </div>
-                  )}
+              {!story.categoryId && story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' && (
+                <div className="flex items-center gap-2 text-sm text-amber-600 mt-3">
+                  <ExclamationTriangleIcon className="h-4 w-4" />
+                  <span>Required for approval</span>
                 </div>
               )}
             </Card>
           )}
 
-          {/* Read-only organization view for journalists */}
+          {/* Classifications Card - Show for sub-editors and above (editable independently) */}
+          {session?.user?.staffRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole) && (
+            <Card className="p-6">
+              <Heading level={3} className="mb-2">Classifications</Heading>
+              <Text className="text-sm text-zinc-500 mb-4">Required for content distribution</Text>
+
+              <div className="space-y-3">
+                {/* Language */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Text className="text-sm text-zinc-600 w-20">Language <span className="text-red-500">*</span></Text>
+                    {story.classifications?.some((sc: any) => sc.classification?.type === 'LANGUAGE') ? (
+                      story.classifications
+                        .filter((sc: any) => sc.classification?.type === 'LANGUAGE')
+                        .map((sc: any) => (
+                          <Badge key={sc.classification.id} color="blue">{sc.classification.name}</Badge>
+                        ))
+                    ) : (
+                      <span className="italic text-zinc-400">Not assigned</span>
+                    )}
+                  </div>
+                  <Button
+                    color="white"
+                    onClick={() => {
+                      const langClass = story.classifications?.find((sc: any) => sc.classification?.type === 'LANGUAGE');
+                      setMetadataLanguageId(langClass?.classification?.id || null);
+                      setShowLanguageModal(true);
+                    }}
+                    className="text-xs"
+                  >
+                    Edit
+                  </Button>
+                </div>
+
+                {/* Religion */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Text className="text-sm text-zinc-600 w-20">Religion <span className="text-red-500">*</span></Text>
+                    {story.classifications?.some((sc: any) => sc.classification?.type === 'RELIGION') ? (
+                      story.classifications
+                        .filter((sc: any) => sc.classification?.type === 'RELIGION')
+                        .map((sc: any) => (
+                          <Badge key={sc.classification.id} color="purple">{sc.classification.name}</Badge>
+                        ))
+                    ) : (
+                      <span className="italic text-zinc-400">Not assigned</span>
+                    )}
+                  </div>
+                  <Button
+                    color="white"
+                    onClick={() => {
+                      const relClass = story.classifications?.find((sc: any) => sc.classification?.type === 'RELIGION');
+                      setMetadataReligionId(relClass?.classification?.id || null);
+                      setShowReligionModal(true);
+                    }}
+                    className="text-xs"
+                  >
+                    Edit
+                  </Button>
+                </div>
+
+                {/* Locality */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Text className="text-sm text-zinc-600 w-20">Locality</Text>
+                    {story.classifications?.some((sc: any) => sc.classification?.type === 'LOCALITY') ? (
+                      story.classifications
+                        .filter((sc: any) => sc.classification?.type === 'LOCALITY')
+                        .map((sc: any) => (
+                          <Badge key={sc.classification.id} color="orange">{sc.classification.name}</Badge>
+                        ))
+                    ) : (
+                      <span className="italic text-zinc-400">Optional</span>
+                    )}
+                  </div>
+                  <Button
+                    color="white"
+                    onClick={() => {
+                      const locClass = story.classifications?.find((sc: any) => sc.classification?.type === 'LOCALITY');
+                      setMetadataLocalityId(locClass?.classification?.id || null);
+                      setShowLocalityModal(true);
+                    }}
+                    className="text-xs"
+                  >
+                    Edit
+                  </Button>
+                </div>
+
+                {/* Validation warnings */}
+                {story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' && (
+                  <div className="mt-3 space-y-1">
+                    {!story.classifications?.some((sc: any) => sc.classification?.type === 'LANGUAGE') && (
+                      <div className="flex items-center gap-2 text-sm text-amber-600">
+                        <ExclamationTriangleIcon className="h-4 w-4" />
+                        <span>Language required for approval</span>
+                      </div>
+                    )}
+                    {!story.classifications?.some((sc: any) => sc.classification?.type === 'RELIGION') && (
+                      <div className="flex items-center gap-2 text-sm text-amber-600">
+                        <ExclamationTriangleIcon className="h-4 w-4" />
+                        <span>Religion required for approval</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Read-only Category card for journalists */}
           {session?.user?.staffRole === 'JOURNALIST' && (
             <Card className="p-6">
-              <Heading level={3} className="mb-4">Organization</Heading>
-
-              <DescriptionList>
-                <DescriptionTerm>Category</DescriptionTerm>
-                <DescriptionDetails>
-                  {story.category ? (
-                    <span>{story.category.name}</span>
-                  ) : (
-                    <span className="italic text-zinc-400">No category</span>
+              <Heading level={3} className="mb-4">Category</Heading>
+              {story.category ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {story.category.parent && (
+                    <>
+                      <Badge color="blue">{story.category.parent.name}</Badge>
+                      <ChevronRightIcon className="h-4 w-4 text-zinc-400" />
+                    </>
                   )}
-                </DescriptionDetails>
+                  <Badge color={story.category.parent ? "purple" : "blue"}>{story.category.name}</Badge>
+                </div>
+              ) : (
+                <span className="italic text-zinc-400">No category assigned</span>
+              )}
+            </Card>
+          )}
 
-                {story.tags && story.tags.length > 0 && (
-                  <>
-                    <DescriptionTerm>Tags</DescriptionTerm>
-                    <DescriptionDetails>
-                      <div className="flex flex-wrap gap-1">
-                        {story.tags.map((storyTag: { tag: { id: string; name: string; category: string } }) => (
-                          <Badge
-                            key={storyTag.tag.id}
-                            color={storyTag.tag.category === 'LANGUAGE' ? 'blue' : storyTag.tag.category === 'RELIGION' ? 'purple' : 'zinc'}
-                          >
-                            {storyTag.tag.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </DescriptionDetails>
-                  </>
-                )}
-              </DescriptionList>
+          {/* Read-only Classifications card for journalists */}
+          {session?.user?.staffRole === 'JOURNALIST' && (
+            <Card className="p-6">
+              <Heading level={3} className="mb-2">Classifications</Heading>
+              <Text className="text-sm text-zinc-500 mb-4">Content distribution settings</Text>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Text className="text-sm text-zinc-600 w-20">Language:</Text>
+                  {story.classifications?.some((sc: any) => sc.classification?.type === 'LANGUAGE') ? (
+                    story.classifications
+                      .filter((sc: any) => sc.classification?.type === 'LANGUAGE')
+                      .map((sc: any) => (
+                        <Badge key={sc.classification.id} color="blue">{sc.classification.name}</Badge>
+                      ))
+                  ) : (
+                    <span className="italic text-zinc-400">Not assigned</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Text className="text-sm text-zinc-600 w-20">Religion:</Text>
+                  {story.classifications?.some((sc: any) => sc.classification?.type === 'RELIGION') ? (
+                    story.classifications
+                      .filter((sc: any) => sc.classification?.type === 'RELIGION')
+                      .map((sc: any) => (
+                        <Badge key={sc.classification.id} color="purple">{sc.classification.name}</Badge>
+                      ))
+                  ) : (
+                    <span className="italic text-zinc-400">Not assigned</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Text className="text-sm text-zinc-600 w-20">Locality:</Text>
+                  {story.classifications?.some((sc: any) => sc.classification?.type === 'LOCALITY') ? (
+                    story.classifications
+                      .filter((sc: any) => sc.classification?.type === 'LOCALITY')
+                      .map((sc: any) => (
+                        <Badge key={sc.classification.id} color="orange">{sc.classification.name}</Badge>
+                      ))
+                  ) : (
+                    <span className="italic text-zinc-400">Optional</span>
+                  )}
+                </div>
+              </div>
             </Card>
           )}
 
@@ -1429,50 +1509,67 @@ export default function StoryDetailPage() {
         filterEditable={false}
       />
 
-      {/* Language Tag Selection Modal */}
+      {/* Language Classification Selection Modal */}
       <TagModal
         isOpen={showLanguageModal}
         onClose={() => setShowLanguageModal(false)}
         onConfirm={handleLanguageSelected}
-        tags={languageTags}
-        selectedTagIds={metadataTagIds.filter(id => allTags.find((t: any) => t.id === id && t.category === 'LANGUAGE'))}
+        tags={languageClassifications.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug, _count: { stories: c._count?.stories || 0 } }))}
+        selectedTagIds={metadataLanguageId ? [metadataLanguageId] : []}
         title="Select Language"
         description="Choose the language for this story. This is required before the story can be approved."
         required
         singleSelect
         showSearch={false}
         isLoading={isSavingMetadata}
+        confirmButtonText="Select Language"
       />
 
-      {/* Religion Tag Selection Modal */}
+      {/* Religion Classification Selection Modal */}
       <TagModal
         isOpen={showReligionModal}
         onClose={() => setShowReligionModal(false)}
         onConfirm={handleReligionSelected}
-        tags={religionTags}
-        selectedTagIds={metadataTagIds.filter(id => allTags.find((t: any) => t.id === id && t.category === 'RELIGION'))}
+        tags={religionClassifications.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug, _count: { stories: c._count?.stories || 0 } }))}
+        selectedTagIds={metadataReligionId ? [metadataReligionId] : []}
         title="Select Religion"
         description="Choose the religious perspective for this story. This is required before the story can be approved."
         required
         singleSelect
         showSearch={false}
         isLoading={isSavingMetadata}
+        confirmButtonText="Select Religion"
       />
 
-      {/* Optional Tags Selection Modal */}
+      {/* Locality Classification Selection Modal */}
+      <TagModal
+        isOpen={showLocalityModal}
+        onClose={() => setShowLocalityModal(false)}
+        onConfirm={handleLocalitySelected}
+        tags={localityClassifications.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug, _count: { stories: c._count?.stories || 0 } }))}
+        selectedTagIds={metadataLocalityId ? [metadataLocalityId] : []}
+        title="Select Locality"
+        description="Choose the locality for this story (optional)."
+        singleSelect
+        showSearch={false}
+        isLoading={isSavingMetadata}
+        confirmButtonText="Select Locality"
+      />
+
+      {/* Tags Selection Modal */}
       <TagModal
         isOpen={showOptionalTagsModal}
         onClose={() => setShowOptionalTagsModal(false)}
         onConfirm={handleOptionalTagsSelected}
-        tags={optionalTags}
-        selectedTagIds={metadataTagIds.filter(id => {
-          const tag = allTags.find((t: any) => t.id === id);
-          return tag && (tag.category === 'LOCALITY' || tag.category === 'GENERAL');
-        })}
-        title="Select Additional Tags"
-        description="Choose optional tags for locality and general categorization."
+        tags={allTags}
+        selectedTagIds={metadataTagIds}
+        title="Select Tags"
+        description="Choose topical tags for this story. You can also create new tags."
         showSearch
         isLoading={isSavingMetadata}
+        confirmButtonText="Save Tags"
+        allowCreate
+        onTagCreate={handleCreateTag}
       />
 
       {/* Stage Transition Modal */}

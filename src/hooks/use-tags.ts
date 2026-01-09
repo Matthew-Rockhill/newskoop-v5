@@ -8,9 +8,6 @@ export interface Tag {
   nameAfrikaans?: string;
   descriptionAfrikaans?: string;
   color?: string;
-  category: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
-  isRequired: boolean;
-  isPreset: boolean;
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -23,9 +20,6 @@ export interface CreateTagData {
   nameAfrikaans?: string;
   descriptionAfrikaans?: string;
   color?: string;
-  category: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
-  isRequired?: boolean;
-  isPreset?: boolean;
 }
 
 export interface UpdateTagData {
@@ -33,29 +27,16 @@ export interface UpdateTagData {
   nameAfrikaans?: string;
   descriptionAfrikaans?: string;
   color?: string;
-  category?: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
-  isRequired?: boolean;
-  isPreset?: boolean;
-}
-
-export interface TagFilters {
-  query?: string;
-  category?: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL';
-  page?: number;
-  perPage?: number;
 }
 
 // Fetch tags
-export function useTags(query?: string, category?: 'LANGUAGE' | 'RELIGION' | 'LOCALITY' | 'GENERAL', page?: number, perPage?: number) {
-  return useQuery<{ tags: Tag[]; total: number; page: number; perPage: number }>({
-    queryKey: ['tags', { query, category, page, perPage }],
+export function useTags(query?: string) {
+  return useQuery<{ tags: Tag[]; total: number }>({
+    queryKey: ['tags', { query }],
     queryFn: async () => {
       const params = new URLSearchParams();
 
       if (query) params.set('query', query);
-      if (category) params.set('category', category);
-      if (page) params.set('page', String(page));
-      if (perPage) params.set('perPage', String(perPage));
 
       const response = await fetch(`/api/newsroom/tags?${params}`);
       if (!response.ok) {
@@ -141,4 +122,4 @@ export function useDeleteTag() {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
   });
-} 
+}

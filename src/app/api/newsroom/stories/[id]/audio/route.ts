@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
-import { deleteAudioFile } from '@/lib/vercel-blob';
+import { deleteAudioFile } from '@/lib/r2-storage';
 
 // Helper function to check if user can edit story
 async function canEditStory(userId: string, userRole: string | null, storyId: string) {

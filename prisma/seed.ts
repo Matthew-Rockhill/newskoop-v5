@@ -1,4 +1,4 @@
-import { PrismaClient, UserType, StaffRole, TagCategory } from '@prisma/client';
+import { PrismaClient, UserType, StaffRole, ClassificationType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -212,52 +212,50 @@ async function main() {
     }
   }
 
-  // Create Language Tags
-  const languageTags = [
+  // Create Language Classifications
+  const languageClassifications = [
     { name: 'English', slug: 'english' },
     { name: 'Afrikaans', slug: 'afrikaans' },
     { name: 'Xhosa', slug: 'xhosa' },
   ];
 
-  for (const tag of languageTags) {
-    await prisma.tag.upsert({
-      where: { slug: tag.slug },
+  for (const classification of languageClassifications) {
+    await prisma.classification.upsert({
+      where: { slug: classification.slug },
       update: {},
       create: {
-        name: tag.name,
-        slug: tag.slug,
-        category: TagCategory.LANGUAGE,
-        isRequired: true,
-        isPreset: true,
+        name: classification.name,
+        slug: classification.slug,
+        type: ClassificationType.LANGUAGE,
+        isActive: true,
       },
     });
-    console.log(`✅ Language tag created: ${tag.name}`);
+    console.log(`✅ Language classification created: ${classification.name}`);
   }
 
-  // Create Religion Tags
-  const religionTags = [
+  // Create Religion Classifications
+  const religionClassifications = [
     { name: 'Christian', slug: 'christian' },
     { name: 'Muslim', slug: 'muslim' },
     { name: 'Neutral', slug: 'neutral' },
   ];
 
-  for (const tag of religionTags) {
-    await prisma.tag.upsert({
-      where: { slug: tag.slug },
+  for (const classification of religionClassifications) {
+    await prisma.classification.upsert({
+      where: { slug: classification.slug },
       update: {},
       create: {
-        name: tag.name,
-        slug: tag.slug,
-        category: TagCategory.RELIGION,
-        isRequired: true,
-        isPreset: true,
+        name: classification.name,
+        slug: classification.slug,
+        type: ClassificationType.RELIGION,
+        isActive: true,
       },
     });
-    console.log(`✅ Religion tag created: ${tag.name}`);
+    console.log(`✅ Religion classification created: ${classification.name}`);
   }
 
-  // Create Locality Tags for South African Provinces
-  const localityTags = [
+  // Create Locality Classifications for South African Provinces
+  const localityClassifications = [
     { name: 'Eastern Cape', slug: 'eastern-cape' },
     { name: 'Free State', slug: 'free-state' },
     { name: 'Gauteng', slug: 'gauteng' },
@@ -269,19 +267,18 @@ async function main() {
     { name: 'Western Cape', slug: 'western-cape' },
   ];
 
-  for (const tag of localityTags) {
-    await prisma.tag.upsert({
-      where: { slug: tag.slug },
+  for (const classification of localityClassifications) {
+    await prisma.classification.upsert({
+      where: { slug: classification.slug },
       update: {},
       create: {
-        name: tag.name,
-        slug: tag.slug,
-        category: TagCategory.LOCALITY,
-        isRequired: false,
-        isPreset: true,
+        name: classification.name,
+        slug: classification.slug,
+        type: ClassificationType.LOCALITY,
+        isActive: true,
       },
     });
-    console.log(`✅ Locality tag created: ${tag.name}`);
+    console.log(`✅ Locality classification created: ${classification.name}`);
   }
 
   console.log('🎉 Seed completed successfully!');

@@ -185,6 +185,7 @@ export interface UpdateStoryStatusData {
   categoryId?: string;
   language?: 'ENGLISH' | 'AFRIKAANS' | 'XHOSA';
   tagIds?: string[];
+  classificationIds?: string[];
 }
 
 // Fetch stories with filters

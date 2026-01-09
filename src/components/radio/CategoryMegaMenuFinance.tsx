@@ -52,13 +52,13 @@ export function FinanceHierarchicalMenu({ onClose }: { onClose: () => void }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Left Panel - Level 2 Categories */}
       <div>
-        <Heading level={4} className="text-lg font-semibold text-gray-900 mb-4">
+        <Heading level={4} className="text-lg font-semibold text-zinc-900 mb-4">
           Finance Content
         </Heading>
         <div className="space-y-2">
           {categoriesLoading ? (
             [...Array(3)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div key={i} className="h-12 bg-zinc-200 rounded-lg animate-pulse"></div>
             ))
           ) : (
             level2Categories.map((cat: any) => {
@@ -71,7 +71,7 @@ export function FinanceHierarchicalMenu({ onClose }: { onClose: () => void }) {
                   className={`p-3 rounded-lg border cursor-pointer transition-all ${
                     isSelected
                       ? 'border-kelly-green bg-kelly-green/5 text-kelly-green'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
+                      : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700'
                   }`}
                   onMouseEnter={() => setSelectedCategory(cat.name)}
                 >
@@ -79,7 +79,7 @@ export function FinanceHierarchicalMenu({ onClose }: { onClose: () => void }) {
                     <Icon className="h-5 w-5" />
                     <div>
                       <Text className="font-medium">{cat.name}</Text>
-                      <Text className="text-xs text-gray-500">{cat.description}</Text>
+                      <Text className="text-xs text-zinc-500">{cat.description}</Text>
                     </div>
                   </div>
                 </div>
@@ -91,15 +91,15 @@ export function FinanceHierarchicalMenu({ onClose }: { onClose: () => void }) {
 
       {/* Right Panel - Recent Stories */}
       <div>
-        <Heading level={4} className="text-lg font-semibold text-gray-900 mb-4">
+        <Heading level={4} className="text-lg font-semibold text-zinc-900 mb-4">
           Recent {selectedCategory}
         </Heading>
         <div className="space-y-3">
           {storiesLoading ? (
             [...Array(4)].map((_, i) => (
-              <div key={i} className="p-3 border border-gray-200 rounded-lg animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              <div key={i} className="p-3 border border-zinc-200 rounded-lg animate-pulse">
+                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-zinc-200 rounded w-1/2"></div>
               </div>
             ))
           ) : recentStories.length > 0 ? (
@@ -108,16 +108,16 @@ export function FinanceHierarchicalMenu({ onClose }: { onClose: () => void }) {
                 key={story.id}
                 href={`/radio/story/${story.id}`}
                 onClick={onClose}
-                className="block p-3 border border-gray-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
+                className="block p-3 border border-zinc-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
               >
-                <Heading level={6} className="text-sm font-semibold text-gray-900 group-hover:text-kelly-green mb-1 line-clamp-2">
+                <Heading level={6} className="text-sm font-semibold text-zinc-900 group-hover:text-kelly-green mb-1 line-clamp-2">
                   {story.title}
                 </Heading>
-                <Text className="text-xs text-gray-600 line-clamp-2 mb-2">
+                <Text className="text-xs text-zinc-600 line-clamp-2 mb-2">
                   {story.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
                 </Text>
                 <div className="flex items-center justify-between">
-                  <Text className="text-xs text-gray-500">
+                  <Text className="text-xs text-zinc-500">
                     {new Date(story.publishedAt).toLocaleDateString()}
                   </Text>
                   {story.audioClips?.length > 0 && (
@@ -128,8 +128,8 @@ export function FinanceHierarchicalMenu({ onClose }: { onClose: () => void }) {
             ))
           ) : (
             <div className="text-center py-6">
-              <CurrencyDollarIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-              <Text className="text-gray-500">No recent stories available</Text>
+              <CurrencyDollarIcon className="h-12 w-12 text-zinc-300 mx-auto mb-2" />
+              <Text className="text-zinc-500">No recent stories available</Text>
             </div>
           )}
         </div>

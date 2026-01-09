@@ -29,8 +29,8 @@ export default function EditBulletinPage() {
   if (isLoading) {
     return (
       <Container className="py-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-        <Text className="mt-2 text-center text-gray-600">Loading bulletin...</Text>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-900 mx-auto"></div>
+        <Text className="mt-2 text-center text-zinc-600">Loading bulletin...</Text>
       </Container>
     );
   }
@@ -76,12 +76,12 @@ export default function EditBulletinPage() {
           Back
         </Button>
         <div className="flex items-center gap-3">
-          <PencilIcon className="h-8 w-8 text-[#76BD43]" />
+          <PencilIcon className="h-8 w-8 text-kelly-green" />
           <div>
-            <Heading level={1} className="text-3xl font-bold text-gray-900">
+            <Heading level={1} className="text-3xl font-bold text-zinc-900">
               Edit Bulletin
             </Heading>
-            <Text className="text-gray-600">
+            <Text className="text-zinc-600">
               Modify your bulletin content and story selection
             </Text>
           </div>

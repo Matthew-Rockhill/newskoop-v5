@@ -53,11 +53,17 @@ const getUsers = createHandler(
     // Get total count
     const total = await prisma.user.count({ where });
 
-    // Get paginated users
+    // Get paginated users - only select needed station fields to reduce payload
     const users = await prisma.user.findMany({
       where,
       include: {
-        radioStation: true,
+        radioStation: {
+          select: {
+            id: true,
+            name: true,
+            province: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * perPage,

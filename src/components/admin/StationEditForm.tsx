@@ -432,7 +432,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                     />
                     <Label>
                       {religion}
-                      {religion === 'Neutral' && <span className="text-sm text-gray-500 ml-1">(All content)</span>}
+                      {religion === 'Neutral' && <span className="text-sm text-zinc-500 ml-1">(All content)</span>}
                     </Label>
                   </CheckboxField>
                 ))}
@@ -446,7 +446,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
               <Label>Blocked Categories</Label>
               <Description>Select categories to block from this station</Description>
               {loadingCategories ? (
-                <div className="text-sm text-gray-500">Loading categories...</div>
+                <div className="text-sm text-zinc-500">Loading categories...</div>
               ) : (
                 <div className="mt-2 space-y-2">
                   {categories
@@ -511,7 +511,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
               <div
                 key={user.id}
                 className={`flex items-center justify-between p-4 border rounded-lg ${
-                  usersToRemove.includes(user.id) ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'
+                  usersToRemove.includes(user.id) ? 'bg-red-50 border-red-200' : 'bg-zinc-50 border-zinc-200'
                 }`}
               >
                 <div className="flex items-center gap-4">
@@ -521,7 +521,7 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                   />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-zinc-900">
                         {user.firstName} {user.lastName}
                       </span>
                       {user.isPrimaryContact && (
@@ -531,9 +531,9 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                         <Badge color="red">To be removed</Badge>
                       )}
                     </div>
-                    <div className="text-sm text-gray-600">{user.email}</div>
+                    <div className="text-sm text-zinc-600">{user.email}</div>
                     {user.mobileNumber && (
-                      <div className="text-sm text-gray-600">{user.mobileNumber}</div>
+                      <div className="text-sm text-zinc-600">{user.mobileNumber}</div>
                     )}
                   </div>
                 </div>
@@ -571,9 +571,9 @@ export default function StationEditForm({ station }: StationEditFormProps) {
           
           <div className="mt-6 space-y-6">
             {fields.map((field, index) => (
-              <div key={field.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div key={field.id} className="p-4 border border-zinc-200 rounded-lg bg-zinc-50">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-medium text-gray-900">New User {index + 1}</h4>
+                  <h4 className="text-sm font-medium text-zinc-900">New User {index + 1}</h4>
                   <Button
                     type="button"
                     onClick={() => remove(index)}

@@ -194,6 +194,7 @@ export const storyUpdateSchema = z.object({
   content: z.string().min(1).optional(),
   categoryId: z.string().optional(),
   tagIds: z.array(z.string()).optional(),
+  classificationIds: z.array(z.string()).optional(),
   removedAudioIds: z.array(z.string()).optional(),
 });
 
@@ -241,20 +242,86 @@ export const categoryUpdateSchema = z.object({
   parentId: z.string().optional(),
 });
 
-// Tag schemas
+// Tag schemas (topical tags only - Language/Religion/Locality moved to Classifications)
 export const tagCreateSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50),
   nameAfrikaans: z.string().max(50).optional(),
   descriptionAfrikaans: z.string().optional(),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
-  category: z.enum(['LANGUAGE', 'RELIGION', 'LOCALITY', 'GENERAL']).optional(),
-  isRequired: z.boolean().optional(),
-  isPreset: z.boolean().optional(),
 });
 
 export const tagUpdateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
+  nameAfrikaans: z.string().max(50).optional(),
+  descriptionAfrikaans: z.string().optional(),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
+});
+
+// Classification schemas (Language, Religion, Locality)
+export const classificationCreateSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100),
+  nameAfrikaans: z.string().max(100).optional(),
+  descriptionAfrikaans: z.string().optional(),
+  type: z.enum(['LANGUAGE', 'RELIGION', 'LOCALITY']),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().int().default(0),
+});
+
+export const classificationUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  nameAfrikaans: z.string().max(100).optional(),
+  descriptionAfrikaans: z.string().optional(),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+// Menu item schemas
+export const menuItemCreateSchema = z.object({
+  label: z.string().min(1, 'Label is required').max(100),
+  labelAfrikaans: z.string().max(100).optional(),
+  type: z.enum(['CATEGORY', 'CUSTOM_LINK', 'DIVIDER']),
+  categoryId: z.string().optional(),
+  url: z.string().url('Must be a valid URL').optional(),
+  openInNewTab: z.boolean().default(false),
+  parentId: z.string().optional(),
+  sortOrder: z.number().int().default(0),
+  isVisible: z.boolean().default(true),
+  icon: z.string().max(50).optional(),
+}).refine((data) => {
+  // If type is CATEGORY, categoryId is required
+  if (data.type === 'CATEGORY' && !data.categoryId) {
+    return false;
+  }
+  // If type is CUSTOM_LINK, url is required
+  if (data.type === 'CUSTOM_LINK' && !data.url) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Category ID is required for CATEGORY type, URL is required for CUSTOM_LINK type",
+});
+
+export const menuItemUpdateSchema = z.object({
+  label: z.string().min(1).max(100).optional(),
+  labelAfrikaans: z.string().max(100).optional(),
+  type: z.enum(['CATEGORY', 'CUSTOM_LINK', 'DIVIDER']).optional(),
+  categoryId: z.string().nullable().optional(),
+  url: z.string().url('Must be a valid URL').nullable().optional(),
+  openInNewTab: z.boolean().optional(),
+  parentId: z.string().nullable().optional(),
+  sortOrder: z.number().int().optional(),
+  isVisible: z.boolean().optional(),
+  icon: z.string().max(50).nullable().optional(),
+});
+
+export const menuReorderSchema = z.object({
+  items: z.array(z.object({
+    id: z.string(),
+    parentId: z.string().nullable(),
+    sortOrder: z.number().int(),
+  })),
 });
 
 // Comment schemas

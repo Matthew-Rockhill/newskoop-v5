@@ -37,10 +37,10 @@ export function TimeSensitiveContent({
     return (
       <Card className="p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
+          <div className="h-6 bg-zinc-200 rounded w-48 mb-4"></div>
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-20 bg-gray-100 rounded"></div>
+              <div key={i} className="h-20 bg-zinc-100 rounded"></div>
             ))}
           </div>
         </div>
@@ -55,13 +55,13 @@ export function TimeSensitiveContent({
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-4">
         <ClockIcon className="h-6 w-6 text-orange-600" />
-        <Heading level={2} className="text-xl font-semibold text-gray-900">
+        <Heading level={2} className="text-xl font-semibold text-zinc-900">
           Time-Sensitive Content
         </Heading>
       </div>
 
       {stories.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
+        <div className="text-center py-8 text-zinc-400">
           <Text>No time-sensitive content</Text>
         </div>
       ) : (
@@ -86,17 +86,17 @@ export function TimeSensitiveContent({
                       <div className="flex-1 min-w-0">
                         <Link
                           href={`/newsroom/stories/${story.id}`}
-                          className="font-medium text-gray-900 hover:text-[#76BD43] truncate block mb-2"
+                          className="font-medium text-zinc-900 hover:text-kelly-green truncate block mb-2"
                         >
                           {story.title}
                         </Link>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                          <span className="px-2 py-1 bg-white text-gray-700 rounded text-xs font-medium">
+                          <span className="px-2 py-1 bg-white text-zinc-700 rounded text-xs font-medium">
                             {story.stage ? (STAGE_LABELS[story.stage] || story.stage) : 'Unknown'}
                           </span>
 
-                          <div className="flex items-center gap-1 text-gray-600">
+                          <div className="flex items-center gap-1 text-zinc-600">
                             <CalendarIcon className="h-4 w-4" />
                             {story.followUpDate && (
                               <span>Follow-up: {format(new Date(story.followUpDate), 'MMM d')}</span>
@@ -112,7 +112,7 @@ export function TimeSensitiveContent({
                             {Math.abs(story.daysUntilDue!)} days overdue
                           </span>
 
-                          <Text className="text-xs text-gray-500">By {story.authorName}</Text>
+                          <Text className="text-xs text-zinc-500">By {story.authorName}</Text>
                         </div>
                       </div>
 
@@ -135,7 +135,7 @@ export function TimeSensitiveContent({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <CalendarIcon className="h-5 w-5 text-orange-600" />
-                <Heading level={3} className="text-lg font-semibold text-gray-900">
+                <Heading level={3} className="text-lg font-semibold text-zinc-900">
                   Upcoming ({upcomingStories.length})
                 </Heading>
               </div>
@@ -147,24 +147,24 @@ export function TimeSensitiveContent({
                     className={`p-4 border rounded-lg ${
                       story.daysUntilDue! <= 1
                         ? 'border-yellow-300 bg-yellow-50'
-                        : 'border-gray-200 hover:bg-gray-50'
+                        : 'border-zinc-200 hover:bg-zinc-50'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <Link
                           href={`/newsroom/stories/${story.id}`}
-                          className="font-medium text-gray-900 hover:text-[#76BD43] truncate block mb-2"
+                          className="font-medium text-zinc-900 hover:text-kelly-green truncate block mb-2"
                         >
                           {story.title}
                         </Link>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                          <span className="px-2 py-1 bg-zinc-100 text-zinc-700 rounded text-xs font-medium">
                             {story.stage ? (STAGE_LABELS[story.stage] || story.stage) : 'Unknown'}
                           </span>
 
-                          <div className="flex items-center gap-1 text-gray-600">
+                          <div className="flex items-center gap-1 text-zinc-600">
                             <CalendarIcon className="h-4 w-4" />
                             {story.followUpDate && (
                               <span>Follow-up: {format(new Date(story.followUpDate), 'MMM d')}</span>
@@ -178,7 +178,7 @@ export function TimeSensitiveContent({
 
                           <span
                             className={`font-medium ${
-                              story.daysUntilDue! <= 1 ? 'text-yellow-600' : 'text-gray-600'
+                              story.daysUntilDue! <= 1 ? 'text-yellow-600' : 'text-zinc-600'
                             }`}
                           >
                             {story.daysUntilDue === 0
@@ -188,7 +188,7 @@ export function TimeSensitiveContent({
                               : `${story.daysUntilDue} days`}
                           </span>
 
-                          <Text className="text-xs text-gray-500">By {story.authorName}</Text>
+                          <Text className="text-xs text-zinc-500">By {story.authorName}</Text>
                         </div>
                       </div>
 

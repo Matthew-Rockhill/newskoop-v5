@@ -7,6 +7,7 @@ import {
   CheckCircleIcon,
   PencilIcon,
   EyeIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { Story, User, Category } from '@prisma/client';
 
@@ -20,13 +21,12 @@ type StoryWithRelations = Story & {
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { Table } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/empty-state';
+import { DataListLoading } from '@/components/ui/data-list';
+import { Input, InputGroup } from '@/components/ui/input';
 
 import { useStories, type StoryFilters } from '@/hooks/use-stories';
-import { useSession } from 'next-auth/react';
 import { StoryStage } from '@prisma/client';
 import { StoryGroupRow } from '@/components/newsroom/StoryGroupRow';
 
@@ -44,7 +44,6 @@ const stageFilters = [
 function StoriesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
   const [filters, setFilters] = useState<StoryFilters>({
     page: 1,
     perPage: 10,
@@ -52,7 +51,7 @@ function StoriesPageContent() {
 
   // Always exclude translations from main list - they appear grouped with originals
   const queryFilters = { ...filters, isTranslation: false };
-  
+
   // Read URL parameters and set initial filters
   useEffect(() => {
     const urlFilters: StoryFilters = {
@@ -118,41 +117,63 @@ function StoriesPageContent() {
                 ? 'My Stories'
                 : 'Stories'
           }
-          searchProps={{
-            value: filters.query || '',
-            onChange: (value) => handleFilterChange('query', value),
-            placeholder: "Search stories..."
-          }}
           action={{
             label: "New Story",
             onClick: () => router.push('/newsroom/stories/new')
           }}
         />
 
-        {/* Stage Filter Buttons */}
-        <div className="flex flex-wrap gap-2">
-          {stageFilters.map((filter) => {
-            const Icon = filter.icon;
-            const isActive = filters.stage === filter.value || (!filters.stage && filter.value === null);
+        {/* Search and Stage Filters - Same row on desktop */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Search - Left */}
+          <div className="w-full sm:max-w-xs">
+            <InputGroup>
+              <MagnifyingGlassIcon data-slot="icon" />
+              <Input
+                type="search"
+                placeholder="Search stories..."
+                value={filters.query || ''}
+                onChange={(e) => handleFilterChange('query', e.target.value)}
+                aria-label="Search stories"
+              />
+            </InputGroup>
+          </div>
 
-            return (
-              <Button
-                key={filter.label}
-                onClick={() => handleFilterChange('stage', filter.value || undefined)}
-                color={isActive ? 'primary' : 'white'}
-                className="text-sm"
-              >
-                {Icon && <Icon className="h-4 w-4" />}
-                {filter.label}
-              </Button>
-            );
-          })}
+          {/* Stage Filter Buttons - Right */}
+          <div
+            role="group"
+            aria-label="Filter stories by stage"
+            className="flex flex-wrap items-center gap-2"
+          >
+            {stageFilters.map((filter) => {
+              const Icon = filter.icon;
+              const isActive = filters.stage === filter.value || (!filters.stage && filter.value === null);
+
+              return (
+                <button
+                  key={filter.label}
+                  onClick={() => handleFilterChange('stage', filter.value || undefined)}
+                  aria-pressed={isActive}
+                  className={`
+                    inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
+                    transition-colors duration-150
+                    ${isActive
+                      ? 'bg-kelly-green text-white'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                    }
+                  `}
+                >
+                  {Icon && <Icon className="h-4 w-4" />}
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
+        {/* Loading State - Use DataListLoading for consistency */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <p>Loading stories...</p>
-          </div>
+          <DataListLoading variant="table" rowCount={5} />
         ) : stories.length === 0 ? (
           <EmptyState
             icon={DocumentTextIcon}
@@ -164,30 +185,57 @@ function StoriesPageContent() {
             }}
           />
         ) : (
-          <Table striped>
-            <thead>
-              <tr>
-                <th className="w-2/3">Story</th>
-                <th className="w-1/6">Status</th>
-                <th className="w-1/6">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stories.map((story: StoryWithRelations) => (
-                <StoryGroupRow key={story.id} story={story as any} />
-              ))}
-            </tbody>
-          </Table>
-        )}
+          <>
+            {/* Story Table - DataList style */}
+            <div className="flow-root">
+              <div className="-mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                  <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
+                      <thead className="bg-zinc-50 dark:bg-zinc-800">
+                        <tr>
+                          <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-white">
+                            Title
+                          </th>
+                          <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-white hidden sm:table-cell">
+                            Author
+                          </th>
+                          <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-white hidden lg:table-cell">
+                            Category
+                          </th>
+                          <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-white">
+                            Stage
+                          </th>
+                          <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-white hidden sm:table-cell">
+                            Updated
+                          </th>
+                          <th scope="col" className="pl-3 pr-4 py-3.5 text-right text-sm font-semibold text-zinc-900 dark:text-white sm:pr-6">
+                            <span className="sr-only">Actions</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-700 dark:bg-zinc-900">
+                        {stories.map((story: StoryWithRelations, index: number) => (
+                          <StoryGroupRow key={story.id} story={story as any} index={index} />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        {pagination && pagination.totalPages > 1 && stories.length > 0 && (
-          <div className="flex justify-end">
-            <Pagination
-              currentPage={pagination.page}
-              totalPages={pagination.totalPages}
-              onPageChange={handlePageChange}
-            />
-          </div>
+            {/* Pagination */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex justify-end mt-4">
+                <Pagination
+                  currentPage={pagination.page}
+                  totalPages={pagination.totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </Container>

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { storyUpdateSchema } from '@/lib/validations';
-import { deleteAudioFile } from '@/lib/vercel-blob';
+import { deleteAudioFile } from '@/lib/r2-storage';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
+import { generateSlug, generateUniqueStorySlug } from '@/lib/slug-utils';
 
 // Helper function to check permissions
 function hasStoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -170,7 +171,19 @@ const getStory = createHandler(
                 name: true,
                 slug: true,
                 color: true,
-                category: true,
+              },
+            },
+          },
+        },
+        classifications: {
+          include: {
+            classification: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                type: true,
+                color: true,
               },
             },
           },
@@ -323,6 +336,8 @@ const updateStory = createHandler(
           rawData[key] = JSON.parse(value as string);
         } else if (key === 'tagIds') {
           rawData[key] = JSON.parse(value as string);
+        } else if (key === 'classificationIds') {
+          rawData[key] = JSON.parse(value as string);
         } else if (key !== 'audioFilesCount') {
           rawData[key] = value as string;
         }
@@ -337,6 +352,7 @@ const updateStory = createHandler(
       content?: string;
       categoryId?: string;
       tagIds?: string[];
+      classificationIds?: string[];
       removedAudioIds?: string[];
       status?: string;
       slug?: string;
@@ -349,9 +365,9 @@ const updateStory = createHandler(
       throw error;
     }
 
-    // Check if this is only a categorisation update (categoryId and/or tagIds)
+    // Check if this is only a categorisation update (categoryId, tagIds, and/or classificationIds)
     const isCategorisationOnly =
-      (data.categoryId !== undefined || data.tagIds !== undefined) &&
+      (data.categoryId !== undefined || data.tagIds !== undefined || data.classificationIds !== undefined) &&
       !data.title && !data.content;
 
     // Sub-editors and above can always update categorisation
@@ -435,8 +451,8 @@ const updateStory = createHandler(
       }
     }
 
-    // Extract tag IDs and removedAudioIds from the data
-    const { tagIds, removedAudioIds, ...storyData } = data;
+    // Extract tag IDs, classification IDs, and removedAudioIds from the data
+    const { tagIds, classificationIds, removedAudioIds, ...storyData } = data;
 
     // Generate new slug if title is being updated
     if (storyData.title) {
@@ -446,37 +462,20 @@ const updateStory = createHandler(
         select: { isTranslation: true, language: true, slug: true }
       });
 
-      let slug = generateSlug(storyData.title);
+      let baseSlug = generateSlug(storyData.title);
 
       // For translations, append language code to ensure unique slug
       if (existingStory?.isTranslation && existingStory?.language) {
-        slug = `${slug}-${existingStory.language.toLowerCase()}`;
+        baseSlug = `${baseSlug}-${existingStory.language.toLowerCase()}`;
       }
 
       // Check if the new slug is different from the current one
       // If it's the same, don't update it to avoid unique constraint errors
-      if (existingStory?.slug === slug) {
+      if (existingStory?.slug === baseSlug) {
         delete storyData.slug;
       } else {
-        // Check if slug already exists (for other stories)
-        const slugExists = await prisma.story.findFirst({
-          where: {
-            slug,
-            id: { not: id } // Exclude current story
-          }
-        });
-
-        if (slugExists) {
-          // Append a counter to make it unique
-          let counter = 1;
-          let uniqueSlug = `${slug}-${counter}`;
-          while (await prisma.story.findFirst({ where: { slug: uniqueSlug, id: { not: id } } })) {
-            counter++;
-            uniqueSlug = `${slug}-${counter}`;
-          }
-          slug = uniqueSlug;
-        }
-
+        // Generate unique slug with optimized single-query approach
+        const slug = await generateUniqueStorySlug(baseSlug, id);
         storyData.slug = slug;
       }
     }
@@ -488,6 +487,15 @@ const updateStory = createHandler(
         deleteMany: {}, // Remove all existing tags
         create: tagIds.map((tagId: string) => ({
           tag: { connect: { id: tagId } }
+        }))
+      };
+    }
+
+    if (classificationIds !== undefined) {
+      updateData.classifications = {
+        deleteMany: {}, // Remove all existing classifications
+        create: classificationIds.map((classificationId: string) => ({
+          classification: { connect: { id: classificationId } }
         }))
       };
     }
@@ -533,6 +541,13 @@ const updateStory = createHandler(
             name: true,
             slug: true,
             color: true,
+            parent: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
           },
         },
         tags: {
@@ -543,7 +558,19 @@ const updateStory = createHandler(
                 name: true,
                 slug: true,
                 color: true,
-                category: true,
+              },
+            },
+          },
+        },
+        classifications: {
+          include: {
+            classification: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                type: true,
+                color: true,
               },
             },
           },
@@ -624,15 +651,5 @@ const deleteStory = createHandler(
   },
   [withErrorHandling, withAuth, withAudit('story.delete')]
 );
-
-// Helper function to generate slug from title
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9 -]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-}
 
 export { getStory as GET, updateStory as PATCH, deleteStory as DELETE }; 

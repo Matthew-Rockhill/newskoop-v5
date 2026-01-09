@@ -4,6 +4,7 @@ import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api
 import { hasShowPermission, canManageShows } from '@/lib/permissions';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { generateSlug, generateUniqueShowSlug } from '@/lib/slug-utils';
 
 // Show search schema - validation only, defaults handled in code
 const showSearchSchema = z.object({
@@ -133,25 +134,9 @@ const createShow = createHandler(
     const body = await req.json();
     const data = showSchema.parse(body);
 
-    // Auto-generate slug from title
-    const generateSlug = (title: string) => {
-      return title
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
-    };
-
-    let slug = generateSlug(data.title);
-
-    // Ensure slug is unique (add number suffix if needed)
-    let counter = 1;
-    let uniqueSlug = slug;
-    while (await prisma.show.findUnique({ where: { slug: uniqueSlug } })) {
-      uniqueSlug = `${slug}-${counter}`;
-      counter++;
-    }
+    // Generate unique slug with optimized single-query approach
+    const baseSlug = generateSlug(data.title);
+    const uniqueSlug = await generateUniqueShowSlug(baseSlug);
 
     // Create show
     const show = await prisma.show.create({

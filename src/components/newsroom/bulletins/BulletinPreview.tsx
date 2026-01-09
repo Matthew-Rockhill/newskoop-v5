@@ -97,14 +97,14 @@ export function BulletinPreview({
       <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <Heading level={1} className="text-2xl font-bold text-gray-900 mb-2">
+            <Heading level={1} className="text-2xl font-bold text-zinc-900 mb-2">
               {title || 'Untitled Bulletin'}
             </Heading>
             <div className="flex items-center gap-3">
               <Badge color={getLanguageColor(language)}>
                 {language}
               </Badge>
-              <span className="flex items-center gap-1 text-sm text-gray-600">
+              <span className="flex items-center gap-1 text-sm text-zinc-600">
                 <DocumentTextIcon className="h-4 w-4" />
                 {stories.length} {stories.length === 1 ? 'story' : 'stories'}
               </span>
@@ -114,7 +114,7 @@ export function BulletinPreview({
 
         {/* Schedule Information */}
         {(scheduledFor || (scheduleTitle && scheduleTime)) && (
-          <div className="flex items-center gap-4 text-sm text-gray-600 mb-4 p-3 bg-white rounded-md border">
+          <div className="flex items-center gap-4 text-sm text-zinc-600 mb-4 p-3 bg-white rounded-md border">
             {scheduleTitle && scheduleTime && (
               <span className="flex items-center gap-1">
                 <ClockIcon className="h-4 w-4" />
@@ -136,7 +136,7 @@ export function BulletinPreview({
 
       {/* Bulletin Content Preview */}
       <Card className="p-6">
-        <Heading level={2} className="text-lg font-semibold text-gray-900 mb-4">
+        <Heading level={2} className="text-lg font-semibold text-zinc-900 mb-4">
           Bulletin Content Preview
         </Heading>
         
@@ -148,38 +148,38 @@ export function BulletinPreview({
             </Heading>
             <div className="text-green-700">
               {intro ? renderRichText(intro) : (
-                <Text className="italic text-gray-500">No introduction provided</Text>
+                <Text className="italic text-zinc-500">No introduction provided</Text>
               )}
             </div>
           </div>
 
           {/* Stories */}
           <div className="space-y-4">
-            <Heading level={3} className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+            <Heading level={3} className="text-sm font-semibold text-zinc-800 uppercase tracking-wide">
               Stories ({stories.length})
             </Heading>
             
             {stories.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                <DocumentTextIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <Text className="text-gray-600">No stories selected</Text>
+              <div className="text-center py-8 bg-zinc-50 rounded-lg border border-zinc-200">
+                <DocumentTextIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+                <Text className="text-zinc-600">No stories selected</Text>
               </div>
             ) : (
               <div className="space-y-4">
                 {stories.map((story, index) => (
-                  <div key={story.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                  <div key={story.id} className="border border-zinc-200 rounded-lg p-4 bg-white">
                     {/* Story Header */}
                     <div className="flex items-start gap-3 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <Heading level={4} className="font-semibold text-gray-900">
+                          <Heading level={4} className="font-semibold text-zinc-900">
                             {story.title}
                           </Heading>
                           <Badge color="green">
                             {story.category.name}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
+                        <div className="flex items-center gap-3 text-xs text-zinc-500 mb-3">
                           <span className="flex items-center gap-1">
                             <UserIcon className="h-3 w-3" />
                             {story.author.firstName} {story.author.lastName}
@@ -193,11 +193,11 @@ export function BulletinPreview({
                     </div>
 
                     {/* Story Content */}
-                    <div className="prose prose-sm max-w-none text-gray-700 mb-3">
+                    <div className="prose prose-sm max-w-none text-zinc-700 mb-3">
                       {story.content ? (
                         <div dangerouslySetInnerHTML={{ __html: story.content }} />
                       ) : (
-                        <p className="text-gray-500 italic">No content available</p>
+                        <p className="text-zinc-500 italic">No content available</p>
                       )}
                     </div>
 
@@ -225,9 +225,9 @@ export function BulletinPreview({
 
                     {/* Story Tags */}
                     {story.tags && story.tags.filter(tag => tag.category !== 'LANGUAGE').length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="mt-3 pt-3 border-t border-zinc-200">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Text className="text-xs text-gray-500 font-medium">Tags:</Text>
+                          <Text className="text-xs text-zinc-500 font-medium">Tags:</Text>
                           {story.tags
                             .filter(tag => tag.category !== 'LANGUAGE')
                             .map((tag) => (
@@ -251,7 +251,7 @@ export function BulletinPreview({
             </Heading>
             <div className="text-blue-700">
               {outro ? renderRichText(outro) : (
-                <Text className="italic text-gray-500">No outro provided</Text>
+                <Text className="italic text-zinc-500">No outro provided</Text>
               )}
             </div>
           </div>
@@ -259,16 +259,16 @@ export function BulletinPreview({
       </Card>
 
       {/* Bulletin Statistics */}
-      <Card className="p-6 bg-gray-50">
-        <Heading level={3} className="text-lg font-semibold text-gray-900 mb-4">
+      <Card className="p-6 bg-zinc-50">
+        <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
           Bulletin Statistics
         </Heading>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-[#76BD43]">
+            <div className="text-2xl font-bold text-kelly-green">
               {stories.length}
             </div>
-            <Text className="text-sm text-gray-600">
+            <Text className="text-sm text-zinc-600">
               {stories.length === 1 ? 'Story' : 'Stories'}
             </Text>
           </div>
@@ -276,23 +276,23 @@ export function BulletinPreview({
             <div className="text-2xl font-bold text-blue-600">
               {intro.replace(/<[^>]*>/g, '').split(' ').filter(word => word.length > 0).length}
             </div>
-            <Text className="text-sm text-gray-600">Intro Words</Text>
+            <Text className="text-sm text-zinc-600">Intro Words</Text>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">
               {outro.replace(/<[^>]*>/g, '').split(' ').filter(word => word.length > 0).length}
             </div>
-            <Text className="text-sm text-gray-600">Outro Words</Text>
+            <Text className="text-sm text-zinc-600">Outro Words</Text>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-600">
+            <div className="text-2xl font-bold text-zinc-600">
               {stories.reduce((total, story) => {
                 if (!story.content) return total;
                 const words = story.content.replace(/<[^>]*>/g, '').split(' ').filter(word => word.length > 0);
                 return total + words.length;
               }, 0)}
             </div>
-            <Text className="text-sm text-gray-600">Story Words</Text>
+            <Text className="text-sm text-zinc-600">Story Words</Text>
           </div>
         </div>
       </Card>

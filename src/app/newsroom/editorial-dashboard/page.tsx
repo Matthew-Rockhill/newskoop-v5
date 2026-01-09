@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Container } from '@/components/ui/container';
+import { PageHeader } from '@/components/ui/page-header';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
@@ -122,94 +123,90 @@ export default function EditorialDashboardPage() {
   }
 
   return (
-    <Container className="py-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <Heading level={1} className="text-3xl font-bold text-gray-900">
-            Editorial Dashboard
-          </Heading>
-          <Text className="text-gray-600 mt-2">
-            Monitor workflow health, team workload, and content pipeline
-          </Text>
-        </div>
-        <Button
-          color="white"
-          onClick={() => refetch()}
-          disabled={isLoading}
-          className="flex items-center gap-2"
-        >
-          <ArrowPathIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+    <Container>
+      <div className="space-y-6">
+        <PageHeader
+          title="Editorial Dashboard"
+          description="Monitor workflow health, team workload, and content pipeline"
+          actions={
+            <Button
+              color="white"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <ArrowPathIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          }
+        />
 
-      {/* Workflow Health Overview */}
+        {/* Workflow Health Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <Text className="text-sm font-medium text-gray-600">In Pipeline</Text>
+            <Text className="text-sm font-medium text-zinc-600">In Pipeline</Text>
             <ChartBarIcon className="h-5 w-5 text-blue-600" />
           </div>
           {isLoading ? (
-            <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 bg-zinc-200 rounded animate-pulse"></div>
           ) : (
             <>
-              <Heading level={2} className="text-3xl font-bold text-gray-900">
+              <Heading level={2} className="text-3xl font-bold text-zinc-900">
                 {data?.workflowHealth.totalInPipeline || 0}
               </Heading>
-              <Text className="text-sm text-gray-500 mt-1">Active stories</Text>
+              <Text className="text-sm text-zinc-500 mt-1">Active stories</Text>
             </>
           )}
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <Text className="text-sm font-medium text-gray-600">Published Today</Text>
+            <Text className="text-sm font-medium text-zinc-600">Published Today</Text>
             <ChartBarIcon className="h-5 w-5 text-green-600" />
           </div>
           {isLoading ? (
-            <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 bg-zinc-200 rounded animate-pulse"></div>
           ) : (
             <>
-              <Heading level={2} className="text-3xl font-bold text-gray-900">
+              <Heading level={2} className="text-3xl font-bold text-zinc-900">
                 {data?.workflowHealth.publishedToday || 0}
               </Heading>
-              <Text className="text-sm text-gray-500 mt-1">Stories published</Text>
+              <Text className="text-sm text-zinc-500 mt-1">Stories published</Text>
             </>
           )}
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <Text className="text-sm font-medium text-gray-600">This Week</Text>
+            <Text className="text-sm font-medium text-zinc-600">This Week</Text>
             <ChartBarIcon className="h-5 w-5 text-purple-600" />
           </div>
           {isLoading ? (
-            <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 bg-zinc-200 rounded animate-pulse"></div>
           ) : (
             <>
-              <Heading level={2} className="text-3xl font-bold text-gray-900">
+              <Heading level={2} className="text-3xl font-bold text-zinc-900">
                 {data?.workflowHealth.publishedThisWeek || 0}
               </Heading>
-              <Text className="text-sm text-gray-500 mt-1">Stories published</Text>
+              <Text className="text-sm text-zinc-500 mt-1">Stories published</Text>
             </>
           )}
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <Text className="text-sm font-medium text-gray-600">Throughput</Text>
+            <Text className="text-sm font-medium text-zinc-600">Throughput</Text>
             <ClockIcon className="h-5 w-5 text-orange-600" />
           </div>
           {isLoading ? (
-            <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 bg-zinc-200 rounded animate-pulse"></div>
           ) : (
             <>
-              <Heading level={2} className="text-3xl font-bold text-gray-900">
+              <Heading level={2} className="text-3xl font-bold text-zinc-900">
                 {data?.workflowHealth.averageThroughput.toFixed(1) || '0.0'}
               </Heading>
-              <Text className="text-sm text-gray-500 mt-1">Stories per day</Text>
+              <Text className="text-sm text-zinc-500 mt-1">Stories per day</Text>
             </>
           )}
         </Card>
@@ -279,14 +276,15 @@ export default function EditorialDashboardPage() {
         />
       )}
 
-      {/* Last Updated */}
-      {data?.timestamp && !isLoading && (
-        <div className="text-center mt-8">
-          <Text className="text-xs text-gray-500">
-            Last updated: {new Date(data.timestamp).toLocaleTimeString()}
-          </Text>
-        </div>
-      )}
+        {/* Last Updated */}
+        {data?.timestamp && !isLoading && (
+          <div className="text-center mt-8">
+            <Text className="text-xs text-zinc-500">
+              Last updated: {new Date(data.timestamp).toLocaleTimeString()}
+            </Text>
+          </div>
+        )}
+      </div>
     </Container>
   );
 }

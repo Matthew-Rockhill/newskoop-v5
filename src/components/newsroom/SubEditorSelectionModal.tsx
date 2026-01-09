@@ -99,17 +99,17 @@ export function SubEditorSelectionModal({
 
             {/* Content */}
             <div className="space-y-4">
-              <Text className="text-gray-600">
+              <Text className="text-zinc-600">
                 Select a sub-editor to approve your story:
               </Text>
               
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <Text className="font-medium text-gray-900">&ldquo;{storyTitle}&rdquo;</Text>
+              <div className="bg-zinc-50 p-3 rounded-lg">
+                <Text className="font-medium text-zinc-900">&ldquo;{storyTitle}&rdquo;</Text>
               </div>
 
               {isLoadingSubEditors ? (
                 <div className="text-center py-4">
-                  <Text className="text-gray-500">Loading sub-editors...</Text>
+                  <Text className="text-zinc-500">Loading sub-editors...</Text>
                 </div>
               ) : subEditors.length === 0 ? (
                 <div className="text-center py-4">
@@ -117,7 +117,7 @@ export function SubEditorSelectionModal({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <Text className="block text-sm font-medium text-gray-700">
+                  <Text className="block text-sm font-medium text-zinc-700">
                     Select Sub-Editor *
                   </Text>
                   <Select

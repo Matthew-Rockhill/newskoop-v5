@@ -122,12 +122,12 @@ export function BulletinScheduleManager({
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <Dialog.Panel className="mx-auto max-w-lg w-full bg-white rounded-lg shadow-xl">
           <div className="flex items-center justify-between p-6 border-b">
-            <Dialog.Title className="text-lg font-semibold text-gray-900">
+            <Dialog.Title className="text-lg font-semibold text-zinc-900">
               {schedule ? 'Edit Schedule' : 'Create Bulletin Schedule'}
             </Dialog.Title>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-zinc-400 hover:text-zinc-500"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -136,7 +136,7 @@ export function BulletinScheduleManager({
           <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
                 Schedule Title *
               </label>
               <Input
@@ -151,7 +151,7 @@ export function BulletinScheduleManager({
 
             {/* Time */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
                 Time *
               </label>
               <Select 
@@ -194,14 +194,14 @@ export function BulletinScheduleManager({
               {errors.time && (
                 <p className="text-red-600 text-sm mt-1">{errors.time.message}</p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-zinc-500 mt-1">
                 Business hours: 4:00 AM - 7:00 PM (30-minute intervals)
               </p>
             </div>
 
             {/* Language */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
                 Language *
               </label>
               <Select 
@@ -219,7 +219,7 @@ export function BulletinScheduleManager({
 
             {/* Schedule Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
                 Schedule Type *
               </label>
               <Select 
@@ -240,9 +240,9 @@ export function BulletinScheduleManager({
               <input
                 type="checkbox"
                 {...register('isActive')}
-                className="h-4 w-4 text-[#76BD43] focus:ring-[#76BD43] border-gray-300 rounded"
+                className="h-4 w-4 text-kelly-green focus:ring-kelly-green border-zinc-300 rounded"
               />
-              <label className="ml-2 block text-sm text-gray-700">
+              <label className="ml-2 block text-sm text-zinc-700">
                 Schedule is active
               </label>
             </div>
@@ -266,7 +266,7 @@ export function BulletinScheduleManager({
               </Button>
               <Button
                 type="submit"
-                className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+                className="bg-kelly-green hover:bg-kelly-green/90 text-white"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Saving...' : (schedule ? 'Update' : 'Create')}

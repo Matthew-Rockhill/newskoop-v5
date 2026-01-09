@@ -148,10 +148,10 @@ export function UserEditForm({ user }: UserEditFormProps) {
               className="size-16" 
             />
             <div>
-              <div className="font-medium text-gray-900">
+              <div className="font-medium text-zinc-900">
                 {user.firstName} {user.lastName}
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-zinc-500">
                 User ID: {user.id}
               </div>
             </div>
@@ -159,7 +159,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="firstName" className="block text-sm font-medium text-zinc-700">
                 First Name
               </label>
               <Input
@@ -174,7 +174,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
             </div>
 
             <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="lastName" className="block text-sm font-medium text-zinc-700">
                 Last Name
               </label>
               <Input
@@ -189,7 +189,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-zinc-700">
                 Email Address
               </label>
               <Input
@@ -205,7 +205,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
             </div>
 
             <div>
-              <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="mobileNumber" className="block text-sm font-medium text-zinc-700">
                 Mobile Number
               </label>
               <Input
@@ -229,7 +229,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
           
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
-              <label htmlFor="userType" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="userType" className="block text-sm font-medium text-zinc-700">
                 User Type
               </label>
               <Select
@@ -248,7 +248,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
             {userType === 'STAFF' && (
               <div>
-                <label htmlFor="staffRole" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="staffRole" className="block text-sm font-medium text-zinc-700">
                   Staff Role
                 </label>
                 <Select
@@ -273,7 +273,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
 
             {userType === 'STAFF' && (
               <div>
-                <label htmlFor="translationLanguage" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="translationLanguage" className="block text-sm font-medium text-zinc-700">
                   Translation Language
                 </label>
                 <Select
@@ -327,8 +327,8 @@ export function UserEditForm({ user }: UserEditFormProps) {
           <div className="mt-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-gray-900">Active Status</div>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm font-medium text-zinc-900">Active Status</div>
+                <div className="text-sm text-zinc-500">
                   When disabled, the user will not be able to access the system.
                 </div>
               </div>

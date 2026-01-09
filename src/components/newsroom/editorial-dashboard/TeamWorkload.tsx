@@ -23,7 +23,7 @@ function WorkloadBar({ value, max }: { value: number; max: number }) {
   }
 
   return (
-    <div className="w-full bg-gray-200 rounded-full h-2">
+    <div className="w-full bg-zinc-200 rounded-full h-2">
       <div
         className={`${colorClass} h-2 rounded-full transition-all`}
         style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -44,9 +44,9 @@ function WorkloadTable({
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-3">
-        <div className="h-6 bg-gray-200 rounded w-48"></div>
+        <div className="h-6 bg-zinc-200 rounded w-48"></div>
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-16 bg-gray-100 rounded"></div>
+          <div key={i} className="h-16 bg-zinc-100 rounded"></div>
         ))}
       </div>
     );
@@ -58,16 +58,16 @@ function WorkloadTable({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <Heading level={3} className="text-lg font-semibold text-gray-900">
+        <Heading level={3} className="text-lg font-semibold text-zinc-900">
           {title}
         </Heading>
-        <Text className="text-sm text-gray-600">
-          Total: <span className="font-semibold text-gray-900">{totalStories}</span> stories
+        <Text className="text-sm text-zinc-600">
+          Total: <span className="font-semibold text-zinc-900">{totalStories}</span> stories
         </Text>
       </div>
 
       {workload.length === 0 ? (
-        <div className="text-center py-6 text-gray-400">
+        <div className="text-center py-6 text-zinc-400">
           <Text className="text-sm">No team members in this role</Text>
         </div>
       ) : (
@@ -75,18 +75,18 @@ function WorkloadTable({
           {workload.map((member) => (
             <div
               key={member.userId}
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="p-4 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <Text className="font-medium text-gray-900">{member.name}</Text>
-                  <Text className="text-sm text-gray-600">{member.email}</Text>
+                  <Text className="font-medium text-zinc-900">{member.name}</Text>
+                  <Text className="text-sm text-zinc-600">{member.email}</Text>
                 </div>
                 <div className="text-right">
-                  <Text className="text-2xl font-bold text-gray-900">
+                  <Text className="text-2xl font-bold text-zinc-900">
                     {member.storiesAssigned}
                   </Text>
-                  <Text className="text-xs text-gray-500">assigned</Text>
+                  <Text className="text-xs text-zinc-500">assigned</Text>
                 </div>
               </div>
 
@@ -98,8 +98,8 @@ function WorkloadTable({
               {/* Oldest Story */}
               {member.oldestAssignedDays !== null && member.storiesAssigned > 0 && (
                 <div className="flex items-center gap-1 text-sm">
-                  <ClockIcon className="h-4 w-4 text-gray-400" />
-                  <Text className="text-gray-600">
+                  <ClockIcon className="h-4 w-4 text-zinc-400" />
+                  <Text className="text-zinc-600">
                     Oldest story:{' '}
                     <span
                       className={`font-medium ${
@@ -107,7 +107,7 @@ function WorkloadTable({
                           ? 'text-red-600'
                           : member.oldestAssignedDays > 1
                           ? 'text-yellow-600'
-                          : 'text-gray-900'
+                          : 'text-zinc-900'
                       }`}
                     >
                       {member.oldestAssignedDays}d
@@ -127,8 +127,8 @@ export function TeamWorkload({ journalists, subEditors, isLoading }: TeamWorkloa
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-6">
-        <UserGroupIcon className="h-6 w-6 text-gray-600" />
-        <Heading level={2} className="text-xl font-semibold text-gray-900">
+        <UserGroupIcon className="h-6 w-6 text-zinc-600" />
+        <Heading level={2} className="text-xl font-semibold text-zinc-900">
           Team Workload
         </Heading>
       </div>

@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Container } from '@/components/ui/container';
+import { PageHeader } from '@/components/ui/page-header';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  PlusIcon,
+import {
   MegaphoneIcon,
   ExclamationCircleIcon,
   InformationCircleIcon,
@@ -43,6 +44,7 @@ interface Announcement {
 }
 
 export default function AdminAnnouncementsPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
 
@@ -148,55 +150,43 @@ export default function AdminAnnouncementsPage() {
   };
 
   return (
-    <Container className="py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <MegaphoneIcon className="h-8 w-8 text-kelly-green" />
-            <div>
-              <Heading level={1} className="text-3xl font-bold text-gray-900">
-                Announcements
-              </Heading>
-              <Text className="text-gray-600">
-                Manage announcements for newsroom staff and radio stations
-              </Text>
-            </div>
-          </div>
-          
-          <Link href="/admin/announcements/create">
-            <Button color="primary" className="flex items-center gap-2">
-              <PlusIcon className="h-5 w-5" />
-              Create Announcement
-            </Button>
-          </Link>
-        </div>
+    <Container>
+      <div className="space-y-6">
+        <PageHeader
+          title="Announcements"
+          description="Manage announcements for newsroom staff and radio stations"
+          action={{
+            label: "New Announcement",
+            onClick: () => router.push('/admin/announcements/create')
+          }}
+        />
 
         {/* Stats Cards */}
         {announcements.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="p-6 text-center">
-              <div className="text-2xl font-bold text-gray-900 mb-1">
+              <div className="text-2xl font-bold text-zinc-900 mb-1">
                 {announcements.length}
               </div>
-              <Text className="text-gray-600">Total</Text>
+              <Text className="text-zinc-600">Total</Text>
             </Card>
             <Card className="p-6 text-center">
               <div className="text-2xl font-bold text-kelly-green mb-1">
                 {announcements.filter(a => a.isActive).length}
               </div>
-              <Text className="text-gray-600">Active</Text>
+              <Text className="text-zinc-600">Active</Text>
             </Card>
             <Card className="p-6 text-center">
               <div className="text-2xl font-bold text-red-500 mb-1">
                 {announcements.filter(a => a.priority === 'HIGH').length}
               </div>
-              <Text className="text-gray-600">High Priority</Text>
+              <Text className="text-zinc-600">High Priority</Text>
             </Card>
             <Card className="p-6 text-center">
               <div className="text-2xl font-bold text-purple-500 mb-1">
                 {announcements.reduce((sum, a) => sum + a._count.dismissals, 0)}
               </div>
-              <Text className="text-gray-600">Total Views</Text>
+              <Text className="text-zinc-600">Total Views</Text>
             </Card>
           </div>
         )}
@@ -206,9 +196,9 @@ export default function AdminAnnouncementsPage() {
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
               <Card key={i} className="p-6 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="h-20 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
+                <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
+                <div className="h-20 bg-zinc-200 rounded"></div>
               </Card>
             ))}
           </div>
@@ -218,11 +208,11 @@ export default function AdminAnnouncementsPage() {
           </Card>
         ) : announcements.length === 0 ? (
           <Card className="p-12 text-center">
-            <MegaphoneIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <Heading level={3} className="text-gray-500 mb-2">
+            <MegaphoneIcon className="h-16 w-16 text-zinc-300 mx-auto mb-4" />
+            <Heading level={3} className="text-zinc-500 mb-2">
               No announcements yet
             </Heading>
-            <Text className="text-gray-400 mb-6">
+            <Text className="text-zinc-400 mb-6">
               Create your first announcement to communicate with your team.
             </Text>
             <Link href="/admin/announcements/create">
@@ -240,7 +230,7 @@ export default function AdminAnnouncementsPage() {
                     {getPriorityIcon(announcement.priority)}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <Heading level={4} className="text-lg font-semibold text-gray-900">
+                        <Heading level={4} className="text-lg font-semibold text-zinc-900">
                           {announcement.title}
                         </Heading>
                         <Badge color={getPriorityColor(announcement.priority)} className="text-xs">
@@ -256,11 +246,11 @@ export default function AdminAnnouncementsPage() {
                         )}
                       </div>
                       
-                      <Text className="text-gray-600 mb-3 line-clamp-2">
+                      <Text className="text-zinc-600 mb-3 line-clamp-2">
                         {announcement.message}
                       </Text>
                       
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 text-sm text-zinc-500">
                         <div className="flex items-center gap-1">
                           <UsersIcon className="h-4 w-4" />
                           <span>By {announcement.author.firstName} {announcement.author.lastName}</span>
@@ -328,6 +318,7 @@ export default function AdminAnnouncementsPage() {
             )}
           </div>
         )}
+      </div>
     </Container>
   );
 }

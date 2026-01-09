@@ -1,5 +1,5 @@
 import { useRouter } from 'next/navigation';
-import { 
+import {
   CheckCircleIcon,
   ClockIcon,
   EyeIcon,
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Avatar } from '@/components/ui/avatar';
+import { TRANSLATION_STATUS_COLORS } from '@/lib/color-system';
 
 interface Translation {
   id: string;
@@ -39,15 +40,6 @@ interface TranslationUnitProps {
   translations: Translation[];
   className?: string;
 }
-
-const translationStatusColors = {
-  PENDING: 'amber',
-  IN_PROGRESS: 'blue',
-  NEEDS_REVIEW: 'purple',
-  APPROVED: 'emerald',
-  REJECTED: 'red',
-  PUBLISHED: 'green',
-} as const;
 
 const translationStatusIcons = {
   PENDING: ClockIcon,
@@ -117,7 +109,7 @@ export function TranslationUnit({
 
         {totalTranslations === 0 ? (
           <div className="text-center py-4">
-            <Text className="text-gray-500 text-sm">
+            <Text className="text-zinc-500 text-sm">
               No translations have been created for this story.
             </Text>
           </div>
@@ -126,21 +118,21 @@ export function TranslationUnit({
             {/* Progress Summary */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="text-center">
-                <div className="text-lg font-semibold text-gray-900">
+                <div className="text-lg font-semibold text-zinc-900">
                   {approvedTranslations}/{totalTranslations}
                 </div>
-                <div className="text-gray-500">Approved</div>
+                <div className="text-zinc-500">Approved</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-semibold text-gray-900">
+                <div className="text-lg font-semibold text-zinc-900">
                   {totalTranslations}
                 </div>
-                <div className="text-gray-500">Languages</div>
+                <div className="text-zinc-500">Languages</div>
               </div>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-zinc-200 rounded-full h-2">
               <div
                 className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${totalTranslations > 0 ? (approvedTranslations / totalTranslations) * 100 : 0}%` }}
@@ -153,21 +145,21 @@ export function TranslationUnit({
                 const StatusIcon = translationStatusIcons[translation.status as keyof typeof translationStatusIcons] || ClockIcon;
                 
                 return (
-                  <div key={translation.id} className="border rounded-lg p-3 bg-gray-50">
+                  <div key={translation.id} className="border rounded-lg p-3 bg-zinc-50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <StatusIcon className="h-4 w-4 text-gray-600" />
+                        <StatusIcon className="h-4 w-4 text-zinc-600" />
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-sm">{translation.targetLanguage}</span>
                             <Badge 
-                              color={translationStatusColors[translation.status as keyof typeof translationStatusColors] || 'zinc'}
+                              color={TRANSLATION_STATUS_COLORS[translation.status as keyof typeof TRANSLATION_STATUS_COLORS] || 'zinc'}
                             >
                               {translation.status.replace('_', ' ')}
                             </Badge>
                           </div>
                           {translation.assignedTo && (
-                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                            <div className="flex items-center gap-1 text-xs text-zinc-500 mt-1">
                               <Avatar
                                 className="h-3 w-3"
                                 name={`${translation.assignedTo.firstName} ${translation.assignedTo.lastName}`}
@@ -194,7 +186,7 @@ export function TranslationUnit({
 
             {/* Unit Status Message */}
             {totalTranslations > 0 && (
-              <div className="text-xs text-gray-600 bg-gray-50 rounded p-2">
+              <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2">
                 {isUnitComplete ? (
                   <div className="flex items-center gap-1">
                     <CheckCircleIcon className="h-3 w-3 text-emerald-600" />

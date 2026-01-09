@@ -84,7 +84,7 @@ function SetPasswordContent() {
         <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-[#272727]">
           Set Your Password
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-zinc-600">
           Create a secure password for your account
         </p>
       </div>
@@ -141,9 +141,9 @@ function SetPasswordContent() {
           </form>
         </div>
         
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-10 text-center text-sm text-zinc-500">
           Need help?{' '}
-          <Link href="/login" className="font-semibold text-[#76BD43] hover:underline">
+          <Link href="/login" className="font-semibold text-kelly-green hover:underline">
             Contact support
           </Link>
         </p>

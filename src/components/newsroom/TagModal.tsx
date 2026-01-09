@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
-import { XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
@@ -15,7 +15,6 @@ interface Tag {
   id: string;
   name: string;
   slug: string;
-  category: string;
   color?: string;
   _count?: {
     stories: number;
@@ -34,6 +33,9 @@ interface TagModalProps {
   isLoading?: boolean;
   showSearch?: boolean; // New prop to control search visibility
   singleSelect?: boolean; // New prop for single selection (radio button behavior)
+  confirmButtonText?: string; // Custom text for confirm button
+  allowCreate?: boolean; // Allow creating new tags
+  onTagCreate?: (name: string) => Promise<Tag | null>; // Callback when a new tag is created
 }
 
 export function TagModal({
@@ -48,9 +50,13 @@ export function TagModal({
   isLoading = false,
   showSearch = true, // Default to true
   singleSelect = false, // Default to false (multi-select)
+  confirmButtonText = 'Confirm', // Default button text
+  allowCreate = false, // Default to false
+  onTagCreate,
 }: TagModalProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>(selectedTagIds);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isCreating, setIsCreating] = useState(false);
 
   // Update selected tags when prop changes
   useEffect(() => {
@@ -60,10 +66,9 @@ export function TagModal({
   // Filter tags based on search query
   const filteredTags = tags.filter(tag => {
     if (!searchQuery.trim()) return true;
-    
+
     const searchLower = searchQuery.toLowerCase();
-    return tag.name.toLowerCase().includes(searchLower) || 
-           tag.category.toLowerCase().includes(searchLower);
+    return tag.name.toLowerCase().includes(searchLower);
   });
 
   const handleTagToggle = (tagId: string) => {
@@ -72,13 +77,39 @@ export function TagModal({
       setSelectedTags([tagId]);
     } else {
       // Checkbox behavior - toggle the tag
-      setSelectedTags(prev => 
-        prev.includes(tagId) 
+      setSelectedTags(prev =>
+        prev.includes(tagId)
           ? prev.filter(id => id !== tagId)
           : [...prev, tagId]
       );
     }
   };
+
+  const handleCreateTag = async () => {
+    if (!searchQuery.trim() || !onTagCreate) return;
+
+    setIsCreating(true);
+    try {
+      const newTag = await onTagCreate(searchQuery.trim());
+      if (newTag) {
+        // Auto-select the newly created tag
+        if (singleSelect) {
+          setSelectedTags([newTag.id]);
+        } else {
+          setSelectedTags(prev => [...prev, newTag.id]);
+        }
+        setSearchQuery('');
+      }
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Check if search query matches an existing tag exactly
+  const exactMatch = tags.some(
+    tag => tag.name.toLowerCase() === searchQuery.trim().toLowerCase()
+  );
+  const canCreateTag = allowCreate && onTagCreate && searchQuery.trim() && !exactMatch;
 
   const handleConfirm = () => {
     if (!required || selectedTags.length > 0) {
@@ -124,7 +155,7 @@ export function TagModal({
 
             {/* Content */}
             <div className="space-y-4">
-              <Text className="text-gray-600">
+              <Text className="text-zinc-600">
                 {description}
               </Text>
 
@@ -146,21 +177,40 @@ export function TagModal({
                 </>
               )}
 
-              {filteredTags.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+              {/* Create new tag button */}
+              {canCreateTag && (
+                <button
+                  type="button"
+                  onClick={handleCreateTag}
+                  disabled={isCreating}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 cursor-pointer border border-emerald-200 hover:border-emerald-300 transition-colors"
+                >
+                  <div className="flex items-center justify-center w-5 h-5 rounded bg-emerald-500 text-white">
+                    <PlusIcon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <Text className="font-medium text-emerald-700">
+                      {isCreating ? 'Creating...' : `Create "${searchQuery.trim()}"`}
+                    </Text>
+                  </div>
+                </button>
+              )}
+
+              {filteredTags.length === 0 && !canCreateTag ? (
+                <div className="text-center py-8 text-zinc-500">
                   <Text>
                     {searchQuery ? 'No tags found matching your search' : 'No tags available'}
                   </Text>
-                  {searchQuery && (
+                  {searchQuery && !allowCreate && (
                     <Text className="text-sm">Try a different search term</Text>
                   )}
                 </div>
-              ) : (
+              ) : filteredTags.length > 0 ? (
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {filteredTags.map((tag) => (
                     <label 
                       key={tag.id} 
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer border border-gray-200 hover:border-kelly-green/30"
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-zinc-50 cursor-pointer border border-zinc-200 hover:border-kelly-green/30"
                     >
                       <Checkbox
                         checked={selectedTags.includes(tag.id)}
@@ -169,11 +219,8 @@ export function TagModal({
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Text className="font-medium">{tag.name}</Text>
-                          <Badge color="zinc">
-                            {tag.category}
-                          </Badge>
                         </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500">
                           <div className="flex items-center gap-1">
                             <span>{tag._count?.stories || 0} stories</span>
                           </div>
@@ -182,7 +229,7 @@ export function TagModal({
                     </label>
                   ))}
                 </div>
-              )}
+              ) : null}
 
               {required && selectedTags.length === 0 && (
                 <div className="text-red-600 text-sm">
@@ -191,8 +238,8 @@ export function TagModal({
               )}
 
               {selectedTags.length > 0 && (
-                <div className="bg-kelly-green/10 p-3 rounded-lg border border-kelly-green/20">
-                  <Text className="text-sm text-kelly-green/80">
+                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                  <Text className="text-sm text-emerald-700">
                     <strong>Selected:</strong> {selectedTagNames.join(', ')}
                   </Text>
                 </div>
@@ -213,7 +260,7 @@ export function TagModal({
                 onClick={handleConfirm}
                 disabled={!isValid || isLoading}
               >
-                {isLoading ? 'Saving...' : 'Save Tags'}
+                {isLoading ? 'Saving...' : confirmButtonText}
               </Button>
             </div>
           </div>

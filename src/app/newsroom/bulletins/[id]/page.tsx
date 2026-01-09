@@ -210,7 +210,7 @@ export default function BulletinViewPage() {
         <div className="lg:col-span-2 space-y-6">
         {/* Introduction */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-zinc-900 mb-4">
             Introduction
           </h3>
           <div 
@@ -222,7 +222,7 @@ export default function BulletinViewPage() {
         {/* Stories */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-zinc-900">
               Stories
             </h3>
             <Badge color="zinc">
@@ -234,9 +234,9 @@ export default function BulletinViewPage() {
               {bulletin.bulletinStories
                 .sort((a: { order: number }, b: { order: number }) => a.order - b.order)
                 .map((bulletinStory: BulletinStory, index: number) => (
-                  <div key={bulletinStory.id} className="relative pb-8 border-b border-gray-200 last:border-b-0 last:pb-0">
+                  <div key={bulletinStory.id} className="relative pb-8 border-b border-zinc-200 last:border-b-0 last:pb-0">
                     {/* Story Number */}
-                    <div className="absolute -left-12 top-0 flex items-center justify-center w-8 h-8 bg-[#76BD43] text-white rounded-full text-sm font-semibold">
+                    <div className="absolute -left-12 top-0 flex items-center justify-center w-8 h-8 bg-kelly-green text-white rounded-full text-sm font-semibold">
                       {index + 1}
                     </div>
 
@@ -266,18 +266,18 @@ export default function BulletinViewPage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="mx-auto h-12 w-12 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-gray-600 mt-2">No stories added yet</p>
-              <p className="text-gray-500 text-sm mt-1">Add stories to your bulletin to see them here</p>
+              <p className="text-zinc-600 mt-2">No stories added yet</p>
+              <p className="text-zinc-500 text-sm mt-1">Add stories to your bulletin to see them here</p>
             </div>
           )}
         </Card>
 
           {/* Outro */}
           <Card className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">
               Outro
             </h3>
             <div 
@@ -291,7 +291,7 @@ export default function BulletinViewPage() {
         <div className="space-y-6">
           {/* Bulletin Details */}
           <Card className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Bulletin Details</h3>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-4">Bulletin Details</h3>
             
             <DescriptionList>
               <DescriptionTerm>Language</DescriptionTerm>
@@ -321,7 +321,7 @@ export default function BulletinViewPage() {
                   <DescriptionDetails>
                     {bulletin.schedule.title}
                     <br />
-                    <span className="text-sm text-gray-500">{bulletin.schedule.time}</span>
+                    <span className="text-sm text-zinc-500">{bulletin.schedule.time}</span>
                   </DescriptionDetails>
                 </>
               )}
@@ -330,7 +330,7 @@ export default function BulletinViewPage() {
 
           {bulletin.publishedAt && (
             <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Publication</h3>
+              <h3 className="text-lg font-semibold text-zinc-900 mb-4">Publication</h3>
               
               <DescriptionList>
                 <DescriptionTerm>Published</DescriptionTerm>

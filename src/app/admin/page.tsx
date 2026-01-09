@@ -90,7 +90,7 @@ export default function AdminDashboard() {
             <Heading level={3}>User Management</Heading>
             <Badge color="blue">Active</Badge>
           </div>
-          <Text className="text-gray-600 mb-4">
+          <Text className="text-zinc-600 mb-4">
             Manage user accounts, roles, and permissions
           </Text>
           
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
             <Heading level={3}>Radio Station Management</Heading>
             <Badge color="green">Active</Badge>
           </div>
-          <Text className="text-gray-600 mb-4">
+          <Text className="text-zinc-600 mb-4">
             Manage radio stations and their configurations
           </Text>
           
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
               <Heading level={3}>Super Administrator Tools</Heading>
               <Badge color="red">Super Admin</Badge>
             </div>
-            <Text className="text-gray-600 mb-4">
+            <Text className="text-zinc-600 mb-4">
               Advanced system administration and oversight functions
             </Text>
             
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
                 <CogIcon className="h-4 w-4 mr-2" />
                 Access Newsroom (Editorial Oversight)
               </Button>
-              <Text className="text-sm text-gray-500">
+              <Text className="text-sm text-zinc-500">
                 As SUPERADMIN, you can access the newsroom for editorial oversight and system-wide management.
               </Text>
             </div>

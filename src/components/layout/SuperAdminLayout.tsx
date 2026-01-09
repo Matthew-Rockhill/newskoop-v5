@@ -94,14 +94,14 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         href={item.href}
         className={classNames(
           isActive
-            ? 'bg-gray-50 text-[#76BD43]'
-            : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
+            ? 'bg-zinc-50 text-kelly-green'
+            : 'text-zinc-700 hover:bg-zinc-50 hover:text-kelly-green',
           'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
         )}
       >
         <item.icon
           className={classNames(
-            isActive ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
+            isActive ? 'text-kelly-green' : 'text-zinc-400 group-hover:text-kelly-green',
             'h-6 w-6 shrink-0'
           )}
           aria-hidden="true"
@@ -115,7 +115,7 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
 
   const renderNavigationSection = (section: NavigationSection) => (
     <li key={section.name}>
-      <div className="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider mb-2">
+      <div className="text-xs font-semibold leading-6 text-zinc-400 uppercase tracking-wider mb-2">
         {section.name}
       </div>
       <ul role="list" className="-mx-2 space-y-1">
@@ -157,14 +157,14 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
               href="/admin/settings"
               className={classNames(
                 pathname === '/admin/settings'
-                  ? 'bg-gray-50 text-[#76BD43]'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
+                  ? 'bg-zinc-50 text-kelly-green'
+                  : 'text-zinc-700 hover:bg-zinc-50 hover:text-kelly-green',
                 'group flex items-center gap-x-3 px-6 py-3 text-sm font-semibold leading-6'
               )}
             >
               <CogIcon
                 className={classNames(
-                  pathname === '/admin/settings' ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
+                  pathname === '/admin/settings' ? 'text-kelly-green' : 'text-zinc-400 group-hover:text-kelly-green',
                   'h-6 w-6 shrink-0'
                 )}
                 aria-hidden="true"
@@ -173,17 +173,17 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
             </Link> */}
 
             {session?.user && (
-              <div className="border-t border-gray-200 px-6 py-3">
+              <div className="border-t border-zinc-200 px-6 py-3">
                 <div className="flex items-center gap-x-4 mb-3">
                   <Avatar
                     className="h-8 w-8"
                     name={`${session.user.firstName} ${session.user.lastName}`}
                   />
                   <div className="min-w-0 flex-auto">
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-zinc-900">
                       {`${session.user.firstName} ${session.user.lastName}`}
                     </p>
-                    <p className="truncate text-xs text-gray-500">
+                    <p className="truncate text-xs text-zinc-500">
                       Super Administrator
                     </p>
                   </div>
@@ -226,7 +226,7 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
       <div>
         <Dialog open={sidebarOpen} onClose={setSidebarOpen} className="relative z-50 lg:hidden">
           <DialogBackdrop
-            className="fixed inset-0 bg-gray-900/80"
+            className="fixed inset-0 bg-zinc-900/80"
           />
 
           <div className="fixed inset-0 flex">
@@ -249,7 +249,7 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
 
         {/* Static sidebar for desktop */}
         <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-          <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
+          <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-zinc-200 bg-white px-6">
             <SidebarContent />
           </div>
         </div>
@@ -257,13 +257,13 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         <div className="sticky top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-sm sm:px-6 lg:hidden">
           <button
             type="button"
-            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+            className="-m-2.5 p-2.5 text-zinc-700 lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <span className="sr-only">Open sidebar</span>
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />
           </button>
-          <div className="flex-1 text-sm font-semibold leading-6 text-gray-900">
+          <div className="flex-1 text-sm font-semibold leading-6 text-zinc-900">
             {getCurrentPageName()}
           </div>
           <div className="flex items-center gap-x-2">

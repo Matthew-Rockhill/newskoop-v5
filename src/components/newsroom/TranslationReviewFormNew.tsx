@@ -302,7 +302,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
     return (
       <Container>
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-300 mx-auto"></div>
           <Text className="mt-4">Loading translation for review...</Text>
         </div>
       </Container>
@@ -315,7 +315,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
         <div className="text-center py-12">
           <ExclamationTriangleIcon className="h-16 w-16 text-red-400 mx-auto mb-4" />
           <Heading level={2} className="text-red-600 mb-2">Translation Not Found</Heading>
-          <Text className="text-gray-600 mb-6">
+          <Text className="text-zinc-600 mb-6">
             {translationError?.message || 'The translation could not be loaded.'}
           </Text>
           <Button onClick={() => router.push('/newsroom/translations')}>
@@ -458,7 +458,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <DocumentTextIcon className="h-6 w-6 text-gray-600" />
+                  <DocumentTextIcon className="h-6 w-6 text-zinc-600" />
                   <Heading level={3} className="text-xl font-semibold">Original Story</Heading>
                 </div>
                 <div className="flex items-center gap-2">
@@ -481,7 +481,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                       className="h-6 w-6"
                       name={`${originalStory.author.firstName} ${originalStory.author.lastName}`}
                     />
-                    <Text className="text-sm text-gray-600">
+                    <Text className="text-sm text-zinc-600">
                       By {originalStory.author.firstName} {originalStory.author.lastName}
                     </Text>
                   </div>
@@ -490,7 +490,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
               
               <div className="max-h-96 overflow-y-auto overflow-x-hidden">
                 <div 
-                  className="text-gray-700 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
+                  className="text-zinc-700 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
                   style={{ 
                     fontFamily: 'inherit', 
                     wordBreak: 'break-word',
@@ -501,7 +501,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
               </div>
               
               {/* Original Story Audio Clips */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="mt-6 pt-4 border-t border-zinc-200">
                 <div className="flex items-center justify-between mb-4">
                   <Heading level={4} className="text-sm font-semibold">Audio Clips</Heading>
                   <Badge color="zinc">
@@ -510,12 +510,12 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 </div>
                 
                 {!originalStory?.audioClips || originalStory.audioClips.length === 0 ? (
-                  <div className="p-3 border border-gray-200 bg-gray-50 rounded-lg">
+                  <div className="p-3 border border-zinc-200 bg-zinc-50 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <MusicalNoteIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <MusicalNoteIcon className="h-4 w-4 text-zinc-400 flex-shrink-0" />
                       <div>
-                        <Text className="text-xs font-medium text-gray-700">No Audio Clips</Text>
-                        <Text className="text-xs text-gray-500">This story has no audio content</Text>
+                        <Text className="text-xs font-medium text-zinc-700">No Audio Clips</Text>
+                        <Text className="text-xs text-zinc-500">This story has no audio content</Text>
                       </div>
                     </div>
                   </div>
@@ -545,7 +545,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 )}
               </div>
               
-              <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="mt-4 pt-4 border-t border-zinc-200">
                 <Button
                   color="white"
                   onClick={() => router.push(`/newsroom/stories/${originalStory?.id}`)}
@@ -584,7 +584,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                         className="h-6 w-6"
                         name={`${translation.assignedTo.firstName} ${translation.assignedTo.lastName}`}
                       />
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-zinc-600">
                         Translated by {translation.assignedTo.firstName} {translation.assignedTo.lastName}
                       </Text>
                     </div>
@@ -593,7 +593,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 
                 <div className="max-h-96 overflow-y-auto overflow-x-hidden">
                   <div 
-                    className="text-gray-700 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
+                    className="text-zinc-700 leading-relaxed space-y-4 break-words overflow-wrap-anywhere hyphens-auto [&_pre]:whitespace-pre-wrap [&_pre]:font-sans [&_code]:font-sans [&_*]:break-words"
                     style={{ 
                       fontFamily: 'inherit', 
                       wordBreak: 'break-word',
@@ -604,7 +604,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 </div>
                 
                 {/* Translated Story Audio Clips */}
-                <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="mt-6 pt-4 border-t border-zinc-200">
                   <div className="flex items-center justify-between mb-4">
                     <Heading level={4} className="text-sm font-semibold">Audio Clips</Heading>
                     <Badge color="zinc">
@@ -648,7 +648,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                   )}
                 </div>
                 
-                <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="mt-4 pt-4 border-t border-zinc-200">
                   <Button
                     color="white"
                     onClick={() => router.push(`/newsroom/stories/${translatedStory.id}`)}
@@ -661,11 +661,11 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
             )}
 
             {!translatedStory && (
-              <Card className="p-6 border-dashed border-2 border-gray-300">
+              <Card className="p-6 border-dashed border-2 border-zinc-300">
                 <div className="text-center py-12">
-                  <DocumentTextIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <Heading level={3} className="text-gray-500 mb-2">No Translation Available</Heading>
-                  <Text className="text-gray-400">
+                  <DocumentTextIcon className="h-16 w-16 text-zinc-300 mx-auto mb-4" />
+                  <Heading level={3} className="text-zinc-500 mb-2">No Translation Available</Heading>
+                  <Text className="text-zinc-400">
                     The translation work has not been completed yet.
                   </Text>
                 </div>
@@ -694,7 +694,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                     />
                     <div>
                       <Text className="font-medium">Language Accuracy</Text>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-zinc-600">
                         Grammar, vocabulary, and language structure are correct
                       </Text>
                     </div>
@@ -709,7 +709,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                     />
                     <div>
                       <Text className="font-medium">Cultural Adaptation</Text>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-zinc-600">
                         Content is culturally appropriate for target audience
                       </Text>
                     </div>
@@ -724,7 +724,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                     />
                     <div>
                       <Text className="font-medium">Completeness</Text>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-zinc-600">
                         All content has been translated, nothing omitted
                       </Text>
                     </div>
@@ -739,7 +739,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                     />
                     <div>
                       <Text className="font-medium">Consistency</Text>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-zinc-600">
                         Terminology and style are consistent throughout
                       </Text>
                     </div>
@@ -755,7 +755,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                       />
                       <div>
                         <Text className="font-medium">Quality Control</Text>
-                        <Text className="text-sm text-gray-600">
+                        <Text className="text-sm text-zinc-600">
                           Final quality check completed and approved
                         </Text>
                       </div>
@@ -765,9 +765,9 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
               </form>
 
               {/* Checklist Status */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="mt-6 pt-4 border-t border-zinc-200">
                 <div className="flex items-center justify-between">
-                  <Text className="text-sm font-medium text-gray-700">
+                  <Text className="text-sm font-medium text-zinc-700">
                     Review Progress
                   </Text>
                   <div className="flex items-center gap-2">
@@ -794,33 +794,33 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
               <Heading level={4} className="font-semibold mb-4">Timeline</Heading>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <Text className="text-gray-600">Created</Text>
+                  <Text className="text-zinc-600">Created</Text>
                   <Text className="font-medium">{formatDate(translation.createdAt)}</Text>
                 </div>
                 
                 {translation.startedAt && (
                   <div className="flex justify-between">
-                    <Text className="text-gray-600">Started</Text>
+                    <Text className="text-zinc-600">Started</Text>
                     <Text className="font-medium">{formatDate(translation.startedAt)}</Text>
                   </div>
                 )}
                 
                 {translation.completedAt && (
                   <div className="flex justify-between">
-                    <Text className="text-gray-600">Completed</Text>
+                    <Text className="text-zinc-600">Completed</Text>
                     <Text className="font-medium">{formatDate(translation.completedAt)}</Text>
                   </div>
                 )}
                 
                 {translation.reviewedAt && (
                   <div className="flex justify-between">
-                    <Text className="text-gray-600">Reviewed</Text>
+                    <Text className="text-zinc-600">Reviewed</Text>
                     <Text className="font-medium">{formatDate(translation.reviewedAt)}</Text>
                   </div>
                 )}
                 
                 <div className="flex justify-between border-t pt-2">
-                  <Text className="text-gray-600">Last Updated</Text>
+                  <Text className="text-zinc-600">Last Updated</Text>
                   <Text className="font-medium">{formatDate(translation.updatedAt)}</Text>
                 </div>
               </div>

@@ -109,9 +109,9 @@ export default function CategoryPage() {
     return (
       <Container className="py-12">
         <div className="text-center">
-          <NewspaperIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <Heading level={2} className="text-gray-500 mb-2">Category Not Found</Heading>
-          <Text className="text-gray-400 mb-6">
+          <NewspaperIcon className="h-16 w-16 text-zinc-300 mx-auto mb-4" />
+          <Heading level={2} className="text-zinc-500 mb-2">Category Not Found</Heading>
+          <Text className="text-zinc-400 mb-6">
             The category "{categorySlug}" doesn't exist or isn't available to your station.
           </Text>
           <Button color="primary" onClick={() => router.push('/radio')}>
@@ -124,7 +124,7 @@ export default function CategoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
       <Container className="py-8">
         {/* Back Navigation */}
         <div className="mb-8">
@@ -147,7 +147,7 @@ export default function CategoryPage() {
                 <div className="flex items-center gap-3 mb-3">
                   {(() => {
                     const Icon = getCategoryIcon(category?.name || '');
-                    return <Icon className="h-8 w-8 text-gray-800" />;
+                    return <Icon className="h-8 w-8 text-zinc-800" />;
                   })()}
                   <Heading level={1} className="text-3xl font-bold text-white">
                     {category?.name || 'Category'}
@@ -162,7 +162,7 @@ export default function CategoryPage() {
 
               {/* Count Badge */}
               <div className="flex-shrink-0">
-                <Badge color="zinc" className="bg-gray-50 text-gray-800 font-semibold border border-gray-200">
+                <Badge color="zinc" className="bg-zinc-50 text-zinc-800 font-semibold border border-zinc-200">
                   {pagination?.total || stories.length} {category?.name === 'News Bulletins' ? 'bulletins' : 'stories'}
                 </Badge>
               </div>
@@ -170,11 +170,11 @@ export default function CategoryPage() {
           </div>
           
           {/* Station Info Bar */}
-          <div className="bg-gray-50 px-8 py-4 border-t border-gray-200">
+          <div className="bg-zinc-50 px-8 py-4 border-t border-zinc-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
-                  <Text className="text-sm text-gray-600">Languages Available:</Text>
+                  <Text className="text-sm text-zinc-600">Languages Available:</Text>
                   <div className="flex gap-1">
                     {station?.allowedLanguages?.map((lang: string) => (
                       <Badge key={lang} color="blue" className="text-xs">
@@ -184,13 +184,13 @@ export default function CategoryPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Text className="text-sm text-gray-600">Content Access:</Text>
+                  <Text className="text-sm text-zinc-600">Content Access:</Text>
                   <Badge color="green">Active</Badge>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <FunnelIcon className="h-4 w-4 text-gray-500" />
-                <Text className="text-sm text-gray-600">
+                <FunnelIcon className="h-4 w-4 text-zinc-500" />
+                <Text className="text-sm text-zinc-600">
                   Last updated: {new Date().toLocaleTimeString('en-US', { 
                     hour: '2-digit', 
                     minute: '2-digit' 
@@ -203,19 +203,19 @@ export default function CategoryPage() {
 
         {/* Stories Section Header */}
         <div className="flex justify-between items-center mb-6">
-          <Heading level={2} className="text-2xl font-semibold text-gray-900">
+          <Heading level={2} className="text-2xl font-semibold text-zinc-900">
             {category?.name === 'News Bulletins' ? 'Latest News Bulletins' : `Stories in ${category?.name}`}
             <Badge color="blue" className="ml-3">
               {selectedLanguage}
             </Badge>
           </Heading>
           <div className="flex items-center gap-4">
-            <Text className="text-gray-500">
+            <Text className="text-zinc-500">
               {filteredStories.length} of {stories.length} {category?.name === 'News Bulletins' ? 'bulletins' : 'stories'}
             </Text>
             {/* Language Filter */}
             <div className="flex items-center gap-2">
-              <Text className="text-sm text-gray-600">Language:</Text>
+              <Text className="text-sm text-zinc-600">Language:</Text>
               <div className="flex gap-1">
                 {station?.allowedLanguages?.map((language: string) => (
                   <button
@@ -224,7 +224,7 @@ export default function CategoryPage() {
                     className={`px-3 py-1 text-xs rounded-full border transition-colors ${
                       selectedLanguage === language
                         ? 'bg-kelly-green text-white border-kelly-green'
-                        : 'bg-white text-gray-600 border-gray-300 hover:border-kelly-green hover:text-kelly-green'
+                        : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
                     }`}
                   >
                     {language === 'English' ? 'EN' : 
@@ -242,10 +242,10 @@ export default function CategoryPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[...Array(12)].map((_, i) => (
               <Card key={i} className="p-6 animate-pulse bg-white">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="h-20 bg-gray-200 rounded mb-4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
+                <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
+                <div className="h-20 bg-zinc-200 rounded mb-4"></div>
+                <div className="h-3 bg-zinc-200 rounded w-1/4"></div>
               </Card>
             ))}
           </div>
@@ -264,11 +264,11 @@ export default function CategoryPage() {
               </div>
             ) : (
               <Card className="p-12 text-center bg-white">
-                <NewspaperIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <Heading level={3} className="text-gray-500 mb-2">
+                <NewspaperIcon className="h-16 w-16 text-zinc-300 mx-auto mb-4" />
+                <Heading level={3} className="text-zinc-500 mb-2">
                   No {category?.name === 'News Bulletins' ? 'bulletins' : 'stories'} available
                 </Heading>
-                <Text className="text-gray-400 mb-4">
+                <Text className="text-zinc-400 mb-4">
                   {selectedLanguage !== 'English' 
                     ? `No ${category?.name?.toLowerCase()} ${category?.name === 'News Bulletins' ? 'bulletins' : 'stories'} available in ${selectedLanguage}. Try switching languages.`
                     : `No ${category?.name?.toLowerCase()} ${category?.name === 'News Bulletins' ? 'bulletins' : 'stories'} available at the moment. Check back later.`

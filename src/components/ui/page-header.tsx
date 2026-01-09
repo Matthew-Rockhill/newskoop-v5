@@ -1,6 +1,4 @@
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
-import { Input, InputGroup } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
 type BadgeColor = "red" | "blue" | "cyan" | "fuchsia" | "green" | "indigo" | "lime" | "orange" | "pink" | "purple" | "teal" | "violet" | "yellow" | "amber" | "emerald" | "sky" | "rose" | "zinc";
@@ -21,11 +19,6 @@ interface PageHeaderProps {
       items: MetadataItem[];
     }[];
   };
-  searchProps?: {
-    value: string;
-    onChange: (value: string) => void;
-    placeholder?: string;
-  };
   action?: {
     label: string;
     onClick: () => void;
@@ -33,11 +26,10 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
 }
 
-export function PageHeader({ 
-  title, 
+export function PageHeader({
+  title,
   description,
   metadata,
-  searchProps, 
   action,
   actions
 }: PageHeaderProps) {
@@ -63,20 +55,6 @@ export function PageHeader({
         </div>
         <div className="mt-3 sm:ml-4 sm:mt-0">
           <div className="flex items-center gap-x-3">
-            {searchProps && (
-              <InputGroup>
-                <MagnifyingGlassIcon 
-                  className="h-5 w-5 text-zinc-400" 
-                  data-slot="icon" 
-                />
-                <Input
-                  type="search"
-                  placeholder={searchProps.placeholder || "Search..."}
-                  value={searchProps.value}
-                  onChange={(e) => searchProps.onChange(e.target.value)}
-                />
-              </InputGroup>
-            )}
             {action && (
               <Button
                 onClick={action.onClick}

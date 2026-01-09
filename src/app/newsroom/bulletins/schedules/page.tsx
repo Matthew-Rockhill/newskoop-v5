@@ -125,10 +125,10 @@ export default function BulletinSchedulesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <Heading level={1} className="text-3xl font-bold text-gray-900">
+          <Heading level={1} className="text-3xl font-bold text-zinc-900">
             Bulletin Schedules
           </Heading>
-          <Text className="text-gray-600 mt-2">
+          <Text className="text-zinc-600 mt-2">
             Manage the schedule for news bulletins across different days and languages
           </Text>
         </div>
@@ -136,7 +136,7 @@ export default function BulletinSchedulesPage() {
         {isEditor && (
           <Button
             onClick={() => setShowCreateModal(true)}
-            className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white flex items-center gap-2"
+            className="bg-kelly-green hover:bg-kelly-green/90 text-white flex items-center gap-2"
           >
             <PlusIcon className="h-5 w-5" />
             Add Schedule
@@ -146,7 +146,7 @@ export default function BulletinSchedulesPage() {
 
       {/* Tab Navigation */}
       <Card className="mb-6">
-        <div className="border-b border-gray-200">
+        <div className="border-b border-zinc-200">
           <nav className="-mb-px flex">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -156,8 +156,8 @@ export default function BulletinSchedulesPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-6 py-3 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tab.id
-                      ? 'border-[#76BD43] text-[#76BD43]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-kelly-green text-kelly-green'
+                      : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -172,22 +172,22 @@ export default function BulletinSchedulesPage() {
       {/* Schedules List */}
       {isLoading ? (
         <Card className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <Text className="mt-2 text-gray-600">Loading schedules...</Text>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 mx-auto"></div>
+          <Text className="mt-2 text-zinc-600">Loading schedules...</Text>
         </Card>
       ) : schedules.length === 0 ? (
         <Card className="p-8 text-center">
-          <ClockIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <Heading level={3} className="text-lg font-semibold text-gray-900 mb-2">
+          <ClockIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" />
+          <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-2">
             No schedules yet
           </Heading>
-          <Text className="text-gray-600 mb-4">
+          <Text className="text-zinc-600 mb-4">
             Create your first bulletin schedule for {activeTab.toLowerCase().replace('_', ' ')}s
           </Text>
           {isEditor && (
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+              className="bg-kelly-green hover:bg-kelly-green/90 text-white"
             >
               Create Schedule
             </Button>
@@ -199,10 +199,10 @@ export default function BulletinSchedulesPage() {
             <Card key={schedule.id} className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-start gap-4">
-                  <ClockIcon className="h-8 w-8 text-gray-400 mt-1" />
+                  <ClockIcon className="h-8 w-8 text-zinc-400 mt-1" />
                   <div>
                     <div className="flex items-center gap-3 mb-2">
-                      <Heading level={3} className="text-lg font-semibold text-gray-900">
+                      <Heading level={3} className="text-lg font-semibold text-zinc-900">
                         {schedule.title}
                       </Heading>
                       <Badge color={getLanguageColor(schedule.language)}>
@@ -212,7 +212,7 @@ export default function BulletinSchedulesPage() {
                         {schedule.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 text-sm text-zinc-600">
                       <span className="flex items-center gap-1">
                         <ClockIcon className="h-4 w-4" />
                         {schedule.time}

@@ -1,4 +1,4 @@
-import { PrismaClient, UserType, StaffRole, StoryStatus, TagCategory, Province, StoryLanguage } from '@prisma/client';
+import { PrismaClient, UserType, StaffRole, StoryStatus, ClassificationType, Province, StoryLanguage } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -125,18 +125,18 @@ async function main() {
     }
   }
 
-  // Get existing categories and tags
-  console.log('\n📂 Fetching existing categories and tags...');
+  // Get existing categories and classifications
+  console.log('\n📂 Fetching existing categories and classifications...');
   const categories = await prisma.category.findMany({
     where: { level: 1 }
   });
-  
-  const languageTags = await prisma.tag.findMany({
-    where: { category: TagCategory.LANGUAGE }
+
+  const languageClassifications = await prisma.classification.findMany({
+    where: { type: ClassificationType.LANGUAGE }
   });
-  
-  const religionTags = await prisma.tag.findMany({
-    where: { category: TagCategory.RELIGION }
+
+  const religionClassifications = await prisma.classification.findMany({
+    where: { type: ClassificationType.RELIGION }
   });
 
   // Get existing authors (staff users)
@@ -267,14 +267,14 @@ async function main() {
         },
       });
 
-      // Add tags to the story
-      for (const tagName of template.tags) {
-        const tag = [...languageTags, ...religionTags].find(t => t.name === tagName);
-        if (tag) {
-          await prisma.storyTag.create({
+      // Add classifications to the story
+      for (const classificationName of template.tags) {
+        const classification = [...languageClassifications, ...religionClassifications].find(c => c.name === classificationName);
+        if (classification) {
+          await prisma.storyClassification.create({
             data: {
               storyId: story.id,
-              tagId: tag.id,
+              classificationId: classification.id,
             },
           });
         }
@@ -340,14 +340,14 @@ async function main() {
           },
         });
 
-        // Add tags to the bulletin
-        for (const tagName of template.tags) {
-          const tag = [...languageTags, ...religionTags].find(t => t.name === tagName);
-          if (tag) {
-            await prisma.storyTag.create({
+        // Add classifications to the bulletin
+        for (const classificationName of template.tags) {
+          const classification = [...languageClassifications, ...religionClassifications].find(c => c.name === classificationName);
+          if (classification) {
+            await prisma.storyClassification.create({
               data: {
                 storyId: bulletin.id,
-                tagId: tag.id,
+                classificationId: classification.id,
               },
             });
           }

@@ -49,17 +49,17 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
       {/* Mega Menu - positioned to prevent cutoff */}
       <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50">
         <div className="relative">
-          <div className="w-[48rem] max-w-[90vw] bg-white rounded-lg shadow-xl border border-gray-200 
-                          before:absolute before:-top-2 before:left-1/2 before:transform before:-translate-x-1/2 before:w-4 before:h-4 before:bg-white before:border-l before:border-t before:border-gray-200 before:rotate-45 before:z-10">
+          <div className="w-[48rem] max-w-[90vw] bg-white rounded-lg shadow-xl border border-zinc-200 
+                          before:absolute before:-top-2 before:left-1/2 before:transform before:-translate-x-1/2 before:w-4 before:h-4 before:bg-white before:border-l before:border-t before:border-zinc-200 before:rotate-45 before:z-10">
             <div className="relative bg-white rounded-lg overflow-hidden z-20">
               <div className="p-6 max-h-[70vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Heading level={3} className="text-xl font-semibold text-gray-900">
+            <Heading level={3} className="text-xl font-semibold text-zinc-900">
               {category.name}
             </Heading>
-            <Text className="text-gray-600 mt-1">
+            <Text className="text-zinc-600 mt-1">
               {category.name === 'News Bulletins' 
                 ? 'Next upcoming bulletins (every 30 minutes)' 
                 : (category.description || `Latest ${category.name.toLowerCase()} content`)
@@ -83,9 +83,9 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {/* 8:00 AM English Bulletin */}
-              <div className="p-4 border border-gray-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group cursor-pointer">
+              <div className="p-4 border border-zinc-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group cursor-pointer">
                 <div className="flex items-start justify-between mb-2">
-                  <Heading level={5} className="text-sm font-semibold text-gray-900 group-hover:text-kelly-green">
+                  <Heading level={5} className="text-sm font-semibold text-zinc-900 group-hover:text-kelly-green">
                     Morning News Bulletin
                   </Heading>
                   <div className="flex items-center gap-1">
@@ -94,23 +94,23 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
                   </div>
                 </div>
                 
-                <Text className="text-xs text-gray-600 mb-3">
+                <Text className="text-xs text-zinc-600 mb-3">
                   Latest breaking news, weather, and traffic updates for the morning commute...
                 </Text>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <ClockIcon className="h-3 w-3 text-gray-400" />
-                    <Text className="text-xs text-gray-500">8:00 AM</Text>
+                    <ClockIcon className="h-3 w-3 text-zinc-400" />
+                    <Text className="text-xs text-zinc-500">8:00 AM</Text>
                   </div>
                   <Badge color="blue" className="text-xs">English</Badge>
                 </div>
               </div>
 
               {/* 8:30 AM Afrikaans Bulletin */}
-              <div className="p-4 border border-gray-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group cursor-pointer">
+              <div className="p-4 border border-zinc-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group cursor-pointer">
                 <div className="flex items-start justify-between mb-2">
-                  <Heading level={5} className="text-sm font-semibold text-gray-900 group-hover:text-kelly-green">
+                  <Heading level={5} className="text-sm font-semibold text-zinc-900 group-hover:text-kelly-green">
                     Oggend Nuusbulletin
                   </Heading>
                   <div className="flex items-center gap-1">
@@ -119,14 +119,14 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
                   </div>
                 </div>
                 
-                <Text className="text-xs text-gray-600 mb-3">
+                <Text className="text-xs text-zinc-600 mb-3">
                   Nuutste breekende nuus, weer, en verkeersopdaterings vir die oggendrit...
                 </Text>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <ClockIcon className="h-3 w-3 text-gray-400" />
-                    <Text className="text-xs text-gray-500">8:30 AM</Text>
+                    <ClockIcon className="h-3 w-3 text-zinc-400" />
+                    <Text className="text-xs text-zinc-500">8:30 AM</Text>
                   </div>
                   <Badge color="green" className="text-xs">Afrikaans</Badge>
                 </div>
@@ -134,12 +134,12 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
             </div>
 
             {/* Bulletin Schedule Info */}
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-zinc-200 pt-4">
               <div className="text-center">
-                <Text className="text-sm text-gray-600 mb-2">
+                <Text className="text-sm text-zinc-600 mb-2">
                   <strong>Bulletin Schedule:</strong> Every 30 minutes, alternating languages
                 </Text>
-                <Text className="text-xs text-gray-500">
+                <Text className="text-xs text-zinc-500">
                   English: 8:00, 9:00, 10:00... • Afrikaans: 8:30, 9:30, 10:30...
                 </Text>
               </div>
@@ -156,10 +156,10 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
         ) : isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="p-4 border border-gray-200 rounded-lg animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
-                <div className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="p-4 border border-zinc-200 rounded-lg animate-pulse">
+                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-zinc-200 rounded w-1/2 mb-3"></div>
+                <div className="h-16 bg-zinc-200 rounded"></div>
               </div>
             ))}
           </div>
@@ -178,10 +178,10 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
                     key={story.id}
                     href={`/radio/story/${story.id}`}
                     onClick={onClose}
-                    className="p-4 border border-gray-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
+                    className="p-4 border border-zinc-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <Heading level={5} className="text-sm font-semibold text-gray-900 group-hover:text-kelly-green line-clamp-2">
+                      <Heading level={5} className="text-sm font-semibold text-zinc-900 group-hover:text-kelly-green line-clamp-2">
                         {story.title}
                       </Heading>
                       {story.audioClips?.length > 0 && (
@@ -189,14 +189,14 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
                       )}
                     </div>
                     
-                    <Text className="text-xs text-gray-600 line-clamp-2 mb-3">
+                    <Text className="text-xs text-zinc-600 line-clamp-2 mb-3">
                       {story.content.replace(/<[^>]*>/g, '').substring(0, 80)}...
                     </Text>
                     
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
-                        <ClockIcon className="h-3 w-3 text-gray-400" />
-                        <Text className="text-xs text-gray-500">{publishedDate}</Text>
+                        <ClockIcon className="h-3 w-3 text-zinc-400" />
+                        <Text className="text-xs text-zinc-500">{publishedDate}</Text>
                       </div>
                       
                       {/* Language badges */}
@@ -216,31 +216,31 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-zinc-200">
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
                   <NewspaperIcon className="h-5 w-5 text-kelly-green mr-2" />
-                  <Text className="font-semibold text-gray-900">
+                  <Text className="font-semibold text-zinc-900">
                     {category.storyCount || stories.length}
                   </Text>
                 </div>
-                <Text className="text-xs text-gray-500">Total Stories</Text>
+                <Text className="text-xs text-zinc-500">Total Stories</Text>
               </div>
               
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
                   <MusicalNoteIcon className="h-5 w-5 text-blue-500 mr-2" />
-                  <Text className="font-semibold text-gray-900">
+                  <Text className="font-semibold text-zinc-900">
                     {stories.filter((s: any) => s.audioClips?.length > 0).length}
                   </Text>
                 </div>
-                <Text className="text-xs text-gray-500">With Audio</Text>
+                <Text className="text-xs text-zinc-500">With Audio</Text>
               </div>
               
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
                   <ClockIcon className="h-5 w-5 text-purple-500 mr-2" />
-                  <Text className="font-semibold text-gray-900">
+                  <Text className="font-semibold text-zinc-900">
                     {stories.filter((s: any) => {
                       const publishedDate = new Date(s.publishedAt);
                       const today = new Date();
@@ -250,17 +250,17 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
                     }).length}
                   </Text>
                 </div>
-                <Text className="text-xs text-gray-500">This Week</Text>
+                <Text className="text-xs text-zinc-500">This Week</Text>
               </div>
             </div>
           </>
         ) : (
           <div className="text-center py-8">
-            <NewspaperIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <Heading level={4} className="text-gray-500 mb-2">
+            <NewspaperIcon className="h-12 w-12 text-zinc-300 mx-auto mb-3" />
+            <Heading level={4} className="text-zinc-500 mb-2">
               No stories yet
             </Heading>
-            <Text className="text-gray-400 text-sm">
+            <Text className="text-zinc-400 text-sm">
               Check back later for new {category.name.toLowerCase()} content.
             </Text>
           </div>
@@ -330,13 +330,13 @@ function NewsStoriesHierarchicalMenu({ onClose }: { onClose: () => void }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Left Panel - Level 2 Categories */}
       <div>
-        <Heading level={4} className="text-lg font-semibold text-gray-900 mb-4">
+        <Heading level={4} className="text-lg font-semibold text-zinc-900 mb-4">
           News Categories
         </Heading>
         <div className="space-y-2">
           {categoriesLoading ? (
             [...Array(3)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div key={i} className="h-12 bg-zinc-200 rounded-lg animate-pulse"></div>
             ))
           ) : (
             level2Categories.map((cat: any) => {
@@ -349,7 +349,7 @@ function NewsStoriesHierarchicalMenu({ onClose }: { onClose: () => void }) {
                   className={`p-3 rounded-lg border cursor-pointer transition-all ${
                     isSelected
                       ? 'border-kelly-green bg-kelly-green/5 text-kelly-green'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
+                      : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700'
                   }`}
                   onMouseEnter={() => setSelectedCategory(cat.name)}
                 >
@@ -357,7 +357,7 @@ function NewsStoriesHierarchicalMenu({ onClose }: { onClose: () => void }) {
                     <Icon className="h-5 w-5" />
                     <div>
                       <Text className="font-medium">{cat.name}</Text>
-                      <Text className="text-xs text-gray-500">{cat.description}</Text>
+                      <Text className="text-xs text-zinc-500">{cat.description}</Text>
                     </div>
                   </div>
                 </div>
@@ -371,13 +371,13 @@ function NewsStoriesHierarchicalMenu({ onClose }: { onClose: () => void }) {
       <div>
         {selectedCategory === 'South African Community News' ? (
           <>
-            <Heading level={4} className="text-lg font-semibold text-gray-900 mb-4">
+            <Heading level={4} className="text-lg font-semibold text-zinc-900 mb-4">
               Select Province
             </Heading>
             <div className="grid grid-cols-2 gap-2">
               {localityLoading ? (
                 [...Array(9)].map((_, i) => (
-                  <div key={i} className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  <div key={i} className="h-10 bg-zinc-200 rounded animate-pulse"></div>
                 ))
               ) : (
                 localities.map((locality: any) => (
@@ -385,7 +385,7 @@ function NewsStoriesHierarchicalMenu({ onClose }: { onClose: () => void }) {
                     key={locality.id}
                     href={`/radio/news-stories/community?province=${locality.slug}`}
                     onClick={onClose}
-                    className="p-2 text-sm border border-gray-200 rounded hover:border-kelly-green hover:bg-kelly-green/5 hover:text-kelly-green transition-all text-center"
+                    className="p-2 text-sm border border-zinc-200 rounded hover:border-kelly-green hover:bg-kelly-green/5 hover:text-kelly-green transition-all text-center"
                   >
                     {locality.name}
                   </Link>
@@ -395,15 +395,15 @@ function NewsStoriesHierarchicalMenu({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <>
-            <Heading level={4} className="text-lg font-semibold text-gray-900 mb-4">
+            <Heading level={4} className="text-lg font-semibold text-zinc-900 mb-4">
               Recent {selectedCategory}
             </Heading>
             <div className="space-y-3">
               {storiesLoading ? (
                 [...Array(4)].map((_, i) => (
-                  <div key={i} className="p-3 border border-gray-200 rounded-lg animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div key={i} className="p-3 border border-zinc-200 rounded-lg animate-pulse">
+                    <div className="h-4 bg-zinc-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-zinc-200 rounded w-1/2"></div>
                   </div>
                 ))
               ) : recentStories.length > 0 ? (
@@ -412,16 +412,16 @@ function NewsStoriesHierarchicalMenu({ onClose }: { onClose: () => void }) {
                     key={story.id}
                     href={`/radio/story/${story.id}`}
                     onClick={onClose}
-                    className="block p-3 border border-gray-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
+                    className="block p-3 border border-zinc-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
                   >
-                    <Heading level={6} className="text-sm font-semibold text-gray-900 group-hover:text-kelly-green mb-1 line-clamp-2">
+                    <Heading level={6} className="text-sm font-semibold text-zinc-900 group-hover:text-kelly-green mb-1 line-clamp-2">
                       {story.title}
                     </Heading>
-                    <Text className="text-xs text-gray-600 line-clamp-2 mb-2">
+                    <Text className="text-xs text-zinc-600 line-clamp-2 mb-2">
                       {story.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
                     </Text>
                     <div className="flex items-center justify-between">
-                      <Text className="text-xs text-gray-500">
+                      <Text className="text-xs text-zinc-500">
                         {new Date(story.publishedAt).toLocaleDateString()}
                       </Text>
                       {story.audioClips?.length > 0 && (
@@ -432,8 +432,8 @@ function NewsStoriesHierarchicalMenu({ onClose }: { onClose: () => void }) {
                 ))
               ) : (
                 <div className="text-center py-6">
-                  <NewspaperIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                  <Text className="text-gray-500">No recent stories available</Text>
+                  <NewspaperIcon className="h-12 w-12 text-zinc-300 mx-auto mb-2" />
+                  <Text className="text-zinc-500">No recent stories available</Text>
                 </div>
               )}
             </div>
@@ -489,13 +489,13 @@ function SportsHierarchicalMenu({ onClose }: { onClose: () => void }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Left Panel - Level 2 Categories */}
       <div>
-        <Heading level={4} className="text-lg font-semibold text-gray-900 mb-4">
+        <Heading level={4} className="text-lg font-semibold text-zinc-900 mb-4">
           Sports Content
         </Heading>
         <div className="space-y-2">
           {categoriesLoading ? (
             [...Array(4)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div key={i} className="h-12 bg-zinc-200 rounded-lg animate-pulse"></div>
             ))
           ) : (
             level2Categories.map((cat: any) => {
@@ -508,7 +508,7 @@ function SportsHierarchicalMenu({ onClose }: { onClose: () => void }) {
                   className={`p-3 rounded-lg border cursor-pointer transition-all ${
                     isSelected
                       ? 'border-kelly-green bg-kelly-green/5 text-kelly-green'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
+                      : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700'
                   }`}
                   onMouseEnter={() => setSelectedCategory(cat.name)}
                 >
@@ -516,7 +516,7 @@ function SportsHierarchicalMenu({ onClose }: { onClose: () => void }) {
                     <Icon className="h-5 w-5" />
                     <div>
                       <Text className="font-medium">{cat.name}</Text>
-                      <Text className="text-xs text-gray-500">{cat.description}</Text>
+                      <Text className="text-xs text-zinc-500">{cat.description}</Text>
                     </div>
                   </div>
                 </div>
@@ -528,15 +528,15 @@ function SportsHierarchicalMenu({ onClose }: { onClose: () => void }) {
 
       {/* Right Panel - Recent Stories */}
       <div>
-        <Heading level={4} className="text-lg font-semibold text-gray-900 mb-4">
+        <Heading level={4} className="text-lg font-semibold text-zinc-900 mb-4">
           Recent {selectedCategory}
         </Heading>
         <div className="space-y-3">
           {storiesLoading ? (
             [...Array(4)].map((_, i) => (
-              <div key={i} className="p-3 border border-gray-200 rounded-lg animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              <div key={i} className="p-3 border border-zinc-200 rounded-lg animate-pulse">
+                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-zinc-200 rounded w-1/2"></div>
               </div>
             ))
           ) : recentStories.length > 0 ? (
@@ -545,16 +545,16 @@ function SportsHierarchicalMenu({ onClose }: { onClose: () => void }) {
                 key={story.id}
                 href={`/radio/story/${story.id}`}
                 onClick={onClose}
-                className="block p-3 border border-gray-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
+                className="block p-3 border border-zinc-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
               >
-                <Heading level={6} className="text-sm font-semibold text-gray-900 group-hover:text-kelly-green mb-1 line-clamp-2">
+                <Heading level={6} className="text-sm font-semibold text-zinc-900 group-hover:text-kelly-green mb-1 line-clamp-2">
                   {story.title}
                 </Heading>
-                <Text className="text-xs text-gray-600 line-clamp-2 mb-2">
+                <Text className="text-xs text-zinc-600 line-clamp-2 mb-2">
                   {story.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
                 </Text>
                 <div className="flex items-center justify-between">
-                  <Text className="text-xs text-gray-500">
+                  <Text className="text-xs text-zinc-500">
                     {new Date(story.publishedAt).toLocaleDateString()}
                   </Text>
                   {story.audioClips?.length > 0 && (
@@ -565,8 +565,8 @@ function SportsHierarchicalMenu({ onClose }: { onClose: () => void }) {
             ))
           ) : (
             <div className="text-center py-6">
-              <NewspaperIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-              <Text className="text-gray-500">No recent stories available</Text>
+              <NewspaperIcon className="h-12 w-12 text-zinc-300 mx-auto mb-2" />
+              <Text className="text-zinc-500">No recent stories available</Text>
             </div>
           )}
         </div>

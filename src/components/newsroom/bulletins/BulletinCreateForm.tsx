@@ -21,7 +21,7 @@ import { Text } from '@/components/ui/text';
 const RichTextEditor = dynamic(
   () => import('@/components/ui/rich-text-editor').then(mod => ({ default: mod.RichTextEditor })),
   {
-    loading: () => <div className="border border-gray-300 rounded-lg p-4 min-h-[200px] animate-pulse bg-gray-50">Loading editor...</div>,
+    loading: () => <div className="border border-zinc-300 rounded-lg p-4 min-h-[200px] animate-pulse bg-zinc-50">Loading editor...</div>,
     ssr: false
   }
 );
@@ -202,14 +202,14 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
               }
               className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === tab.id
-                  ? 'border-[#76BD43] text-[#76BD43]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 disabled:text-gray-300 disabled:cursor-not-allowed'
+                  ? 'border-kelly-green text-kelly-green'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300 disabled:text-zinc-300 disabled:cursor-not-allowed'
               }`}
             >
               {tab.label}
               {tab.count !== null && (
                 <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none rounded-full ${
-                  activeTab === tab.id ? 'bg-[#76BD43] text-white' : 'bg-gray-200 text-gray-600'
+                  activeTab === tab.id ? 'bg-kelly-green text-white' : 'bg-zinc-200 text-zinc-600'
                 }`}>
                   {tab.count}
                 </span>
@@ -224,17 +224,17 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
         <Card className="p-6">
           <div className="space-y-6">
             <div>
-              <Heading level={2} className="text-xl font-semibold text-gray-900 mb-4">
+              <Heading level={2} className="text-xl font-semibold text-zinc-900 mb-4">
                 Bulletin Schedule & Content
               </Heading>
-              <Text className="text-gray-600">
+              <Text className="text-zinc-600">
                 Select which bulletin schedule you're creating and add the content.
               </Text>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
                   Bulletin Schedule *
                 </label>
                 <Select 
@@ -262,7 +262,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                 <Card className="p-4 bg-blue-50 border border-blue-200">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex-shrink-0 w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <Text className="font-semibold text-gray-900">
+                    <Text className="font-semibold text-zinc-900">
                       {selectedSchedule.title}
                     </Text>
                     <Badge color="blue">
@@ -272,14 +272,14 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                       {selectedSchedule.scheduleType.replace('_', ' ')}
                     </Badge>
                   </div>
-                  <Text className="text-sm text-gray-600 ml-6">
+                  <Text className="text-sm text-zinc-600 ml-6">
                     Scheduled for {selectedSchedule.time} • Created by {selectedSchedule.creator?.firstName} {selectedSchedule.creator?.lastName}
                   </Text>
                 </Card>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
                   Bulletin Date *
                 </label>
                 <Input
@@ -291,14 +291,14 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                 {errors.scheduledDate && (
                   <p className="text-red-600 text-sm mt-1">{errors.scheduledDate.message}</p>
                 )}
-                <Text className="text-xs text-gray-500 mt-1">
+                <Text className="text-xs text-zinc-500 mt-1">
                   The bulletin will be scheduled for {selectedSchedule?.time || '[time]'} on this date
                 </Text>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Introduction *
               </label>
               <RichTextEditor
@@ -313,7 +313,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Outro *
               </label>
               <RichTextEditor
@@ -332,7 +332,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                 type="button"
                 onClick={() => setActiveTab('stories')}
                 disabled={!canProceedToStories}
-                className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+                className="bg-kelly-green hover:bg-kelly-green/90 text-white"
               >
                 Next: Add Stories
               </Button>
@@ -345,7 +345,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
       {activeTab === 'stories' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
-            <Heading level={3} className="text-lg font-semibold text-gray-900 mb-4">
+            <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
               Add Stories
             </Heading>
             <StorySelector
@@ -356,7 +356,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
           </Card>
 
           <Card className="p-6">
-            <Heading level={3} className="text-lg font-semibold text-gray-900 mb-4">
+            <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
               Selected Stories ({selectedStories.length})
             </Heading>
             <StoryList
@@ -370,7 +370,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                 <Button
                   type="button"
                   onClick={() => setActiveTab('preview')}
-                  className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+                  className="bg-kelly-green hover:bg-kelly-green/90 text-white"
                 >
                   Preview Bulletin
                 </Button>
@@ -384,7 +384,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
       {activeTab === 'preview' && (
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <Heading level={3} className="text-lg font-semibold text-gray-900">
+            <Heading level={3} className="text-lg font-semibold text-zinc-900">
               Bulletin Preview
             </Heading>
             <div className="flex gap-3">
@@ -398,7 +398,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+                className="bg-kelly-green hover:bg-kelly-green/90 text-white"
               >
                 {isSubmitting ? 'Creating...' : 'Create Bulletin'}
               </Button>
@@ -448,7 +448,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
           <Button
             type="submit"
             disabled={isSubmitting || !canPreview}
-            className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+            className="bg-kelly-green hover:bg-kelly-green/90 text-white"
           >
             {isSubmitting ? 'Creating...' : 'Create Bulletin'}
           </Button>

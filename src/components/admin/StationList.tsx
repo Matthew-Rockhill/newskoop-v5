@@ -1,15 +1,15 @@
-import { useState } from 'react';
+'use client';
+
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStations } from '@/hooks/use-stations';
-import { Button } from '@/components/ui/button';
-import { Table } from '@/components/ui/table';
+import type { Station } from '@prisma/client';
+import { DataList, type DataListColumn, type RowAction } from '@/components/ui/data-list';
 import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
-import { Pagination } from '@/components/ui/pagination';
 import { PageHeader } from '@/components/ui/page-header';
-import { EmptyState } from '@/components/ui/empty-state';
-import { RadioIcon } from '@heroicons/react/24/outline';
-
+import { Avatar } from '@/components/ui/avatar';
+import { RadioIcon, PencilIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { Input, InputGroup } from '@/components/ui/input';
 
 // Helper function to format province names
 const formatProvince = (province: string) => {
@@ -21,7 +21,8 @@ const formatProvince = (province: string) => {
 
 export function StationList() {
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const router = useRouter();
+
   const {
     stations,
     pagination,
@@ -30,8 +31,6 @@ export function StationList() {
   } = useStations({
     perPage: 10,
   });
-
-  const router = useRouter();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -42,126 +41,148 @@ export function StationList() {
     setFilters((prev) => ({ ...prev, page }));
   };
 
-  const handleRowClick = (stationId: string) => {
-    router.push(`/admin/stations/${stationId}`);
-  };
+  // Define columns for the DataList
+  const columns: DataListColumn<Station>[] = useMemo(() => [
+    {
+      key: 'station',
+      header: 'Station',
+      priority: 1,
+      width: 'expand',
+      render: (station) => (
+        <div className="flex items-center gap-4">
+          <Avatar
+            src={station.logoUrl ?? undefined}
+            name={station.name}
+            className="size-12"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="font-medium text-zinc-900 dark:text-white truncate">
+              {station.name}
+            </div>
+            <div className="text-sm text-zinc-600 dark:text-zinc-400 truncate">
+              {station.contactEmail && (
+                <a
+                  href={`mailto:${station.contactEmail}`}
+                  className="text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                >
+                  {station.contactEmail}
+                </a>
+              )}
+              {!station.contactEmail && station.contactNumber && (
+                <span>{station.contactNumber}</span>
+              )}
+              {!station.contactEmail && !station.contactNumber && (
+                <span className="text-zinc-400">No contact info</span>
+              )}
+            </div>
+            <div className="text-sm text-zinc-500">
+              {formatProvince(station.province)}
+            </div>
+          </div>
+        </div>
+      ),
+      mobileRender: (station) => (
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <Avatar
+              src={station.logoUrl ?? undefined}
+              name={station.name}
+              className="size-10"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-zinc-900 dark:text-white truncate">
+                {station.name}
+              </div>
+              <div className="text-sm text-zinc-500 truncate">
+                {formatProvince(station.province)}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge color={station.isActive ? 'lime' : 'zinc'}>
+              {station.isActive ? 'Active' : 'Inactive'}
+            </Badge>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      priority: 2,
+      width: 'shrink',
+      align: 'center',
+      render: (station) => (
+        <Badge color={station.isActive ? 'lime' : 'zinc'}>
+          {station.isActive ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+  ], []);
+
+  // Define row actions
+  const rowActions: RowAction<Station>[] = useMemo(() => [
+    {
+      key: 'edit',
+      label: 'Edit',
+      icon: PencilIcon,
+      href: (station) => `/admin/stations/${station.id}/edit`,
+      onAction: () => {},
+    },
+  ], []);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Radio Stations"
-        searchProps={{
-          value: searchQuery,
-          onChange: handleSearch,
-          placeholder: "Search stations..."
-        }}
         action={{
-          label: "Create",
+          label: "New Station",
           onClick: () => router.push('/admin/stations/new')
         }}
       />
 
-      {!isLoading && stations.length === 0 ? (
-        <EmptyState
-          icon={RadioIcon}
-          title="No radio stations"
-          description="Get started by creating a new radio station."
-          action={{
-            label: "New Station",
-            onClick: () => router.push('/admin/stations/new')
-          }}
-        />
-      ) : (
-        <Table striped>
-          <thead>
-            <tr>
-              <th className="w-2/3">Station</th>
-              <th className="w-1/6">Status</th>
-              <th className="w-1/6">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={3} className="text-center py-4">
-                  Loading...
-                </td>
-              </tr>
-            ) : (
-              stations.map((station) => (
-                <tr 
-                  key={station.id}
-                  onClick={() => handleRowClick(station.id)}
-                  className="cursor-pointer hover:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
-                >
-                  <td className="py-4">
-                    <div className="flex items-center gap-4">
-                      <Avatar 
-                        src={station.logoUrl} 
-                        name={station.name}
-                        className="size-12" 
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-gray-900 truncate">{station.name}</div>
-                        <div className="text-sm text-gray-600 truncate">
-                          {station.contactEmail && (
-                            <a 
-                              href={`mailto:${station.contactEmail}`} 
-                              className="text-blue-600 hover:text-blue-500"
-                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                            >
-                              {station.contactEmail}
-                            </a>
-                          )}
-                          {!station.contactEmail && station.contactNumber && (
-                            <span>{station.contactNumber}</span>
-                          )}
-                          {!station.contactEmail && !station.contactNumber && (
-                            <span>No contact info</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {formatProvince(station.province)}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4">
-                    {station.isActive ? (
-                      <Badge color="lime">Active</Badge>
-                    ) : (
-                      <Badge color="zinc">Inactive</Badge>
-                    )}
-                  </td>
-                  <td className="py-4">
-                    <Button
-                      onClick={(e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        router.push(`/admin/stations/${station.id}/edit`);
-                      }}
-                      outline
-                      className="text-sm"
-                    >
-                      Edit
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </Table>
-      )}
-
-      {pagination && stations.length > 0 && (
-        <div className="flex justify-end">
-          <Pagination
-            currentPage={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
-          />
+      {/* Search */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-full sm:max-w-xs">
+          <InputGroup>
+            <MagnifyingGlassIcon data-slot="icon" />
+            <Input
+              type="search"
+              placeholder="Search stations..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              aria-label="Search stations"
+            />
+          </InputGroup>
         </div>
-      )}
+      </div>
+
+      <DataList<Station>
+        items={stations}
+        isLoading={isLoading}
+        variant="table"
+        columns={columns}
+        striped
+        rowActions={rowActions}
+        onRowClick={(station) => router.push(`/admin/stations/${station.id}`)}
+        pagination={pagination ? {
+          page: pagination.page,
+          pageSize: 10,
+          total: pagination.total,
+          onPageChange: handlePageChange,
+        } : undefined}
+        emptyState={{
+          icon: RadioIcon,
+          title: "No radio stations",
+          description: "Get started by creating a new radio station.",
+          action: {
+            label: "New Station",
+            onClick: () => router.push('/admin/stations/new'),
+          },
+        }}
+        ariaLabel="Radio stations list"
+      />
     </div>
   );
-} 
+}

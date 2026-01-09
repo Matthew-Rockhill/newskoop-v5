@@ -25,12 +25,12 @@ export default function CreateBulletinPage() {
           Back
         </Button>
         <div className="flex items-center gap-3">
-          <NewspaperIcon className="h-8 w-8 text-[#76BD43]" />
+          <NewspaperIcon className="h-8 w-8 text-kelly-green" />
           <div>
-            <Heading level={1} className="text-3xl font-bold text-gray-900">
+            <Heading level={1} className="text-3xl font-bold text-zinc-900">
               Create News Bulletin
             </Heading>
-            <Text className="text-gray-600">
+            <Text className="text-zinc-600">
               Create a new bulletin with curated stories for radio stations
             </Text>
           </div>

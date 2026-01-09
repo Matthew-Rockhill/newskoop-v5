@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { Container } from '@/components/ui/container';
+import { PageHeader } from '@/components/ui/page-header';
 import { Heading } from '@/components/ui/heading';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -112,15 +114,14 @@ export default function EmailsPage() {
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <Heading>Email Logs</Heading>
-        <p className="mt-2 text-sm text-gray-600">
-          Track all emails sent by the system
-        </p>
-      </div>
+    <Container>
+      <div className="space-y-6">
+        <PageHeader
+          title="Email Logs"
+          description="Track all emails sent by the system"
+        />
 
-      {/* Filters */}
+        {/* Filters */}
       <Fieldset className="mb-6">
         <FieldGroup>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
@@ -201,7 +202,7 @@ export default function EmailsPage() {
                     <div>
                       <div className="font-medium">{email.to}</div>
                       {email.user && (
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-zinc-500">
                           {email.user.firstName} {email.user.lastName}
                         </div>
                       )}
@@ -282,7 +283,7 @@ export default function EmailsPage() {
               {selectedEmail.metadata && (
                 <div>
                   <Label>Metadata</Label>
-                  <pre className="mt-1 overflow-auto rounded bg-gray-50 p-2 text-xs">
+                  <pre className="mt-1 overflow-auto rounded bg-zinc-50 p-2 text-xs">
                     {JSON.stringify(selectedEmail.metadata, null, 2)}
                   </pre>
                 </div>
@@ -321,6 +322,7 @@ export default function EmailsPage() {
           </div>
         )}
       </Dialog>
-    </div>
+      </div>
+    </Container>
   );
 }

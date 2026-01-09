@@ -63,8 +63,8 @@ export default function DashboardRouter() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
-        <h2 className="text-lg font-semibold text-gray-900">Loading...</h2>
-        <p className="mt-2 text-sm text-gray-600">Redirecting to your dashboard</p>
+        <h2 className="text-lg font-semibold text-zinc-900">Loading...</h2>
+        <p className="mt-2 text-sm text-zinc-600">Redirecting to your dashboard</p>
       </div>
     </div>
   );

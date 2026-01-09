@@ -110,7 +110,7 @@ export function FileUpload({
           'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
           isDragOver
             ? 'border-kelly-green bg-kelly-green/5'
-            : 'border-gray-300 hover:border-gray-400'
+            : 'border-zinc-300 hover:border-zinc-400'
         )}
         onDrop={handleDrop}
         onDragOver={(e) => {
@@ -119,9 +119,9 @@ export function FileUpload({
         }}
         onDragLeave={() => setIsDragOver(false)}
       >
-        <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
+        <CloudArrowUpIcon className="mx-auto h-12 w-12 text-zinc-400" />
         <div className="mt-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-zinc-600">
             <label htmlFor="file-upload" className="cursor-pointer">
               <span className="text-kelly-green hover:text-kelly-green/80">
                 Click to upload audio files
@@ -138,7 +138,7 @@ export function FileUpload({
             </label>{' '}
             or drag and drop
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             MP3, WAV, OGG, MP4 up to {maxFileSize}MB each (max {maxFiles} files)
           </p>
         </div>
@@ -154,7 +154,7 @@ export function FileUpload({
       {/* File List */}
       {files.length > 0 && (
         <div className="space-y-4">
-          <h4 className="text-sm font-medium text-gray-900">
+          <h4 className="text-sm font-medium text-zinc-900">
             Uploaded Files ({files.length}/{maxFiles})
           </h4>
           {files.map((audioFile) => (
@@ -163,7 +163,7 @@ export function FileUpload({
               <button
                 type="button"
                 onClick={() => removeFile(audioFile.id)}
-                className="absolute top-2 right-2 z-10 p-1 bg-white dark:bg-gray-900 rounded-full shadow-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 hover:text-red-700 transition-colors"
+                className="absolute top-2 right-2 z-10 p-1 bg-white dark:bg-zinc-900 rounded-full shadow-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 hover:text-red-700 transition-colors"
                 aria-label="Remove file"
               >
                 <XMarkIcon className="h-5 w-5" />

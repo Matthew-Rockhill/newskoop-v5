@@ -4,6 +4,7 @@ import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api
 import { storyCreateSchema, storySearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
+import { generateSlug, generateUniqueStorySlug } from '@/lib/slug-utils';
 
 // Helper function to check permissions
 function hasStoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -208,6 +209,19 @@ const getStories = createHandler(
             },
           },
         },
+        classifications: {
+          include: {
+            classification: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                type: true,
+                color: true,
+              },
+            },
+          },
+        },
         audioClips: {
           select: {
             id: true,
@@ -391,29 +405,16 @@ const createStory = createHandler(
 
     // Prepare create data
     console.log('🏗️ Preparing story data...');
-    let slug = generateSlug(validatedData.title);
+    let baseSlug = generateSlug(validatedData.title);
 
     // For translations, append language code to ensure unique slug
     if (storyData.isTranslation && storyData.language) {
-      slug = `${slug}-${String(storyData.language).toLowerCase()}`;
+      baseSlug = `${baseSlug}-${String(storyData.language).toLowerCase()}`;
     }
 
-    // Check if slug already exists and make it unique if needed
-    const slugExists = await prisma.story.findFirst({
-      where: { slug }
-    });
-
-    if (slugExists) {
-      console.log('⚠️ Slug already exists, generating unique slug...');
-      let counter = 1;
-      let uniqueSlug = `${slug}-${counter}`;
-      while (await prisma.story.findFirst({ where: { slug: uniqueSlug } })) {
-        counter++;
-        uniqueSlug = `${slug}-${counter}`;
-      }
-      slug = uniqueSlug;
-      console.log('✅ Generated unique slug:', slug);
-    }
+    // Generate unique slug with optimized single-query approach
+    const slug = await generateUniqueStorySlug(baseSlug);
+    console.log('✅ Generated slug:', slug);
 
     const createData: Record<string, unknown> = {
       ...cleanStoryData,
@@ -543,15 +544,5 @@ const createStory = createHandler(
     withAudit('story.create'),
   ]
 );
-
-// Helper function to generate slug from title
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9 -]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-}
 
 export { getStories as GET, createStory as POST }; 

@@ -107,12 +107,12 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg ${
+      className={`flex items-start gap-3 p-4 bg-white border border-zinc-200 rounded-lg ${
         isDragging ? 'shadow-lg z-10' : ''
       }`}
     >
       {/* Order Badge */}
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-[#76BD43] text-white rounded-full text-sm font-semibold">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-kelly-green text-white rounded-full text-sm font-semibold">
         {index + 1}
       </div>
 
@@ -120,7 +120,7 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
       <button
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+        className="flex-shrink-0 p-1 text-zinc-400 hover:text-zinc-600 cursor-grab active:cursor-grabbing"
         aria-label="Drag to reorder story"
       >
         <Bars3Icon className="h-5 w-5" />
@@ -129,7 +129,7 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
       {/* Story Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-2">
-          <h4 className="font-medium text-gray-900 truncate">
+          <h4 className="font-medium text-zinc-900 truncate">
             {story.title}
           </h4>
           {languageTag && (
@@ -142,11 +142,11 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
           </Badge>
         </div>
 
-        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+        <p className="text-sm text-zinc-600 mb-2 line-clamp-2">
           {truncateContent(story.content)}
         </p>
 
-        <div className="flex items-center gap-4 text-xs text-gray-500">
+        <div className="flex items-center gap-4 text-xs text-zinc-500">
           <span className="flex items-center gap-1">
             <UserIcon className="h-3 w-3" />
             {story.author.firstName} {story.author.lastName}
@@ -200,13 +200,13 @@ export function StoryList({ stories, onRemove, onReorder }: StoryListProps) {
   if (stories.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="text-gray-400 mb-2">
+        <div className="text-zinc-400 mb-2">
           <svg className="mx-auto h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
-        <Text className="text-gray-600 mb-2">No stories selected</Text>
-        <Text className="text-sm text-gray-500">
+        <Text className="text-zinc-600 mb-2">No stories selected</Text>
+        <Text className="text-sm text-zinc-500">
           Add stories from the selector to build your bulletin
         </Text>
       </div>
@@ -243,8 +243,8 @@ export function StoryList({ stories, onRemove, onReorder }: StoryListProps) {
       </div>
 
       {/* Summary */}
-      <div className="pt-3 border-t border-gray-200">
-        <Text className="text-sm text-gray-600">
+      <div className="pt-3 border-t border-zinc-200">
+        <Text className="text-sm text-zinc-600">
           <strong>{stories.length}</strong> {stories.length === 1 ? 'story' : 'stories'} selected
         </Text>
       </div>

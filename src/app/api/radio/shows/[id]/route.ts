@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { ClassificationType } from '@prisma/client';
 
 // GET /api/radio/shows/[id] - Get a single show
 export async function GET(
@@ -28,9 +29,9 @@ export async function GET(
       },
       include: {
         category: true,
-        tags: {
+        classifications: {
           include: {
-            tag: true,
+            classification: true,
           },
         },
         episodes: {
@@ -78,16 +79,16 @@ export async function GET(
         );
       }
 
-      // Check language tags
-      const languageTags = show.tags
-        .filter(st => st.tag.category === 'LANGUAGE')
-        .map(st => st.tag.name);
+      // Check language classifications
+      const languageClassifications = show.classifications
+        .filter(sc => sc.classification.type === ClassificationType.LANGUAGE)
+        .map(sc => sc.classification.name);
 
-      const hasAllowedLanguage = languageTags.some(lang =>
+      const hasAllowedLanguage = languageClassifications.some(lang =>
         station.allowedLanguages.includes(lang)
       );
 
-      if (languageTags.length > 0 && !hasAllowedLanguage) {
+      if (languageClassifications.length > 0 && !hasAllowedLanguage) {
         return NextResponse.json(
           { error: 'This show is not available in your allowed languages' },
           { status: 403 }

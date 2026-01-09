@@ -30,8 +30,8 @@ const STAGE_CONFIG: Record<
   DRAFT: {
     label: 'Draft',
     icon: DocumentTextIcon,
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-100',
+    color: 'text-zinc-600',
+    bgColor: 'bg-zinc-100',
   },
   NEEDS_JOURNALIST_REVIEW: {
     label: 'Needs Review',
@@ -71,7 +71,7 @@ export function PipelineOverview({ metrics, isLoading }: PipelineOverviewProps) 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {[...Array(5)].map((_, i) => (
           <Card key={i} className="p-6 animate-pulse">
-            <div className="h-20 bg-gray-200 rounded"></div>
+            <div className="h-20 bg-zinc-200 rounded"></div>
           </Card>
         ))}
       </div>
@@ -80,7 +80,7 @@ export function PipelineOverview({ metrics, isLoading }: PipelineOverviewProps) 
 
   return (
     <div>
-      <Heading level={2} className="text-xl font-semibold text-gray-900 mb-4">
+      <Heading level={2} className="text-xl font-semibold text-zinc-900 mb-4">
         Editorial Pipeline
       </Heading>
 
@@ -111,26 +111,26 @@ export function PipelineOverview({ metrics, isLoading }: PipelineOverviewProps) 
               </div>
 
               {/* Stage Name */}
-              <Text className="text-sm font-medium text-gray-600 mb-1">
+              <Text className="text-sm font-medium text-zinc-600 mb-1">
                 {config.label}
               </Text>
 
               {/* Count */}
-              <Heading level={3} className="text-3xl font-bold text-gray-900 mb-3">
+              <Heading level={3} className="text-3xl font-bold text-zinc-900 mb-3">
                 {metric.count}
               </Heading>
 
               {/* Metrics */}
-              <div className="space-y-2 border-t border-gray-200 pt-3">
+              <div className="space-y-2 border-t border-zinc-200 pt-3">
                 {metric.oldestStoryDays !== null && metric.count > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500 flex items-center gap-1">
+                    <span className="text-zinc-500 flex items-center gap-1">
                       <ClockIcon className="h-4 w-4" />
                       Oldest:
                     </span>
                     <span
                       className={`font-medium ${
-                        metric.oldestStoryDays > 3 ? 'text-red-600' : 'text-gray-900'
+                        metric.oldestStoryDays > 3 ? 'text-red-600' : 'text-zinc-900'
                       }`}
                     >
                       {metric.oldestStoryDays}d
@@ -140,15 +140,15 @@ export function PipelineOverview({ metrics, isLoading }: PipelineOverviewProps) 
 
                 {metric.count > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Avg. time:</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-zinc-500">Avg. time:</span>
+                    <span className="font-medium text-zinc-900">
                       {metric.averageDaysInStage}d
                     </span>
                   </div>
                 )}
 
                 {metric.count === 0 && (
-                  <Text className="text-xs text-gray-400 italic">
+                  <Text className="text-xs text-zinc-400 italic">
                     No stories in this stage
                   </Text>
                 )}

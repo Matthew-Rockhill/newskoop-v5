@@ -43,10 +43,12 @@ import { TagModal } from './TagModal';
 
 import { useStory, useUpdateStoryStatus } from '@/hooks/use-stories';
 import { useCategories } from '@/hooks/use-categories';
-import { useTags } from '@/hooks/use-tags';
+import { useTags, useCreateTag } from '@/hooks/use-tags';
+import { useClassifications } from '@/hooks/use-classifications';
 import type { Category } from '@/hooks/use-categories';
 import type { Tag } from '@/hooks/use-tags';
-import type { StaffRole } from '@prisma/client';
+import type { Classification } from '@/hooks/use-classifications';
+import { StaffRole, ClassificationType } from '@prisma/client';
 import { canUpdateStoryStatus } from '@/lib/permissions';
 
 
@@ -65,11 +67,11 @@ const subEditorReviewSchema = z.object({
   languageGrammar: z.boolean(),
   factChecking: z.boolean(),
   audioQuality: z.boolean(),
-  
+
   // QA Classification items (sub-editor responsibility)
   categoryId: z.string().min(1, 'Category is required'),
-  languageTagIds: z.array(z.string()).min(1, 'At least one language tag is required'),
-  religionTagIds: z.array(z.string()).min(1, 'At least one religion tag is required'),
+  languageTagIds: z.array(z.string()).min(1, 'Language classification is required'),
+  religionTagIds: z.array(z.string()).min(1, 'Religion classification is required'),
   localityTagIds: z.array(z.string()).optional(),
   generalTagIds: z.array(z.string()).optional(),
 });
@@ -157,13 +159,14 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
 
   // Fetch story data
   const { data: story, isLoading: storyLoading, error: storyError } = useStory(storyId);
-  
-  // Fetch categories and tags
+
+  // Fetch categories, classifications, and tags
   const { data: categoriesData } = useCategories(true); // Get flat structure for modal
-  const { data: languageTags } = useTags('', 'LANGUAGE');
-  const { data: religionTags } = useTags('', 'RELIGION');
-  const { data: localityTags } = useTags('', 'LOCALITY');
-  const { data: generalTags } = useTags('', 'GENERAL');
+  const { data: languageClassifications } = useClassifications(ClassificationType.LANGUAGE);
+  const { data: religionClassifications } = useClassifications(ClassificationType.RELIGION);
+  const { data: localityClassifications } = useClassifications(ClassificationType.LOCALITY);
+  const { data: generalTagsData } = useTags(); // Tags are now just general topical tags
+  const createTagMutation = useCreateTag();
 
   const updateStoryStatusMutation = useUpdateStoryStatus();
 
@@ -239,16 +242,19 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   // Set initial values when story loads
   useEffect(() => {
     if (story) {
-      // Set existing tags
-      const existingTags: Tag[] = story.tags.map((t: { tag: Tag }) => t.tag);
-      
+      // Set existing tags (now just general topical tags)
+      const existingTags: Tag[] = story.tags?.map((t: { tag: Tag }) => t.tag) || [];
+
+      // Set existing classifications
+      const existingClassifications = story.classifications?.map((sc: { classification: Classification }) => sc.classification) || [];
+
       // Prepare form values
       const formValues: any = {
         categoryId: story.categoryId,
-        languageTagIds: existingTags.filter((t: Tag) => t.category === 'LANGUAGE').map((t: Tag) => t.id),
-        religionTagIds: existingTags.filter((t: Tag) => t.category === 'RELIGION').map((t: Tag) => t.id),
-        localityTagIds: existingTags.filter((t: Tag) => t.category === 'LOCALITY').map((t: Tag) => t.id),
-        generalTagIds: existingTags.filter((t: Tag) => t.category === 'GENERAL').map((t: Tag) => t.id),
+        languageTagIds: existingClassifications.filter((c: Classification) => c.type === 'LANGUAGE').map((c: Classification) => c.id),
+        religionTagIds: existingClassifications.filter((c: Classification) => c.type === 'RELIGION').map((c: Classification) => c.id),
+        localityTagIds: existingClassifications.filter((c: Classification) => c.type === 'LOCALITY').map((c: Classification) => c.id),
+        generalTagIds: existingTags.map((t: Tag) => t.id),
       };
       
       // Set review checklist values if they exist
@@ -288,26 +294,29 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
 
     setIsSubmitting(true);
     try {
-      // Get the selected language tag to determine story language
-      const selectedLanguageTag = languageTagOptions.find((tag: Tag) => data.languageTagIds.includes(tag.id));
-      const storyLanguage = selectedLanguageTag ? mapLanguageTagToStoryLanguage(selectedLanguageTag.name) : null;
+      // Get the selected language classification to determine story language
+      const selectedLanguageClassification = languageTagOptions.find((c: any) => data.languageTagIds.includes(c.id));
+      const storyLanguage = selectedLanguageClassification ? mapLanguageTagToStoryLanguage(selectedLanguageClassification.name) : null;
 
-      // Always include all current tags in the tagIds array
-      const allTagIds = [
+      // Separate classification IDs from tag IDs
+      const classificationIds = [
         ...data.languageTagIds,
         ...data.religionTagIds,
         ...(data.localityTagIds || []),
-        ...(data.generalTagIds || []),
       ];
 
-      // Update story with new category, tags, and language
+      // General tags remain as tagIds
+      const tagIds = data.generalTagIds || [];
+
+      // Update story with new category, classifications, tags, and language
       await updateStoryStatusMutation.mutateAsync({
         id: storyId,
-        data: { 
+        data: {
           status: 'APPROVED',
           categoryId: data.categoryId,
-          language: storyLanguage || 'ENGLISH', // Default to English if no language tag selected
-          tagIds: allTagIds,
+          language: storyLanguage || 'ENGLISH', // Default to English if no language classification selected
+          tagIds: tagIds,
+          classificationIds: classificationIds,
         },
       });
       
@@ -480,6 +489,23 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
     setTimeout(() => trigger(), 0);
   };
 
+  const handleCreateTag = async (name: string) => {
+    try {
+      const newTag = await createTagMutation.mutateAsync({ name });
+      // Return the created tag so the modal can auto-select it
+      return {
+        id: newTag.id,
+        name: newTag.name,
+        slug: newTag.slug,
+        color: newTag.color,
+        _count: { stories: 0 },
+      };
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create tag');
+      return null;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -514,16 +540,33 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   }
 
   const categories = categoriesData?.categories || [];
-  const languageTagOptions = languageTags?.tags || [];
-  const religionTagOptions = religionTags?.tags || [];
-  const localityTagOptions = localityTags?.tags || [];
-  const generalTagOptions = generalTags?.tags || [];
 
-  // Get selected category and tag names for display
+  // Convert classifications to tag-like format for TagModal compatibility
+  const languageTagOptions = (languageClassifications?.classifications || []).map((c: Classification) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    _count: { stories: c._count.stories }
+  }));
+  const religionTagOptions = (religionClassifications?.classifications || []).map((c: Classification) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    _count: { stories: c._count.stories }
+  }));
+  const localityTagOptions = (localityClassifications?.classifications || []).map((c: Classification) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    _count: { stories: c._count.stories }
+  }));
+  const generalTagOptions = generalTagsData?.tags || [];
+
+  // Get selected category and classification/tag names for display
   const selectedCategory = categories.find((c: Category) => c.id === watchedValues.categoryId);
-  const selectedLanguageTags = languageTagOptions.filter((t: Tag) => watchedValues.languageTagIds?.includes(t.id));
-  const selectedReligionTags = religionTagOptions.filter((t: Tag) => watchedValues.religionTagIds?.includes(t.id));
-  const selectedLocalityTags = localityTagOptions.filter((t: Tag) => watchedValues.localityTagIds?.includes(t.id));
+  const selectedLanguageTags = languageTagOptions.filter((t: any) => watchedValues.languageTagIds?.includes(t.id));
+  const selectedReligionTags = religionTagOptions.filter((t: any) => watchedValues.religionTagIds?.includes(t.id));
+  const selectedLocalityTags = localityTagOptions.filter((t: any) => watchedValues.localityTagIds?.includes(t.id));
   const selectedGeneralTags = generalTagOptions.filter((t: Tag) => watchedValues.generalTagIds?.includes(t.id));
 
   // Check if category and tags are properly assigned for auto-checked items
@@ -643,7 +686,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
               </div>
               <div className="prose max-w-none">
                 <div 
-                  className="text-gray-900 leading-relaxed space-y-4"
+                  className="text-zinc-900 leading-relaxed space-y-4"
                   dangerouslySetInnerHTML={{ __html: story.content }}
                 />
               </div>
@@ -659,12 +702,12 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
               </div>
               
               {!story.audioClips || story.audioClips.length === 0 ? (
-                <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
+                <div className="p-4 border border-zinc-200 bg-zinc-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <MusicalNoteIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                    <MusicalNoteIcon className="h-5 w-5 text-zinc-400 flex-shrink-0" />
                     <div>
-                      <Text className="text-sm font-medium text-gray-700">No Audio Clips Added</Text>
-                      <Text className="text-xs text-gray-500">This story has no audio content attached</Text>
+                      <Text className="text-sm font-medium text-zinc-700">No Audio Clips Added</Text>
+                      <Text className="text-xs text-zinc-500">This story has no audio content attached</Text>
                     </div>
                   </div>
                 </div>
@@ -873,8 +916,8 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
               <Text className="font-medium text-green-800">{getCategoryBreadcrumb(selectedCategory)}</Text>
             </div>
           ) : (
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <Text className="text-gray-500">No category selected</Text>
+            <div className="p-3 bg-zinc-50 rounded-lg">
+              <Text className="text-zinc-500">No category selected</Text>
             </div>
           )}
           {errors.categoryId && (
@@ -883,129 +926,154 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
         </Card>
         )}
 
-        {/* Tags Section - Full Width - Sub-Editors and above only */}
+        {/* Classifications Section - Full Width - Sub-Editors and above only */}
         {isSubEditor && (
         <Card className="p-6 mt-6">
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-2">
             <TagIcon className="h-6 w-6 text-kelly-green" />
-            <Heading level={4}>Tags</Heading>
+            <Heading level={4}>Classifications</Heading>
           </div>
+          <Text className="text-sm text-zinc-500 mb-6">
+            Required for content distribution to radio stations
+          </Text>
 
-          {/* Warning Callout for Required Tags - only show if tags are missing */}
+          {/* Warning Callout for Required Classifications - only show if classifications are missing */}
           {(!areRequiredTagsAssigned) && (
             <div className="mb-6 p-3 border-yellow-200 bg-yellow-50 rounded-lg">
               <div className="flex items-start gap-2">
                 <ExclamationTriangleIcon className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <Text className="text-sm text-yellow-700">
-                    <strong>Required Tags:</strong> Language and Religion tags are required for all stories.
+                    <strong>Required:</strong> Language and Religion classifications are required for all stories.
                   </Text>
                 </div>
               </div>
             </div>
           )}
-          
+
+          {/* Classification buttons in a grid layout */}
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            {/* Language */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Text className="text-sm font-medium">Language <span className="text-red-500">*</span></Text>
+                <Button
+                  color="secondary"
+                  onClick={() => setShowLanguageTagsModal(true)}
+                  className="text-xs"
+                >
+                  {selectedLanguageTags.length > 0 ? 'Change' : 'Select'}
+                </Button>
+              </div>
+              {selectedLanguageTags.length > 0 ? (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <Badge color="blue">{selectedLanguageTags[0].name}</Badge>
+                </div>
+              ) : (
+                <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200">
+                  <Text className="text-sm text-zinc-400">Not selected</Text>
+                </div>
+              )}
+            </div>
+
+            {/* Religion */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Text className="text-sm font-medium">Religion <span className="text-red-500">*</span></Text>
+                <Button
+                  color="secondary"
+                  onClick={() => setShowReligionTagsModal(true)}
+                  className="text-xs"
+                >
+                  {selectedReligionTags.length > 0 ? 'Change' : 'Select'}
+                </Button>
+              </div>
+              {selectedReligionTags.length > 0 ? (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <Badge color="purple">{selectedReligionTags[0].name}</Badge>
+                </div>
+              ) : (
+                <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200">
+                  <Text className="text-sm text-zinc-400">Not selected</Text>
+                </div>
+              )}
+            </div>
+
+            {/* Locality */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Text className="text-sm font-medium">Locality</Text>
+                <Button
+                  color="secondary"
+                  onClick={() => setShowLocalityTagsModal(true)}
+                  className="text-xs"
+                >
+                  {selectedLocalityTags.length > 0 ? 'Change' : 'Select'}
+                </Button>
+              </div>
+              {selectedLocalityTags.length > 0 ? (
+                <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <Badge color="orange">{selectedLocalityTags[0].name}</Badge>
+                </div>
+              ) : (
+                <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200">
+                  <Text className="text-sm text-zinc-400">Optional</Text>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Error messages */}
+          {errors.languageTagIds && (
+            <div className="mt-2">
+              <Text className="text-sm text-red-600">{(errors.languageTagIds as any)?.message}</Text>
+            </div>
+          )}
+          {errors.religionTagIds && (
+            <div className="mt-2">
+              <Text className="text-sm text-red-600">{(errors.religionTagIds as any)?.message}</Text>
+            </div>
+          )}
+        </Card>
+        )}
+
+        {/* Tags Section - Full Width - Sub-Editors and above only */}
+        {isSubEditor && (
+        <Card className="p-6 mt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <TagIcon className="h-6 w-6 text-kelly-green" />
+            <Heading level={4}>Tags</Heading>
+          </div>
+          <Text className="text-sm text-zinc-500 mb-6">
+            Optional topical tags for content discovery
+          </Text>
+
           <div className="flex items-center justify-between mb-3">
-            <Text className="text-sm font-medium">Story Tags</Text>
-            <div className="flex gap-2">
-              <Button
-              color="secondary"
-              onClick={() => setShowLanguageTagsModal(true)}
-            >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              Language
-            </Button>
-            <Button
-              color="secondary"
-              onClick={() => setShowReligionTagsModal(true)}
-            >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              Religion
-            </Button>
-            <Button
-              color="secondary"
-              onClick={() => setShowLocalityTagsModal(true)}
-            >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              Locality
-            </Button>
+            <Text className="text-sm font-medium">Topical Tags</Text>
             <Button
               color="secondary"
               onClick={() => setShowGeneralTagsModal(true)}
             >
               <PlusIcon className="h-4 w-4 mr-1" />
-              General
+              Add Tags
             </Button>
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          {/* Language Tags - Badge display for single-select */}
-          {selectedLanguageTags.length > 0 && (
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2">
-                <Text className="text-sm font-medium text-blue-700">Language:</Text>
-                <Badge color="blue">{selectedLanguageTags[0].name}</Badge>
-              </div>
-            </div>
-          )}
-          
-          {/* Religion Tags - Badge display for single-select */}
-          {selectedReligionTags.length > 0 && (
-            <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-              <div className="flex items-center gap-2">
-                <Text className="text-sm font-medium text-purple-700">Religion:</Text>
-                <Badge color="purple">{selectedReligionTags[0].name}</Badge>
-              </div>
-            </div>
-          )}
-          
-          {/* Locality Tags - Badge display for single-select */}
-          {selectedLocalityTags.length > 0 && (
-            <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="flex items-center gap-2">
-                <Text className="text-sm font-medium text-orange-700">Locality:</Text>
-                <Badge color="orange">{selectedLocalityTags[0].name}</Badge>
-              </div>
-            </div>
-          )}
-          
-          {/* General Tags - Badge display for multi-select */}
-          {selectedGeneralTags.length > 0 && (
+
+          {selectedGeneralTags.length > 0 ? (
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center gap-2">
-                <Text className="text-sm font-medium text-green-700">General:</Text>
-                <div className="flex flex-wrap gap-1">
-                  {selectedGeneralTags.map((tag: Tag) => (
-                    <Badge key={tag.id} color="green">{tag.name}</Badge>
-                  ))}
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedGeneralTags.map((tag: Tag) => (
+                  <Badge key={tag.id} color="green">{tag.name}</Badge>
+                ))}
               </div>
             </div>
-          )}
-          
-          {/* Show message if no tags selected */}
-          {selectedLanguageTags.length === 0 && selectedReligionTags.length === 0 && 
-           selectedLocalityTags.length === 0 && selectedGeneralTags.length === 0 && (
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <Text className="text-gray-500">No tags selected</Text>
+          ) : (
+            <div className="p-3 bg-zinc-50 rounded-lg">
+              <Text className="text-zinc-500">No tags selected</Text>
             </div>
           )}
-        </div>
-        
-        {/* Error messages */}
-        {errors.languageTagIds && (
-          <div className="mt-2">
-            <Text className="text-sm text-red-600">{(errors.languageTagIds as any)?.message}</Text>
-          </div>
+        </Card>
         )}
-        {errors.religionTagIds && (
-          <div className="mt-2">
-            <Text className="text-sm text-red-600">{(errors.religionTagIds as any)?.message}</Text>
-          </div>
-        )}
-      </Card>
-      )}
     </Container>
 
     {/* Modals */}
@@ -1024,12 +1092,13 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       onConfirm={handleLanguageTagsConfirm}
       tags={languageTagOptions}
       selectedTagIds={watchedValues.languageTagIds || []}
-      title="Select Language Tags"
-      description="Choose the language tags that apply to this story"
+      title="Select Language"
+      description="Choose the language classification for this story"
       required={true}
       isLoading={isSubmitting}
       showSearch={false}
       singleSelect={true}
+      confirmButtonText="Select Language"
     />
 
     <TagModal
@@ -1038,12 +1107,13 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       onConfirm={handleReligionTagsConfirm}
       tags={religionTagOptions}
       selectedTagIds={watchedValues.religionTagIds || []}
-      title="Select Religion Tags"
-      description="Choose the religion tags that apply to this story"
+      title="Select Religion"
+      description="Choose the religion classification for this story"
       required={true}
       isLoading={isSubmitting}
       showSearch={false}
       singleSelect={true}
+      confirmButtonText="Select Religion"
     />
 
     <TagModal
@@ -1052,12 +1122,13 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       onConfirm={handleLocalityTagsConfirm}
       tags={localityTagOptions}
       selectedTagIds={watchedValues.localityTagIds || []}
-      title="Select Locality Tags"
-      description="Choose the locality tags that apply to this story (optional)"
+      title="Select Locality"
+      description="Choose the locality classification for this story (optional)"
       required={false}
       isLoading={isSubmitting}
       showSearch={false}
       singleSelect={true}
+      confirmButtonText="Select Locality"
     />
 
     <TagModal
@@ -1066,12 +1137,15 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
       onConfirm={handleGeneralTagsConfirm}
       tags={generalTagOptions}
       selectedTagIds={watchedValues.generalTagIds || []}
-      title="Select General Tags"
-      description="Choose the general tags that apply to this story (optional)"
+      title="Select Tags"
+      description="Choose topical tags for this story. You can also create new tags."
       required={false}
       isLoading={isSubmitting}
       showSearch={true}
       singleSelect={false}
+      confirmButtonText="Save Tags"
+      allowCreate
+      onTagCreate={handleCreateTag}
     />
 
     {/* Revision Request Modal */}

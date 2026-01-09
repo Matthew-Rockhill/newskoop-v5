@@ -1,4 +1,4 @@
-const { PrismaClient, UserType, StaffRole, TagCategory } = require('@prisma/client');
+const { PrismaClient, UserType, StaffRole, ClassificationType } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
@@ -241,52 +241,53 @@ async function main() {
     }
   }
 
-  // Create Language Tags
-  const languageTags = [
+  // Create Language Classifications
+  const languageClassifications = [
     { name: 'English', slug: 'english' },
     { name: 'Afrikaans', slug: 'afrikaans' },
     { name: 'Xhosa', slug: 'xhosa' },
   ];
 
-  for (const tag of languageTags) {
-    await prisma.tag.upsert({
-      where: { slug: tag.slug },
+  for (const classification of languageClassifications) {
+    await prisma.classification.upsert({
+      where: { slug: classification.slug },
       update: {},
       create: {
-        name: tag.name,
-        slug: tag.slug,
-        category: TagCategory.LANGUAGE,
-        isRequired: true,
-        isPreset: true,
+        name: classification.name,
+        slug: classification.slug,
+        type: ClassificationType.LANGUAGE,
+        isActive: true,
+        sortOrder: 0,
       },
     });
-    console.log(`✅ Language tag created: ${tag.name}`);
+    console.log(`✅ Language classification created: ${classification.name}`);
   }
 
-  // Create Religion Tags
-  const religionTags = [
+  // Create Religion Classifications
+  const religionClassifications = [
     { name: 'Christian', slug: 'christian' },
     { name: 'Muslim', slug: 'muslim' },
     { name: 'Neutral', slug: 'neutral' },
   ];
 
-  for (const tag of religionTags) {
-    await prisma.tag.upsert({
-      where: { slug: tag.slug },
+  for (const classification of religionClassifications) {
+    await prisma.classification.upsert({
+      where: { slug: classification.slug },
       update: {},
       create: {
-        name: tag.name,
-        slug: tag.slug,
-        category: TagCategory.RELIGION,
-        isRequired: true,
-        isPreset: true,
+        name: classification.name,
+        slug: classification.slug,
+        type: ClassificationType.RELIGION,
+        isActive: true,
+        sortOrder: 0,
       },
     });
-    console.log(`✅ Religion tag created: ${tag.name}`);
+    console.log(`✅ Religion classification created: ${classification.name}`);
   }
 
-  // Create Locality Tags for South African Provinces
-  const localityTags = [
+  // Create Locality Classifications for South African Provinces
+  const localityClassifications = [
+    { name: 'National', slug: 'national' },
     { name: 'Eastern Cape', slug: 'eastern-cape' },
     { name: 'Free State', slug: 'free-state' },
     { name: 'Gauteng', slug: 'gauteng' },
@@ -298,19 +299,48 @@ async function main() {
     { name: 'Western Cape', slug: 'western-cape' },
   ];
 
-  for (const tag of localityTags) {
+  for (const classification of localityClassifications) {
+    await prisma.classification.upsert({
+      where: { slug: classification.slug },
+      update: {},
+      create: {
+        name: classification.name,
+        slug: classification.slug,
+        type: ClassificationType.LOCALITY,
+        isActive: true,
+        sortOrder: 0,
+      },
+    });
+    console.log(`✅ Locality classification created: ${classification.name}`);
+  }
+
+  // Create Topical Tags (general tags for content discovery)
+  const topicalTags = [
+    { name: 'Politics', slug: 'politics', color: '#EF4444' },
+    { name: 'Crime', slug: 'crime', color: '#F97316' },
+    { name: 'Health', slug: 'health', color: '#10B981' },
+    { name: 'Education', slug: 'education', color: '#3B82F6' },
+    { name: 'Environment', slug: 'environment', color: '#22C55E' },
+    { name: 'Technology', slug: 'technology', color: '#8B5CF6' },
+    { name: 'Entertainment', slug: 'entertainment', color: '#EC4899' },
+    { name: 'Business', slug: 'business', color: '#F59E0B' },
+    { name: 'Transport', slug: 'transport', color: '#6366F1' },
+    { name: 'Weather', slug: 'weather', color: '#0EA5E9' },
+    { name: 'Human Interest', slug: 'human-interest', color: '#14B8A6' },
+    { name: 'Breaking News', slug: 'breaking-news', color: '#DC2626' },
+  ];
+
+  for (const tag of topicalTags) {
     await prisma.tag.upsert({
       where: { slug: tag.slug },
       update: {},
       create: {
         name: tag.name,
         slug: tag.slug,
-        category: TagCategory.LOCALITY,
-        isRequired: false,
-        isPreset: true,
+        color: tag.color,
       },
     });
-    console.log(`✅ Locality tag created: ${tag.name}`);
+    console.log(`✅ Topical tag created: ${tag.name}`);
   }
 
   // Create sample stories in various stages

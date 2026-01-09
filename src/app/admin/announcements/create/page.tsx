@@ -90,10 +90,10 @@ export default function CreateAnnouncementPage() {
           <div className="flex items-center gap-3">
             <MegaphoneIcon className="h-8 w-8 text-kelly-green" />
             <div>
-              <Heading level={1} className="text-3xl font-bold text-gray-900">
+              <Heading level={1} className="text-3xl font-bold text-zinc-900">
                 Create Announcement
               </Heading>
-              <Text className="text-gray-600">
+              <Text className="text-zinc-600">
                 Send a message to your newsroom staff or radio stations
               </Text>
             </div>
@@ -105,13 +105,13 @@ export default function CreateAnnouncementPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Title *
               </label>
               <input
                 type="text"
                 {...register('title')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green"
                 placeholder="Enter announcement title..."
               />
               {errors.title && (
@@ -122,12 +122,12 @@ export default function CreateAnnouncementPage() {
             {/* Priority and Target Audience Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
                   Priority *
                 </label>
                 <select
                   {...register('priority')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green"
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green"
                 >
                   <option value="LOW">Low - General information</option>
                   <option value="MEDIUM">Medium - Important update</option>
@@ -139,12 +139,12 @@ export default function CreateAnnouncementPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
                   Target Audience *
                 </label>
                 <select
                   {...register('targetAudience')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green"
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green"
                 >
                   <option value="ALL">Everyone - All users</option>
                   <option value="NEWSROOM">Newsroom - Staff only</option>
@@ -158,16 +158,16 @@ export default function CreateAnnouncementPage() {
 
             {/* Expiry Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Expiry Date (Optional)
               </label>
               <input
                 type="datetime-local"
                 {...register('expiresAt')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green"
                 min={new Date().toISOString().slice(0, 16)}
               />
-              <Text className="text-gray-500 text-sm mt-1">
+              <Text className="text-zinc-500 text-sm mt-1">
                 Leave empty for announcement to remain active until manually deactivated
               </Text>
               {errors.expiresAt && (
@@ -177,13 +177,13 @@ export default function CreateAnnouncementPage() {
 
             {/* Message */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Message *
               </label>
               <textarea
                 {...register('message')}
                 rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green resize-vertical"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:ring-kelly-green focus:border-kelly-green resize-vertical"
                 placeholder="Enter your announcement message..."
               />
               <div className="flex justify-between items-center mt-1">
@@ -192,7 +192,7 @@ export default function CreateAnnouncementPage() {
                 ) : (
                   <div />
                 )}
-                <Text className={`text-sm ${messageLength > 1800 ? 'text-red-600' : 'text-gray-500'}`}>
+                <Text className={`text-sm ${messageLength > 1800 ? 'text-red-600' : 'text-zinc-500'}`}>
                   {messageLength}/2000 characters
                 </Text>
               </div>
@@ -222,8 +222,8 @@ export default function CreateAnnouncementPage() {
 
         {/* Preview Card */}
         {watch('title') && (
-          <Card className="mt-6 p-6 bg-gray-50">
-            <Heading level={3} className="text-lg font-semibold text-gray-900 mb-4">
+          <Card className="mt-6 p-6 bg-zinc-50">
+            <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
               Preview
             </Heading>
             <div className="bg-white p-4 rounded-lg border">
@@ -231,7 +231,7 @@ export default function CreateAnnouncementPage() {
                 <MegaphoneIcon className="h-4 w-4 text-kelly-green flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <Text className="font-semibold text-gray-900">{watch('title')}</Text>
+                    <Text className="font-semibold text-zinc-900">{watch('title')}</Text>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       watch('priority') === 'HIGH' ? 'bg-red-100 text-red-800' :
                       watch('priority') === 'MEDIUM' ? 'bg-amber-100 text-amber-800' :
@@ -247,7 +247,7 @@ export default function CreateAnnouncementPage() {
                       {watch('targetAudience')}
                     </span>
                   </div>
-                  <Text className="text-gray-600">{watch('message') || 'Your message will appear here...'}</Text>
+                  <Text className="text-zinc-600">{watch('message') || 'Your message will appear here...'}</Text>
                 </div>
               </div>
             </div>

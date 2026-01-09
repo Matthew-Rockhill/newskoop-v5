@@ -305,10 +305,10 @@ Downloaded from NewsKoop Radio Station Zone
     return (
       <Container className="py-12">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-6 bg-gray-200 rounded w-3/4 mb-8"></div>
-          <div className="h-64 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-8 bg-zinc-200 rounded w-1/4 mb-4"></div>
+          <div className="h-6 bg-zinc-200 rounded w-3/4 mb-8"></div>
+          <div className="h-64 bg-zinc-200 rounded mb-4"></div>
+          <div className="h-4 bg-zinc-200 rounded w-1/2"></div>
         </div>
       </Container>
     );
@@ -319,7 +319,7 @@ Downloaded from NewsKoop Radio Station Zone
       <Container className="py-12">
         <div className="text-center">
           <Heading level={2} className="text-red-600 mb-4">Story Not Found</Heading>
-          <Text className="text-gray-600 mb-6">
+          <Text className="text-zinc-600 mb-6">
             The story you're looking for doesn't exist or isn't available to your station.
             {error && <><br/>Error: {error.message}</>}
           </Text>
@@ -344,7 +344,7 @@ Downloaded from NewsKoop Radio Station Zone
     : 'Date not available';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
       <Container className="py-8">
         {/* Back Navigation */}
         <div className="mb-8">
@@ -381,11 +381,11 @@ Downloaded from NewsKoop Radio Station Zone
                   {displayContent?.title}
                 </Heading>
                 <div className="flex items-center flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <CalendarIcon className="h-4 w-4 text-gray-600" />
+                  <div className="flex items-center gap-2 text-zinc-700">
+                    <CalendarIcon className="h-4 w-4 text-zinc-600" />
                     <span>{publishedDate}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-700">
+                  <div className="flex items-center gap-2 text-zinc-700">
                     {story.author ? (
                       <>
                         <Avatar
@@ -396,14 +396,14 @@ Downloaded from NewsKoop Radio Station Zone
                       </>
                     ) : (
                       <>
-                        <UserIcon className="h-4 w-4 text-gray-600" />
+                        <UserIcon className="h-4 w-4 text-zinc-600" />
                         <span>NewsKoop</span>
                       </>
                     )}
                   </div>
                   {story.audioClips?.length > 0 && (
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <MusicalNoteIcon className="h-4 w-4 text-gray-600" />
+                    <div className="flex items-center gap-2 text-zinc-700">
+                      <MusicalNoteIcon className="h-4 w-4 text-zinc-600" />
                       <span>{story.audioClips.length} audio clip{story.audioClips.length !== 1 ? 's' : ''}</span>
                     </div>
                   )}
@@ -451,12 +451,12 @@ Downloaded from NewsKoop Radio Station Zone
           </div>
           
           {/* Story Info Bar */}
-          <div className="bg-gray-50 px-8 py-4 border-t border-gray-200">
+          <div className="bg-zinc-50 px-8 py-4 border-t border-zinc-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <Text className="text-sm text-gray-600">Word Count:</Text>
+                    <Text className="text-sm text-zinc-600">Word Count:</Text>
                     <Badge color="blue" className="text-xs">
                       {displayContent?.content ? 
                         displayContent.content.replace(/<[^>]*>/g, '').split(/\s+/).filter((word: string) => word.length > 0).length 
@@ -464,7 +464,7 @@ Downloaded from NewsKoop Radio Station Zone
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Text className="text-sm text-gray-600">Audio:</Text>
+                    <Text className="text-sm text-zinc-600">Audio:</Text>
                     <Badge color="zinc" className="text-xs">
                       {story.audioClips?.length > 0 ? 
                         `${story.audioClips.length} clip${story.audioClips.length !== 1 ? 's' : ''}` : 
@@ -475,7 +475,7 @@ Downloaded from NewsKoop Radio Station Zone
                 </div>
                 {availableLanguages.length > 1 && (
                   <div className="flex items-center gap-2">
-                    <Text className="text-sm text-gray-600">Available Languages:</Text>
+                    <Text className="text-sm text-zinc-600">Available Languages:</Text>
                     <div className="flex gap-1">
                       {availableLanguages.map((lang: string) => (
                         <Badge key={lang} color="zinc" className="text-xs">
@@ -487,7 +487,7 @@ Downloaded from NewsKoop Radio Station Zone
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Text className="text-sm text-gray-600">
+                <Text className="text-sm text-zinc-600">
                   Last updated: {new Date().toLocaleTimeString('en-US', { 
                     hour: '2-digit', 
                     minute: '2-digit' 
@@ -503,24 +503,24 @@ Downloaded from NewsKoop Radio Station Zone
           {/* Story Content */}
           <div className="prose prose-lg max-w-none mb-8">
             <div 
-              className="text-gray-800 leading-relaxed"
+              className="text-zinc-800 leading-relaxed"
               dangerouslySetInnerHTML={{ __html: displayContent?.content || '<p>Content not available</p>' }}
             />
           </div>
 
           {/* Audio Section */}
           {story.audioClips && story.audioClips.length > 0 && (
-            <div className="border-t border-gray-200 pt-8">
+            <div className="border-t border-zinc-200 pt-8">
               <div className="flex items-center gap-2 mb-6">
                 <MusicalNoteIcon className="h-6 w-6 text-kelly-green" />
-                <Heading level={3} className="text-xl font-semibold text-gray-900">
+                <Heading level={3} className="text-xl font-semibold text-zinc-900">
                   Audio Content ({story.audioClips.length} clip{story.audioClips.length !== 1 ? 's' : ''})
                 </Heading>
               </div>
               
               <div className="space-y-4">
                 {story.audioClips.map((clip: any) => (
-                  <Card key={clip.id} className="p-4 bg-gray-50">
+                  <Card key={clip.id} className="p-4 bg-zinc-50">
                     <CustomAudioPlayer
                       clip={clip}
                       isPlaying={playingAudioId === clip.id}

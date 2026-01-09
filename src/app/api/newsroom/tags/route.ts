@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { tagCreateSchema } from '@/lib/validations';
-import { TagCategory } from '@prisma/client';
+import { generateSlug, generateUniqueTagSlug } from '@/lib/slug-utils';
 
 // Helper function to check permissions
 function hasTagPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -10,7 +10,7 @@ function hasTagPermission(userRole: string | null, action: 'create' | 'read' | '
   if (!userRole) {
     return false;
   }
-  
+
   const permissions = {
     INTERN: ['read'],
     JOURNALIST: ['create', 'read'],
@@ -19,49 +19,31 @@ function hasTagPermission(userRole: string | null, action: 'create' | 'read' | '
     ADMIN: ['create', 'read', 'update', 'delete'],
     SUPERADMIN: ['create', 'read', 'update', 'delete'],
   };
-  
-  return permissions[userRole as keyof typeof permissions]?.includes(action) || false;
-}
 
-// Helper function to generate slug from name
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9 -]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
+  return permissions[userRole as keyof typeof permissions]?.includes(action) || false;
 }
 
 // GET /api/newsroom/tags - List tags
 const getTags = createHandler(
   async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
-    
+
     if (!hasTagPermission(user.staffRole, 'read')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const url = new URL(req.url);
     const query = url.searchParams.get('query');
-    const category = url.searchParams.get('category');
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const perPage = parseInt(url.searchParams.get('perPage') || '50');
 
-    const where: { OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; slug?: { contains: string; mode: 'insensitive' } }>; category?: TagCategory } = {};
-    
+    const where: { OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; slug?: { contains: string; mode: 'insensitive' } }> } = {};
+
     if (query) {
       where.OR = [
         { name: { contains: query, mode: 'insensitive' as const } },
         { slug: { contains: query, mode: 'insensitive' as const } },
       ];
     }
-    
-    if (category) {
-      where.category = category as TagCategory;
-    }
 
-    // Parallel fetch: count and tags
     const [total, tags] = await Promise.all([
       prisma.tag.count({ where }),
       prisma.tag.findMany({
@@ -74,22 +56,10 @@ const getTags = createHandler(
           },
         },
         orderBy: { name: 'asc' },
-        skip: (page - 1) * perPage,
-        take: perPage,
       }),
     ]);
 
-    const responseData = {
-      tags,
-      pagination: {
-        total,
-        page,
-        perPage,
-        totalPages: Math.ceil(total / perPage),
-      },
-    };
-
-    const response = NextResponse.json(responseData);
+    const response = NextResponse.json({ tags, total });
     // Cache for 5 minutes, revalidate in background for 10 minutes
     response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
     return response;
@@ -101,21 +71,15 @@ const getTags = createHandler(
 const createTag = createHandler(
   async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
-    const data = (req as NextRequest & { validatedData: { name: string; nameAfrikaans?: string; descriptionAfrikaans?: string; category?: string; color?: string; isRequired?: boolean; isPreset?: boolean } }).validatedData;
+    const data = (req as NextRequest & { validatedData: { name: string; nameAfrikaans?: string; descriptionAfrikaans?: string; color?: string } }).validatedData;
 
     if (!hasTagPermission(user.staffRole, 'create')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // Generate unique slug
+    // Generate unique slug with optimized single-query approach
     const baseSlug = generateSlug(data.name);
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await prisma.tag.findUnique({ where: { slug } })) {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-    }
+    const slug = await generateUniqueTagSlug(baseSlug);
 
     const tag = await prisma.tag.create({
       data: {
@@ -123,10 +87,7 @@ const createTag = createHandler(
         slug,
         nameAfrikaans: data.nameAfrikaans,
         descriptionAfrikaans: data.descriptionAfrikaans,
-        category: data.category as TagCategory,
         color: data.color,
-        isRequired: data.isRequired,
-        isPreset: data.isPreset,
       },
       include: {
         _count: {
@@ -147,4 +108,4 @@ const createTag = createHandler(
   ]
 );
 
-export { getTags as GET, createTag as POST }; 
+export { getTags as GET, createTag as POST };

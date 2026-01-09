@@ -84,14 +84,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           href={item.href}
           className={classNames(
             isActive
-              ? 'bg-gray-50 text-[#76BD43]'
-              : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
+              ? 'bg-zinc-50 text-kelly-green'
+              : 'text-zinc-700 hover:bg-zinc-50 hover:text-kelly-green',
             'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
           )}
         >
           <item.icon
             className={classNames(
-              isActive ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
+              isActive ? 'text-kelly-green' : 'text-zinc-400 group-hover:text-kelly-green',
               'h-6 w-6 shrink-0'
             )}
             aria-hidden="true"
@@ -110,7 +110,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <nav className="flex flex-1 flex-col justify-between">
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
           <li>
-            <div className="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider mb-2">
+            <div className="text-xs font-semibold leading-6 text-zinc-400 uppercase tracking-wider mb-2">
               System Administration
             </div>
             <ul role="list" className="-mx-2 space-y-1">
@@ -118,7 +118,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </ul>
           </li>
           <li>
-            <div className="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider mb-2">
+            <div className="text-xs font-semibold leading-6 text-zinc-400 uppercase tracking-wider mb-2">
               Content Access
             </div>
             <ul role="list" className="-mx-2 space-y-1">
@@ -127,14 +127,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   href="/radio"
                   className={classNames(
                     pathname.startsWith('/radio')
-                      ? 'bg-gray-50 text-[#76BD43]'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-[#76BD43]',
+                      ? 'bg-zinc-50 text-kelly-green'
+                      : 'text-zinc-700 hover:bg-zinc-50 hover:text-kelly-green',
                     'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
                   )}
                 >
                   <SpeakerWaveIcon
                     className={classNames(
-                      pathname.startsWith('/radio') ? 'text-[#76BD43]' : 'text-gray-400 group-hover:text-[#76BD43]',
+                      pathname.startsWith('/radio') ? 'text-kelly-green' : 'text-zinc-400 group-hover:text-kelly-green',
                       'h-6 w-6 shrink-0'
                     )}
                     aria-hidden="true"
@@ -148,11 +148,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
         <div className="-mx-6 mt-auto">
           {session?.user && (
-            <div className="border-t border-gray-200 px-6 py-3">
+            <div className="border-t border-zinc-200 px-6 py-3">
               <div className="relative">
                 <button
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                  className="flex items-center gap-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors w-full"
+                  className="flex items-center gap-x-3 p-2 rounded-lg hover:bg-zinc-50 transition-colors w-full"
                 >
                   <Avatar
                     className="h-8 w-8"
@@ -160,14 +160,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     src={profileData?.user?.profilePictureUrl}
                   />
                   <div className="min-w-0 flex-auto text-left">
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-zinc-900">
                       {`${session.user.firstName} ${session.user.lastName}`}
                     </p>
-                    <p className="truncate text-xs text-gray-500">
+                    <p className="truncate text-xs text-zinc-500">
                       {session.user.staffRole === 'SUPERADMIN' ? 'Super Administrator' : 'Administrator'}
                     </p>
                   </div>
-                  <ChevronDownIcon className={`h-4 w-4 text-gray-500 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDownIcon className={`h-4 w-4 text-zinc-500 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* User Dropdown */}
@@ -180,14 +180,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     />
                     
                     {/* Dropdown Menu */}
-                    <div className="absolute bottom-full left-2 right-2 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                    <div className="absolute bottom-full left-2 right-2 mb-2 bg-white rounded-lg shadow-lg border border-zinc-200 z-20">
                       <div className="py-2">
                         {/* Cross-Navigation Links */}
                         {/* Newsroom Dashboard - for editorial staff */}
                         {(['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole || '')) && (
                           <Link
                             href="/newsroom"
-                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                             onClick={() => setIsUserDropdownOpen(false)}
                           >
                             <ArrowLeftIcon className="h-4 w-4" />
@@ -198,26 +198,26 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                         {/* Radio Station Zone - all staff */}
                         <Link
                           href="/radio"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                           onClick={() => setIsUserDropdownOpen(false)}
                         >
                           <ArrowLeftIcon className="h-4 w-4" />
                           Radio Station Zone
                         </Link>
                         
-                        <div className="border-t border-gray-100 my-1"></div>
+                        <div className="border-t border-zinc-100 my-1"></div>
                         
                         {/* Profile & Settings */}
                         <Link
                           href="/admin/profile"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
                           onClick={() => setIsUserDropdownOpen(false)}
                         >
                           <UserIcon className="h-4 w-4" />
                           Profile & Settings
                         </Link>
                         
-                        <div className="border-t border-gray-100 my-1"></div>
+                        <div className="border-t border-zinc-100 my-1"></div>
                         
                         {/* Sign Out */}
                         <button
@@ -255,7 +255,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <div>
         <Dialog open={sidebarOpen} onClose={setSidebarOpen} className="relative z-50 lg:hidden">
           <DialogBackdrop
-            className="fixed inset-0 bg-gray-900/80"
+            className="fixed inset-0 bg-zinc-900/80"
           />
 
           <div className="fixed inset-0 flex">
@@ -278,7 +278,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Static sidebar for desktop */}
         <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-          <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
+          <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-zinc-200 bg-white px-6">
             <SidebarContent />
           </div>
         </div>
@@ -286,13 +286,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="sticky top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-sm sm:px-6 lg:hidden">
           <button
             type="button"
-            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+            className="-m-2.5 p-2.5 text-zinc-700 lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <span className="sr-only">Open sidebar</span>
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />
           </button>
-          <div className="flex-1 text-sm font-semibold leading-6 text-gray-900">
+          <div className="flex-1 text-sm font-semibold leading-6 text-zinc-900">
             {getCurrentPageName()}
           </div>
           <div className="flex items-center gap-x-2">

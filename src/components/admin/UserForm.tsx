@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Fieldset } from '@/components/ui/fieldset';
+import { Fieldset, Field, Label, ErrorMessage } from '@/components/ui/fieldset';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { z } from 'zod';
@@ -61,67 +61,59 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
         <Text className="mt-1">Enter the user&apos;s basic information and contact details.</Text>
         
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-              First Name
-            </label>
+          <Field>
+            <Label htmlFor="firstName">First Name</Label>
             <Input
               {...register('firstName')}
               id="firstName"
-              className="mt-1"
+              className="mt-2"
               invalid={!!errors.firstName}
             />
             {errors.firstName && (
-              <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+              <ErrorMessage>{errors.firstName.message}</ErrorMessage>
             )}
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-              Last Name
-            </label>
+          <Field>
+            <Label htmlFor="lastName">Last Name</Label>
             <Input
               {...register('lastName')}
               id="lastName"
-              className="mt-1"
+              className="mt-2"
               invalid={!!errors.lastName}
             />
             {errors.lastName && (
-              <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
+              <ErrorMessage>{errors.lastName.message}</ErrorMessage>
             )}
-          </div>
+          </Field>
 
-          <div className="sm:col-span-2">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email Address
-            </label>
+          <Field className="sm:col-span-2">
+            <Label htmlFor="email">Email Address</Label>
             <Input
               {...register('email')}
               id="email"
               type="email"
-              className="mt-1"
+              className="mt-2"
               invalid={!!errors.email}
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              <ErrorMessage>{errors.email.message}</ErrorMessage>
             )}
-          </div>
+          </Field>
 
-          <div className="sm:col-span-2">
-            <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">
-              Mobile Number
-            </label>
+          <Field className="sm:col-span-2">
+            <Label htmlFor="mobileNumber">Mobile Number</Label>
             <Input
               {...register('mobileNumber')}
               id="mobileNumber"
               type="tel"
-              className="mt-1"
+              className="mt-2"
               invalid={!!errors.mobileNumber}
             />
             {errors.mobileNumber && (
-              <p className="mt-1 text-sm text-red-600">{errors.mobileNumber.message}</p>
+              <ErrorMessage>{errors.mobileNumber.message}</ErrorMessage>
             )}
-          </div>
+          </Field>
         </div>
       </Fieldset>
 
@@ -129,35 +121,31 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
       <Fieldset>
         <Heading level={3}>Role & Permissions</Heading>
         <Text className="mt-1">Configure the user&apos;s role and access permissions.</Text>
-        
+
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="userType" className="block text-sm font-medium text-gray-700">
-              User Type
-            </label>
+          <Field>
+            <Label htmlFor="userType">User Type</Label>
             <Select
               {...register('userType')}
               id="userType"
-              className="mt-1"
+              className="mt-2"
               invalid={!!errors.userType}
             >
               <option value="STAFF">Staff</option>
               <option value="RADIO">Radio Station User</option>
             </Select>
             {errors.userType && (
-              <p className="mt-1 text-sm text-red-600">{errors.userType.message}</p>
+              <ErrorMessage>{errors.userType.message}</ErrorMessage>
             )}
-          </div>
+          </Field>
 
           {userType === 'STAFF' && (
-            <div>
-              <label htmlFor="staffRole" className="block text-sm font-medium text-gray-700">
-                Staff Role
-              </label>
+            <Field>
+              <Label htmlFor="staffRole">Staff Role</Label>
               <Select
                 {...register('staffRole')}
                 id="staffRole"
-                className="mt-1"
+                className="mt-2"
                 invalid={!!errors.staffRole}
               >
                 <option value="">Select role...</option>
@@ -169,20 +157,18 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
                 <option value="INTERN">Intern</option>
               </Select>
               {errors.staffRole && (
-                <p className="mt-1 text-sm text-red-600">{errors.staffRole.message}</p>
+                <ErrorMessage>{errors.staffRole.message}</ErrorMessage>
               )}
-            </div>
+            </Field>
           )}
 
           {userType === 'STAFF' && (
-            <div>
-              <label htmlFor="translationLanguage" className="block text-sm font-medium text-gray-700">
-                Translation Language
-              </label>
+            <Field>
+              <Label htmlFor="translationLanguage">Translation Language</Label>
               <Select
                 {...register('translationLanguage')}
                 id="translationLanguage"
-                className="mt-1"
+                className="mt-2"
                 invalid={!!errors.translationLanguage}
               >
                 <option value="">None</option>
@@ -190,9 +176,9 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
                 <option value="XHOSA">Can translate to Xhosa</option>
               </Select>
               {errors.translationLanguage && (
-                <p className="mt-1 text-sm text-red-600">{errors.translationLanguage.message}</p>
+                <ErrorMessage>{errors.translationLanguage.message}</ErrorMessage>
               )}
-            </div>
+            </Field>
           )}
         </div>
       </Fieldset>
@@ -201,12 +187,12 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
       <Fieldset>
         <Heading level={3}>Account Status</Heading>
         <Text className="mt-1">Set the initial account status for the user.</Text>
-        
+
         <div className="mt-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-gray-900">Active Status</div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Active Status</div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
                 When active, the user will be able to access the system.
               </div>
             </div>
@@ -214,6 +200,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
               checked={watch('isActive')}
               onChange={(checked) => setValue('isActive', checked)}
               color="green"
+              aria-label="Toggle account active status"
             />
           </div>
         </div>

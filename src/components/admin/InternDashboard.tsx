@@ -210,7 +210,7 @@ export function UserDashboard() {
           <h3 className="text-lg font-semibold leading-6 text-zinc-900 dark:text-white">
             My Dashboard
           </h3>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-zinc-600">
             Welcome back, {session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}! Here&apos;s your {isSubEditor ? 'fact-checking and approval' : isJournalist ? 'writing and review' : 'writing'} progress.
           </p>
         </div>
@@ -285,7 +285,7 @@ export function UserDashboard() {
                 <Heading level={3}>Pending Approval</Heading>
                 <Badge color="blue">{pendingApprovalStories.length}</Badge>
               </div>
-              <Text className="text-gray-600 mb-4">
+              <Text className="text-zinc-600 mb-4">
                 Stories submitted by journalists awaiting fact-check and approval
               </Text>
               
@@ -294,8 +294,8 @@ export function UserDashboard() {
                   {pendingApprovalStories.slice(0, 5).map((story: Story) => (
                     <div key={story.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                       <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{story.title}</h4>
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <h4 className="font-medium text-zinc-900">{story.title}</h4>
+                        <div className="flex items-center space-x-2 text-sm text-zinc-600">
                           <ClockIcon className="h-4 w-4" />
                           <span>Submitted {formatDate(story.updatedAt)} by {story.author.firstName} {story.author.lastName}</span>
                         </div>
@@ -323,8 +323,8 @@ export function UserDashboard() {
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <CheckCircleIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <Text className="text-gray-500">No stories pending approval</Text>
+                  <CheckCircleIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+                  <Text className="text-zinc-500">No stories pending approval</Text>
                 </div>
               )}
             </Card>
@@ -337,7 +337,7 @@ export function UserDashboard() {
                 <Heading level={3}>Ready for Pre-Publishing</Heading>
                 <Badge color="green">{approvedForPublishingStories.length}</Badge>
               </div>
-              <Text className="text-gray-600 mb-4">
+              <Text className="text-zinc-600 mb-4">
                 Approved stories ready for translation, pre-publish checklist, and scheduling
               </Text>
               
@@ -346,8 +346,8 @@ export function UserDashboard() {
                   {approvedForPublishingStories.slice(0, 5).map((story: Story) => (
                     <div key={story.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                       <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{story.title}</h4>
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <h4 className="font-medium text-zinc-900">{story.title}</h4>
+                        <div className="flex items-center space-x-2 text-sm text-zinc-600">
                           <CheckCircleIcon className="h-4 w-4" />
                           <span>Approved {formatDate(story.updatedAt)}</span>
                           <span>• Author: {story.author.firstName} {story.author.lastName}</span>
@@ -382,8 +382,8 @@ export function UserDashboard() {
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <DocumentTextIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <Text className="text-gray-500">No stories ready for pre-publishing</Text>
+                  <DocumentTextIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+                  <Text className="text-zinc-500">No stories ready for pre-publishing</Text>
                 </div>
               )}
             </Card>
@@ -399,7 +399,7 @@ export function UserDashboard() {
               <Heading level={3}>Pending Reviews</Heading>
               <Badge color="yellow">{reviewCount}</Badge>
             </div>
-            <Text className="text-gray-600 mb-4">
+            <Text className="text-zinc-600 mb-4">
               Stories submitted by interns waiting for your review
             </Text>
             
@@ -408,8 +408,8 @@ export function UserDashboard() {
                 {reviewStories.slice(0, 5).map((story: Story) => (
                   <div key={story.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{story.title}</h4>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <h4 className="font-medium text-zinc-900">{story.title}</h4>
+                      <div className="flex items-center space-x-2 text-sm text-zinc-600">
                         <ClockIcon className="h-4 w-4" />
                         <span>Submitted {formatDate(story.updatedAt)} by {story.author.firstName} {story.author.lastName}</span>
                       </div>
@@ -437,8 +437,8 @@ export function UserDashboard() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <CheckCircleIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <Text className="text-gray-500">No pending reviews</Text>
+                <CheckCircleIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+                <Text className="text-zinc-500">No pending reviews</Text>
               </div>
             )}
           </Card>
@@ -453,7 +453,7 @@ export function UserDashboard() {
             <Heading level={3}>Revision Requests</Heading>
             <Badge color="red">{rejectedCount}</Badge>
           </div>
-          <Text className="text-gray-600 mb-4">
+          <Text className="text-zinc-600 mb-4">
             Stories that need revision based on reviewer feedback
           </Text>
           
@@ -462,8 +462,8 @@ export function UserDashboard() {
               {rejectedStories.slice(0, 5).map((story: Story) => (
                 <div key={story.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{story.title}</h4>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <h4 className="font-medium text-zinc-900">{story.title}</h4>
+                    <div className="flex items-center space-x-2 text-sm text-zinc-600">
                       <ExclamationTriangleIcon className="h-4 w-4" />
                       <span>Revision requested {formatDate(story.updatedAt)}</span>
                       {story.reviewer && (
@@ -500,8 +500,8 @@ export function UserDashboard() {
             </div>
           ) : (
             <div className="text-center py-6">
-              <CheckCircleIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <Text className="text-gray-500">No revision requests</Text>
+              <CheckCircleIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+              <Text className="text-zinc-500">No revision requests</Text>
             </div>
           )}
           </Card>
@@ -517,17 +517,17 @@ export function UserDashboard() {
             <Heading level={3}>My Drafts</Heading>
             <Badge color="zinc">{draftStories.length}</Badge>
           </div>
-          <Text className="text-gray-600 mb-4">
+          <Text className="text-zinc-600 mb-4">
             Stories you&apos;re currently working on
           </Text>
           
           {draftStories.length > 0 ? (
             <div className="space-y-3">
               {draftStories.slice(0, 5).map((story: Story) => (
-                <div key={story.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={story.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{story.title}</h4>
-                    <p className="text-sm text-gray-600">
+                    <h4 className="font-medium text-zinc-900">{story.title}</h4>
+                    <p className="text-sm text-zinc-600">
                       Last edited {formatDate(story.updatedAt)}
                     </p>
                   </div>
@@ -552,8 +552,8 @@ export function UserDashboard() {
             </div>
           ) : (
             <div className="text-center py-6">
-              <DocumentTextIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <Text className="text-gray-500">No drafts yet</Text>
+              <DocumentTextIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+              <Text className="text-zinc-500">No drafts yet</Text>
                               <Button
                   className="mt-2"
                   onClick={() => router.push('/newsroom/stories/new')}
@@ -571,7 +571,7 @@ export function UserDashboard() {
             <Heading level={3}>Submitted Stories</Heading>
             <Badge color="yellow">{submittedStories.length}</Badge>
           </div>
-          <Text className="text-gray-600 mb-4">
+          <Text className="text-zinc-600 mb-4">
             Stories in the review pipeline
           </Text>
           
@@ -580,8 +580,8 @@ export function UserDashboard() {
               {submittedStories.slice(0, 5).map((story: Story) => (
                 <div key={story.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{story.title}</h4>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <h4 className="font-medium text-zinc-900">{story.title}</h4>
+                    <div className="flex items-center space-x-2 text-sm text-zinc-600">
                       <ClockIcon className="h-4 w-4" />
                       <span>Submitted {formatDate(story.updatedAt)}</span>
                       {story.reviewer && (
@@ -610,8 +610,8 @@ export function UserDashboard() {
             </div>
           ) : (
             <div className="text-center py-6">
-              <ClockIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <Text className="text-gray-500">No stories in review</Text>
+              <ClockIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+              <Text className="text-zinc-500">No stories in review</Text>
             </div>
           )}
         </Card>
@@ -622,7 +622,7 @@ export function UserDashboard() {
               <Heading level={3}>Submitted for Approval</Heading>
               <Badge color="green">{approvedStories.length}</Badge>
             </div>
-            <Text className="text-gray-600 mb-4">
+            <Text className="text-zinc-600 mb-4">
               Stories submitted to sub-editors for approval
             </Text>
             
@@ -631,8 +631,8 @@ export function UserDashboard() {
                 {approvedStories.slice(0, 5).map((story: Story) => (
                   <div key={story.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{story.title}</h4>
-                                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <h4 className="font-medium text-zinc-900">{story.title}</h4>
+                                          <div className="flex items-center space-x-2 text-sm text-zinc-600">
                       <CheckCircleIcon className="h-4 w-4" />
                       <span>Submitted for approval {formatDate(story.updatedAt)}</span>
                     </div>
@@ -658,8 +658,8 @@ export function UserDashboard() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <CheckCircleIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <Text className="text-gray-500">No stories submitted for approval</Text>
+                <CheckCircleIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+                <Text className="text-zinc-500">No stories submitted for approval</Text>
               </div>
             )}
           </Card>
@@ -675,15 +675,15 @@ export function UserDashboard() {
               <Heading level={3}>Assigned Translations</Heading>
               <Badge color="purple">{assignedTranslationStories.length}</Badge>
             </div>
-            <Text className="text-gray-600 mb-4">
+            <Text className="text-zinc-600 mb-4">
               Stories assigned to you for translation
             </Text>
             <div className="space-y-3">
               {assignedTranslationStories.slice(0, 5).map((translation: Story) => (
                 <div key={translation.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{translation.title || 'Untitled'}</h4>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <h4 className="font-medium text-zinc-900">{translation.title || 'Untitled'}</h4>
+                    <div className="flex items-center space-x-2 text-sm text-zinc-600">
                       <ClockIcon className="h-4 w-4" />
                       <span>Assigned {formatDate(translation.createdAt)}</span>
                       {translation.author && (

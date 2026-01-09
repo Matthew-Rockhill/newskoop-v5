@@ -63,18 +63,18 @@ export function ReassignModal({
 
   return (
     <Dialog open={isOpen} onClose={handleClose} className="relative z-50">
-      <DialogBackdrop className="fixed inset-0 bg-gray-900/50" />
+      <DialogBackdrop className="fixed inset-0 bg-zinc-900/50" />
 
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel className="w-full max-w-md bg-white rounded-lg shadow-xl">
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <DialogTitle className="text-lg font-semibold text-gray-900">
+          <div className="flex items-center justify-between p-6 border-b border-zinc-200">
+            <DialogTitle className="text-lg font-semibold text-zinc-900">
               Reassign Story
             </DialogTitle>
             <button
               onClick={handleClose}
               disabled={isSubmitting}
-              className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              className="text-zinc-400 hover:text-zinc-600 disabled:opacity-50"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -82,12 +82,12 @@ export function ReassignModal({
 
           <form onSubmit={handleSubmit} className="p-6">
             <div className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">Story:</Text>
-              <Text className="text-sm text-gray-900 font-medium truncate">
+              <Text className="text-sm font-medium text-zinc-700 mb-2">Story:</Text>
+              <Text className="text-sm text-zinc-900 font-medium truncate">
                 {storyTitle}
               </Text>
               {currentAssignee && (
-                <Text className="text-sm text-gray-500 mt-1">
+                <Text className="text-sm text-zinc-500 mt-1">
                   Currently assigned to: {currentAssignee}
                 </Text>
               )}
@@ -99,7 +99,7 @@ export function ReassignModal({
             </div>
 
             <div className="mb-6">
-              <label htmlFor="assignee" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="assignee" className="block text-sm font-medium text-zinc-700 mb-2">
                 Assign to {type === 'reviewer' ? 'Journalist' : 'Sub-Editor'}:
               </label>
               <select
@@ -107,7 +107,7 @@ export function ReassignModal({
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76BD43] focus:border-transparent disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-kelly-green focus:border-transparent disabled:bg-zinc-100"
                 required
               >
                 <option value="">-- Select a user --</option>

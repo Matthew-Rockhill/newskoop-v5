@@ -54,7 +54,7 @@ export function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4 text-gray-900',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4 text-zinc-900',
       },
     },
   });
@@ -79,8 +79,8 @@ export function RichTextEditor({
       onClick={onClick}
       disabled={disabled}
       className={clsx(
-        'h-8 w-8 p-0 rounded-md border border-transparent text-gray-700 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
-        isActive && 'bg-gray-200 text-gray-900 border-gray-300'
+        'h-8 w-8 p-0 rounded-md border border-transparent text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+        isActive && 'bg-zinc-200 text-zinc-900 border-zinc-300'
       )}
     >
       {children}
@@ -88,9 +88,9 @@ export function RichTextEditor({
   );
 
   return (
-    <div className={clsx('border border-gray-300 rounded-lg overflow-hidden', className)}>
+    <div className={clsx('border border-zinc-300 rounded-lg overflow-hidden', className)}>
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center gap-1 p-2 border-b border-zinc-200 bg-zinc-50">
         <div className="flex items-center gap-1">
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -106,7 +106,7 @@ export function RichTextEditor({
           </ToolbarButton>
         </div>
 
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="w-px h-6 bg-zinc-300 mx-1" />
 
         <div className="flex items-center gap-1">
           <ToolbarButton
@@ -129,7 +129,7 @@ export function RichTextEditor({
           </ToolbarButton>
         </div>
 
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="w-px h-6 bg-zinc-300 mx-1" />
 
         <div className="flex items-center gap-1">
           <ToolbarButton
@@ -152,7 +152,7 @@ export function RichTextEditor({
           </ToolbarButton>
         </div>
 
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="w-px h-6 bg-zinc-300 mx-1" />
 
         <div className="flex items-center gap-1">
           <ToolbarButton

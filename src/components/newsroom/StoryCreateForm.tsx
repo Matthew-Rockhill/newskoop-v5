@@ -24,7 +24,7 @@ import { StaffRole } from '@prisma/client';
 const RichTextEditor = dynamic(
   () => import('@/components/ui/rich-text-editor').then(mod => ({ default: mod.RichTextEditor })),
   {
-    loading: () => <div className="border border-gray-300 rounded-lg p-4 min-h-[200px] animate-pulse bg-gray-50">Loading editor...</div>,
+    loading: () => <div className="border border-zinc-300 rounded-lg p-4 min-h-[200px] animate-pulse bg-zinc-50">Loading editor...</div>,
     ssr: false
   }
 );
@@ -227,7 +227,7 @@ export function StoryCreateForm() {
           {/* Audio Files */}
           <Card className="p-6">
             <Heading level={2} className="mb-6">Audio Files</Heading>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-zinc-600 mb-4">
               Upload any audio clips that go with your story (interviews, sound bites, etc.)
             </p>
             

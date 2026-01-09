@@ -44,7 +44,7 @@ const styles = {
   ],
   outline: [
     // Base
-    'border-[#272727]/10 text-[#272727] data-active:bg-[#272727]/2.5 data-hover:bg-[#272727]/2.5',
+    'border-zinc-900/10 text-zinc-900 data-active:bg-zinc-900/2.5 data-hover:bg-zinc-900/2.5',
     // Dark mode
     'dark:border-white/15 dark:text-white dark:[--btn-bg:transparent] dark:data-active:bg-white/5 dark:data-hover:bg-white/5',
     // Icon
@@ -52,7 +52,7 @@ const styles = {
   ],
   plain: [
     // Base
-    'border-transparent text-[#272727] data-active:bg-[#272727]/5 data-hover:bg-[#272727]/5',
+    'border-transparent text-zinc-900 data-active:bg-zinc-900/5 data-hover:bg-zinc-900/5',
     // Dark mode
     'dark:text-white dark:data-active:bg-white/10 dark:data-hover:bg-white/10',
     // Icon
@@ -64,14 +64,14 @@ const styles = {
       '[--btn-icon:var(--color-white)]/60 data-active:[--btn-icon:var(--color-white)]/80 data-hover:[--btn-icon:var(--color-white)]/80',
     ],
     secondary: [
-      'text-[#272727] [--btn-bg:white] [--btn-border:#272727]/10 [--btn-hover-overlay:#272727]/2.5 data-active:[--btn-border:#272727]/15 data-hover:[--btn-border:#272727]/15',
+      'text-zinc-900 [--btn-bg:white] [--btn-border:var(--color-zinc-900)]/10 [--btn-hover-overlay:var(--color-zinc-900)]/2.5 data-active:[--btn-border:var(--color-zinc-900)]/15 data-hover:[--btn-border:var(--color-zinc-900)]/15',
       'dark:text-white dark:[--btn-hover-overlay:var(--color-white)]/5 dark:[--btn-bg:var(--color-zinc-800)]',
-      '[--btn-icon:#272727] data-active:[--btn-icon:#272727] data-hover:[--btn-icon:#272727]',
+      '[--btn-icon:var(--color-zinc-900)] data-active:[--btn-icon:var(--color-zinc-900)] data-hover:[--btn-icon:var(--color-zinc-900)]',
     ],
     white: [
-      'text-[#272727] [--btn-bg:white] [--btn-border:#272727]/10 [--btn-hover-overlay:#272727]/2.5 data-active:[--btn-border:#272727]/15 data-hover:[--btn-border:#272727]/15',
-      'dark:[--btn-hover-overlay:#272727]/5',
-      '[--btn-icon:#272727] data-active:[--btn-icon:#272727] data-hover:[--btn-icon:#272727]',
+      'text-zinc-900 [--btn-bg:white] [--btn-border:var(--color-zinc-900)]/10 [--btn-hover-overlay:var(--color-zinc-900)]/2.5 data-active:[--btn-border:var(--color-zinc-900)]/15 data-hover:[--btn-border:var(--color-zinc-900)]/15',
+      'dark:[--btn-hover-overlay:var(--color-zinc-900)]/5',
+      '[--btn-icon:var(--color-zinc-900)] data-active:[--btn-icon:var(--color-zinc-900)] data-hover:[--btn-icon:var(--color-zinc-900)]',
     ],
     red: [
       'text-white [--btn-hover-overlay:var(--color-white)]/10 [--btn-bg:#dc2626] [--btn-border:#dc2626]/90',

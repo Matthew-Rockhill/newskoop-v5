@@ -112,7 +112,7 @@ function LoginForm() {
                 </label>
               </div>
               <div className="text-sm">
-                <Link href="/password-reset" className="font-semibold text-[#76BD43] hover:underline">
+                <Link href="/password-reset" className="font-semibold text-kelly-green hover:underline">
                   Forgot password?
                 </Link>
               </div>

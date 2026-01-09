@@ -30,7 +30,7 @@ import { StageProgress } from '@/components/ui/stage-progress';
 const RichTextEditor = dynamic(
   () => import('@/components/ui/rich-text-editor').then(mod => ({ default: mod.RichTextEditor })),
   {
-    loading: () => <div className="border border-gray-300 rounded-lg p-4 min-h-[200px] animate-pulse bg-gray-50">Loading editor...</div>,
+    loading: () => <div className="border border-zinc-300 rounded-lg p-4 min-h-[200px] animate-pulse bg-zinc-50">Loading editor...</div>,
     ssr: false
   }
 );
@@ -623,8 +623,8 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
 
                 {/* Existing audio clips */}
                 {(!story.audioClips || story.audioClips.length === 0) ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <MusicalNoteIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                  <div className="text-center py-8 text-zinc-500">
+                    <MusicalNoteIcon className="h-12 w-12 mx-auto mb-2 text-zinc-300" />
                     <p>No audio clips have been attached to this story</p>
                   </div>
                 ) : (

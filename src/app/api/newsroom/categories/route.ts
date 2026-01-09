@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
 import { categoryCreateSchema } from '@/lib/validations';
+import { generateSlug, generateUniqueCategorySlug } from '@/lib/slug-utils';
 
 // Helper function to check permissions
 function hasCategoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -22,15 +23,6 @@ function hasCategoryPermission(userRole: string | null, action: 'create' | 'read
   return permissions[userRole as keyof typeof permissions]?.includes(action) || false;
 }
 
-// Helper function to generate slug from name
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9 -]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-}
 
 // GET /api/newsroom/categories - List categories with hierarchy
 const getCategories = createHandler(
@@ -165,15 +157,9 @@ const createCategory = createHandler(
       isParent = true;
     }
 
-    // Generate unique slug
+    // Generate unique slug with optimized single-query approach
     const baseSlug = generateSlug(data.name);
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await prisma.category.findUnique({ where: { slug } })) {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-    }
+    const slug = await generateUniqueCategorySlug(baseSlug);
 
     const category = await prisma.category.create({
       data: {

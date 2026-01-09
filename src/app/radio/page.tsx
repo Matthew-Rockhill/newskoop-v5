@@ -188,7 +188,7 @@ export default function RadioDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
       <Container className="py-8">
         {/* Welcome Section */}
         <Card className="mb-12 bg-white shadow-lg border-0 overflow-hidden">
@@ -232,15 +232,15 @@ export default function RadioDashboard() {
           </div>
           
           {/* Station Info Bar */}
-          <div className="bg-gray-50 px-8 py-4 border-t border-gray-200">
+          <div className="bg-zinc-50 px-8 py-4 border-t border-zinc-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
-                  <Text className="text-sm text-gray-600">Station:</Text>
+                  <Text className="text-sm text-zinc-600">Station:</Text>
                   <Badge color="green">{station?.name}</Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Text className="text-sm text-gray-600">Languages:</Text>
+                  <Text className="text-sm text-zinc-600">Languages:</Text>
                   <div className="flex gap-1">
                     {station?.allowedLanguages?.map((lang: string) => (
                       <Badge key={lang} color="blue" className="text-xs">
@@ -250,13 +250,13 @@ export default function RadioDashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Text className="text-sm text-gray-600">Content Access:</Text>
+                  <Text className="text-sm text-zinc-600">Content Access:</Text>
                   <Badge color="green">Active</Badge>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ClockIcon className="h-4 w-4 text-gray-500" />
-                <Text className="text-sm text-gray-600">
+                <ClockIcon className="h-4 w-4 text-zinc-500" />
+                <Text className="text-sm text-zinc-600">
                   Last updated: {new Date().toLocaleTimeString('en-US', { 
                     hour: '2-digit', 
                     minute: '2-digit' 
@@ -271,7 +271,7 @@ export default function RadioDashboard() {
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-6">
             <MegaphoneIcon className="h-7 w-7 text-kelly-green" />
-            <Heading level={2} className="text-2xl font-semibold text-gray-900">
+            <Heading level={2} className="text-2xl font-semibold text-zinc-900">
               Announcements
             </Heading>
             <Badge color="red" className="text-xs">
@@ -326,7 +326,7 @@ export default function RadioDashboard() {
                     <button
                       onClick={() => handleDismissAnnouncement(announcement.id)}
                       disabled={dismissMutation.isPending}
-                      className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                      className="absolute top-3 right-3 p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
                       title="Dismiss announcement"
                     >
                       <XMarkIcon className="h-4 w-4" />
@@ -334,26 +334,26 @@ export default function RadioDashboard() {
 
                     <div className="flex items-start gap-2 mb-3 pr-8">
                       {getPriorityIcon()}
-                      <Heading level={4} className="text-lg font-semibold text-gray-900">
+                      <Heading level={4} className="text-lg font-semibold text-zinc-900">
                         {announcement.title}
                       </Heading>
                     </div>
                     
-                    <Text className="text-gray-600 mb-4 line-clamp-2">
+                    <Text className="text-zinc-600 mb-4 line-clamp-2">
                       {announcement.message}
                     </Text>
                     
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <UserIcon className="h-4 w-4 text-gray-400" />
-                        <Text className="text-sm text-gray-500">
+                        <UserIcon className="h-4 w-4 text-zinc-400" />
+                        <Text className="text-sm text-zinc-500">
                           {announcement.author.firstName} {announcement.author.lastName}
                         </Text>
                         <Badge color={getRoleBadgeColor()} className="text-xs">
                           {announcement.author.staffRole}
                         </Badge>
                       </div>
-                      <Text className="text-xs text-gray-500">
+                      <Text className="text-xs text-zinc-500">
                         {timeAgo(announcement.createdAt)}
                       </Text>
                     </div>
@@ -363,11 +363,11 @@ export default function RadioDashboard() {
             </div>
           ) : (
             <Card className="p-8 text-center bg-white">
-              <MegaphoneIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <Heading level={3} className="text-gray-500 mb-2">
+              <MegaphoneIcon className="h-12 w-12 text-zinc-300 mx-auto mb-3" />
+              <Heading level={3} className="text-zinc-500 mb-2">
                 No new announcements
               </Heading>
-              <Text className="text-gray-400">
+              <Text className="text-zinc-400">
                 You're all caught up! Check back later for important updates.
               </Text>
             </Card>
@@ -377,7 +377,7 @@ export default function RadioDashboard() {
         {/* Category Quick Access */}
         {categories.length > 0 && (
           <div className="mb-12">
-            <Heading level={2} className="text-2xl font-semibold text-gray-900 mb-6">
+            <Heading level={2} className="text-2xl font-semibold text-zinc-900 mb-6">
               Browse by Category
             </Heading>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -390,10 +390,10 @@ export default function RadioDashboard() {
                     onClick={() => window.location.href = `/radio/${category.slug}`}
                   >
                     <Icon className="h-8 w-8 text-kelly-green mx-auto mb-3 group-hover:scale-110 transition-transform" />
-                    <div className="text-lg font-medium text-gray-900 group-hover:text-kelly-green transition-colors">
+                    <div className="text-lg font-medium text-zinc-900 group-hover:text-kelly-green transition-colors">
                       {category.name}
                     </div>
-                    <Text className="text-sm text-gray-500 mt-1">
+                    <Text className="text-sm text-zinc-500 mt-1">
                       {category.storyCount || 0} stories
                     </Text>
                   </Card>
@@ -406,19 +406,19 @@ export default function RadioDashboard() {
         {/* Today's Bulletins */}
         <div className="mb-12">
           <div className="flex justify-between items-center mb-6">
-            <Heading level={2} className="text-2xl font-semibold text-gray-900">
+            <Heading level={2} className="text-2xl font-semibold text-zinc-900">
               Today's Bulletins
               <Badge color="blue" className="ml-3">
                 {selectedBulletinLanguage}
               </Badge>
             </Heading>
             <div className="flex items-center gap-4">
-              <Text className="text-gray-500">
+              <Text className="text-zinc-500">
                 {filteredBulletins.length} of {bulletins.length} bulletins
               </Text>
               {/* Language Filter */}
               <div className="flex items-center gap-2">
-                <Text className="text-sm text-gray-600">Language:</Text>
+                <Text className="text-sm text-zinc-600">Language:</Text>
                 <div className="flex gap-1">
                   {station?.allowedLanguages?.map((language: string) => (
                     <button
@@ -427,7 +427,7 @@ export default function RadioDashboard() {
                       className={`px-3 py-1 text-xs rounded-full border transition-colors ${
                         selectedBulletinLanguage === language
                           ? 'bg-kelly-green text-white border-kelly-green'
-                          : 'bg-white text-gray-600 border-gray-300 hover:border-kelly-green hover:text-kelly-green'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
                       }`}
                     >
                       {language === 'English' ? 'EN' : 
@@ -451,10 +451,10 @@ export default function RadioDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="p-6 animate-pulse bg-white">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-20 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
+                  <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
+                  <div className="h-20 bg-zinc-200 rounded mb-4"></div>
+                  <div className="h-3 bg-zinc-200 rounded w-1/4"></div>
                 </Card>
               ))}
             </div>
@@ -470,11 +470,11 @@ export default function RadioDashboard() {
             </div>
           ) : (
             <Card className="p-8 text-center bg-white">
-              <MegaphoneIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <Heading level={3} className="text-gray-500 mb-2">
+              <MegaphoneIcon className="h-12 w-12 text-zinc-300 mx-auto mb-3" />
+              <Heading level={3} className="text-zinc-500 mb-2">
                 No bulletins available in {selectedBulletinLanguage} today
               </Heading>
-              <Text className="text-gray-400">
+              <Text className="text-zinc-400">
                 Check back later or try a different language.
               </Text>
             </Card>
@@ -484,19 +484,19 @@ export default function RadioDashboard() {
         {/* Recent Stories */}
         <div className="mb-12">
           <div className="flex justify-between items-center mb-6">
-            <Heading level={2} className="text-2xl font-semibold text-gray-900">
+            <Heading level={2} className="text-2xl font-semibold text-zinc-900">
               Latest Stories
               <Badge color="blue" className="ml-3">
                 {selectedLanguage}
               </Badge>
             </Heading>
             <div className="flex items-center gap-4">
-              <Text className="text-gray-500">
+              <Text className="text-zinc-500">
                 {filteredStories.length} of {stories.length} stories
               </Text>
               {/* Language Filter */}
               <div className="flex items-center gap-2">
-                <Text className="text-sm text-gray-600">Language:</Text>
+                <Text className="text-sm text-zinc-600">Language:</Text>
                 <div className="flex gap-1">
                   {station?.allowedLanguages?.map((language: string) => (
                     <button
@@ -505,7 +505,7 @@ export default function RadioDashboard() {
                       className={`px-3 py-1 text-xs rounded-full border transition-colors ${
                         selectedLanguage === language
                           ? 'bg-kelly-green text-white border-kelly-green'
-                          : 'bg-white text-gray-600 border-gray-300 hover:border-kelly-green hover:text-kelly-green'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
                       }`}
                     >
                       {language === 'English' ? 'EN' : 
@@ -529,10 +529,10 @@ export default function RadioDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="p-6 animate-pulse bg-white">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-20 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
+                  <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
+                  <div className="h-20 bg-zinc-200 rounded mb-4"></div>
+                  <div className="h-3 bg-zinc-200 rounded w-1/4"></div>
                 </Card>
               ))}
             </div>
@@ -548,11 +548,11 @@ export default function RadioDashboard() {
             </div>
           ) : (
             <Card className="p-12 text-center bg-white">
-              <NewspaperIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <Heading level={3} className="text-gray-500 mb-2">
+              <NewspaperIcon className="h-16 w-16 text-zinc-300 mx-auto mb-4" />
+              <Heading level={3} className="text-zinc-500 mb-2">
                 No stories available in {selectedLanguage}
               </Heading>
-              <Text className="text-gray-400">
+              <Text className="text-zinc-400">
                 Try switching to a different language or check back later.
               </Text>
             </Card>
@@ -562,19 +562,19 @@ export default function RadioDashboard() {
         {/* Latest Shows */}
         <div className="mb-12">
           <div className="flex justify-between items-center mb-6">
-            <Heading level={2} className="text-2xl font-semibold text-gray-900">
+            <Heading level={2} className="text-2xl font-semibold text-zinc-900">
               Latest Shows
               <Badge color="blue" className="ml-3">
                 {selectedEpisodeLanguage}
               </Badge>
             </Heading>
             <div className="flex items-center gap-4">
-              <Text className="text-gray-500">
+              <Text className="text-zinc-500">
                 {filteredShows.length} of {shows.length} shows
               </Text>
               {/* Language Filter */}
               <div className="flex items-center gap-2">
-                <Text className="text-sm text-gray-600">Language:</Text>
+                <Text className="text-sm text-zinc-600">Language:</Text>
                 <div className="flex gap-1">
                   {station?.allowedLanguages?.map((language: string) => (
                     <button
@@ -583,7 +583,7 @@ export default function RadioDashboard() {
                       className={`px-3 py-1 text-xs rounded-full border transition-colors ${
                         selectedEpisodeLanguage === language
                           ? 'bg-kelly-green text-white border-kelly-green'
-                          : 'bg-white text-gray-600 border-gray-300 hover:border-kelly-green hover:text-kelly-green'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
                       }`}
                     >
                       {language === 'English' ? 'EN' : 
@@ -608,11 +608,11 @@ export default function RadioDashboard() {
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="p-6 animate-pulse bg-white">
                   <div className="flex gap-6">
-                    <div className="w-32 h-32 bg-gray-200 rounded-lg flex-shrink-0"></div>
+                    <div className="w-32 h-32 bg-zinc-200 rounded-lg flex-shrink-0"></div>
                     <div className="flex-1">
-                      <div className="h-5 bg-gray-200 rounded w-3/4 mb-3"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-5 bg-zinc-200 rounded w-3/4 mb-3"></div>
+                      <div className="h-4 bg-zinc-200 rounded w-1/2 mb-4"></div>
+                      <div className="h-3 bg-zinc-200 rounded w-1/4"></div>
                     </div>
                   </div>
                 </Card>
@@ -627,7 +627,7 @@ export default function RadioDashboard() {
                   className="flex gap-6 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 group"
                 >
                   {/* Show Cover Image */}
-                  <div className="w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                  <div className="w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-100">
                     {show.coverImageUrl ? (
                       <img
                         src={show.coverImageUrl}
@@ -643,15 +643,15 @@ export default function RadioDashboard() {
 
                   {/* Show Details */}
                   <div className="flex-1 min-w-0">
-                    <Heading level={3} className="text-xl font-semibold text-gray-900 group-hover:text-kelly-green transition-colors mb-2">
+                    <Heading level={3} className="text-xl font-semibold text-zinc-900 group-hover:text-kelly-green transition-colors mb-2">
                       {show.title}
                     </Heading>
                     {show.description && (
-                      <Text className="text-gray-600 mb-3 line-clamp-2">
+                      <Text className="text-zinc-600 mb-3 line-clamp-2">
                         {show.description}
                       </Text>
                     )}
-                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                    <div className="flex items-center gap-3 text-sm text-zinc-500">
                       <Badge color="blue" className="text-xs">
                         {show._count?.episodes || 0} Episodes
                       </Badge>
@@ -667,11 +667,11 @@ export default function RadioDashboard() {
             </div>
           ) : (
             <Card className="p-12 text-center bg-white">
-              <SpeakerWaveIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <Heading level={3} className="text-gray-500 mb-2">
+              <SpeakerWaveIcon className="h-16 w-16 text-zinc-300 mx-auto mb-4" />
+              <Heading level={3} className="text-zinc-500 mb-2">
                 No shows available in {selectedEpisodeLanguage}
               </Heading>
-              <Text className="text-gray-400">
+              <Text className="text-zinc-400">
                 Try switching to a different language or check back later.
               </Text>
             </Card>

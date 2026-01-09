@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { generateSlug, generateUniqueBulletinSlug } from '@/lib/slug-utils';
 
 const createBulletinSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -143,19 +144,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Generate slug from title
-    const baseSlug = validatedData.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    
-    // Ensure unique slug
-    let slug = baseSlug;
-    let counter = 0;
-    while (await prisma.bulletin.findUnique({ where: { slug } })) {
-      counter++;
-      slug = `${baseSlug}-${counter}`;
-    }
+    // Generate unique slug with optimized single-query approach
+    const baseSlug = generateSlug(validatedData.title);
+    const slug = await generateUniqueBulletinSlug(baseSlug);
 
     // Create the bulletin
     const bulletin = await prisma.bulletin.create({

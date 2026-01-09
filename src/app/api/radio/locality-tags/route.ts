@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { ClassificationType } from '@prisma/client';
 
-// GET /api/radio/locality-tags - Get locality tags (provinces)
+// GET /api/radio/locality-tags - Get locality classifications (provinces)
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     // Check if user is authenticated and is a radio user
     if (!session?.user || session.user.userType !== 'RADIO') {
       return NextResponse.json(
@@ -16,11 +17,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get all locality tags (provinces)
-    const localities = await prisma.tag.findMany({
+    // Get all locality classifications (provinces)
+    const localities = await prisma.classification.findMany({
       where: {
-        category: 'LOCALITY',
-        isPreset: true,
+        type: ClassificationType.LOCALITY,
+        isActive: true,
       },
       select: {
         id: true,
@@ -37,9 +38,9 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching locality tags:', error);
+    console.error('Error fetching locality classifications:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch locality tags' },
+      { error: 'Failed to fetch locality classifications' },
       { status: 500 }
     );
   }

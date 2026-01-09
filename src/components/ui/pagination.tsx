@@ -39,8 +39,10 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
         <Button
           key={page}
           onClick={() => onPageChange(page)}
+          aria-label={`Go to page ${page}`}
+          aria-current={page === currentPage ? 'page' : undefined}
           className={clsx(
-            page === currentPage ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+            page === currentPage ? 'bg-kelly-green text-white' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'
           )}
         >
           {page}

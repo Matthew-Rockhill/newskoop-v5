@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { z } from 'zod';
+import { generateSlug, generateUniqueCategorySlug } from '@/lib/slug-utils';
 
 function hasCategoryPermission(userRole: string | null, action: 'update' | 'delete') {
   if (!userRole) return false;
@@ -24,16 +25,6 @@ const categoryUpdateSchema = z.object({
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
   parentId: z.string().nullable().optional(),
 });
-
-// Helper function to generate slug from name
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9 -]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-}
 
 // GET /api/newsroom/categories/[id] - Get single category
 const getCategory = createHandler(
@@ -109,17 +100,9 @@ const updateCategory = createHandler(
         return NextResponse.json({ error: 'A category with this name already exists' }, { status: 400 });
       }
 
-      // Generate unique slug
+      // Generate unique slug with optimized single-query approach
       const baseSlug = generateSlug(data.name);
-      let slug = baseSlug;
-      let counter = 1;
-
-      while (await prisma.category.findUnique({ where: { slug } })) {
-        slug = `${baseSlug}-${counter}`;
-        counter++;
-      }
-
-      updateData.slug = slug;
+      updateData.slug = await generateUniqueCategorySlug(baseSlug, id);
     }
 
     const updatedCategory = await prisma.category.update({

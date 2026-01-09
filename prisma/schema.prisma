@@ -70,11 +70,21 @@ enum CommentType {
   EDITORIAL_NOTE
 }
 
-enum TagCategory {
+// TagCategory enum removed - Tags are now topical only
+// LANGUAGE, RELIGION, LOCALITY moved to Classification system
+
+// Classification types (replacing LANGUAGE, RELIGION, LOCALITY tags)
+enum ClassificationType {
   LANGUAGE
   RELIGION
   LOCALITY
-  GENERAL
+}
+
+// Menu item types for frontend navigation builder
+enum MenuItemType {
+  CATEGORY
+  CUSTOM_LINK
+  DIVIDER
 }
 
 // Announcement enums
@@ -210,10 +220,13 @@ model Station {
   isActive         Boolean @default(true)
   hasContentAccess Boolean @default(true)
 
-  // Content filtering
+  // Content filtering (legacy - being migrated to classifications)
   allowedLanguages  String[] @default(["English", "Afrikaans", "Xhosa"])
   allowedReligions  String[] @default(["Christian", "Muslim", "Neutral"])
   blockedCategories String[] @default([])
+
+  // New classification-based filtering
+  classifications StationClassification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -304,6 +317,9 @@ model Story {
   // Tagging
   tags StoryTag[]
 
+  // Classifications (Language, Religion, Locality)
+  classifications StoryClassification[]
+
   // Audio
   audioClips AudioClip[]
 
@@ -378,6 +394,7 @@ model RevisionRequest {
   @@index([storyId])
   @@index([assignedToId])
   @@index([requestedById])
+  @@index([resolvedAt])
 }
 
 model Category {
@@ -402,6 +419,9 @@ model Category {
   bulletins Bulletin[]
   shows     Show[]
 
+  // Menu items that link to this category
+  menuItems MenuItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -410,22 +430,16 @@ model Category {
 }
 
 model Tag {
-  id                   String      @id @default(cuid())
-  name                 String      @unique
-  slug                 String      @unique
+  id                   String    @id @default(cuid())
+  name                 String    @unique
+  slug                 String    @unique
   nameAfrikaans        String?
-  descriptionAfrikaans String?     @db.Text
+  descriptionAfrikaans String?   @db.Text
   color                String?
-  category             TagCategory @default(GENERAL)
-  isRequired           Boolean     @default(false) // For LANGUAGE and RELIGION tags
-  isPreset             Boolean     @default(false) // For LOCALITY tags (provinces)
   stories              StoryTag[]
   shows                ShowTag[]
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
-
-  @@index([category])
-  @@index([isRequired])
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }
 
 model StoryTag {
@@ -435,6 +449,101 @@ model StoryTag {
   tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([storyId, tagId])
+}
+
+// ============================================================================
+// CLASSIFICATION SYSTEM (Language, Religion, Locality)
+// ============================================================================
+
+model Classification {
+  id                   String             @id @default(cuid())
+  name                 String
+  slug                 String             @unique
+  nameAfrikaans        String?
+  descriptionAfrikaans String?            @db.Text
+  type                 ClassificationType
+  color                String?
+  isActive             Boolean            @default(true)
+  sortOrder            Int                @default(0)
+
+  // Relations
+  stories           StoryClassification[]
+  shows             ShowClassification[]
+  allowedByStations StationClassification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, type])
+  @@index([type])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model StoryClassification {
+  storyId          String
+  classificationId String
+  story            Story          @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  classification   Classification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, classificationId])
+  @@index([classificationId])
+}
+
+model ShowClassification {
+  showId           String
+  classificationId String
+  show             Show           @relation(fields: [showId], references: [id], onDelete: Cascade)
+  classification   Classification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
+
+  @@id([showId, classificationId])
+  @@index([classificationId])
+}
+
+model StationClassification {
+  stationId        String
+  classificationId String
+  station          Station        @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  classification   Classification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
+
+  @@id([stationId, classificationId])
+  @@index([classificationId])
+}
+
+// ============================================================================
+// MENU BUILDER (Frontend Navigation)
+// ============================================================================
+
+model MenuItem {
+  id             String       @id @default(cuid())
+  label          String
+  labelAfrikaans String?
+  type           MenuItemType
+
+  // For CATEGORY type - links to a category
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // For CUSTOM_LINK type
+  url          String?
+  openInNewTab Boolean @default(false)
+
+  // Hierarchy
+  parentId String?
+  parent   MenuItem?  @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children MenuItem[] @relation("MenuHierarchy")
+
+  // Display control
+  sortOrder Int     @default(0)
+  isVisible Boolean @default(true)
+  icon      String? // Optional icon name (e.g., heroicon name)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([sortOrder])
+  @@index([isVisible])
 }
 
 model AudioClip {
@@ -489,6 +598,7 @@ model Comment {
 
   @@index([storyId])
   @@index([authorId])
+  @@index([type])
 }
 
 model StoryGroup {
@@ -661,6 +771,8 @@ model Bulletin {
 
   @@index([status, language])
   @@index([scheduledFor])
+  @@index([authorId])
+  @@index([reviewerId])
 }
 
 // Junction table for bulletin stories with ordering
@@ -676,6 +788,7 @@ model BulletinStory {
 
   @@unique([bulletinId, storyId])
   @@index([bulletinId, order])
+  @@index([storyId])
 }
 
 // SHOWS & EPISODES MODELS
@@ -698,6 +811,9 @@ model Show {
   category   Category? @relation(fields: [categoryId], references: [id])
   tags       ShowTag[]
 
+  // Classifications (Language, Religion, Locality)
+  classifications ShowClassification[]
+
   // Ownership
   createdById String
   createdBy   User   @relation("CreatedShows", fields: [createdById], references: [id])
@@ -716,6 +832,7 @@ model Show {
   @@index([slug])
   @@index([categoryId])
   @@index([isPublished])
+  @@index([isActive])
   @@index([createdById])
 }
 

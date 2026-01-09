@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { Prisma } from '@prisma/client';
+import { Prisma, ClassificationType } from '@prisma/client';
 
 // GET /api/radio/shows - Get filtered shows for radio stations
 export async function GET(req: NextRequest) {
@@ -88,23 +88,23 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Filter by language tags (for RADIO users only)
+    // Filter by language classifications (for RADIO users only)
     if (session.user.userType === 'RADIO') {
-      // Get allowed language tag IDs
-      const languageTags = await prisma.tag.findMany({
+      // Get allowed language classification IDs
+      const languageClassifications = await prisma.classification.findMany({
         where: {
-          category: 'LANGUAGE',
+          type: ClassificationType.LANGUAGE,
           name: { in: allowedLanguages },
         },
         select: { id: true },
       });
 
-      const languageTagIds = languageTags.map(tag => tag.id);
+      const languageClassificationIds = languageClassifications.map(c => c.id);
 
-      if (languageTagIds.length > 0) {
-        where.tags = {
+      if (languageClassificationIds.length > 0) {
+        where.classifications = {
           some: {
-            tagId: { in: languageTagIds },
+            classificationId: { in: languageClassificationIds },
           },
         };
       }

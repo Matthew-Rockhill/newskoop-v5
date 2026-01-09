@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Container } from '@/components/ui/container';
+import { PageHeader } from '@/components/ui/page-header';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  PlusIcon,
+import {
   MegaphoneIcon,
   ExclamationCircleIcon,
   InformationCircleIcon,
@@ -40,6 +41,7 @@ interface Announcement {
 }
 
 export default function NewsroomAnnouncementsPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [showDismissed, setShowDismissed] = useState(false);
   const queryClient = useQueryClient();
@@ -127,39 +129,30 @@ export default function NewsroomAnnouncementsPage() {
   const dismissedAnnouncements = announcements.filter(a => a.isDismissed);
 
   return (
-    <Container className="py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <MegaphoneIcon className="h-8 w-8 text-kelly-green" />
-            <div>
-              <Heading level={1} className="text-3xl font-bold text-gray-900">
-                Announcements
-              </Heading>
-              <Text className="text-gray-600">
-                Important updates and communications from management
-              </Text>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Button
-              outline
-              onClick={() => setShowDismissed(!showDismissed)}
-              className="flex items-center gap-2"
-            >
-              {showDismissed ? <EyeIcon className="h-4 w-4" /> : <EyeSlashIcon className="h-4 w-4" />}
-              {showDismissed ? 'Show Active' : 'Show Dismissed'}
-            </Button>
-            
-            <Link href="/newsroom/announcements/create">
-              <Button color="primary" className="flex items-center gap-2">
-                <PlusIcon className="h-5 w-5" />
-                Create Announcement
+    <Container>
+      <div className="space-y-6">
+        <PageHeader
+          title="Announcements"
+          description="Important updates and communications from management"
+          actions={
+            <div className="flex items-center gap-3">
+              <Button
+                outline
+                onClick={() => setShowDismissed(!showDismissed)}
+                className="flex items-center gap-2"
+              >
+                {showDismissed ? <EyeIcon className="h-4 w-4" /> : <EyeSlashIcon className="h-4 w-4" />}
+                {showDismissed ? 'Show Active' : 'Show Dismissed'}
               </Button>
-            </Link>
-          </div>
-        </div>
+              <Button
+                color="primary"
+                onClick={() => router.push('/newsroom/announcements/create')}
+              >
+                New Announcement
+              </Button>
+            </div>
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -167,19 +160,19 @@ export default function NewsroomAnnouncementsPage() {
             <div className="text-2xl font-bold text-kelly-green mb-1">
               {activeAnnouncements.length}
             </div>
-            <Text className="text-gray-600">Active</Text>
+            <Text className="text-zinc-600">Active</Text>
           </Card>
           <Card className="p-6 text-center">
             <div className="text-2xl font-bold text-red-500 mb-1">
               {activeAnnouncements.filter(a => a.priority === 'HIGH').length}
             </div>
-            <Text className="text-gray-600">High Priority</Text>
+            <Text className="text-zinc-600">High Priority</Text>
           </Card>
           <Card className="p-6 text-center">
-            <div className="text-2xl font-bold text-gray-500 mb-1">
+            <div className="text-2xl font-bold text-zinc-500 mb-1">
               {dismissedAnnouncements.length}
             </div>
-            <Text className="text-gray-600">Dismissed</Text>
+            <Text className="text-zinc-600">Dismissed</Text>
           </Card>
         </div>
 
@@ -188,9 +181,9 @@ export default function NewsroomAnnouncementsPage() {
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
               <Card key={i} className="p-6 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="h-20 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
+                <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
+                <div className="h-20 bg-zinc-200 rounded"></div>
               </Card>
             ))}
           </div>
@@ -200,11 +193,11 @@ export default function NewsroomAnnouncementsPage() {
           </Card>
         ) : filteredAnnouncements.length === 0 ? (
           <Card className="p-12 text-center">
-            <MegaphoneIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <Heading level={3} className="text-gray-500 mb-2">
+            <MegaphoneIcon className="h-16 w-16 text-zinc-300 mx-auto mb-4" />
+            <Heading level={3} className="text-zinc-500 mb-2">
               {showDismissed ? 'No dismissed announcements' : 'No active announcements'}
             </Heading>
-            <Text className="text-gray-400 mb-6">
+            <Text className="text-zinc-400 mb-6">
               {showDismissed 
                 ? 'You haven\'t dismissed any announcements yet.'
                 : 'Check back later for important updates from management.'
@@ -236,7 +229,7 @@ export default function NewsroomAnnouncementsPage() {
                     {getPriorityIcon(announcement.priority)}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <Heading level={4} className="text-lg font-semibold text-gray-900">
+                        <Heading level={4} className="text-lg font-semibold text-zinc-900">
                           {announcement.title}
                         </Heading>
                         <Badge color={getPriorityColor(announcement.priority)}>
@@ -252,11 +245,11 @@ export default function NewsroomAnnouncementsPage() {
                         )}
                       </div>
                       
-                      <Text className="text-gray-600 mb-3 line-clamp-3">
+                      <Text className="text-zinc-600 mb-3 line-clamp-3">
                         {announcement.message}
                       </Text>
                       
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 text-sm text-zinc-500">
                         <div className="flex items-center gap-1">
                           <UsersIcon className="h-4 w-4" />
                           <span>By {announcement.author.firstName} {announcement.author.lastName}</span>
@@ -311,6 +304,7 @@ export default function NewsroomAnnouncementsPage() {
             )}
           </div>
         )}
+      </div>
     </Container>
   );
 }

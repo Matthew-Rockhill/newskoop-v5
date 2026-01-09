@@ -249,7 +249,7 @@ export default function TranslatePage() {
         <div className="text-center py-12">
           <GlobeAltIcon className="h-16 w-16 text-red-300 dark:text-red-600 mx-auto mb-4" />
           <Heading level={3} className="text-red-600 mb-2">Access Denied</Heading>
-          <Text className="text-gray-600 mb-4">
+          <Text className="text-zinc-600 mb-4">
             Only the assigned translator can access this page.
           </Text>
           <Button onClick={() => router.push(`/newsroom/stories/${storyId}`)} className="mt-4">
@@ -292,11 +292,11 @@ export default function TranslatePage() {
                 <LanguageIcon className="h-3 w-3 mr-1" />
                 {originalStory.language} → {translationStory.language}
               </Badge>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-zinc-500">
                 Original: {originalWordCount} words
               </span>
-              <span className="text-sm text-gray-500">•</span>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-zinc-500">•</span>
+              <span className="text-sm text-zinc-500">
                 Translation: {translationWordCount} words
               </span>
             </div>
@@ -383,7 +383,7 @@ export default function TranslatePage() {
                         {/* Current Audio Clips */}
                         {translationStory.audioClips && translationStory.audioClips.length > 0 && (
                           <div className="space-y-3">
-                            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                               Current Audio Clips ({translationStory.audioClips.filter((clip: any) => !removedAudioIds.includes(clip.id)).length})
                             </Text>
                             {translationStory.audioClips
@@ -419,7 +419,7 @@ export default function TranslatePage() {
 
                         {/* Upload New Audio */}
                         <div>
-                          <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                             Upload New Audio (Optional)
                           </Text>
                           <FileUpload
@@ -474,12 +474,12 @@ export default function TranslatePage() {
                       className="h-6 w-6"
                       name={`${originalStory.author.firstName} ${originalStory.author.lastName}`}
                     />
-                    <Text className="text-sm text-gray-600">
+                    <Text className="text-sm text-zinc-600">
                       By {originalStory.author.firstName} {originalStory.author.lastName}
                     </Text>
                     {originalStory.category && (
                       <>
-                        <span className="text-gray-400">•</span>
+                        <span className="text-zinc-400">•</span>
                         <Badge color="zinc">{originalStory.category.name}</Badge>
                       </>
                     )}
@@ -490,7 +490,7 @@ export default function TranslatePage() {
 
                 <div className="prose max-w-none">
                   <div
-                    className="text-gray-700 dark:text-gray-300 leading-relaxed space-y-4"
+                    className="text-zinc-700 dark:text-zinc-300 leading-relaxed space-y-4"
                     dangerouslySetInnerHTML={{ __html: originalStory.content }}
                   />
                 </div>
@@ -502,10 +502,10 @@ export default function TranslatePage() {
                   <>
                     <div>
                       <Heading level={4} className="text-md mb-2 flex items-center gap-2">
-                        <MusicalNoteIcon className="h-5 w-5 text-gray-600" />
+                        <MusicalNoteIcon className="h-5 w-5 text-zinc-600" />
                         Original Audio Clips
                       </Heading>
-                      <Text className="text-sm text-gray-500 mb-3">
+                      <Text className="text-sm text-zinc-500 mb-3">
                         Reference audio from the original story
                       </Text>
                       <div className="space-y-3">

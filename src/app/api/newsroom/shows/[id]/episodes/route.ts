@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { canManageShows } from '@/lib/permissions';
 import { z } from 'zod';
+import { generateSlug, generateUniqueEpisodeSlug } from '@/lib/slug-utils';
 
 const episodeCreateSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -73,25 +74,9 @@ const createEpisode = createHandler(
     const body = await req.json();
     const data = episodeCreateSchema.parse(body);
 
-    // Auto-generate slug from title
-    const generateSlug = (title: string) => {
-      return title
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
-    };
-
-    let slug = generateSlug(data.title);
-
-    // Ensure slug is unique (add number suffix if needed)
-    let counter = 1;
-    let uniqueSlug = slug;
-    while (await prisma.episode.findUnique({ where: { slug: uniqueSlug } })) {
-      uniqueSlug = `${slug}-${counter}`;
-      counter++;
-    }
+    // Generate unique slug with optimized single-query approach
+    const baseSlug = generateSlug(data.title);
+    const uniqueSlug = await generateUniqueEpisodeSlug(baseSlug);
 
     // Get the next episode number
     const lastEpisode = await prisma.episode.findFirst({

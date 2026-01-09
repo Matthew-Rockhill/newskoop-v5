@@ -81,7 +81,7 @@ export function MiniStageProgress({
         );
       })}
       {showLabel && (
-        <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
+        <span className="text-xs text-zinc-600 dark:text-zinc-400 ml-1">
           {getCurrentStageLabel()}
         </span>
       )}

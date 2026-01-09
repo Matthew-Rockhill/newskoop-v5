@@ -222,10 +222,11 @@ export function hasCategoryPermission(userRole: StaffRole | null, action: Permis
 }
 
 // Tag permissions
+// Sub-editors and above can create and manage tags
 const tagPermissions = {
   INTERN: ['read'],
-  JOURNALIST: ['read'],
-  SUB_EDITOR: ['create', 'read', 'update'],
+  JOURNALIST: ['create', 'read'],
+  SUB_EDITOR: ['create', 'read', 'update', 'delete'],
   EDITOR: ['create', 'read', 'update', 'delete'],
   ADMIN: ['create', 'read', 'update', 'delete'],
   SUPERADMIN: ['create', 'read', 'update', 'delete'],

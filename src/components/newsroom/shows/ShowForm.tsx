@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldGroup, Fieldset, Label, Description, ErrorMessage } from '@/components/ui/fieldset';
 import { Switch, SwitchField } from '@/components/ui/switch';
 import { MultiCombobox, MultiComboboxOption, MultiComboboxLabel } from '@/components/ui/multi-combobox';
-import { useTags } from '@/hooks/use-tags';
+import { useClassifications } from '@/hooks/use-classifications';
+import { ClassificationType } from '@prisma/client';
 import { Show, CreateShowData, UpdateShowData } from '@/hooks/use-shows';
 
 // Schema for form validation - defaults are handled by useForm's defaultValues
@@ -31,7 +32,7 @@ interface ShowFormProps {
 }
 
 export function ShowForm({ show, onSubmit, onCancel, isSubmitting = false }: ShowFormProps) {
-  const { data: tagsData } = useTags(undefined, 'LANGUAGE');
+  const { data: classificationsData } = useClassifications(ClassificationType.LANGUAGE);
 
   const {
     register,
@@ -74,22 +75,22 @@ export function ShowForm({ show, onSubmit, onCancel, isSubmitting = false }: Sho
           </Field>
 
           <Field>
-            <Label>Language Tags</Label>
+            <Label>Languages</Label>
             <Description>
               Select the language(s) in which this show's content will be available.
               At least one language is required for the show to appear on radio stations.
             </Description>
             <MultiCombobox
-              options={tagsData?.tags ?? []}
+              options={classificationsData?.classifications ?? []}
               value={selectedTagIds}
-              onChange={(tagIds) => setValue('tagIds', tagIds)}
-              displayValue={(tag) => tag?.name}
+              onChange={(classificationIds) => setValue('tagIds', classificationIds)}
+              displayValue={(classification) => classification?.name}
               placeholder="Search languages..."
-              aria-label="Language Tags"
+              aria-label="Languages"
             >
-              {(tag) => (
-                <MultiComboboxOption value={tag.id}>
-                  <MultiComboboxLabel>{tag.name}</MultiComboboxLabel>
+              {(classification) => (
+                <MultiComboboxOption value={classification.id}>
+                  <MultiComboboxLabel>{classification.name}</MultiComboboxLabel>
                 </MultiComboboxOption>
               )}
             </MultiCombobox>

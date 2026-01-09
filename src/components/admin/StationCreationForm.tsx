@@ -194,42 +194,42 @@ export default function StationCreationForm() {
       {/* Progress Steps */}
       <nav className="mb-8">
         <ol className="flex items-center">
-          <li className={`flex items-center ${currentStep >= 1 ? 'text-kelly-green' : 'text-gray-500'}`}>
+          <li className={`flex items-center ${currentStep >= 1 ? 'text-kelly-green' : 'text-zinc-500'}`}>
             <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-              currentStep >= 1 ? 'border-kelly-green bg-kelly-green text-white' : 'border-gray-300'
+              currentStep >= 1 ? 'border-kelly-green bg-kelly-green text-white' : 'border-zinc-300'
             }`}>
               1
             </span>
             <span className="ml-2 text-sm font-medium">Station Details</span>
           </li>
           <li className="mx-2 flex-1 sm:mx-4">
-            <div className={`h-0.5 ${currentStep >= 2 ? 'bg-kelly-green' : 'bg-gray-300'}`} />
+            <div className={`h-0.5 ${currentStep >= 2 ? 'bg-kelly-green' : 'bg-zinc-300'}`} />
           </li>
-          <li className={`flex items-center ${currentStep >= 2 ? 'text-kelly-green' : 'text-gray-500'}`}>
+          <li className={`flex items-center ${currentStep >= 2 ? 'text-kelly-green' : 'text-zinc-500'}`}>
             <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-              currentStep >= 2 ? 'border-kelly-green bg-kelly-green text-white' : 'border-gray-300'
+              currentStep >= 2 ? 'border-kelly-green bg-kelly-green text-white' : 'border-zinc-300'
             }`}>
               2
             </span>
             <span className="ml-2 text-sm font-medium">Content Filtering</span>
           </li>
           <li className="mx-2 flex-1 sm:mx-4">
-            <div className={`h-0.5 ${currentStep >= 3 ? 'bg-kelly-green' : 'bg-gray-300'}`} />
+            <div className={`h-0.5 ${currentStep >= 3 ? 'bg-kelly-green' : 'bg-zinc-300'}`} />
           </li>
-          <li className={`flex items-center ${currentStep >= 3 ? 'text-kelly-green' : 'text-gray-500'}`}>
+          <li className={`flex items-center ${currentStep >= 3 ? 'text-kelly-green' : 'text-zinc-500'}`}>
             <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-              currentStep >= 3 ? 'border-kelly-green bg-kelly-green text-white' : 'border-gray-300'
+              currentStep >= 3 ? 'border-kelly-green bg-kelly-green text-white' : 'border-zinc-300'
             }`}>
               3
             </span>
             <span className="ml-2 text-sm font-medium">Primary Contact</span>
           </li>
           <li className="mx-2 flex-1 sm:mx-4">
-            <div className={`h-0.5 ${currentStep >= 4 ? 'bg-kelly-green' : 'bg-gray-300'}`} />
+            <div className={`h-0.5 ${currentStep >= 4 ? 'bg-kelly-green' : 'bg-zinc-300'}`} />
           </li>
-          <li className={`flex items-center ${currentStep >= 4 ? 'text-kelly-green' : 'text-gray-500'}`}>
+          <li className={`flex items-center ${currentStep >= 4 ? 'text-kelly-green' : 'text-zinc-500'}`}>
             <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-              currentStep >= 4 ? 'border-kelly-green bg-kelly-green text-white' : 'border-gray-300'
+              currentStep >= 4 ? 'border-kelly-green bg-kelly-green text-white' : 'border-zinc-300'
             }`}>
               4
             </span>
@@ -397,7 +397,7 @@ export default function StationCreationForm() {
                           />
                           <Label htmlFor={`religion-${religion}`}>
                             {religion}
-                            {religion === 'Neutral' && <span className="text-sm text-gray-500 ml-1">(All content)</span>}
+                            {religion === 'Neutral' && <span className="text-sm text-zinc-500 ml-1">(All content)</span>}
                           </Label>
                         </CheckboxField>
                       ))}
@@ -411,7 +411,7 @@ export default function StationCreationForm() {
                     <Label>Blocked Categories</Label>
                     <Description>Select categories to block from this station</Description>
                     {loadingCategories ? (
-                      <div className="text-sm text-gray-500">Loading categories...</div>
+                      <div className="text-sm text-zinc-500">Loading categories...</div>
                     ) : (
                       <div className="mt-2 space-y-2">
                         {categories
@@ -502,8 +502,8 @@ export default function StationCreationForm() {
               <div className="flex items-start space-x-3">
                 <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <strong className="text-gray-900">Account Setup</strong>
-                  <p className="text-sm mt-1 text-gray-700">
+                  <strong className="text-zinc-900">Account Setup</strong>
+                  <p className="text-sm mt-1 text-zinc-700">
                     The primary contact will receive a magic link email to set up their account and create a password. No need to enter a password here.
                   </p>
                 </div>
@@ -532,12 +532,12 @@ export default function StationCreationForm() {
 
             <div className="mt-6 space-y-6">
               {fields.length === 0 ? (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-6 text-center">
                   <Text>No additional users added yet.</Text>
                 </div>
               ) : (
                 fields.map((field, index) => (
-                  <div key={field.id} className="rounded-lg border border-gray-200 p-6">
+                  <div key={field.id} className="rounded-lg border border-zinc-200 p-6">
                     <div className="mb-4 flex items-center justify-between">
                       <Subheading>User {index + 1}</Subheading>
                       <Button
@@ -608,8 +608,8 @@ export default function StationCreationForm() {
               <div className="flex items-start space-x-3">
                 <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <strong className="text-gray-900">Account Setup</strong>
-                  <p className="text-sm mt-1 text-gray-700">
+                  <strong className="text-zinc-900">Account Setup</strong>
+                  <p className="text-sm mt-1 text-zinc-700">
                     {fields.length > 0
                       ? 'Each additional user will receive a magic link email to set up their account and create a password.'
                       : 'You can skip this step if no additional users are needed. They can be added later from the station management page.'}

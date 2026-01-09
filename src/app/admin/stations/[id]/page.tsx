@@ -77,8 +77,8 @@ export default function StationDetailPage() {
       <Container>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <RadioIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-sm text-gray-500">Loading station details...</p>
+            <RadioIcon className="mx-auto h-12 w-12 text-zinc-400" />
+            <p className="mt-2 text-sm text-zinc-500">Loading station details...</p>
           </div>
         </div>
       </Container>
@@ -90,8 +90,8 @@ export default function StationDetailPage() {
       <Container>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <RadioIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-sm text-gray-500">
+            <RadioIcon className="mx-auto h-12 w-12 text-zinc-400" />
+            <p className="mt-2 text-sm text-zinc-500">
               {error || 'Station not found'}
             </p>
             <Button 
@@ -129,14 +129,14 @@ export default function StationDetailPage() {
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base/7 font-semibold text-gray-900">{station.name}</h3>
+                  <h3 className="text-base/7 font-semibold text-zinc-900">{station.name}</h3>
                   {station.isActive ? (
                     <Badge color="lime">Active</Badge>
                   ) : (
                     <Badge color="zinc">Inactive</Badge>
                   )}
                 </div>
-                <div className="mt-2 space-y-1 text-sm text-gray-600">
+                <div className="mt-2 space-y-1 text-sm text-zinc-600">
                   <div>Province: {formatProvince(station.province)}</div>
                   {station.contactEmail && (
                     <div>
@@ -157,17 +157,17 @@ export default function StationDetailPage() {
         {/* Content Access Section */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-base/7 font-semibold text-gray-900 mb-3">Content Access</h3>
+            <h3 className="text-base/7 font-semibold text-zinc-900 mb-3">Content Access</h3>
                          <div className="flex items-center gap-2">
                {station.hasContentAccess ? (
                  <>
                    <Badge color="green">Enabled</Badge>
-                   <span className="text-sm text-gray-600">This station has access to all content.</span>
+                   <span className="text-sm text-zinc-600">This station has access to all content.</span>
                  </>
                ) : (
                  <>
                    <Badge color="red">Disabled</Badge>
-                   <span className="text-sm text-gray-600">This station does not have content access.</span>
+                   <span className="text-sm text-zinc-600">This station does not have content access.</span>
                  </>
                )}
              </div>
@@ -177,7 +177,7 @@ export default function StationDetailPage() {
         {/* Primary Contact Section */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-base/7 font-semibold text-gray-900 mb-3">Primary Contact</h3>
+            <h3 className="text-base/7 font-semibold text-zinc-900 mb-3">Primary Contact</h3>
             {(() => {
               const primaryContact = station.users.find(user => user.isPrimaryContact);
               return primaryContact ? (
@@ -187,23 +187,23 @@ export default function StationDetailPage() {
                     className="size-12" 
                   />
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-zinc-900">
                       {primaryContact.firstName} {primaryContact.lastName}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-zinc-600">
                       <a href={`mailto:${primaryContact.email}`} className="text-blue-600 hover:text-blue-500">
                         {primaryContact.email}
                       </a>
                     </div>
                     {primaryContact.mobileNumber && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-zinc-600">
                         {primaryContact.mobileNumber}
                       </div>
                     )}
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No primary contact assigned</p>
+                <p className="text-sm text-zinc-500">No primary contact assigned</p>
               );
             })()}
           </div>
@@ -213,7 +213,7 @@ export default function StationDetailPage() {
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base/7 font-semibold text-gray-900">Associated Users</h3>
+              <h3 className="text-base/7 font-semibold text-zinc-900">Associated Users</h3>
               <Badge color="zinc" className="text-xs">
                 {station.users.filter(user => !user.isPrimaryContact).length} {station.users.filter(user => !user.isPrimaryContact).length === 1 ? 'user' : 'users'}
               </Badge>
@@ -229,16 +229,16 @@ export default function StationDetailPage() {
                         className="size-10" 
                       />
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-zinc-900">
                           {user.firstName} {user.lastName}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-zinc-600">
                           <a href={`mailto:${user.email}`} className="text-blue-600 hover:text-blue-500">
                             {user.email}
                           </a>
                         </div>
                         {user.mobileNumber && (
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-zinc-600">
                             {user.mobileNumber}
                           </div>
                         )}
@@ -247,7 +247,7 @@ export default function StationDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No additional users assigned to this station.</p>
+                <p className="text-sm text-zinc-500">No additional users assigned to this station.</p>
               );
             })()}
           </div>

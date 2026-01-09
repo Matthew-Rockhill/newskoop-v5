@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Container } from '@/components/ui/container';
+import { PageHeader } from '@/components/ui/page-header';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -159,14 +160,15 @@ export default function NewsroomProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <Container className="py-8">
-          <Card className="p-8 text-center bg-white animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+      <Container>
+        <div className="space-y-6">
+          <div className="h-8 bg-zinc-200 rounded w-1/4 animate-pulse"></div>
+          <Card className="p-8 text-center animate-pulse">
+            <div className="h-8 bg-zinc-200 rounded w-1/4 mx-auto mb-4"></div>
+            <div className="h-4 bg-zinc-200 rounded w-1/2 mx-auto"></div>
           </Card>
-        </Container>
-      </div>
+        </div>
+      </Container>
     );
   }
 
@@ -194,33 +196,26 @@ export default function NewsroomProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Container className="py-8">
-        {/* Back Navigation */}
-        <div className="mb-8">
-          <Button
-            color="white"
-            onClick={() => window.location.href = '/newsroom'}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-            Back to Newsroom Dashboard
-          </Button>
-        </div>
-
-        {/* Page Header */}
-        <div className="mb-8">
-          <Heading level={1} className="text-3xl font-bold text-gray-900 mb-2">
-            Profile & Settings
-          </Heading>
-          <Text className="text-gray-600">
-            Manage your personal information, preferences, and account security.
-          </Text>
-        </div>
+    <Container>
+      <div className="space-y-6">
+        <PageHeader
+          title="Profile & Settings"
+          description="Manage your personal information, preferences, and account security."
+          actions={
+            <Button
+              color="white"
+              onClick={() => window.location.href = '/newsroom'}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+              Back to Newsroom
+            </Button>
+          }
+        />
 
         {/* Tab Navigation */}
         <Card className="mb-8 bg-white shadow-lg border-0">
-          <div className="border-b border-gray-200">
+          <div className="border-b border-zinc-200">
             <nav className="-mb-px flex">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -230,8 +225,8 @@ export default function NewsroomProfilePage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-6 py-4 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
-                        ? 'border-[#76BD43] text-[#76BD43]'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-kelly-green text-kelly-green'
+                        : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -256,7 +251,7 @@ export default function NewsroomProfilePage() {
                     />
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="absolute -bottom-2 -right-2 p-2 bg-[#76BD43] text-white rounded-full hover:bg-[#76BD43]/90 transition-colors"
+                      className="absolute -bottom-2 -right-2 p-2 bg-kelly-green text-white rounded-full hover:bg-kelly-green/90 transition-colors"
                     >
                       <CameraIcon className="h-4 w-4" />
                     </button>
@@ -269,10 +264,10 @@ export default function NewsroomProfilePage() {
                     />
                   </div>
                   <div>
-                    <Heading level={3} className="text-lg font-semibold text-gray-900 mb-1">
+                    <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-1">
                       Profile Picture
                     </Heading>
-                    <Text className="text-gray-600 mb-2">
+                    <Text className="text-zinc-600 mb-2">
                       Upload a photo to personalize your profile. Maximum file size: 2MB.
                     </Text>
                     <Button
@@ -289,7 +284,7 @@ export default function NewsroomProfilePage() {
                 <form onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-zinc-700 mb-2">
                         First Name *
                       </label>
                       <Input
@@ -301,7 +296,7 @@ export default function NewsroomProfilePage() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-zinc-700 mb-2">
                         Last Name *
                       </label>
                       <Input
@@ -313,7 +308,7 @@ export default function NewsroomProfilePage() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-zinc-700 mb-2">
                         Mobile Number
                       </label>
                       <Input
@@ -330,7 +325,7 @@ export default function NewsroomProfilePage() {
                   <div className="flex justify-end mt-6">
                     <Button
                       type="submit"
-                      className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+                      className="bg-kelly-green hover:bg-kelly-green/90 text-white"
                       disabled={updateProfileMutation.isPending}
                     >
                       {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -344,16 +339,16 @@ export default function NewsroomProfilePage() {
             {activeTab === 'preferences' && (
               <div className="space-y-8">
                 <div>
-                  <Heading level={3} className="text-lg font-semibold text-gray-900 mb-4">
+                  <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
                     Editorial Preferences
                   </Heading>
                   
                   <form onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))}>
                     <div className="max-w-md">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-zinc-700 mb-2">
                         Default Language
                       </label>
-                      <Text className="text-gray-600 text-sm mb-3">
+                      <Text className="text-zinc-600 text-sm mb-3">
                         Choose your preferred language for editorial interface and content filtering.
                       </Text>
                       <Select {...profileForm.register('defaultLanguagePreference')}>
@@ -366,7 +361,7 @@ export default function NewsroomProfilePage() {
                     <div className="flex justify-end mt-6">
                       <Button
                         type="submit"
-                        className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+                        className="bg-kelly-green hover:bg-kelly-green/90 text-white"
                         disabled={updateProfileMutation.isPending}
                       >
                         {updateProfileMutation.isPending ? 'Saving...' : 'Save Preferences'}
@@ -381,23 +376,23 @@ export default function NewsroomProfilePage() {
             {activeTab === 'security' && (
               <div className="space-y-8">
                 <div>
-                  <Heading level={3} className="text-lg font-semibold text-gray-900 mb-4">
+                  <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
                     Password & Security
                   </Heading>
                   
                   {!showPasswordReset ? (
-                    <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="bg-zinc-50 rounded-lg p-6">
                       <div className="flex items-start gap-4">
-                        <KeyIcon className="h-8 w-8 text-gray-400 mt-1" />
+                        <KeyIcon className="h-8 w-8 text-zinc-400 mt-1" />
                         <div className="flex-1">
-                          <Heading level={4} className="text-lg font-medium text-gray-900 mb-2">
+                          <Heading level={4} className="text-lg font-medium text-zinc-900 mb-2">
                             Change Password
                           </Heading>
-                          <Text className="text-gray-600 mb-4">
+                          <Text className="text-zinc-600 mb-4">
                             Update your password to keep your account secure. Use a strong password with at least 8 characters.
                           </Text>
                           <Button
-                            className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+                            className="bg-kelly-green hover:bg-kelly-green/90 text-white"
                             onClick={() => setShowPasswordReset(true)}
                           >
                             Change Password
@@ -406,12 +401,12 @@ export default function NewsroomProfilePage() {
                       </div>
                     </div>
                   ) : (
-                    <Card className="border border-gray-200">
+                    <Card className="border border-zinc-200">
                       <div className="p-6">
                         <form onSubmit={passwordForm.handleSubmit((data) => passwordResetMutation.mutate(data))}>
                           <div className="space-y-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                              <label className="block text-sm font-medium text-zinc-700 mb-2">
                                 Current Password *
                               </label>
                               <Input
@@ -424,7 +419,7 @@ export default function NewsroomProfilePage() {
                               )}
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                              <label className="block text-sm font-medium text-zinc-700 mb-2">
                                 New Password *
                               </label>
                               <Input
@@ -437,7 +432,7 @@ export default function NewsroomProfilePage() {
                               )}
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                              <label className="block text-sm font-medium text-zinc-700 mb-2">
                                 Confirm New Password *
                               </label>
                               <Input
@@ -464,7 +459,7 @@ export default function NewsroomProfilePage() {
                             </Button>
                             <Button
                               type="submit"
-                              className="bg-[#76BD43] hover:bg-[#76BD43]/90 text-white"
+                              className="bg-kelly-green hover:bg-kelly-green/90 text-white"
                               disabled={passwordResetMutation.isPending}
                             >
                               {passwordResetMutation.isPending ? 'Updating...' : 'Update Password'}
@@ -481,22 +476,22 @@ export default function NewsroomProfilePage() {
                   <div className="flex items-start gap-4">
                     <CheckCircleIcon className="h-8 w-8 text-blue-500 mt-1" />
                     <div>
-                      <Heading level={4} className="text-lg font-medium text-gray-900 mb-2">
+                      <Heading level={4} className="text-lg font-medium text-zinc-900 mb-2">
                         Account Information
                       </Heading>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
-                          <Text className="text-gray-600">Email:</Text>
+                          <Text className="text-zinc-600">Email:</Text>
                           <Text className="font-medium">{user?.email}</Text>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Text className="text-gray-600">Role:</Text>
+                          <Text className="text-zinc-600">Role:</Text>
                           <Text className="font-medium">
                             {getRoleDisplayName(user?.staffRole)}
                           </Text>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Text className="text-gray-600">Account Status:</Text>
+                          <Text className="text-zinc-600">Account Status:</Text>
                           <Badge color={user?.isActive ? 'green' : 'red'}>
                             {user?.isActive ? 'Active' : 'Inactive'}
                           </Badge>
@@ -509,7 +504,7 @@ export default function NewsroomProfilePage() {
             )}
           </div>
         </Card>
-      </Container>
-    </div>
+      </div>
+    </Container>
   );
 }

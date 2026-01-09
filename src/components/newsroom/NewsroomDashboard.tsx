@@ -18,7 +18,17 @@ import {
   EyeIcon,
   MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, KeyboardEvent } from 'react';
+
+// Helper for keyboard navigation on clickable elements
+function handleKeyboardNavigation(callback: () => void) {
+  return (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      callback();
+    }
+  };
+}
 
 type TaskFilter = 'all' | 'review' | 'approve' | 'translate' | 'publish';
 
@@ -155,14 +165,17 @@ export function NewsroomDashboard() {
                   {draftStories.slice(0, 5).map((story: any) => (
                     <div
                       key={story.id}
-                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                      onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                           {story._count?.audioClips > 0 && (
-                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                           )}
                         </div>
                       </div>
@@ -195,14 +208,17 @@ export function NewsroomDashboard() {
                   {[...needsReviewStories, ...needsApprovalStories].slice(0, 5).map((story: any) => (
                     <div
                       key={story.id}
-                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                      onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                           {story._count?.audioClips > 0 && (
-                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                           )}
                         </div>
                         <Text className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -231,14 +247,17 @@ export function NewsroomDashboard() {
                   {approvedStories.slice(0, 5).map((story: any) => (
                     <div
                       key={story.id}
-                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                      onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                           {story._count?.audioClips > 0 && (
-                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                           )}
                         </div>
                         <Text className="text-sm text-zinc-600 dark:text-zinc-400">Ready for translation</Text>
@@ -272,14 +291,17 @@ export function NewsroomDashboard() {
                   {publishedStories.slice(0, 5).map((story: any) => (
                     <div
                       key={story.id}
-                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                      onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                           {story._count?.audioClips > 0 && (
-                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                           )}
                         </div>
                       </div>
@@ -365,9 +387,9 @@ export function NewsroomDashboard() {
               {reviewStories.length === 0 && pendingApprovalStories.length === 0 && translationTasks.length === 0 && approvedForPublishingStories.length === 0 ? (
                 <Card className="p-12">
                   <div className="text-center">
-                    <CheckCircleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No tasks</Heading>
-                    <Text className="text-gray-600 dark:text-gray-400">Great work! You're all caught up.</Text>
+                    <CheckCircleIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No tasks</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">Great work! You're all caught up.</Text>
                   </div>
                 </Card>
               ) : (
@@ -375,21 +397,28 @@ export function NewsroomDashboard() {
                   {reviewStories.length > 0 && (
                     <div>
                       <Heading level={3} className="mb-3 flex items-center gap-2">
-                        <EyeIcon className="h-5 w-5" />
+                        <EyeIcon className="h-5 w-5" aria-hidden="true" />
                         Review Tasks ({reviewStories.length})
                       </Heading>
                       <div className="space-y-2">
                         {reviewStories.map((story: any) => (
-                          <Card key={story.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => router.push(`/newsroom/stories/${story.id}`)}>
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <Text className="font-medium text-gray-900 dark:text-gray-100">{story.title}</Text>
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
-                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" />
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
                                   )}
                                 </div>
-                                <Text className="text-sm text-gray-600 dark:text-gray-400">
+                                <Text className="text-sm text-zinc-600 dark:text-zinc-400">
                                   By {story.author?.firstName} {story.author?.lastName}
                                 </Text>
                               </div>
@@ -404,21 +433,28 @@ export function NewsroomDashboard() {
                   {pendingApprovalStories.length > 0 && (
                     <div>
                       <Heading level={3} className="mb-3 flex items-center gap-2">
-                        <CheckCircleIcon className="h-5 w-5" />
+                        <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
                         Approval Tasks ({pendingApprovalStories.length})
                       </Heading>
                       <div className="space-y-2">
                         {pendingApprovalStories.map((story: any) => (
-                          <Card key={story.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => router.push(`/newsroom/stories/${story.id}`)}>
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <Text className="font-medium text-gray-900 dark:text-gray-100">{story.title}</Text>
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
-                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" />
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
                                   )}
                                 </div>
-                                <Text className="text-sm text-gray-600 dark:text-gray-400">
+                                <Text className="text-sm text-zinc-600 dark:text-zinc-400">
                                   By {story.author?.firstName} {story.author?.lastName}
                                 </Text>
                               </div>
@@ -433,21 +469,28 @@ export function NewsroomDashboard() {
                   {translationTasks.length > 0 && (
                     <div>
                       <Heading level={3} className="mb-3 flex items-center gap-2">
-                        <DocumentTextIcon className="h-5 w-5" />
+                        <DocumentTextIcon className="h-5 w-5" aria-hidden="true" />
                         Translation Tasks ({translationTasks.length})
                       </Heading>
                       <div className="space-y-2">
                         {translationTasks.map((story: any) => (
-                          <Card key={story.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => router.push(`/newsroom/stories/${story.id}/translate`)}>
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}/translate`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}/translate`))}
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <Text className="font-medium text-gray-900 dark:text-gray-100">{story.title}</Text>
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
-                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" />
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
                                   )}
                                 </div>
-                                <Text className="text-sm text-gray-600 dark:text-gray-400">
+                                <Text className="text-sm text-zinc-600 dark:text-zinc-400">
                                   {story.language} translation
                                 </Text>
                               </div>
@@ -462,21 +505,28 @@ export function NewsroomDashboard() {
                   {approvedForPublishingStories.length > 0 && (
                     <div>
                       <Heading level={3} className="mb-3 flex items-center gap-2">
-                        <CheckCircleIcon className="h-5 w-5" />
+                        <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
                         Publishing Tasks ({approvedForPublishingStories.length})
                       </Heading>
                       <div className="space-y-2">
                         {approvedForPublishingStories.map((story: any) => (
-                          <Card key={story.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => router.push(`/newsroom/stories/${story.id}`)}>
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <Text className="font-medium text-gray-900 dark:text-gray-100">{story.title}</Text>
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
-                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" />
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
                                   )}
                                 </div>
-                                <Text className="text-sm text-gray-600 dark:text-gray-400">
+                                <Text className="text-sm text-zinc-600 dark:text-zinc-400">
                                   Ready to publish
                                 </Text>
                               </div>
@@ -498,9 +548,9 @@ export function NewsroomDashboard() {
               {reviewStories.length === 0 ? (
                 <Card className="p-12">
                   <div className="text-center">
-                    <EyeIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No review tasks</Heading>
-                    <Text className="text-gray-600 dark:text-gray-400">Great work! You're all caught up on reviews.</Text>
+                    <EyeIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No review tasks</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">Great work! You're all caught up on reviews.</Text>
                   </div>
                 </Card>
               ) : (
@@ -509,14 +559,17 @@ export function NewsroomDashboard() {
                     {reviewStories.map((story: any) => (
                       <div
                         key={story.id}
-                        className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                         onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                             {story._count?.audioClips > 0 && (
-                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
                           </div>
                           <Text className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -537,9 +590,9 @@ export function NewsroomDashboard() {
               {pendingApprovalStories.length === 0 ? (
                 <Card className="p-12">
                   <div className="text-center">
-                    <CheckCircleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No approval tasks</Heading>
-                    <Text className="text-gray-600 dark:text-gray-400">Great work! You're all caught up on approvals.</Text>
+                    <CheckCircleIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No approval tasks</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">Great work! You're all caught up on approvals.</Text>
                   </div>
                 </Card>
               ) : (
@@ -548,14 +601,17 @@ export function NewsroomDashboard() {
                     {pendingApprovalStories.map((story: any) => (
                       <div
                         key={story.id}
-                        className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                         onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
                             {story._count?.audioClips > 0 && (
-                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
                           </div>
                           <Text className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -576,9 +632,9 @@ export function NewsroomDashboard() {
               {translationTasks.length === 0 ? (
                 <Card className="p-12">
                   <div className="text-center">
-                    <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No translation tasks</Heading>
-                    <Text className="text-gray-600 dark:text-gray-400">No translations assigned to you at the moment.</Text>
+                    <DocumentTextIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No translation tasks</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">No translations assigned to you at the moment.</Text>
                   </div>
                 </Card>
               ) : (
@@ -587,8 +643,11 @@ export function NewsroomDashboard() {
                     {translationTasks.map((story: any) => (
                       <div
                         key={story.id}
-                        className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                         onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -597,7 +656,7 @@ export function NewsroomDashboard() {
                               <Badge color="purple">{story.language}</Badge>
                             )}
                             {story._count?.audioClips > 0 && (
-                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
                           </div>
                           <Text className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -618,32 +677,35 @@ export function NewsroomDashboard() {
               {approvedForPublishingStories.length === 0 ? (
                 <Card className="p-12">
                   <div className="text-center">
-                    <CheckCircleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <Heading level={3} className="text-gray-900 dark:text-gray-100 mb-2">No stories ready to publish</Heading>
-                    <Text className="text-gray-600 dark:text-gray-400">All translated stories have been published.</Text>
+                    <CheckCircleIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No stories ready to publish</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">All translated stories have been published.</Text>
                   </div>
                 </Card>
               ) : (
                 <Card className="p-6">
                   <div className="space-y-2">
                     {approvedForPublishingStories.map((story: any) => (
-                  <div
-                    key={story.id}
-                    className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-                    onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
-                        {story._count?.audioClips > 0 && (
-                          <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
-                        )}
+                      <div
+                        key={story.id}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
+                            )}
+                          </div>
+                          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                            by {story.author.firstName} {story.author.lastName}
+                          </Text>
+                        </div>
                       </div>
-                      <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                        by {story.author.firstName} {story.author.lastName}
-                      </Text>
-                    </div>
-                  </div>
                     ))}
                   </div>
                 </Card>

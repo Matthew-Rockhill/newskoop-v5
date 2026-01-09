@@ -21,9 +21,6 @@ const tagUpdateSchema = z.object({
   nameAfrikaans: z.string().optional(),
   descriptionAfrikaans: z.string().optional(),
   color: z.string().optional(),
-  category: z.enum(['LANGUAGE', 'RELIGION', 'LOCALITY', 'GENERAL']).optional(),
-  isRequired: z.boolean().optional(),
-  isPreset: z.boolean().optional(),
 });
 
 // GET /api/newsroom/tags/[id] - Get single tag
@@ -110,9 +107,9 @@ const deleteTag = createHandler(
       return NextResponse.json({ error: 'Tag not found' }, { status: 404 });
     }
 
-    // Prevent deletion if tag is in use and is LANGUAGE or RELIGION
-    if ((tag.category === 'LANGUAGE' || tag.category === 'RELIGION') && tag.stories.length > 0) {
-      return NextResponse.json({ error: 'Cannot delete a language or religion tag that is in use by stories.' }, { status: 400 });
+    // Prevent deletion if tag is in use by stories
+    if (tag.stories.length > 0) {
+      return NextResponse.json({ error: 'Cannot delete a tag that is in use by stories.' }, { status: 400 });
     }
 
     await prisma.tag.delete({ where: { id } });

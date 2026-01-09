@@ -444,13 +444,13 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
               </div>
               <div className="mb-4">
                 <Heading level={4} className="text-lg font-semibold">{originalStory?.title}</Heading>
-                <Text className="text-sm text-gray-600">
+                <Text className="text-sm text-zinc-600">
                   By {originalStory?.author?.firstName} {originalStory?.author?.lastName}
                 </Text>
               </div>
               <div className="prose max-w-none">
                 <div 
-                  className="text-gray-900 leading-relaxed space-y-4"
+                  className="text-zinc-900 leading-relaxed space-y-4"
                   dangerouslySetInnerHTML={{ __html: originalStory?.content || '' }}
                 />
               </div>
@@ -475,20 +475,20 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                 <>
                   <div className="mb-4">
                     <Heading level={4} className="text-lg font-semibold">{translatedStory.title}</Heading>
-                    <Text className="text-sm text-gray-600">
+                    <Text className="text-sm text-zinc-600">
                       Translated by {translation.assignedTo?.firstName} {translation.assignedTo?.lastName}
                     </Text>
                   </div>
                   <div className="prose max-w-none">
                     <div 
-                      className="text-gray-900 leading-relaxed space-y-4"
+                      className="text-zinc-900 leading-relaxed space-y-4"
                       dangerouslySetInnerHTML={{ __html: translatedStory.content }}
                     />
                   </div>
                 </>
               ) : (
-                <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
-                  <Text className="text-gray-500">Translation not yet completed</Text>
+                <div className="p-4 border border-zinc-200 bg-zinc-50 rounded-lg">
+                  <Text className="text-zinc-500">Translation not yet completed</Text>
                 </div>
               )}
             </Card>

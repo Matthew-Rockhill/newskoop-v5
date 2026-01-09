@@ -1,4 +1,4 @@
-import { uploadAudioFile, validateAudioFile as blobValidateAudioFile, BlobFile } from './vercel-blob';
+import { uploadAudioFile, validateAudioFile as r2ValidateAudioFile, BlobFile } from './r2-storage';
 
 export interface UploadedFile {
   filename: string;
@@ -20,9 +20,9 @@ export async function saveUploadedFile(
   }
 
   try {
-    // Upload to Vercel Blob
+    // Upload to R2
     const blobFile: BlobFile = await uploadAudioFile(file, uploadDir);
-    
+
     return {
       filename: blobFile.pathname,
       originalName: blobFile.originalFilename,
@@ -32,12 +32,12 @@ export async function saveUploadedFile(
       duration: blobFile.duration,
     };
   } catch (error) {
-    console.error('Error uploading file to Vercel Blob:', error);
+    console.error('Error uploading file to R2:', error);
     throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 export function validateAudioFile(file: File): { valid: boolean; error?: string } {
-  // Use the Vercel Blob validation function
-  return blobValidateAudioFile(file);
-} 
+  // Use the R2 validation function
+  return r2ValidateAudioFile(file);
+}

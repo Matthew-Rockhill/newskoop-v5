@@ -165,7 +165,7 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
       {/* Search and Filters */}
       <div className="space-y-3">
         <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input
             placeholder="Search stories by title or content..."
             onChange={handleSearchChange}
@@ -195,7 +195,7 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
 
         {(searchQuery || categoryFilter || tagFilter) && (
           <div className="flex items-center justify-between">
-            <Text className="text-sm text-gray-500">
+            <Text className="text-sm text-zinc-500">
               {stories.length > 0 
                 ? `Found ${pagination?.total || 0} stories`
                 : 'No stories found with current filters'
@@ -216,13 +216,13 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
       <div className="space-y-3 max-h-96 overflow-y-auto">
         {isLoading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 mx-auto"></div>
-            <Text className="mt-2 text-gray-600">Loading stories...</Text>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-zinc-900 mx-auto"></div>
+            <Text className="mt-2 text-zinc-600">Loading stories...</Text>
           </div>
         ) : stories.length === 0 ? (
           <div className="text-center py-8">
-            <DocumentTextIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <Text className="text-gray-600">
+            <DocumentTextIcon className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+            <Text className="text-zinc-600">
               {searchQuery || categoryFilter || tagFilter 
                 ? 'No stories match your search criteria'
                 : 'No published stories available'
@@ -239,14 +239,14 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
                 key={story.id}
                 className={`p-4 border rounded-lg ${
                   isSelected 
-                    ? 'bg-gray-50 border-gray-300 opacity-60' 
-                    : 'bg-white border-gray-200 hover:border-gray-300'
+                    ? 'bg-zinc-50 border-zinc-300 opacity-60' 
+                    : 'bg-white border-zinc-200 hover:border-zinc-300'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium text-gray-900 truncate">
+                      <h4 className="font-medium text-zinc-900 truncate">
                         {story.title}
                       </h4>
                       {languageTag && (
@@ -265,11 +265,11 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
                       )}
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                    <p className="text-sm text-zinc-600 mb-3 line-clamp-2">
                       {truncateContent(story.content)}
                     </p>
 
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-zinc-500">
                       <span className="flex items-center gap-1">
                         <UserIcon className="h-3 w-3" />
                         {story.author.firstName} {story.author.lastName}
@@ -293,8 +293,8 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
                     disabled={isSelected}
                     className={
                       isSelected 
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                        : 'bg-[#76BD43] hover:bg-[#76BD43]/90 text-white'
+                        ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' 
+                        : 'bg-kelly-green hover:bg-kelly-green/90 text-white'
                     }
                   >
                     {isSelected ? (

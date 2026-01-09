@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { ContentType, PeriodType } from '@prisma/client';
+import { ContentType, PeriodType, Prisma } from '@prisma/client';
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -155,6 +155,7 @@ export async function getOverviewStats(params: {
 /**
  * Get time-series data for charts
  * Groups views by date for trend visualization
+ * Fixed: Uses parameterized queries to prevent SQL injection
  */
 export async function getTimeSeriesData(params: {
   startDate: Date;
@@ -164,37 +165,21 @@ export async function getTimeSeriesData(params: {
 }) {
   const { startDate, endDate, stationId, contentType } = params;
 
-  const where: any = {
-    viewedAt: {
-      gte: startDate,
-      lte: endDate,
-    },
-  };
-
-  if (stationId) where.stationId = stationId;
-  if (contentType) where.contentType = contentType;
-
-  // Build WHERE clauses
-  const stationClause = stationId ? `AND "stationId" = '${stationId}'` : '';
-  const contentTypeClause = contentType ? `AND "contentType" = '${contentType}'` : '';
-
-  // Group by date (day)
-  const views = await prisma.$queryRawUnsafe<Array<{ date: Date; count: bigint }>>(
-    `SELECT
+  // Build safe parameterized query using Prisma.sql
+  const views = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+    SELECT
       DATE_TRUNC('day', "viewedAt") as date,
       COUNT(*)::int as count
     FROM "ContentView"
-    WHERE "viewedAt" >= $1
-      AND "viewedAt" <= $2
-      ${stationClause}
-      ${contentTypeClause}
+    WHERE "viewedAt" >= ${startDate}
+      AND "viewedAt" <= ${endDate}
+      ${stationId ? Prisma.sql`AND "stationId" = ${stationId}` : Prisma.empty}
+      ${contentType ? Prisma.sql`AND "contentType" = ${contentType}::"ContentType"` : Prisma.empty}
     GROUP BY DATE_TRUNC('day', "viewedAt")
-    ORDER BY date ASC`,
-    startDate,
-    endDate
-  );
+    ORDER BY date ASC
+  `;
 
-  return views.map(v => ({
+  return views.map((v) => ({
     date: v.date,
     views: Number(v.count),
   }));
@@ -215,6 +200,7 @@ export interface TopContentParams {
 /**
  * Get top viewed content
  * Returns enriched content with metadata
+ * Optimized: Batch fetch by content type instead of N+1
  */
 export async function getTopContent(params: TopContentParams) {
   const { contentType, stationId, startDate, endDate, limit = 10 } = params;
@@ -244,14 +230,18 @@ export async function getTopContent(params: TopContentParams) {
     take: limit,
   });
 
-  // Fetch content details
-  const enrichedContent = await Promise.all(
-    topContent.map(async (item) => {
-      let content = null;
+  // Group content IDs by type for batch fetching
+  const storyIds = topContent
+    .filter((item) => item.contentType === 'STORY' || item.contentType === 'BULLETIN')
+    .map((item) => item.contentId);
+  const showIds = topContent.filter((item) => item.contentType === 'SHOW').map((item) => item.contentId);
+  const episodeIds = topContent.filter((item) => item.contentType === 'EPISODE').map((item) => item.contentId);
 
-      if (item.contentType === 'STORY' || item.contentType === 'BULLETIN') {
-        content = await prisma.story.findUnique({
-          where: { id: item.contentId },
+  // Batch fetch all content in parallel
+  const [stories, shows, episodes] = await Promise.all([
+    storyIds.length > 0
+      ? prisma.story.findMany({
+          where: { id: { in: storyIds } },
           select: {
             id: true,
             title: true,
@@ -259,42 +249,59 @@ export async function getTopContent(params: TopContentParams) {
             category: { select: { name: true } },
             language: true,
           },
-        });
-      } else if (item.contentType === 'SHOW') {
-        content = await prisma.show.findUnique({
-          where: { id: item.contentId },
+        })
+      : Promise.resolve([]),
+    showIds.length > 0
+      ? prisma.show.findMany({
+          where: { id: { in: showIds } },
           select: {
             id: true,
             title: true,
             slug: true,
             category: { select: { name: true } },
           },
-        });
-      } else if (item.contentType === 'EPISODE') {
-        content = await prisma.episode.findUnique({
-          where: { id: item.contentId },
+        })
+      : Promise.resolve([]),
+    episodeIds.length > 0
+      ? prisma.episode.findMany({
+          where: { id: { in: episodeIds } },
           select: {
             id: true,
             title: true,
             slug: true,
-            show: {
-              select: { title: true },
-            },
+            show: { select: { title: true } },
           },
-        });
-      }
+        })
+      : Promise.resolve([]),
+  ]);
 
-      return {
-        contentType: item.contentType,
-        contentId: item.contentId,
-        content,
-        views: item._count.id,
-      };
-    })
-  );
+  // Create lookup maps for O(1) access
+  const storyMap = new Map(stories.map((s) => [s.id, s]));
+  const showMap = new Map(shows.map((s) => [s.id, s]));
+  const episodeMap = new Map(episodes.map((e) => [e.id, e]));
+
+  // Enrich content using lookup maps
+  const enrichedContent = topContent.map((item) => {
+    let content = null;
+
+    if (item.contentType === 'STORY' || item.contentType === 'BULLETIN') {
+      content = storyMap.get(item.contentId) || null;
+    } else if (item.contentType === 'SHOW') {
+      content = showMap.get(item.contentId) || null;
+    } else if (item.contentType === 'EPISODE') {
+      content = episodeMap.get(item.contentId) || null;
+    }
+
+    return {
+      contentType: item.contentType,
+      contentId: item.contentId,
+      content,
+      views: item._count.id,
+    };
+  });
 
   // Filter out deleted content
-  return enrichedContent.filter(item => item.content !== null);
+  return enrichedContent.filter((item) => item.content !== null);
 }
 
 // ============================================================================
@@ -304,6 +311,7 @@ export async function getTopContent(params: TopContentParams) {
 /**
  * Get station activity summary
  * Shows which stations are most active
+ * Optimized: Batch fetch stations and unique users instead of N+1
  */
 export async function getStationActivity(params: {
   startDate: Date;
@@ -333,43 +341,57 @@ export async function getStationActivity(params: {
     take: limit,
   });
 
-  // Fetch station details
-  const enrichedActivity = await Promise.all(
-    stationActivity.map(async (item) => {
-      const station = await prisma.station.findUnique({
-        where: { id: item.stationId! },
-        select: {
-          id: true,
-          name: true,
-          province: true,
-          contactEmail: true,
-        },
-      });
+  // Get all station IDs for batch fetch
+  const stationIds = stationActivity
+    .map((item) => item.stationId)
+    .filter((id): id is string => id !== null);
 
-      // Get unique users for this station
-      const uniqueUsers = await prisma.contentView.findMany({
-        where: {
-          stationId: item.stationId,
-          viewedAt: {
-            gte: startDate,
-            lte: endDate,
-          },
-          userId: { not: null },
+  // Batch fetch: stations and unique users per station in parallel
+  const [stations, uniqueUsersByStation] = await Promise.all([
+    // Fetch all stations in one query
+    prisma.station.findMany({
+      where: { id: { in: stationIds } },
+      select: {
+        id: true,
+        name: true,
+        province: true,
+        contactEmail: true,
+      },
+    }),
+    // Fetch unique users per station using groupBy
+    prisma.contentView.groupBy({
+      by: ['stationId', 'userId'],
+      where: {
+        stationId: { in: stationIds },
+        viewedAt: {
+          gte: startDate,
+          lte: endDate,
         },
-        select: { userId: true },
-        distinct: ['userId'],
-      });
+        userId: { not: null },
+      },
+    }),
+  ]);
 
-      return {
-        station,
-        views: item._count.id,
-        uniqueUsers: uniqueUsers.length,
-      };
-    })
-  );
+  // Create lookup maps
+  const stationMap = new Map(stations.map((s) => [s.id, s]));
+
+  // Count unique users per station
+  const uniqueUsersMap = new Map<string, number>();
+  for (const item of uniqueUsersByStation) {
+    if (item.stationId) {
+      uniqueUsersMap.set(item.stationId, (uniqueUsersMap.get(item.stationId) || 0) + 1);
+    }
+  }
+
+  // Enrich activity data
+  const enrichedActivity = stationActivity.map((item) => ({
+    station: item.stationId ? stationMap.get(item.stationId) || null : null,
+    views: item._count.id,
+    uniqueUsers: item.stationId ? uniqueUsersMap.get(item.stationId) || 0 : 0,
+  }));
 
   // Filter out deleted stations
-  return enrichedActivity.filter(item => item.station !== null);
+  return enrichedActivity.filter((item) => item.station !== null);
 }
 
 // ============================================================================

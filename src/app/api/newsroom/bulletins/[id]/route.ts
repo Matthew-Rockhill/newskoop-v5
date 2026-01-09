@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { generateSlug, generateUniqueBulletinSlug } from '@/lib/slug-utils';
 
 const updateBulletinSchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
@@ -183,21 +184,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Only editors can edit approved or published bulletins' }, { status: 403 });
     }
 
-    // Update slug if title changes
+    // Update slug if title changes using optimized single-query approach
     const updateData: any = { ...validatedData };
     if (validatedData.title) {
-      const baseSlug = validatedData.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      
-      let slug = baseSlug;
-      let counter = 0;
-      while (await prisma.bulletin.findFirst({ where: { slug, id: { not: id } } })) {
-        counter++;
-        slug = `${baseSlug}-${counter}`;
-      }
-      updateData.slug = slug;
+      const baseSlug = generateSlug(validatedData.title);
+      updateData.slug = await generateUniqueBulletinSlug(baseSlug, id);
     }
 
     // Handle scheduled date

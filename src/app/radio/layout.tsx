@@ -34,10 +34,10 @@ export default function RadioLayout({
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-kelly-green"></div>
-          <p className="mt-4 text-gray-600">Loading Radio Station Zone...</p>
+          <p className="mt-4 text-zinc-600">Loading Radio Station Zone...</p>
         </div>
       </div>
     );
@@ -48,7 +48,7 @@ export default function RadioLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-zinc-50">
       {/* Top Navigation */}
       <RadioNavbar />
       

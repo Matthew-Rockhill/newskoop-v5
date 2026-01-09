@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button';
+import { Heading } from '@/components/ui/heading';
+import { Text } from '@/components/ui/text';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
 interface EmptyStateProps {
@@ -11,11 +13,11 @@ interface EmptyStateProps {
   };
 }
 
-export function EmptyState({ 
+export function EmptyState({
   icon: Icon,
-  title, 
-  description, 
-  action 
+  title,
+  description,
+  action
 }: EmptyStateProps) {
   return (
     <div className="text-center py-12">
@@ -26,12 +28,12 @@ export function EmptyState({
           {/* Default icon or placeholder */}
         </div>
       )}
-      <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-white">
+      <Heading level={4} className="mt-3">
         {title}
-      </h3>
-      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+      </Heading>
+      <Text className="mt-2 text-zinc-500 dark:text-zinc-400">
         {description}
-      </p>
+      </Text>
       {action && (
         <div className="mt-6">
           <Button

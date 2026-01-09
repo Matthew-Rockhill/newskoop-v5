@@ -99,17 +99,17 @@ export function ReviewerSelectionModal({
 
             {/* Content */}
             <div className="space-y-4">
-              <Text className="text-gray-600">
+              <Text className="text-zinc-600">
                 Select a journalist to review your story:
               </Text>
               
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <Text className="font-medium text-gray-900">&ldquo;{storyTitle}&rdquo;</Text>
+              <div className="bg-zinc-50 p-3 rounded-lg">
+                <Text className="font-medium text-zinc-900">&ldquo;{storyTitle}&rdquo;</Text>
               </div>
 
               {isLoadingReviewers ? (
                 <div className="text-center py-4">
-                  <Text className="text-gray-500">Loading reviewers...</Text>
+                  <Text className="text-zinc-500">Loading reviewers...</Text>
                 </div>
               ) : reviewers.length === 0 ? (
                 <div className="text-center py-4">
@@ -117,7 +117,7 @@ export function ReviewerSelectionModal({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-zinc-700">
                     Select Reviewer *
                   </label>
                   <Select

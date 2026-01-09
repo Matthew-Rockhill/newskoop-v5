@@ -68,8 +68,8 @@ export default function StationEditPage() {
       <Container>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <RadioIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-sm text-gray-500">Loading station...</p>
+            <RadioIcon className="mx-auto h-12 w-12 text-zinc-400" />
+            <p className="mt-2 text-sm text-zinc-500">Loading station...</p>
           </div>
         </div>
       </Container>
@@ -81,8 +81,8 @@ export default function StationEditPage() {
       <Container>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <RadioIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-sm text-gray-500">
+            <RadioIcon className="mx-auto h-12 w-12 text-zinc-400" />
+            <p className="mt-2 text-sm text-zinc-500">
               {error || 'Station not found'}
             </p>
           </div>

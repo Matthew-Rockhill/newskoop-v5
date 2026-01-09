@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { z } from 'zod';
+import { ClassificationType } from '@prisma/client';
+import { generateSlug, generateUniqueStorySlug } from '@/lib/slug-utils';
 
 const translationRequestSchema = z.object({
   translations: z.array(z.object({
@@ -9,16 +11,6 @@ const translationRequestSchema = z.object({
     assignedToId: z.string()
   }))
 });
-
-// Helper function to generate slug from title
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9 -]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-}
 
 // POST /api/newsroom/stories/[id]/create-translations - Create translations for a story
 const createTranslations = createHandler(
@@ -40,6 +32,11 @@ const createTranslations = createHandler(
           include: {
             tag: true
           }
+        },
+        classifications: {
+          include: {
+            classification: true
+          }
         }
       }
     });
@@ -60,43 +57,33 @@ const createTranslations = createHandler(
     const createdTranslations = [];
 
     for (const translation of translations) {
-      // Generate slug with language suffix
-      const baseSlug = generateSlug(originalStory.title);
-      let slug = `${baseSlug}-${translation.language.toLowerCase()}`;
+      // Generate slug with language suffix using optimized single-query approach
+      const baseSlug = `${generateSlug(originalStory.title)}-${translation.language.toLowerCase()}`;
+      const slug = await generateUniqueStorySlug(baseSlug);
 
-      // Check for duplicates and add counter if needed
-      const slugExists = await prisma.story.findFirst({
-        where: { slug }
-      });
+      // Prepare tags - keep all non-language tags
+      const tagConnections = originalStory.tags.map(st => ({
+        tag: { connect: { id: st.tagId } }
+      }));
 
-      if (slugExists) {
-        let counter = 1;
-        let uniqueSlug = `${slug}-${counter}`;
-        while (await prisma.story.findFirst({ where: { slug: uniqueSlug } })) {
-          counter++;
-          uniqueSlug = `${slug}-${counter}`;
-        }
-        slug = uniqueSlug;
-      }
-
-      // Prepare tags - replace ENGLISH language tag with target language
-      const tagConnections = originalStory.tags
-        .filter(st => st.tag.category !== 'LANGUAGE') // Remove language tags
-        .map(st => ({
-          tag: { connect: { id: st.tagId } }
+      // Prepare classifications - replace ENGLISH language classification with target language
+      const classificationConnections = originalStory.classifications
+        .filter(sc => sc.classification.type !== ClassificationType.LANGUAGE) // Remove language classifications
+        .map(sc => ({
+          classification: { connect: { id: sc.classificationId } }
         }));
 
-      // Add target language tag
-      const languageTag = await prisma.tag.findFirst({
+      // Add target language classification
+      const languageClassification = await prisma.classification.findFirst({
         where: {
-          category: 'LANGUAGE',
+          type: ClassificationType.LANGUAGE,
           name: translation.language.charAt(0) + translation.language.slice(1).toLowerCase()
         }
       });
 
-      if (languageTag) {
-        tagConnections.push({
-          tag: { connect: { id: languageTag.id } }
+      if (languageClassification) {
+        classificationConnections.push({
+          classification: { connect: { id: languageClassification.id } }
         });
       }
 
@@ -125,9 +112,13 @@ const createTranslations = createHandler(
               uploadedBy: translation.assignedToId
             }))
           },
-          // Copy tags (with language replacement)
+          // Copy tags
           tags: {
             create: tagConnections
+          },
+          // Copy classifications (with language replacement)
+          classifications: {
+            create: classificationConnections
           }
         },
         include: {
@@ -154,8 +145,7 @@ const createTranslations = createHandler(
                   id: true,
                   name: true,
                   slug: true,
-                  color: true,
-                  category: true
+                  color: true
                 }
               }
             }

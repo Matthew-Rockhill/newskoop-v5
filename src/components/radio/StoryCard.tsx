@@ -19,7 +19,7 @@ interface StoryCardProps {
     id: string;
     title: string;
     content: string | null;
-    category: { id: string; name: string; slug: string } | null;
+    category: { id: string; name: string; nameAfrikaans?: string; slug: string } | null;
     author: { firstName: string; lastName: string } | null;
     createdAt: string | Date;
     publishedAt?: string | Date;
@@ -67,7 +67,9 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
         <div className="flex items-center gap-2">
           {story.category && (
             <Badge color="zinc" className="text-xs">
-              {story.category.name}
+              {selectedLanguage === 'Afrikaans' && story.category.nameAfrikaans
+                ? story.category.nameAfrikaans
+                : story.category.name}
             </Badge>
           )}
           {selectedLanguage && !hasSelectedLanguage && (
@@ -107,22 +109,22 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
           href={`/radio/story/${story.id}`}
           className="block group-hover:text-kelly-green transition-colors"
         >
-          <Heading level={3} className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
+          <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-3 line-clamp-2">
             {displayTitle}
           </Heading>
         </Link>
         
-        <Text className="text-gray-600 text-sm line-clamp-3 mb-4">
+        <Text className="text-zinc-600 text-sm line-clamp-3 mb-4">
           {textContent}...
         </Text>
       </div>
 
       {/* Audio Section */}
       {story.audioClips && story.audioClips.length > 0 && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+        <div className="mb-4 p-3 bg-zinc-50 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <MusicalNoteIcon className="h-4 w-4 text-kelly-green" />
-            <Text className="text-sm font-medium text-gray-700">
+            <Text className="text-sm font-medium text-zinc-700">
               Audio ({story.audioClips.length} clip{story.audioClips.length !== 1 ? 's' : ''})
             </Text>
           </div>
@@ -147,7 +149,7 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
               />
             ))}
             {story.audioClips.length > 1 && (
-              <Text className="text-xs text-gray-500">
+              <Text className="text-xs text-zinc-500">
                 +{story.audioClips.length - 1} more audio clip{story.audioClips.length - 1 !== 1 ? 's' : ''}
               </Text>
             )}
@@ -156,7 +158,7 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
       )}
 
       {/* Footer with Author and Date */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
         <div className="flex items-center gap-2">
           {story.author ? (
             <>
@@ -164,26 +166,26 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
                 className="size-8"
                 name={`${story.author.firstName} ${story.author.lastName}`}
               />
-              <Text className="text-sm text-gray-500">
+              <Text className="text-sm text-zinc-500">
                 {story.author.firstName} {story.author.lastName}
               </Text>
             </>
           ) : (
             <>
-              <UserIcon className="h-4 w-4 text-gray-400" />
-              <Text className="text-sm text-gray-500">NewsKoop</Text>
+              <UserIcon className="h-4 w-4 text-zinc-400" />
+              <Text className="text-sm text-zinc-500">NewsKoop</Text>
             </>
           )}
         </div>
         
         <div className="flex items-center gap-1">
-          <CalendarIcon className="h-4 w-4 text-gray-400" />
-          <Text className="text-sm text-gray-500">{publishedDate}</Text>
+          <CalendarIcon className="h-4 w-4 text-zinc-400" />
+          <Text className="text-sm text-zinc-500">{publishedDate}</Text>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="mt-4 pt-3 border-t border-gray-100">
+      <div className="mt-4 pt-3 border-t border-zinc-100">
         <Link 
           href={`/radio/story/${story.id}`}
           className="inline-flex items-center gap-2 text-kelly-green hover:text-kelly-green-dark text-sm font-medium transition-colors"

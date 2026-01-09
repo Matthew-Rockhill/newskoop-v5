@@ -27,7 +27,7 @@ export default function Homepage() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 tracking-tight uppercase">
               All Your News Covered
             </h1>
-            <div className="w-24 h-1 mx-auto mb-8 bg-[#76BD43]"></div>
+            <div className="w-24 h-1 mx-auto mb-8 bg-kelly-green"></div>
             <p className="text-white mb-8 max-w-4xl mx-auto text-lg sm:text-xl">
               Newskoop is a media content agency that sources, creates and produces content for radio. We cover all international, national, provincial and community news. Content produced includes news, finance, and sport produced in both English and Afrikaans, with a selection of content in IsiXhosa.
             </p>
@@ -38,15 +38,15 @@ export default function Homepage() {
         </section>
 
         {/* Quote Section */}
-        <section className="py-24 bg-gray-50">
+        <section className="py-24 bg-zinc-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
               {/* Quote mark */}
-              <div className="text-8xl text-gray-200 font-serif mb-4">&ldquo;</div>
+              <div className="text-8xl text-zinc-200 font-serif mb-4">&ldquo;</div>
               <blockquote className="text-3xl md:text-4xl font-light text-[#272727] mb-4 leading-relaxed">
                 Credible news not only builds trust with listeners, it empowers communities.
               </blockquote>
-              <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+              <p className="text-lg text-zinc-600 mb-6 leading-relaxed">
                 At Newskoop we pride ourselves in providing stations with quality news that serves 
                 the interests of their communities and provides them with programming that is fresh and innovative.
               </p>
@@ -60,7 +60,7 @@ export default function Homepage() {
                 />
                 <div>
                   <p className="text-xl font-semibold text-[#272727] leading-tight">Kim du Plessis</p>
-                  <p className="text-gray-600 mt-0.5">Managing Director</p>
+                  <p className="text-zinc-600 mt-0.5">Managing Director</p>
                 </div>
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function Homepage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
-                <div className="w-16 h-1 mb-6 bg-[#76BD43]"></div>
+                <div className="w-16 h-1 mb-6 bg-kelly-green"></div>
                 <h2 className="text-3xl font-bold mb-6 text-[#272727]">
                   Wide areas of resources
                 </h2>
@@ -95,7 +95,7 @@ export default function Homepage() {
                 <Image src="/images/editor.png" alt="Content creation process" width={600} height={400} className="w-full rounded-lg shadow-lg" />
               </div>
               <div className="order-1 lg:order-2">
-                <div className="w-16 h-1 mb-6 bg-[#76BD43]"></div>
+                <div className="w-16 h-1 mb-6 bg-kelly-green"></div>
                 <h2 className="text-3xl font-bold mb-6 text-[#272727]">
                   Perfectly crafted content
                 </h2>
@@ -112,7 +112,7 @@ export default function Homepage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
-                <div className="w-16 h-1 mb-6 bg-[#76BD43]"></div>
+                <div className="w-16 h-1 mb-6 bg-kelly-green"></div>
                 <h2 className="text-3xl font-bold mb-6 text-[#272727]">
                   Well Produced Radio Shows
                 </h2>
@@ -138,7 +138,7 @@ export default function Homepage() {
                 <Image src="/images/savings.png" alt="Radio station operations" width={600} height={400} className="w-full rounded-lg shadow-lg" />
               </div>
               <div className="order-1 lg:order-2">
-                <div className="w-16 h-1 mb-6 bg-[#76BD43]"></div>
+                <div className="w-16 h-1 mb-6 bg-kelly-green"></div>
                 <h2 className="text-3xl font-bold mb-6 text-[#272727]">
                   Saving Your station time and money
                 </h2>

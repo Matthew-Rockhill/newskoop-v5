@@ -152,16 +152,16 @@ export function TranslationSelectionModal({
 
             {/* Content */}
             <div className="space-y-4">
-              <Text className="text-gray-600">
+              <Text className="text-zinc-600">
                 Create translation copies of this story in the selected languages:
               </Text>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <Text className="font-medium text-gray-900">&ldquo;{storyTitle}&rdquo;</Text>
+              <div className="bg-zinc-50 p-3 rounded-lg">
+                <Text className="font-medium text-zinc-900">&ldquo;{storyTitle}&rdquo;</Text>
               </div>
 
               {/* Language Selection */}
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-zinc-700">
                   Target Languages
                 </label>
                 <div className="space-y-2">
@@ -189,13 +189,13 @@ export function TranslationSelectionModal({
 
               {isLoadingTranslators ? (
                 <div className="text-center py-4">
-                  <Text className="text-gray-500">Loading translators...</Text>
+                  <Text className="text-zinc-500">Loading translators...</Text>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {/* Afrikaans Translator Selection */}
                   <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-zinc-700">
                       Afrikaans Translator *
                     </label>
                     {afrikaansTranslators.length === 0 ? (
@@ -221,7 +221,7 @@ export function TranslationSelectionModal({
                   {/* Xhosa Translator Selection */}
                   {selectedLanguages.has('XHOSA') && (
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block text-sm font-medium text-zinc-700">
                         Xhosa Translator *
                       </label>
                       {xhosaTranslators.length === 0 ? (

@@ -120,7 +120,7 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
 
   if (isLoading) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-zinc-500">
         <p>Loading comments...</p>
       </div>
     );
@@ -128,7 +128,7 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
 
   if (comments.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-zinc-500">
         <p>No comments yet. Be the first to add one!</p>
       </div>
     );
@@ -137,7 +137,7 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
   return (
     <div className="space-y-6">
       {comments.map((comment) => (
-        <div key={comment.id} className="border-b border-gray-200 pb-6 last:border-b-0">
+        <div key={comment.id} className="border-b border-zinc-200 pb-6 last:border-b-0">
           {/* Main Comment */}
           <div className="flex space-x-3">
             <Avatar
@@ -146,14 +146,14 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-1">
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-zinc-900">
                   {comment.author.firstName} {comment.author.lastName}
                 </span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-zinc-500">
                   {formatDate(comment.createdAt)}
                 </span>
               </div>
-              <div className="text-gray-700 whitespace-pre-wrap">
+              <div className="text-zinc-700 whitespace-pre-wrap">
                 {comment.content}
               </div>
               
@@ -170,13 +170,13 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
 
               {/* Reply Form */}
               {replyingTo === comment.id && (
-                <div className="mt-3 pl-4 border-l-2 border-gray-200">
+                <div className="mt-3 pl-4 border-l-2 border-zinc-200">
                   <textarea
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                     placeholder="Write a reply..."
                     rows={2}
-                    className="w-full p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-[#76BD43]"
+                    className="w-full p-2 border border-zinc-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-kelly-green"
                   />
                   <div className="flex justify-end space-x-2 mt-2">
                     <Button
@@ -199,21 +199,21 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
               {comment.replies && comment.replies.length > 0 && (
                 <div className="mt-4 space-y-4">
                   {comment.replies.map((reply) => (
-                    <div key={reply.id} className="flex space-x-3 pl-4 border-l-2 border-gray-200">
+                    <div key={reply.id} className="flex space-x-3 pl-4 border-l-2 border-zinc-200">
                       <Avatar
                         className="h-6 w-6 flex-shrink-0"
                         name={`${reply.author.firstName} ${reply.author.lastName}`}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium text-gray-900 text-sm">
+                          <span className="font-medium text-zinc-900 text-sm">
                             {reply.author.firstName} {reply.author.lastName}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-zinc-500">
                             {formatDate(reply.createdAt)}
                           </span>
                         </div>
-                        <div className="text-gray-700 text-sm whitespace-pre-wrap">
+                        <div className="text-zinc-700 text-sm whitespace-pre-wrap">
                           {reply.content}
                         </div>
                       </div>
