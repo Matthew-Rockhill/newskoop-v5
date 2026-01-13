@@ -76,10 +76,7 @@ const getCategories = createHandler(
         ],
       });
 
-      const response = NextResponse.json({ categories });
-      // Cache for 5 minutes, revalidate in background for 10 minutes
-      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-      return response;
+      return NextResponse.json({ categories });
     }
 
     // Return hierarchical structure
@@ -115,10 +112,7 @@ const getCategories = createHandler(
       orderBy: { name: 'asc' },
     });
 
-    const response = NextResponse.json({ categories });
-    // Cache for 5 minutes, revalidate in background for 10 minutes
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    return response;
+    return NextResponse.json({ categories });
   },
   [withErrorHandling, withAuth]
 );

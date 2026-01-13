@@ -59,10 +59,7 @@ const getTags = createHandler(
       }),
     ]);
 
-    const response = NextResponse.json({ tags, total });
-    // Cache for 5 minutes, revalidate in background for 10 minutes
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    return response;
+    return NextResponse.json({ tags, total });
   },
   [withErrorHandling, withAuth]
 );

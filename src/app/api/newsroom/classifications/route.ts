@@ -76,9 +76,7 @@ const getClassifications = createHandler(
       ],
     });
 
-    const response = NextResponse.json({ classifications });
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    return response;
+    return NextResponse.json({ classifications });
   },
   [withErrorHandling, withAuth]
 );
