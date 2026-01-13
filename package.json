@@ -60,7 +60,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.10",
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "^3.0.0",
     "@types/lodash": "^4.17.23",
     "@types/lodash.debounce": "^4.0.9",
     "@types/node": "^20",
