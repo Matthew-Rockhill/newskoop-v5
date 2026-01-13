@@ -20,6 +20,7 @@ interface FileUploadProps {
   maxFileSize?: number; // in MB
   acceptedTypes?: string[];
   className?: string;
+  existingCount?: number; // Number of already uploaded files on server
 }
 
 export function FileUpload({
@@ -28,6 +29,7 @@ export function FileUpload({
   maxFileSize = 50, // 50MB default
   acceptedTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'],
   className,
+  existingCount = 0,
 }: FileUploadProps) {
   const [files, setFiles] = useState<AudioFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -57,10 +59,14 @@ export function FileUpload({
         continue;
       }
 
-      // Check total files limit
-      if (files.length + validFiles.length >= maxFiles) {
+      // Check total files limit (including existing server-side files)
+      const totalFiles = existingCount + files.length + validFiles.length;
+      if (totalFiles >= maxFiles) {
         console.error('❌ Max files reached');
-        setError(`Maximum ${maxFiles} files allowed.`);
+        const remaining = maxFiles - existingCount - files.length;
+        setError(remaining <= 0
+          ? `Maximum ${maxFiles} files allowed. ${existingCount} already uploaded.`
+          : `Can only add ${remaining} more file${remaining === 1 ? '' : 's'}.`);
         break;
       }
 
@@ -80,7 +86,7 @@ export function FileUpload({
       setFiles(updatedFiles);
       onFilesChange(updatedFiles);
     }
-  }, [acceptedTypes, files, maxFileSize, maxFiles, onFilesChange]);
+  }, [acceptedTypes, files, maxFileSize, maxFiles, existingCount, onFilesChange]);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -155,7 +161,7 @@ export function FileUpload({
       {files.length > 0 && (
         <div className="space-y-4">
           <h4 className="text-sm font-medium text-zinc-900">
-            Uploaded Files ({files.length}/{maxFiles})
+            New Files ({files.length}/{maxFiles - existingCount} remaining)
           </h4>
           {files.map((audioFile) => (
             <div key={audioFile.id} className="relative">

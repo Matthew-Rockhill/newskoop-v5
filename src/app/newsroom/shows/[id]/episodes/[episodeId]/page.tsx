@@ -365,6 +365,7 @@ export default function EpisodeDetailPage({
                 acceptedTypes={['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4']}
                 maxFiles={5}
                 maxFileSize={50}
+                existingCount={episode.audioClips?.length || 0}
               />
             </div>
           )}

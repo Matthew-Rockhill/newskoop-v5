@@ -5,6 +5,9 @@ import { canManageShows } from '@/lib/permissions';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 import { del } from '@vercel/blob';
 
+// Maximum audio clips allowed per episode
+const MAX_AUDIO_CLIPS_PER_EPISODE = 5;
+
 // POST /api/newsroom/shows/[id]/episodes/[episodeId]/audio - Upload audio file
 const uploadAudio = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
@@ -17,6 +20,11 @@ const uploadAudio = createHandler(
 
     const episode = await prisma.episode.findUnique({
       where: { id: episodeId },
+      include: {
+        _count: {
+          select: { audioClips: true },
+        },
+      },
     });
 
     if (!episode) {
@@ -32,6 +40,22 @@ const uploadAudio = createHandler(
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+    }
+
+    // Check if adding new files would exceed the limit
+    const existingClipCount = episode._count.audioClips;
+    const remainingSlots = MAX_AUDIO_CLIPS_PER_EPISODE - existingClipCount;
+
+    if (remainingSlots <= 0) {
+      return NextResponse.json({
+        error: `Maximum ${MAX_AUDIO_CLIPS_PER_EPISODE} audio clips allowed per episode`
+      }, { status: 400 });
+    }
+
+    if (files.length > remainingSlots) {
+      return NextResponse.json({
+        error: `Can only upload ${remainingSlots} more audio clip${remainingSlots === 1 ? '' : 's'}. Episode already has ${existingClipCount} clip${existingClipCount === 1 ? '' : 's'}.`
+      }, { status: 400 });
     }
 
     const audioClips = [];
