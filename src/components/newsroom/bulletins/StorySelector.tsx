@@ -16,7 +16,7 @@ import {
   TagIcon,
   SpeakerWaveIcon,
 } from '@heroicons/react/24/outline';
-import { debounce } from 'lodash';
+import debounce from 'lodash.debounce';
 
 interface Story {
   id: string;
