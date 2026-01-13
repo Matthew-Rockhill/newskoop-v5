@@ -123,11 +123,13 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- AddForeignKey: ShowClassification -> Show (fix from previous migration)
+-- AddForeignKey: ShowClassification -> Show (only if ShowClassification table exists)
 DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ShowClassification_showId_fkey') THEN
-        ALTER TABLE "ShowClassification" ADD CONSTRAINT "ShowClassification_showId_fkey"
-        FOREIGN KEY ("showId") REFERENCES "Show"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ShowClassification') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ShowClassification_showId_fkey') THEN
+            ALTER TABLE "ShowClassification" ADD CONSTRAINT "ShowClassification_showId_fkey"
+            FOREIGN KEY ("showId") REFERENCES "Show"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        END IF;
     END IF;
 END $$;
 
