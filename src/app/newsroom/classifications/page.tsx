@@ -44,7 +44,6 @@ function ClassificationModal({
   const [name, setName] = useState(classification?.name || '');
   const [nameAfrikaans, setNameAfrikaans] = useState(classification?.nameAfrikaans || '');
   const [descriptionAfrikaans, setDescriptionAfrikaans] = useState(classification?.descriptionAfrikaans || '');
-  const [color, setColor] = useState(classification?.color || '');
   const [isActive, setIsActive] = useState(classification?.isActive ?? true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +65,6 @@ function ClassificationModal({
             name,
             nameAfrikaans: nameAfrikaans || undefined,
             descriptionAfrikaans: descriptionAfrikaans || undefined,
-            color: color || undefined,
             isActive,
           },
         });
@@ -76,7 +74,6 @@ function ClassificationModal({
           nameAfrikaans: nameAfrikaans || undefined,
           descriptionAfrikaans: descriptionAfrikaans || undefined,
           type,
-          color: color || undefined,
           isActive,
         });
       }
@@ -149,27 +146,6 @@ function ClassificationModal({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Color (optional)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={color || '#6366f1'}
-                  onChange={(e) => setColor(e.target.value)}
-                  className="h-10 w-14 border border-zinc-300 rounded-lg cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-kelly-green focus:border-kelly-green"
-                  placeholder="#000000"
-                />
-              </div>
-            </div>
-
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -227,7 +203,6 @@ function DeleteModal({
 
   const totalUsage =
     classification._count.stories +
-    classification._count.shows +
     classification._count.allowedByStations;
 
   return (
@@ -253,9 +228,6 @@ function DeleteModal({
               <ul className="text-amber-700 text-sm space-y-1">
                 {classification._count.stories > 0 && (
                   <li>• {classification._count.stories} stories</li>
-                )}
-                {classification._count.shows > 0 && (
-                  <li>• {classification._count.shows} shows</li>
                 )}
                 {classification._count.allowedByStations > 0 && (
                   <li>• {classification._count.allowedByStations} stations</li>
@@ -368,7 +340,6 @@ export default function ClassificationsPage() {
   const canDelete = (classification: Classification) => {
     const totalUsage =
       classification._count.stories +
-      classification._count.shows +
       classification._count.allowedByStations;
     return totalUsage === 0;
   };
@@ -380,22 +351,23 @@ export default function ClassificationsPage() {
       header: 'Classification',
       priority: 1,
       width: 'expand',
-      render: (classification) => (
+      render: (classification) => {
+        const typeColors: Record<string, { bg: string; icon: string }> = {
+          LANGUAGE: { bg: '#dbeafe', icon: '#2563eb' },
+          RELIGION: { bg: '#f3e8ff', icon: '#9333ea' },
+          LOCALITY: { bg: '#fef3c7', icon: '#d97706' },
+        };
+        const colors = typeColors[classification.type] || { bg: '#f4f4f5', icon: '#71717a' };
+        return (
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0">
             <div
               className="h-12 w-12 rounded-full flex items-center justify-center"
-              style={{
-                backgroundColor: classification.color
-                  ? `${classification.color}20`
-                  : '#f4f4f5'
-              }}
+              style={{ backgroundColor: colors.bg }}
             >
               <TypeIcon
                 className="h-6 w-6"
-                style={{
-                  color: classification.color || '#71717a'
-                }}
+                style={{ color: colors.icon }}
               />
             </div>
           </div>
@@ -421,21 +393,25 @@ export default function ClassificationsPage() {
             </div>
           </div>
         </div>
-      ),
-      mobileRender: (classification) => (
+      );
+      },
+      mobileRender: (classification) => {
+        const typeColors: Record<string, { bg: string; icon: string }> = {
+          LANGUAGE: { bg: '#dbeafe', icon: '#2563eb' },
+          RELIGION: { bg: '#f3e8ff', icon: '#9333ea' },
+          LOCALITY: { bg: '#fef3c7', icon: '#d97706' },
+        };
+        const colors = typeColors[classification.type] || { bg: '#f4f4f5', icon: '#71717a' };
+        return (
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <div
               className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: classification.color
-                  ? `${classification.color}20`
-                  : '#f4f4f5'
-              }}
+              style={{ backgroundColor: colors.bg }}
             >
               <TypeIcon
                 className="h-5 w-5"
-                style={{ color: classification.color || '#71717a' }}
+                style={{ color: colors.icon }}
               />
             </div>
             <div className="min-w-0 flex-1">
@@ -460,7 +436,8 @@ export default function ClassificationsPage() {
             )}
           </div>
         </div>
-      ),
+      );
+      },
     },
     {
       key: 'usage',

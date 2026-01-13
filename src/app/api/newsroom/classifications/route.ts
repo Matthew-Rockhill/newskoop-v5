@@ -64,7 +64,6 @@ const getClassifications = createHandler(
         _count: {
           select: {
             stories: true,
-            shows: true,
             allowedByStations: true,
           },
         },
@@ -133,7 +132,6 @@ const createClassification = createHandler(
         _count: {
           select: {
             stories: true,
-            shows: true,
             allowedByStations: true,
           },
         },

@@ -37,7 +37,6 @@ const getClassification = createHandler(
         _count: {
           select: {
             stories: true,
-            shows: true,
             allowedByStations: true,
           },
         },
@@ -62,7 +61,6 @@ const updateClassification = createHandler(
       name?: string;
       nameAfrikaans?: string;
       descriptionAfrikaans?: string;
-      color?: string;
       isActive?: boolean;
       sortOrder?: number;
     } }).validatedData;
@@ -104,7 +102,6 @@ const updateClassification = createHandler(
         name: data.name,
         nameAfrikaans: data.nameAfrikaans,
         descriptionAfrikaans: data.descriptionAfrikaans,
-        color: data.color,
         isActive: data.isActive,
         sortOrder: data.sortOrder,
       },
@@ -112,7 +109,6 @@ const updateClassification = createHandler(
         _count: {
           select: {
             stories: true,
-            shows: true,
             allowedByStations: true,
           },
         },
@@ -146,7 +142,6 @@ const deleteClassification = createHandler(
         _count: {
           select: {
             stories: true,
-            shows: true,
             allowedByStations: true,
           },
         },
@@ -158,14 +153,13 @@ const deleteClassification = createHandler(
     }
 
     // Check if classification is in use
-    const totalUsage = existing._count.stories + existing._count.shows + existing._count.allowedByStations;
+    const totalUsage = existing._count.stories + existing._count.allowedByStations;
     if (totalUsage > 0) {
       return NextResponse.json(
         {
           error: 'Cannot delete classification that is in use',
           usage: {
             stories: existing._count.stories,
-            shows: existing._count.shows,
             stations: existing._count.allowedByStations,
           }
         },

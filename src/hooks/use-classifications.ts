@@ -8,14 +8,12 @@ export interface Classification {
   nameAfrikaans: string | null;
   descriptionAfrikaans: string | null;
   type: ClassificationType;
-  color: string | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
   _count: {
     stories: number;
-    shows: number;
     allowedByStations: number;
   };
 }
@@ -29,7 +27,6 @@ interface CreateClassificationData {
   nameAfrikaans?: string;
   descriptionAfrikaans?: string;
   type: ClassificationType;
-  color?: string;
   isActive?: boolean;
   sortOrder?: number;
 }
@@ -38,7 +35,6 @@ interface UpdateClassificationData {
   name?: string;
   nameAfrikaans?: string;
   descriptionAfrikaans?: string;
-  color?: string;
   isActive?: boolean;
   sortOrder?: number;
 }

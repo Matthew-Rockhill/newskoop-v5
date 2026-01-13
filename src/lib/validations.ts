@@ -263,7 +263,6 @@ export const classificationCreateSchema = z.object({
   nameAfrikaans: z.string().max(100).optional(),
   descriptionAfrikaans: z.string().optional(),
   type: z.enum(['LANGUAGE', 'RELIGION', 'LOCALITY']),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
 });
@@ -272,7 +271,6 @@ export const classificationUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   nameAfrikaans: z.string().max(100).optional(),
   descriptionAfrikaans: z.string().optional(),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });
