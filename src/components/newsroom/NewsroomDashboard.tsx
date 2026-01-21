@@ -96,15 +96,17 @@ export function NewsroomDashboard() {
     perPage: 20
   });
 
-  // Sub-editor specific: stories pending approval
+  // Sub-editor specific: stories pending approval (assigned to this user)
   const { data: pendingApprovalStoriesData } = useStories({
+    assignedApproverId: userId,
     stage: 'NEEDS_SUB_EDITOR_APPROVAL',
     page: 1,
     perPage: 20
   });
 
-  // Sub-editor specific: translated stories ready for publishing
+  // Sub-editor specific: translated stories ready for publishing (assigned to this user)
   const { data: approvedForPublishingStoriesData } = useStories({
+    assignedApproverId: userId,
     stage: 'TRANSLATED',
     page: 1,
     perPage: 20
