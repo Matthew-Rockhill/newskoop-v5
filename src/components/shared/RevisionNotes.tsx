@@ -266,7 +266,8 @@ export function RevisionNotes({ storyId, onRevisionResolved, onRevisionStatusCha
               onClick={() => setShowHistory(!showHistory)}
               aria-expanded={showHistory}
             >
-              {showHistory ? 'Hide' : 'Show'} ({completedRevisions.length})
+              {showHistory ? 'Hide' : 'Show'}
+              <Badge color="green" className="ml-2">{completedRevisions.length}</Badge>
             </Button>
           </div>
 

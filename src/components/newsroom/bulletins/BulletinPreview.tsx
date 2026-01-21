@@ -155,9 +155,12 @@ export function BulletinPreview({
 
           {/* Stories */}
           <div className="space-y-4">
-            <Heading level={3} className="text-sm font-semibold text-zinc-800 uppercase tracking-wide">
-              Stories ({stories.length})
-            </Heading>
+            <div className="flex items-center gap-2">
+              <Heading level={3} className="text-sm font-semibold text-zinc-800 uppercase tracking-wide">
+                Stories
+              </Heading>
+              <Badge color="zinc">{stories.length}</Badge>
+            </div>
             
             {stories.length === 0 ? (
               <div className="text-center py-8 bg-zinc-50 rounded-lg border border-zinc-200">

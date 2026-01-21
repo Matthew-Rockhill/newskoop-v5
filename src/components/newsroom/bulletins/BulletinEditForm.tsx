@@ -372,9 +372,12 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
             </Card>
 
             <Card className="p-6">
-              <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
-                Selected Stories ({selectedStories.length})
-              </Heading>
+              <div className="flex items-center justify-between mb-4">
+                <Heading level={3} className="text-lg font-semibold text-zinc-900">
+                  Selected Stories
+                </Heading>
+                <Badge color="zinc">{selectedStories.length}</Badge>
+              </div>
               <StoryList
                 stories={selectedStories}
                 onRemove={handleRemoveStory}

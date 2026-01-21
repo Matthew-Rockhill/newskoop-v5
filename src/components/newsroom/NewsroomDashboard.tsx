@@ -363,14 +363,17 @@ export function NewsroomDashboard() {
           </div>
 
           {/* Filter Buttons */}
-          <div className="flex gap-2 mb-6">
+          <div className="flex flex-wrap gap-2 mb-6">
             <Button
               onClick={() => setActiveTaskFilter('all')}
               color={activeTaskFilter === 'all' ? 'primary' : 'white'}
               className="transition-colors"
             >
               <DocumentTextIcon className="h-4 w-4 mr-2" />
-              All Tasks ({reviewStories.length + pendingApprovalStories.length + translationTasks.length + approvedForPublishingStories.length})
+              All Tasks
+              <Badge color={activeTaskFilter === 'all' ? 'white' : 'zinc'} className="ml-2">
+                {reviewStories.length + pendingApprovalStories.length + translationTasks.length + approvedForPublishingStories.length}
+              </Badge>
             </Button>
             {availableFilters.includes('review') && (
               <Button
@@ -379,7 +382,10 @@ export function NewsroomDashboard() {
                 className="transition-colors"
               >
                 <EyeIcon className="h-4 w-4 mr-2" />
-                Review ({reviewStories.length})
+                Review
+                <Badge color={activeTaskFilter === 'review' ? 'white' : 'amber'} className="ml-2">
+                  {reviewStories.length}
+                </Badge>
               </Button>
             )}
             {availableFilters.includes('approve') && (
@@ -389,7 +395,10 @@ export function NewsroomDashboard() {
                 className="transition-colors"
               >
                 <CheckCircleIcon className="h-4 w-4 mr-2" />
-                Approve ({pendingApprovalStories.length})
+                Approve
+                <Badge color={activeTaskFilter === 'approve' ? 'white' : 'blue'} className="ml-2">
+                  {pendingApprovalStories.length}
+                </Badge>
               </Button>
             )}
             {availableFilters.includes('translate') && (
@@ -399,7 +408,10 @@ export function NewsroomDashboard() {
                 className="transition-colors"
               >
                 <DocumentTextIcon className="h-4 w-4 mr-2" />
-                Translate ({translationTasks.length})
+                Translate
+                <Badge color={activeTaskFilter === 'translate' ? 'white' : 'purple'} className="ml-2">
+                  {translationTasks.length}
+                </Badge>
               </Button>
             )}
             {availableFilters.includes('publish') && (
@@ -409,7 +421,10 @@ export function NewsroomDashboard() {
                 className="transition-colors"
               >
                 <CheckCircleIcon className="h-4 w-4 mr-2" />
-                Publish ({approvedForPublishingStories.length})
+                Publish
+                <Badge color={activeTaskFilter === 'publish' ? 'white' : 'green'} className="ml-2">
+                  {approvedForPublishingStories.length}
+                </Badge>
               </Button>
             )}
           </div>
@@ -431,7 +446,8 @@ export function NewsroomDashboard() {
                     <div>
                       <Heading level={3} className="mb-3 flex items-center gap-2">
                         <EyeIcon className="h-5 w-5" aria-hidden="true" />
-                        Review Tasks ({reviewStories.length})
+                        Review Tasks
+                        <Badge color="amber">{reviewStories.length}</Badge>
                       </Heading>
                       <div className="space-y-2">
                         {reviewStories.map((story: any) => (
@@ -473,7 +489,8 @@ export function NewsroomDashboard() {
                     <div>
                       <Heading level={3} className="mb-3 flex items-center gap-2">
                         <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
-                        Approval Tasks ({pendingApprovalStories.length})
+                        Approval Tasks
+                        <Badge color="blue">{pendingApprovalStories.length}</Badge>
                       </Heading>
                       <div className="space-y-2">
                         {pendingApprovalStories.map((story: any) => (
@@ -515,7 +532,8 @@ export function NewsroomDashboard() {
                     <div>
                       <Heading level={3} className="mb-3 flex items-center gap-2">
                         <DocumentTextIcon className="h-5 w-5" aria-hidden="true" />
-                        Translation Tasks ({translationTasks.length})
+                        Translation Tasks
+                        <Badge color="purple">{translationTasks.length}</Badge>
                       </Heading>
                       <div className="space-y-2">
                         {translationTasks.map((story: any) => (
@@ -557,7 +575,8 @@ export function NewsroomDashboard() {
                     <div>
                       <Heading level={3} className="mb-3 flex items-center gap-2">
                         <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
-                        Publishing Tasks ({approvedForPublishingStories.length})
+                        Publishing Tasks
+                        <Badge color="green">{approvedForPublishingStories.length}</Badge>
                       </Heading>
                       <div className="space-y-2">
                         {approvedForPublishingStories.map((story: any) => (

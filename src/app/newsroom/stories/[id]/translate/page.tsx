@@ -383,9 +383,12 @@ export default function TranslatePage() {
                         {/* Current Audio Clips */}
                         {translationStory.audioClips && translationStory.audioClips.length > 0 && (
                           <div className="space-y-3">
-                            <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                              Current Audio Clips ({translationStory.audioClips.filter((clip: any) => !removedAudioIds.includes(clip.id)).length})
-                            </Text>
+                            <div className="flex items-center gap-2">
+                              <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                Current Audio Clips
+                              </Text>
+                              <Badge color="zinc">{translationStory.audioClips.filter((clip: any) => !removedAudioIds.includes(clip.id)).length}</Badge>
+                            </div>
                             {translationStory.audioClips
                               .filter((clip: any) => !removedAudioIds.includes(clip.id))
                               .map((clip: any) => (

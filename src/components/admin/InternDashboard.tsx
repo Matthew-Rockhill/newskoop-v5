@@ -240,7 +240,8 @@ export function UserDashboard() {
                 onClick={() => router.push('/newsroom/stories?status=PENDING_APPROVAL')}
               >
                 <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
-                Review Pending Approval ({pendingApprovalStories.length})
+                Review Pending Approval
+                <Badge color="amber" className="ml-2">{pendingApprovalStories.length}</Badge>
             </Button>
             )}
             {!isJournalist && !isSubEditor && rejectedCount > 0 && (
@@ -249,7 +250,8 @@ export function UserDashboard() {
                 onClick={() => router.push('/newsroom/stories?status=NEEDS_REVISION&authorId=' + userId)}
               >
                 <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
-                Fix Rejected Stories ({rejectedCount})
+                Fix Rejected Stories
+                <Badge color="red" className="ml-2">{rejectedCount}</Badge>
               </Button>
             )}
             {isJournalist && reviewCount > 0 && (
@@ -258,7 +260,8 @@ export function UserDashboard() {
                 onClick={() => router.push('/newsroom/stories?reviewerId=' + userId + '&status=IN_REVIEW')}
               >
                 <UserGroupIcon className="h-4 w-4 mr-2" />
-                Review Stories ({reviewCount})
+                Review Stories
+                <Badge color="blue" className="ml-2">{reviewCount}</Badge>
               </Button>
             )}
           </div>

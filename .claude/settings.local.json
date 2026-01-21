@@ -24,7 +24,21 @@
       "Bash(npx prisma generate:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm outdated:*)",
+      "Bash(npx depcheck:*)",
+      "Bash(npm fund:*)",
+      "Bash(npm doctor:*)",
+      "Bash(npm view:*)",
+      "Bash(npm install:*)",
+      "Bash(npm update:*)",
+      "Bash(gh pr list:*)",
+      "Bash(winget install:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth status)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" pr merge 22 --merge --delete-branch)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" pr merge 23 --merge --delete-branch)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" pr merge 24 --merge --delete-branch)"
     ],
     "deny": [],
     "ask": []

@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
@@ -72,8 +73,9 @@ export function TimeSensitiveContent({
               <div className="flex items-center gap-2 mb-3">
                 <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
                 <Heading level={3} className="text-lg font-semibold text-red-600">
-                  Overdue ({overdueStories.length})
+                  Overdue
                 </Heading>
+                <Badge color="red">{overdueStories.length}</Badge>
               </div>
 
               <div className="space-y-3">
@@ -136,8 +138,9 @@ export function TimeSensitiveContent({
               <div className="flex items-center gap-2 mb-3">
                 <CalendarIcon className="h-5 w-5 text-orange-600" />
                 <Heading level={3} className="text-lg font-semibold text-zinc-900">
-                  Upcoming ({upcomingStories.length})
+                  Upcoming
                 </Heading>
+                <Badge color="orange">{upcomingStories.length}</Badge>
               </div>
 
               <div className="space-y-3 max-h-[400px] overflow-y-auto">
