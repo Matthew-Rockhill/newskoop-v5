@@ -36,7 +36,7 @@ export async function POST(
     const { type, assignedToId, note } = body;
 
     // Validate input
-    if (!type || !['reviewer', 'approver'].includes(type)) {
+    if (!type || !['reviewer', 'approver', 'translator'].includes(type)) {
       return NextResponse.json(
         { error: 'Invalid reassignment type' },
         { status: 400 }
@@ -59,6 +59,9 @@ export async function POST(
         stage: true,
         assignedReviewerId: true,
         assignedApproverId: true,
+        isTranslation: true,
+        language: true,
+        authorId: true,
       },
     });
 
@@ -75,6 +78,7 @@ export async function POST(
         lastName: true,
         staffRole: true,
         userType: true,
+        translationLanguage: true,
       },
     });
 
@@ -171,6 +175,60 @@ export async function POST(
       return NextResponse.json({
         success: true,
         message: `Story reassigned to ${targetUser.firstName} ${targetUser.lastName}`,
+      });
+    } else if (type === 'translator') {
+      // Validate this is a translation story
+      if (!story.isTranslation) {
+        return NextResponse.json(
+          { error: 'Story is not a translation' },
+          { status: 400 }
+        );
+      }
+
+      // Validate story is in DRAFT stage (translation not yet completed)
+      if (story.stage !== 'DRAFT') {
+        return NextResponse.json(
+          { error: 'Translation can only be reassigned while in DRAFT stage' },
+          { status: 400 }
+        );
+      }
+
+      // Validate target user has matching translation language
+      if (!targetUser.translationLanguage || targetUser.translationLanguage !== story.language) {
+        return NextResponse.json(
+          { error: `Target user must have ${story.language} translation language` },
+          { status: 400 }
+        );
+      }
+
+      // Update authorId to the new translator (translations are authored by translator)
+      await prisma.story.update({
+        where: { id: storyId },
+        data: {
+          authorId: assignedToId,
+        },
+      });
+
+      // Log audit event
+      await logAudit({
+        userId: session.user.id,
+        action: 'STORY_REASSIGNED',
+        targetType: 'STORY',
+        targetId: storyId,
+        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        userAgent: req.headers.get('user-agent') || 'unknown',
+        details: {
+          type: 'translator',
+          previousTranslatorId: story.authorId,
+          newTranslatorId: assignedToId,
+          language: story.language,
+          note,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Translation reassigned to ${targetUser.firstName} ${targetUser.lastName}`,
       });
     }
 

@@ -18,6 +18,7 @@ import {
   EyeIcon,
   MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
+import { ReassignButton } from '@/components/newsroom/ReassignButton';
 import { useState, useEffect, useCallback, KeyboardEvent } from 'react';
 
 // Helper for keyboard navigation on clickable elements
@@ -51,6 +52,7 @@ export function NewsroomDashboard() {
   const userRole = session?.user?.staffRole;
   const isJournalist = userRole === 'JOURNALIST';
   const isSubEditor = userRole === 'SUB_EDITOR';
+  const canReassign = ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole || '');
 
   // Determine available task filters based on role (always include 'all' first)
   const availableFilters: TaskFilter[] = ['all'];
@@ -265,11 +267,11 @@ export function NewsroomDashboard() {
                             onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
-                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" />
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-1">
@@ -282,7 +284,17 @@ export function NewsroomDashboard() {
                                   </Text>
                                 </div>
                               </div>
-                              <Badge color="amber">Review</Badge>
+                              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                {canReassign && (
+                                  <ReassignButton
+                                    storyId={story.id}
+                                    storyTitle={story.title}
+                                    currentAssignee={story.assignedReviewer ? `${story.assignedReviewer.firstName} ${story.assignedReviewer.lastName}` : null}
+                                    type="reviewer"
+                                  />
+                                )}
+                                <Badge color="amber">Review</Badge>
+                              </div>
                             </div>
                           </Card>
                         ))}
@@ -308,11 +320,11 @@ export function NewsroomDashboard() {
                             onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
-                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" />
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-1">
@@ -325,7 +337,17 @@ export function NewsroomDashboard() {
                                   </Text>
                                 </div>
                               </div>
-                              <Badge color="blue">Approve</Badge>
+                              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                {canReassign && (
+                                  <ReassignButton
+                                    storyId={story.id}
+                                    storyTitle={story.title}
+                                    currentAssignee={story.assignedApprover ? `${story.assignedApprover.firstName} ${story.assignedApprover.lastName}` : null}
+                                    type="approver"
+                                  />
+                                )}
+                                <Badge color="blue">Approve</Badge>
+                              </div>
                             </div>
                           </Card>
                         ))}
@@ -351,11 +373,11 @@ export function NewsroomDashboard() {
                             onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}/translate`))}
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
-                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" />
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-1">
@@ -368,7 +390,18 @@ export function NewsroomDashboard() {
                                   </Text>
                                 </div>
                               </div>
-                              <Badge color="purple">Translate</Badge>
+                              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                {canReassign && (
+                                  <ReassignButton
+                                    storyId={story.id}
+                                    storyTitle={story.title}
+                                    currentAssignee={story.author ? `${story.author.firstName} ${story.author.lastName}` : null}
+                                    type="translator"
+                                    targetLanguage={story.language}
+                                  />
+                                )}
+                                <Badge color="purple">Translate</Badge>
+                              </div>
                             </div>
                           </Card>
                         ))}
@@ -446,9 +479,9 @@ export function NewsroomDashboard() {
                         onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                         onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                       >
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                             {story._count?.audioClips > 0 && (
                               <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
@@ -463,6 +496,16 @@ export function NewsroomDashboard() {
                             </Text>
                           </div>
                         </div>
+                        {canReassign && (
+                          <div className="flex-shrink-0 ml-2">
+                            <ReassignButton
+                              storyId={story.id}
+                              storyTitle={story.title}
+                              currentAssignee={story.assignedReviewer ? `${story.assignedReviewer.firstName} ${story.assignedReviewer.lastName}` : null}
+                              type="reviewer"
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -494,9 +537,9 @@ export function NewsroomDashboard() {
                         onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                         onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                       >
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                             {story._count?.audioClips > 0 && (
                               <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
@@ -511,6 +554,16 @@ export function NewsroomDashboard() {
                             </Text>
                           </div>
                         </div>
+                        {canReassign && (
+                          <div className="flex-shrink-0 ml-2">
+                            <ReassignButton
+                              storyId={story.id}
+                              storyTitle={story.title}
+                              currentAssignee={story.assignedApprover ? `${story.assignedApprover.firstName} ${story.assignedApprover.lastName}` : null}
+                              type="approver"
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -542,9 +595,9 @@ export function NewsroomDashboard() {
                         onClick={() => router.push(`/newsroom/stories/${story.id}`)}
                         onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
                       >
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                             {story.language && (
                               <Badge color="purple">{story.language}</Badge>
                             )}
@@ -562,6 +615,17 @@ export function NewsroomDashboard() {
                             </Text>
                           </div>
                         </div>
+                        {canReassign && (
+                          <div className="flex-shrink-0 ml-2">
+                            <ReassignButton
+                              storyId={story.id}
+                              storyTitle={story.title}
+                              currentAssignee={story.author ? `${story.author.firstName} ${story.author.lastName}` : null}
+                              type="translator"
+                              targetLanguage={story.language}
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -189,6 +189,22 @@ const getStories = createHandler(
             email: true,
           },
         },
+        assignedReviewer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        assignedApprover: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
         category: {
           select: {
             id: true,
