@@ -71,7 +71,7 @@ interface BulletinEditFormProps {
 export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEditFormProps) {
   const queryClient = useQueryClient();
   const [selectedStories, setSelectedStories] = useState<SelectedStory[]>([]);
-  const [activeTab, setActiveTab] = useState<'form' | 'stories' | 'preview'>('form');
+  const [activeTab, setActiveTab] = useState<'stories' | 'form' | 'preview'>('stories');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
 
@@ -237,13 +237,16 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
   };
 
   const tabs = [
-    { id: 'form' as const, label: 'Basic Info', count: null },
-    { id: 'stories' as const, label: 'Stories', count: selectedStories.length },
-    { id: 'preview' as const, label: 'Preview', count: null },
+    { id: 'stories' as const, label: '1. Select Stories', count: selectedStories.length },
+    { id: 'form' as const, label: '2. Intro & Outro', count: null },
+    { id: 'preview' as const, label: '3. Preview', count: null },
   ];
 
-  const canProceedToStories = watch('scheduleId') && watch('scheduledDate') && watch('intro') && watch('outro');
-  const canPreview = canProceedToStories && selectedStories.length > 0;
+  // Step 1 (Stories) is always accessible
+  // Step 2 (Intro & Outro) requires schedule, date, and at least one story
+  const canProceedToForm = watch('scheduleId') && watch('scheduledDate') && selectedStories.length > 0;
+  // Step 3 (Preview) requires all fields
+  const canPreview = canProceedToForm && watch('intro') && watch('outro');
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -256,7 +259,7 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
               type="button"
               onClick={() => setActiveTab(tab.id)}
               disabled={
-                (tab.id === 'stories' && !canProceedToStories) ||
+                (tab.id === 'form' && !canProceedToForm) ||
                 (tab.id === 'preview' && !canPreview)
               }
               className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
@@ -278,38 +281,59 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
         </nav>
       </Card>
 
-      {/* Form Tab */}
-      {activeTab === 'form' && (
-        <Card className="p-6">
-          <div className="space-y-6">
-            <div>
-              <Heading level={2} className="text-xl font-semibold text-zinc-900 mb-4">
-                Edit Bulletin Schedule & Content
-              </Heading>
-              <Text className="text-zinc-600">
-                Update the bulletin schedule and content information.
-              </Text>
-            </div>
-
+      {/* Stories Tab (Step 1) */}
+      {activeTab === 'stories' && (
+        <div className="space-y-6">
+          {/* Schedule and Date Selection */}
+          <Card className="p-6">
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Bulletin Schedule *
-                </label>
-                <Select 
-                  {...register('scheduleId')} 
-                  data-invalid={!!errors.scheduleId}
-                >
-                  <option value="">Select a bulletin schedule...</option>
-                  {schedules.map((schedule: any) => (
-                    <option key={schedule.id} value={schedule.id}>
-                      {schedule.title} - {schedule.language} ({schedule.time}) - {schedule.scheduleType.replace('_', ' ')}
-                    </option>
-                  ))}
-                </Select>
-                {errors.scheduleId && (
-                  <p className="text-red-600 text-sm mt-1">{errors.scheduleId.message}</p>
-                )}
+                <Heading level={2} className="text-xl font-semibold text-zinc-900 mb-4">
+                  Edit Schedule & Stories
+                </Heading>
+                <Text className="text-zinc-600">
+                  Update the bulletin schedule and select the stories to include.
+                </Text>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">
+                    Bulletin Schedule *
+                  </label>
+                  <Select
+                    {...register('scheduleId')}
+                    data-invalid={!!errors.scheduleId}
+                  >
+                    <option value="">Select a bulletin schedule...</option>
+                    {schedules.map((schedule: any) => (
+                      <option key={schedule.id} value={schedule.id}>
+                        {schedule.title} - {schedule.language} ({schedule.time}) - {schedule.scheduleType.replace('_', ' ')}
+                      </option>
+                    ))}
+                  </Select>
+                  {errors.scheduleId && (
+                    <p className="text-red-600 text-sm mt-1">{errors.scheduleId.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">
+                    Bulletin Date *
+                  </label>
+                  <Input
+                    type="date"
+                    {...register('scheduledDate')}
+                    min={new Date().toISOString().slice(0, 10)}
+                    data-invalid={!!errors.scheduledDate}
+                  />
+                  {errors.scheduledDate && (
+                    <p className="text-red-600 text-sm mt-1">{errors.scheduledDate.message}</p>
+                  )}
+                  <Text className="text-xs text-zinc-500 mt-1">
+                    Scheduled for {selectedSchedule?.time || '[time]'} on this date
+                  </Text>
+                </div>
               </div>
 
               {selectedSchedule && (
@@ -327,28 +351,63 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
                     </Badge>
                   </div>
                   <Text className="text-sm text-zinc-600 ml-6">
-                    Scheduled for {selectedSchedule.time} • Created by {selectedSchedule.creator?.firstName} {selectedSchedule.creator?.lastName}
+                    Created by {selectedSchedule.creator?.firstName} {selectedSchedule.creator?.lastName}
                   </Text>
                 </Card>
               )}
+            </div>
+          </Card>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Bulletin Date *
-                </label>
-                <Input
-                  type="date"
-                  {...register('scheduledDate')}
-                  min={new Date().toISOString().slice(0, 10)}
-                  data-invalid={!!errors.scheduledDate}
-                />
-                {errors.scheduledDate && (
-                  <p className="text-red-600 text-sm mt-1">{errors.scheduledDate.message}</p>
-                )}
-                <Text className="text-xs text-zinc-500 mt-1">
-                  The bulletin will be scheduled for {selectedSchedule?.time || '[time]'} on this date
-                </Text>
-              </div>
+          {/* Story Selection */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="p-6">
+              <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
+                Add Stories
+              </Heading>
+              <StorySelector
+                language={selectedSchedule?.language || bulletin.language || 'ENGLISH'}
+                selectedStoryIds={selectedStories.map(s => s.id)}
+                onAddStory={handleAddStory}
+              />
+            </Card>
+
+            <Card className="p-6">
+              <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
+                Selected Stories ({selectedStories.length})
+              </Heading>
+              <StoryList
+                stories={selectedStories}
+                onRemove={handleRemoveStory}
+                onReorder={handleReorderStories}
+              />
+
+              {selectedStories.length > 0 && watch('scheduleId') && watch('scheduledDate') && (
+                <div className="mt-6 flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={() => setActiveTab('form')}
+                    className="bg-kelly-green hover:bg-kelly-green/90 text-white"
+                  >
+                    Next: Edit Intro & Outro
+                  </Button>
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Form Tab (Step 2 - Intro & Outro) */}
+      {activeTab === 'form' && (
+        <Card className="p-6">
+          <div className="space-y-6">
+            <div>
+              <Heading level={2} className="text-xl font-semibold text-zinc-900 mb-4">
+                Edit Introduction & Outro
+              </Heading>
+              <Text className="text-zinc-600">
+                Update the introduction and outro for your bulletin with {selectedStories.length} {selectedStories.length === 1 ? 'story' : 'stories'}.
+              </Text>
             </div>
 
             <div>
@@ -381,57 +440,25 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
               )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-between">
               <Button
                 type="button"
                 onClick={() => setActiveTab('stories')}
-                disabled={!canProceedToStories}
+                outline
+              >
+                Back to Stories
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setActiveTab('preview')}
+                disabled={!canPreview}
                 className="bg-kelly-green hover:bg-kelly-green/90 text-white"
               >
-                Next: Edit Stories
+                Next: Preview Changes
               </Button>
             </div>
           </div>
         </Card>
-      )}
-
-      {/* Stories Tab */}
-      {activeTab === 'stories' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
-              Add Stories
-            </Heading>
-            <StorySelector
-              language={selectedSchedule?.language || bulletin.language || 'ENGLISH'}
-              selectedStoryIds={selectedStories.map(s => s.id)}
-              onAddStory={handleAddStory}
-            />
-          </Card>
-
-          <Card className="p-6">
-            <Heading level={3} className="text-lg font-semibold text-zinc-900 mb-4">
-              Selected Stories ({selectedStories.length})
-            </Heading>
-            <StoryList
-              stories={selectedStories}
-              onRemove={handleRemoveStory}
-              onReorder={handleReorderStories}
-            />
-            
-            {selectedStories.length > 0 && (
-              <div className="mt-6 flex justify-end">
-                <Button
-                  type="button"
-                  onClick={() => setActiveTab('preview')}
-                  className="bg-kelly-green hover:bg-kelly-green/90 text-white"
-                >
-                  Preview Changes
-                </Button>
-              </div>
-            )}
-          </Card>
-        </div>
       )}
 
       {/* Preview Tab */}
@@ -444,10 +471,10 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
             <div className="flex gap-3">
               <Button
                 type="button"
-                onClick={() => setActiveTab('stories')}
+                onClick={() => setActiveTab('form')}
                 outline
               >
-                Back to Stories
+                Back to Intro & Outro
               </Button>
               <Button
                 type="submit"
