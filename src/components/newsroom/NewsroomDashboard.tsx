@@ -62,6 +62,7 @@ function formatTaskDate(dateString: string): string {
 }
 
 type TaskFilter = 'all' | 'review' | 'approve' | 'translate' | 'publish';
+type WorkFilter = 'all' | 'drafts' | 'in_review' | 'approved' | 'published';
 
 export function NewsroomDashboard() {
   const { data: session } = useSession();
@@ -82,6 +83,7 @@ export function NewsroomDashboard() {
   }
 
   const [activeTaskFilter, setActiveTaskFilter] = useState<TaskFilter>('all');
+  const [activeWorkFilter, setActiveWorkFilter] = useState<WorkFilter>('all');
 
   // Fetch stories for the user (stage-based workflow)
   const { data: draftStoriesData } = useStories({
@@ -179,183 +181,6 @@ export function NewsroomDashboard() {
       />
 
       <div className="mt-8 space-y-8">
-        {/* MY WORK SECTION - Only show if user has work */}
-        {hasMyWork && (
-          <div>
-            <Heading level={2} className="mb-4">My Work</Heading>
-          <div className="space-y-4">
-            {/* My Drafts */}
-            {draftStories.length > 0 && (
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <PencilIcon className="h-5 w-5 text-blue-600" />
-                    <Heading level={3}>My Drafts</Heading>
-                  </div>
-                  <Text className="text-sm text-zinc-600">{draftStories.length}</Text>
-                </div>
-                <div className="space-y-2">
-                  {draftStories.slice(0, 5).map((story: any) => (
-                    <div
-                      key={story.id}
-                      role="button"
-                      tabIndex={0}
-                      className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                      onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
-                          {story._count?.audioClips > 0 && (
-                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {draftStories.length > 5 && (
-                    <Button
-                      color="white"
-                      className="w-full mt-2"
-                      onClick={() => router.push(`/newsroom/stories?authorId=${userId}&stage=DRAFT`)}
-                    >
-                      View all {draftStories.length} drafts
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {/* Stories in Review (Intern) */}
-            {!isJournalist && !isSubEditor && (needsReviewStories.length > 0 || needsApprovalStories.length > 0) && (
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <ClockIcon className="h-5 w-5 text-amber-600" />
-                    <Heading level={3}>Stories in Review</Heading>
-                  </div>
-                  <Text className="text-sm text-zinc-600">{needsReviewStories.length + needsApprovalStories.length}</Text>
-                </div>
-                <div className="space-y-2">
-                  {[...needsReviewStories, ...needsApprovalStories].slice(0, 5).map((story: any) => (
-                    <div
-                      key={story.id}
-                      role="button"
-                      tabIndex={0}
-                      className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                      onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
-                          {story._count?.audioClips > 0 && (
-                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
-                          )}
-                        </div>
-                        <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                          {story.stage === 'NEEDS_JOURNALIST_REVIEW'
-                            ? `Being reviewed by ${story.assignedReviewer?.firstName || 'journalist'}`
-                            : 'Awaiting sub-editor approval'}
-                        </Text>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-
-            {/* Approved Stories */}
-            {approvedStories.length > 0 && (
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-blue-600" />
-                    <Heading level={3}>Approved Stories</Heading>
-                  </div>
-                  <Text className="text-sm text-zinc-600">{approvedStories.length}</Text>
-                </div>
-                <div className="space-y-2">
-                  {approvedStories.slice(0, 5).map((story: any) => (
-                    <div
-                      key={story.id}
-                      role="button"
-                      tabIndex={0}
-                      className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                      onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
-                          {story._count?.audioClips > 0 && (
-                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
-                          )}
-                        </div>
-                        <Text className="text-sm text-zinc-600 dark:text-zinc-400">Ready for translation</Text>
-                      </div>
-                    </div>
-                  ))}
-                  {approvedStories.length > 5 && (
-                    <Button
-                      color="white"
-                      className="w-full mt-2"
-                      onClick={() => router.push(`/newsroom/stories?authorId=${userId}&stage=APPROVED`)}
-                    >
-                      View all {approvedStories.length} stories
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {/* My Published Stories */}
-            {publishedStories.length > 0 && (
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                    <Heading level={3}>My Published Stories</Heading>
-                  </div>
-                  <Text className="text-sm text-zinc-600">{publishedStories.length}</Text>
-                </div>
-                <div className="space-y-2">
-                  {publishedStories.slice(0, 5).map((story: any) => (
-                    <div
-                      key={story.id}
-                      role="button"
-                      tabIndex={0}
-                      className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                      onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                      onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
-                          {story._count?.audioClips > 0 && (
-                            <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {publishedStories.length > 5 && (
-                    <Button
-                      color="white"
-                      className="w-full mt-2"
-                      onClick={() => router.push(`/newsroom/stories?authorId=${userId}&stage=PUBLISHED`)}
-                    >
-                      View all {publishedStories.length} stories
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            )}
-          </div>
-          </div>
-        )}
-
         {/* MY TASKS SECTION - Always visible with filters */}
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -371,7 +196,7 @@ export function NewsroomDashboard() {
             >
               <DocumentTextIcon className="h-4 w-4 mr-2" />
               All Tasks
-              <Badge color={activeTaskFilter === 'all' ? 'white' : 'zinc'} className="ml-2">
+              <Badge color="zinc" className="ml-2">
                 {reviewStories.length + pendingApprovalStories.length + translationTasks.length + approvedForPublishingStories.length}
               </Badge>
             </Button>
@@ -383,7 +208,7 @@ export function NewsroomDashboard() {
               >
                 <EyeIcon className="h-4 w-4 mr-2" />
                 Review
-                <Badge color={activeTaskFilter === 'review' ? 'white' : 'amber'} className="ml-2">
+                <Badge color="amber" className="ml-2">
                   {reviewStories.length}
                 </Badge>
               </Button>
@@ -396,7 +221,7 @@ export function NewsroomDashboard() {
               >
                 <CheckCircleIcon className="h-4 w-4 mr-2" />
                 Approve
-                <Badge color={activeTaskFilter === 'approve' ? 'white' : 'blue'} className="ml-2">
+                <Badge color="blue" className="ml-2">
                   {pendingApprovalStories.length}
                 </Badge>
               </Button>
@@ -409,7 +234,7 @@ export function NewsroomDashboard() {
               >
                 <DocumentTextIcon className="h-4 w-4 mr-2" />
                 Translate
-                <Badge color={activeTaskFilter === 'translate' ? 'white' : 'purple'} className="ml-2">
+                <Badge color="purple" className="ml-2">
                   {translationTasks.length}
                 </Badge>
               </Button>
@@ -422,7 +247,7 @@ export function NewsroomDashboard() {
               >
                 <CheckCircleIcon className="h-4 w-4 mr-2" />
                 Publish
-                <Badge color={activeTaskFilter === 'publish' ? 'white' : 'green'} className="ml-2">
+                <Badge color="green" className="ml-2">
                   {approvedForPublishingStories.length}
                 </Badge>
               </Button>
@@ -800,6 +625,490 @@ export function NewsroomDashboard() {
                               by {story.author.firstName} {story.author.lastName}
                             </Text>
                             <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* MY WORK SECTION - Stories authored by the user */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <Heading level={2}>My Work</Heading>
+          </div>
+
+          {/* Work Filter Buttons */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <Button
+              onClick={() => setActiveWorkFilter('all')}
+              color={activeWorkFilter === 'all' ? 'primary' : 'white'}
+              className="transition-colors"
+            >
+              <DocumentTextIcon className="h-4 w-4 mr-2" />
+              All Work
+              <Badge color="zinc" className="ml-2">
+                {draftStories.length + needsReviewStories.length + needsApprovalStories.length + approvedStories.length + publishedStories.length}
+              </Badge>
+            </Button>
+            <Button
+              onClick={() => setActiveWorkFilter('drafts')}
+              color={activeWorkFilter === 'drafts' ? 'primary' : 'white'}
+              className="transition-colors"
+            >
+              <PencilIcon className="h-4 w-4 mr-2" />
+              Drafts
+              <Badge color="zinc" className="ml-2">
+                {draftStories.length}
+              </Badge>
+            </Button>
+            <Button
+              onClick={() => setActiveWorkFilter('in_review')}
+              color={activeWorkFilter === 'in_review' ? 'primary' : 'white'}
+              className="transition-colors"
+            >
+              <ClockIcon className="h-4 w-4 mr-2" />
+              In Review
+              <Badge color="amber" className="ml-2">
+                {needsReviewStories.length + needsApprovalStories.length}
+              </Badge>
+            </Button>
+            <Button
+              onClick={() => setActiveWorkFilter('approved')}
+              color={activeWorkFilter === 'approved' ? 'primary' : 'white'}
+              className="transition-colors"
+            >
+              <CheckCircleIcon className="h-4 w-4 mr-2" />
+              Approved
+              <Badge color="green" className="ml-2">
+                {approvedStories.length}
+              </Badge>
+            </Button>
+            <Button
+              onClick={() => setActiveWorkFilter('published')}
+              color={activeWorkFilter === 'published' ? 'primary' : 'white'}
+              className="transition-colors"
+            >
+              <CheckCircleIcon className="h-4 w-4 mr-2" />
+              Published
+              <Badge color="blue" className="ml-2">
+                {publishedStories.length}
+              </Badge>
+            </Button>
+          </div>
+
+          {/* Work Content - All Work */}
+          {activeWorkFilter === 'all' && (
+            <div className="space-y-4">
+              {!hasMyWork ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <DocumentTextIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No stories yet</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">Start by creating your first story.</Text>
+                  </div>
+                </Card>
+              ) : (
+                <>
+                  {draftStories.length > 0 && (
+                    <div>
+                      <Heading level={3} className="mb-3 flex items-center gap-2">
+                        <PencilIcon className="h-5 w-5" aria-hidden="true" />
+                        Drafts
+                        <Badge color="zinc">{draftStories.length}</Badge>
+                      </Heading>
+                      <div className="space-y-2">
+                        {draftStories.map((story: any) => (
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                                  {story._count?.audioClips > 0 && (
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
+                              </div>
+                              <Badge color="zinc">Draft</Badge>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(needsReviewStories.length > 0 || needsApprovalStories.length > 0) && (
+                    <div>
+                      <Heading level={3} className="mb-3 flex items-center gap-2">
+                        <ClockIcon className="h-5 w-5" aria-hidden="true" />
+                        In Review
+                        <Badge color="amber">{needsReviewStories.length + needsApprovalStories.length}</Badge>
+                      </Heading>
+                      <div className="space-y-2">
+                        {needsReviewStories.map((story: any) => (
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                                  {story._count?.audioClips > 0 && (
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    Pending journalist review
+                                  </Text>
+                                  <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
+                              </div>
+                              <Badge color="amber">In Review</Badge>
+                            </div>
+                          </Card>
+                        ))}
+                        {needsApprovalStories.map((story: any) => (
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                                  {story._count?.audioClips > 0 && (
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    Pending sub-editor approval
+                                  </Text>
+                                  <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
+                              </div>
+                              <Badge color="blue">Pending Approval</Badge>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {approvedStories.length > 0 && (
+                    <div>
+                      <Heading level={3} className="mb-3 flex items-center gap-2">
+                        <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
+                        Approved
+                        <Badge color="green">{approvedStories.length}</Badge>
+                      </Heading>
+                      <div className="space-y-2">
+                        {approvedStories.map((story: any) => (
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                                  {story._count?.audioClips > 0 && (
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
+                              </div>
+                              <Badge color="green">Approved</Badge>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {publishedStories.length > 0 && (
+                    <div>
+                      <Heading level={3} className="mb-3 flex items-center gap-2">
+                        <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
+                        Published
+                        <Badge color="blue">{publishedStories.length}</Badge>
+                      </Heading>
+                      <div className="space-y-2">
+                        {publishedStories.map((story: any) => (
+                          <Card
+                            key={story.id}
+                            role="button"
+                            tabIndex={0}
+                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                                  {story._count?.audioClips > 0 && (
+                                    <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
+                              </div>
+                              <Badge color="blue">Published</Badge>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Work Content - Drafts */}
+          {activeWorkFilter === 'drafts' && (
+            <div>
+              {draftStories.length === 0 ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <PencilIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No drafts</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">Create a new story to get started.</Text>
+                  </div>
+                </Card>
+              ) : (
+                <Card className="p-6">
+                  <div className="space-y-2">
+                    {draftStories.map((story: any) => (
+                      <div
+                        key={story.id}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Work Content - In Review */}
+          {activeWorkFilter === 'in_review' && (
+            <div>
+              {needsReviewStories.length === 0 && needsApprovalStories.length === 0 ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <ClockIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No stories in review</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">Submit a draft to start the review process.</Text>
+                  </div>
+                </Card>
+              ) : (
+                <Card className="p-6">
+                  <div className="space-y-2">
+                    {needsReviewStories.map((story: any) => (
+                      <div
+                        key={story.id}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                              Pending journalist review
+                            </Text>
+                            <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
+                        </div>
+                        <Badge color="amber">In Review</Badge>
+                      </div>
+                    ))}
+                    {needsApprovalStories.map((story: any) => (
+                      <div
+                        key={story.id}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                              Pending sub-editor approval
+                            </Text>
+                            <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
+                        </div>
+                        <Badge color="blue">Pending Approval</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Work Content - Approved */}
+          {activeWorkFilter === 'approved' && (
+            <div>
+              {approvedStories.length === 0 ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <CheckCircleIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No approved stories</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">Stories will appear here once approved.</Text>
+                  </div>
+                </Card>
+              ) : (
+                <Card className="p-6">
+                  <div className="space-y-2">
+                    {approvedStories.map((story: any) => (
+                      <div
+                        key={story.id}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Work Content - Published */}
+          {activeWorkFilter === 'published' && (
+            <div>
+              {publishedStories.length === 0 ? (
+                <Card className="p-12">
+                  <div className="text-center">
+                    <CheckCircleIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                    <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No published stories</Heading>
+                    <Text className="text-zinc-600 dark:text-zinc-400">Your published stories will appear here.</Text>
+                  </div>
+                </Card>
+              ) : (
+                <Card className="p-6">
+                  <div className="space-y-2">
+                    {publishedStories.map((story: any) => (
+                      <div
+                        key={story.id}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
+                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Text className="font-medium text-zinc-900 dark:text-zinc-100">{story.title}</Text>
+                            {story._count?.audioClips > 0 && (
+                              <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
                             <Text className="text-sm text-zinc-500 dark:text-zinc-500">
                               {formatTaskDate(story.updatedAt)}
                             </Text>
