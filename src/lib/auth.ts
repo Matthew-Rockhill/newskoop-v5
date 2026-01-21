@@ -128,7 +128,7 @@ export function generatePassword(length: number = 12): string {
 }
 
 const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || process.env.NEXTAUTH_SECRET || 'changeme';
-const RESET_TOKEN_EXPIRY = '1h';
+const RESET_TOKEN_EXPIRY = '7d'; // 7 days - matches database token expiry for new users
 
 export function generateResetToken(userId: string): string {
   return jwt.sign({ userId }, RESET_TOKEN_SECRET, { expiresIn: RESET_TOKEN_EXPIRY });

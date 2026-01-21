@@ -30,29 +30,9 @@ function handleKeyboardNavigation(callback: () => void) {
   };
 }
 
-// Helper to format date/time for tasks
+// Helper to format date/time for tasks - always shows actual date and time
 function formatTaskDate(dateString: string): string {
   const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  // Less than 1 hour ago
-  if (diffMins < 60) {
-    if (diffMins < 1) return 'Just now';
-    return `${diffMins}m ago`;
-  }
-  // Less than 24 hours ago
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  // Less than 7 days ago
-  if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  }
-  // Otherwise show date
   return date.toLocaleDateString('en-ZA', {
     day: 'numeric',
     month: 'short',

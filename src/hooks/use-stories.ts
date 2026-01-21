@@ -252,6 +252,7 @@ export function useCreateStory() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
+      queryClient.invalidateQueries({ queryKey: ['translationTasks'] });
     },
   });
 }
@@ -280,6 +281,7 @@ export function useUpdateStory() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
       queryClient.invalidateQueries({ queryKey: ['story', id] });
+      queryClient.invalidateQueries({ queryKey: ['translationTasks'] });
     },
   });
 }
@@ -308,6 +310,7 @@ export function useUpdateStoryStatus() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
       queryClient.invalidateQueries({ queryKey: ['story', id] });
+      queryClient.invalidateQueries({ queryKey: ['translationTasks'] });
     },
   });
 }
@@ -331,6 +334,7 @@ export function useDeleteStory() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
+      queryClient.invalidateQueries({ queryKey: ['translationTasks'] });
     },
   });
 } 

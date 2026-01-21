@@ -25,12 +25,12 @@ export async function POST(req: NextRequest) {
 
     const resetToken = generateResetToken(user.id);
 
-    // Store the reset token in the database
+    // Store the reset token in the database (24 hours - gives users time to check email and reset)
     await prisma.user.update({
       where: { id: user.id },
       data: {
         resetToken,
-        resetTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+        resetTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       },
     });
 

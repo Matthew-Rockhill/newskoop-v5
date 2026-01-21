@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { MusicalNoteIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 
 import { Container } from '@/components/ui/container';
@@ -39,6 +39,7 @@ import {
   canPublishStory,
   getAvailableStatusTransitions,
 } from '@/lib/permissions';
+import { invalidateDashboardQueries } from '@/lib/query-invalidation';
 import { StoryStatus, StaffRole, StoryStage } from '@prisma/client';
 
 // Audio file interface for uploads
@@ -107,6 +108,7 @@ interface StoryEditFormProps {
 export function StoryEditForm({ storyId }: StoryEditFormProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // All hooks must be called before any conditional returns
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -219,6 +221,9 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
         throw new Error(errorData.error || 'Failed to update story');
       }
 
+      // Invalidate dashboard queries so changes reflect immediately
+      invalidateDashboardQueries(queryClient, storyId);
+
       toast.success('Story updated successfully!');
       router.push(`/newsroom/stories/${storyId}`);
     } catch (error) {
@@ -298,8 +303,11 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
         console.error('Status update failed:', errorData);
         throw new Error(errorData.error || 'Failed to submit for review');
       }
-      
+
       console.log('✅ Story status updated to IN_REVIEW successfully');
+
+      // Invalidate dashboard queries so changes reflect immediately
+      invalidateDashboardQueries(queryClient, storyId);
 
       toast.success('Story submitted for review!');
       router.push(`/newsroom/stories/${storyId}`);

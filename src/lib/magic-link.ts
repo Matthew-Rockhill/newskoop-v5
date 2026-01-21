@@ -29,12 +29,12 @@ export async function createAndSendMagicLink({
     // Use transaction client if provided, otherwise use default prisma client
     const client = tx || prisma;
 
-    // Store the token with expiration (24 hours)
+    // Store the token with expiration (7 days - gives users ample time to set their password)
     await client.user.update({
       where: { id: userId },
       data: {
         resetToken: token,
-        resetTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        resetTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
     });
     

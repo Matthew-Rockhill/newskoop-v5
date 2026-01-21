@@ -109,17 +109,14 @@ export function StoryGroupRow({ story, index = 0 }: StoryGroupRowProps) {
   const userRole = session?.user?.staffRole ?? null;
   const userCanPublish = canPublishStory(userRole);
 
+  // Always show actual date and time instead of relative times
   const formatRelativeTime = (dateString: string | Date) => {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 48) return 'Yesterday';
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 

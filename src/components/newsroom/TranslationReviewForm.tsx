@@ -7,7 +7,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidateTranslationQueries, invalidateCommentQueries } from '@/lib/query-invalidation';
 import { 
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -88,6 +89,7 @@ function canShowSubmitForReviewButton(userRole: string | null, status: string, i
 export function TranslationReviewForm({ translationId }: TranslationReviewFormProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [fieldInteractions, setFieldInteractions] = useState<Record<string, boolean>>({});
@@ -181,7 +183,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       if (!response.ok) {
         throw new Error('Failed to approve translation');
       }
-      
+
+      // Invalidate translation queries so changes reflect immediately
+      invalidateTranslationQueries(queryClient, translationId);
+
       toast.success('Translation approved successfully');
       router.push(`/newsroom/translations/${translationId}`);
     } catch (error) {
@@ -219,7 +224,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       if (!response.ok) {
         throw new Error('Failed to submit translation for review');
       }
-      
+
+      // Invalidate translation queries so changes reflect immediately
+      invalidateTranslationQueries(queryClient, translationId);
+
       toast.success('Translation submitted for review successfully');
       router.push(`/newsroom/translations/${translationId}`);
     } catch (error) {
@@ -235,7 +243,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       // Create comments for revision notes
       for (const note of revisionNotes) {
         if (translatedStory?.id) {
-          await fetch(`/api/newsroom/stories/${translatedStory.id}/comments`, {
+          const commentResponse = await fetch(`/api/newsroom/stories/${translatedStory.id}/comments`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -244,6 +252,11 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
               category: note.category || 'TRANSLATION_REVISION',
             }),
           });
+
+          if (commentResponse.ok) {
+            // Invalidate comment queries so revision notes appear immediately
+            invalidateCommentQueries(queryClient, translatedStory.id);
+          }
         }
       }
 
@@ -260,7 +273,10 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       if (!response.ok) {
         throw new Error('Failed to request revision');
       }
-      
+
+      // Invalidate translation queries so changes reflect immediately
+      invalidateTranslationQueries(queryClient, translationId);
+
       toast.success('Revision requested successfully');
       router.push(`/newsroom/translations/${translationId}/work`);
     } catch (error) {

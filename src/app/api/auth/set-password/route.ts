@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyResetToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
@@ -14,39 +13,14 @@ export async function POST(req: NextRequest) {
 
     const { token, password } = schema.parse(await req.json());
 
-    // Verify the JWT token
-    const userId = verifyResetToken(token);
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Invalid or expired token. The link may have been used already or has expired.' },
-        { status: 400 }
-      );
-    }
-
-    // Find the user and check if the token is still valid
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    // Find user by reset token directly (magic links use random hex tokens, not JWTs)
+    const user = await prisma.user.findFirst({
+      where: { resetToken: token },
     });
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if token exists in database
-    if (!user.resetToken) {
-      return NextResponse.json(
-        { error: 'No active password reset request found. Please request a new password reset link.' },
-        { status: 400 }
-      );
-    }
-
-    // Check if the token matches
-    if (user.resetToken !== token) {
-      return NextResponse.json(
-        { error: 'This password reset link has been superseded by a newer request. Please use the most recent link sent to your email.' },
+        { error: 'Invalid or expired token. The link may have been used already or has expired.' },
         { status: 400 }
       );
     }

@@ -41,7 +41,9 @@ interface RevisionNote {
 import { CategoryModal } from './CategoryModal';
 import { TagModal } from './TagModal';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useStory, useUpdateStoryStatus } from '@/hooks/use-stories';
+import { invalidateDashboardQueries, invalidateCommentQueries } from '@/lib/query-invalidation';
 import { useCategories } from '@/hooks/use-categories';
 import { useTags, useCreateTag } from '@/hooks/use-tags';
 import { useClassifications } from '@/hooks/use-classifications';
@@ -140,6 +142,7 @@ function canShowSubmitForApprovalButton(userRole: string | null, status: string)
 export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [showSubEditorModal, setShowSubEditorModal] = useState(false);
@@ -227,12 +230,17 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
           factChecking: field === 'factChecking' ? checked : watchedValues.factChecking,
           audioQuality: field === 'audioQuality' ? checked : watchedValues.audioQuality,
         };
-        
-        await fetch(`/api/newsroom/stories/${storyId}/review-checklist`, {
+
+        const response = await fetch(`/api/newsroom/stories/${storyId}/review-checklist`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(checklistData),
         });
+
+        if (response.ok) {
+          // Invalidate story query so checklist state is refreshed
+          invalidateDashboardQueries(queryClient, storyId);
+        }
       } catch (error) {
         console.error('Failed to save checklist:', error);
       }
@@ -366,12 +374,17 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
           factChecking: watchedValues.factChecking,
           audioQuality: watchedValues.audioQuality,
         };
-        
-        await fetch(`/api/newsroom/stories/${storyId}/review-checklist`, {
+
+        const checklistResponse = await fetch(`/api/newsroom/stories/${storyId}/review-checklist`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(checklistData),
         });
+
+        if (checklistResponse.ok) {
+          // Invalidate story query so checklist state is refreshed
+          invalidateDashboardQueries(queryClient, storyId);
+        }
       }
       
       await updateStoryStatusMutation.mutateAsync({
@@ -401,7 +414,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
     try {
       // Persist each revision note as a comment
       for (const note of revisionNotes) {
-        await fetch(`/api/newsroom/stories/${storyId}/comments`, {
+        const commentResponse = await fetch(`/api/newsroom/stories/${storyId}/comments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -410,6 +423,11 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
             category: note.category || 'REVISION_REQUEST',
           }),
         });
+
+        if (commentResponse.ok) {
+          // Invalidate comment queries so revision notes appear immediately
+          invalidateCommentQueries(queryClient, storyId);
+        }
       }
       // Then update the story status with proper assignment
       // Loop 1: IN_REVIEW -> assign to author (intern)
