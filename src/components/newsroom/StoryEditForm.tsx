@@ -5,18 +5,17 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { MusicalNoteIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { MusicalNoteIcon, CheckCircleIcon, ArrowLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 
 import { Container } from '@/components/ui/container';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Field, FieldGroup, Fieldset, Label, ErrorMessage } from '@/components/ui/fieldset';
 import { Heading } from '@/components/ui/heading';
-import { Divider } from '@/components/ui/divider';
+import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
@@ -24,7 +23,8 @@ import { FileUpload } from '@/components/ui/file-upload';
 import { ReviewerSelectionModal } from './ReviewerSelectionModal';
 import { RevisionRequestBanner } from '@/components/ui/revision-request-banner';
 import { ReviewStatusBanner } from '@/components/ui/review-status-banner';
-import { StageProgress } from '@/components/ui/stage-progress';
+import { StageBadge } from '@/components/ui/stage-badge';
+import { StageProgressCard } from '@/components/newsroom/WorkflowBar';
 
 // Dynamically import RichTextEditor to reduce initial bundle size
 const RichTextEditor = dynamic(
@@ -462,6 +462,19 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
 
   return (
     <Container>
+      {/* Back Navigation */}
+      <div className="mb-6">
+        <Button
+          color="white"
+          onClick={() => router.push(`/newsroom/stories/${storyId}`)}
+          className="inline-flex items-center gap-2"
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          Back to Story
+        </Button>
+      </div>
+
+      {/* Contextual Banners */}
       {/* Review Status Banner - Show when story is under review */}
       {story.authorId === session?.user?.id &&
        story.stage === 'NEEDS_JOURNALIST_REVIEW' &&
@@ -491,19 +504,19 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
        story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
        story.assignedReviewer?.id === session?.user?.id &&
        story.assignedApprover && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+        <Card className="mb-6 p-4 bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
           <div className="flex items-start gap-3">
             <CheckCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+              <Text className="font-semibold text-blue-900 dark:text-blue-100">
                 Sent for Approval
-              </h3>
-              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                You sent this story to {story.assignedApprover.firstName} {story.assignedApprover.lastName} for approval. They have been notified and will review it.
-              </p>
+              </Text>
+              <Text className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                You sent this story to {story.assignedApprover.firstName} {story.assignedApprover.lastName} for approval.
+              </Text>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Revision Request Banner - Show when there are unresolved revisions */}
@@ -514,78 +527,54 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
         />
       )}
 
-      {/* Stage Progress Bar */}
-      {story.stage && story.author.staffRole && (
-        <StageProgress
-          currentStage={story.stage as StoryStage}
-          authorRole={story.author.staffRole as StaffRole}
-          className="mb-8"
-        />
-      )}
+      {/* Main Grid Layout - matches detail page */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content - Form */}
+        <div className="lg:col-span-2">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Story Content Card */}
+            <Card className="overflow-hidden">
+              {/* Header with gradient - matches detail page */}
+              <div className="bg-gradient-to-r from-kelly-green/10 to-kelly-green/5 p-6 border-b border-zinc-200 dark:border-zinc-700">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    {story.stage && <StageBadge stage={story.stage} />}
+                    <Badge color="amber">Editing</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Status Actions */}
+                    {statusActions.map((action) => (
+                      <Button
+                        key={action.status}
+                        color={action.color}
+                        onClick={() => handleStatusAction(action)}
+                        disabled={isSubmitting}
+                      >
+                        {action.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
 
-      <div className="space-y-6">
-        <PageHeader
-          title={story.title}
-          metadata={{
-            sections: [
-              {
-                title: "Author & Timeline",
-                items: [
-                  {
-                    label: "Author",
-                    value: (
-                      <>
-                        <Avatar
-                          className="h-6 w-6"
-                          name={`${story.author.firstName} ${story.author.lastName}`}
-                        />
-                        <span>{story.author.firstName} {story.author.lastName}</span>
-                      </>
-                    ),
-                    type: 'avatar'
-                  },
-                  {
-                    label: "Created",
-                    value: formatDate(story.createdAt),
-                    type: 'date'
-                  },
-                  {
-                    label: "Last Updated",
-                    value: formatDate(story.updatedAt),
-                    type: 'date'
-                  }
-                ]
-              }
-            ]
-          }}
-          actions={
-            <div className="flex items-center space-x-3">
-              {/* Status Actions */}
-              {statusActions.map((action) => (
-                <Button
-                  key={action.status}
-                  color={action.color}
-                  onClick={() => handleStatusAction(action)}
-                  disabled={isSubmitting}
-                >
-                  {action.label}
-                </Button>
-              ))}
-              
-              {/* Back to Dashboard Button */}
-              <Button color="secondary" href="/newsroom">
-                Back to Dashboard
-              </Button>
-            </div>
-          }
-        />
+                {/* Author Byline */}
+                <div className="flex items-center gap-3">
+                  <Avatar
+                    className="h-10 w-10"
+                    name={`${story.author.firstName} ${story.author.lastName}`}
+                  />
+                  <div>
+                    <Text className="font-medium text-zinc-900 dark:text-zinc-100">
+                      {story.author.firstName} {story.author.lastName}
+                    </Text>
+                    <Text className="text-sm text-zinc-500">
+                      Created {formatDate(story.createdAt)}
+                    </Text>
+                  </div>
+                </div>
+              </div>
 
-        <div className="max-w-5xl">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-              {/* Story Content */}
-              <Card className="p-6">
-                <Heading level={2} className="mb-6">Story Content</Heading>
-                
+              {/* Form Fields */}
+              <div className="p-6">
                 <Fieldset>
                   <FieldGroup>
                     <Field>
@@ -594,7 +583,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                         id="title"
                         {...register('title')}
                         placeholder="Enter your story title..."
-                        className="text-lg"
+                        className="text-lg font-semibold"
                       />
                       {errors.title && (
                         <ErrorMessage>{errors.title.message}</ErrorMessage>
@@ -618,92 +607,189 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                     </Field>
                   </FieldGroup>
                 </Fieldset>
-              </Card>
+              </div>
+            </Card>
 
-              {/* Audio Clips Section */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
+            {/* Audio Clips Section */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <MusicalNoteIcon className="h-5 w-5 text-kelly-green" />
                   <Heading level={3}>Audio Clips</Heading>
-                  <Badge color="zinc">
-                    {story.audioClips?.filter((clip) => !removedAudioIds.includes(clip.id)).length || 0} clips
-                  </Badge>
                 </div>
+                <Badge color="zinc">
+                  {story.audioClips?.filter((clip) => !removedAudioIds.includes(clip.id)).length || 0} clips
+                </Badge>
+              </div>
 
-                {/* Existing audio clips */}
-                {(!story.audioClips || story.audioClips.length === 0) ? (
-                  <div className="text-center py-8 text-zinc-500">
-                    <MusicalNoteIcon className="h-12 w-12 mx-auto mb-2 text-zinc-300" />
-                    <p>No audio clips have been attached to this story</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {story.audioClips.filter((clip) => !removedAudioIds.includes(clip.id)).map((clip) => (
-                      <div key={clip.id} className="relative">
-                        <CustomAudioPlayer
-                          clip={{
-                            ...clip,
-                            url: clip.url, // Use the direct URL from storage
-                            originalName: clip.originalName || clip.filename,
-                            duration: clip.duration ?? null
-                          }}
-                          isPlaying={playingAudioId === clip.id}
-                          currentTime={audioProgress[clip.id] || 0}
-                          duration={audioDuration[clip.id] || 0}
-                          onPlay={handleAudioPlay}
-                          onStop={handleAudioStop}
-                          onRestart={handleAudioRestart}
-                          onSeek={handleAudioSeek}
-                          onTimeUpdate={handleAudioTimeUpdate}
-                          onLoadedMetadata={handleAudioLoadedMetadata}
-                          onEnded={() => setPlayingAudioId(null)}
-                          onError={() => {
-                            toast.error('Failed to play audio file');
-                            setPlayingAudioId(null);
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          color="red"
-                          className="absolute top-2 right-2"
-                          onClick={() => setRemovedAudioIds(ids => [...ids, clip.id])}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
+              {/* Existing audio clips */}
+              {(!story.audioClips || story.audioClips.length === 0) ? (
+                <div className="text-center py-8 text-zinc-500">
+                  <MusicalNoteIcon className="h-12 w-12 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
+                  <Text>No audio clips attached to this story</Text>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {story.audioClips.filter((clip) => !removedAudioIds.includes(clip.id)).map((clip) => (
+                    <div key={clip.id} className="relative group">
+                      <CustomAudioPlayer
+                        clip={{
+                          ...clip,
+                          url: clip.url,
+                          originalName: clip.originalName || clip.filename,
+                          duration: clip.duration ?? null
+                        }}
+                        isPlaying={playingAudioId === clip.id}
+                        currentTime={audioProgress[clip.id] || 0}
+                        duration={audioDuration[clip.id] || 0}
+                        onPlay={handleAudioPlay}
+                        onStop={handleAudioStop}
+                        onRestart={handleAudioRestart}
+                        onSeek={handleAudioSeek}
+                        onTimeUpdate={handleAudioTimeUpdate}
+                        onLoadedMetadata={handleAudioLoadedMetadata}
+                        onEnded={() => setPlayingAudioId(null)}
+                        onError={() => {
+                          toast.error('Failed to play audio file');
+                          setPlayingAudioId(null);
+                        }}
+                        compact
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-2 right-2 p-1.5 rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => setRemovedAudioIds(ids => [...ids, clip.id])}
+                        title="Remove audio clip"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload new audio files */}
+              <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700">
+                <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Add New Audio</Text>
+                <FileUpload
+                  onFilesChange={setNewAudioFiles}
+                  maxFiles={5}
+                  maxFileSize={50}
+                />
+              </div>
+            </Card>
+
+            {/* Form Actions - Fixed at bottom of form area */}
+            <div className="flex items-center justify-between pt-4">
+              <Button
+                type="button"
+                color="white"
+                onClick={() => router.push(`/newsroom/stories/${storyId}`)}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="submit"
+                color="primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Workflow Card */}
+          <Card className="p-6">
+            <Heading level={3} className="mb-4">Workflow</Heading>
+            {story.stage && <StageProgressCard currentStage={story.stage} authorRole={story.author?.staffRole} />}
+            <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center justify-between">
+                <Text className="text-sm text-zinc-500">Last modified</Text>
+                <Text className="text-sm text-zinc-700 dark:text-zinc-300">
+                  {new Date(story.updatedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </div>
+            </div>
+          </Card>
+
+          {/* Story Info Card */}
+          <Card className="p-6">
+            <Heading level={3} className="mb-4">Story Info</Heading>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Text className="text-sm text-zinc-500">Author</Text>
+                <div className="flex items-center gap-2">
+                  <Avatar
+                    className="h-6 w-6"
+                    name={`${story.author.firstName} ${story.author.lastName}`}
+                  />
+                  <Text className="text-sm text-zinc-700 dark:text-zinc-300">
+                    {story.author.firstName} {story.author.lastName}
+                  </Text>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Text className="text-sm text-zinc-500">Role</Text>
+                <Badge color="zinc">{story.author.staffRole}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <Text className="text-sm text-zinc-500">Created</Text>
+                <Text className="text-sm text-zinc-700 dark:text-zinc-300">
+                  {new Date(story.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </div>
+            </div>
+          </Card>
+
+          {/* Assigned Reviewers Card - Show if assigned */}
+          {(story.assignedReviewer || story.assignedApprover) && (
+            <Card className="p-6">
+              <Heading level={3} className="mb-4">Assigned</Heading>
+              <div className="space-y-3">
+                {story.assignedReviewer && (
+                  <div className="flex items-center justify-between">
+                    <Text className="text-sm text-zinc-500">Reviewer</Text>
+                    <div className="flex items-center gap-2">
+                      <Avatar
+                        className="h-6 w-6"
+                        name={`${story.assignedReviewer.firstName} ${story.assignedReviewer.lastName}`}
+                      />
+                      <Text className="text-sm text-zinc-700 dark:text-zinc-300">
+                        {story.assignedReviewer.firstName} {story.assignedReviewer.lastName}
+                      </Text>
+                    </div>
                   </div>
                 )}
-
-                {/* Upload new audio files */}
-                <div className="mt-6">
-                  <FileUpload
-                    onFilesChange={setNewAudioFiles}
-                    maxFiles={5}
-                    maxFileSize={50}
-                  />
-                </div>
-              </Card>
-
-              <Divider />
-
-              {/* Actions */}
-              <div className="flex justify-between">
-                <Button
-                  type="button"
-                  color="white"
-                  onClick={() => router.push(`/newsroom/stories/${storyId}`)}
-                >
-                  Cancel
-                </Button>
-                
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </Button>
+                {story.assignedApprover && (
+                  <div className="flex items-center justify-between">
+                    <Text className="text-sm text-zinc-500">Approver</Text>
+                    <div className="flex items-center gap-2">
+                      <Avatar
+                        className="h-6 w-6"
+                        name={`${story.assignedApprover.firstName} ${story.assignedApprover.lastName}`}
+                      />
+                      <Text className="text-sm text-zinc-700 dark:text-zinc-300">
+                        {story.assignedApprover.firstName} {story.assignedApprover.lastName}
+                      </Text>
+                    </div>
+                  </div>
+                )}
               </div>
-            </form>
+            </Card>
+          )}
         </div>
       </div>
 

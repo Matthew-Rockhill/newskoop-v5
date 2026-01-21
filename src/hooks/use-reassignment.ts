@@ -36,14 +36,16 @@ export function useReassignmentUsers({ type, targetLanguage, enabled = true }: F
 
       if (type === 'reviewer') {
         // Return journalists for reviewer assignments
-        return metrics.journalistWorkload || [];
+        // API returns: reviewerWorkload.journalists
+        return metrics.reviewerWorkload?.journalists || [];
       } else if (type === 'approver') {
         // Return sub-editors+ for approver assignments
-        return metrics.subEditorWorkload || [];
+        // API returns: reviewerWorkload.subEditors
+        return metrics.reviewerWorkload?.subEditors || [];
       } else if (type === 'translator') {
         // Fetch users with matching translation language
         const usersResponse = await fetch(
-          `/api/admin/users?translationLanguage=${targetLanguage}&userType=STAFF&limit=100`
+          `/api/users?translationLanguage=${targetLanguage}&userType=STAFF&perPage=100`
         );
         if (!usersResponse.ok) {
           throw new Error('Failed to fetch translators');

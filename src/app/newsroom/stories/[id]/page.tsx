@@ -37,6 +37,7 @@ import { ReviewStatusBanner } from '@/components/ui/review-status-banner';
 import { WorkflowBar, StageProgressCard } from '@/components/newsroom/WorkflowBar';
 import { CategoryModal } from '@/components/newsroom/CategoryModal';
 import { TagModal } from '@/components/newsroom/TagModal';
+import { ReassignButton } from '@/components/newsroom/ReassignButton';
 
 import { useStory, useDeleteStory } from '@/hooks/use-stories';
 import { useCategories } from '@/hooks/use-categories';
@@ -122,6 +123,21 @@ function canShowDeleteButton(userRole: StaffRole | null, status: string) {
   // Only allow delete for DRAFT and NEEDS_REVISION (not IN_REVIEW)
   const deletableStatuses = ['DRAFT', 'NEEDS_REVISION'];
   return canDeleteStory(userRole) && deletableStatuses.includes(status);
+}
+
+// Helper: should show reassign button (SUB_EDITOR+ only)
+function canShowReassignButton(userRole: StaffRole | null) {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+// Helper: get reassignment type based on story stage
+function getReassignmentType(stage: StoryStage | null): 'reviewer' | 'approver' | 'translator' | null {
+  if (!stage) return null;
+  if (stage === 'NEEDS_JOURNALIST_REVIEW') return 'reviewer';
+  if (stage === 'NEEDS_SUB_EDITOR_APPROVAL') return 'approver';
+  if (stage === 'DRAFT') return 'translator'; // For translation stories in draft
+  return null;
 }
 
 export default function StoryDetailPage() {
@@ -868,6 +884,31 @@ export default function StoryDetailPage() {
 
                 {/* Action Buttons - Top Right */}
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Reassign Button - For SUB_EDITOR+ on stories in review/approval stages */}
+                  {canShowReassignButton(session?.user?.staffRole ?? null) &&
+                   getReassignmentType(story.stage) &&
+                   // Only show for review/approval stages, or translation stories in draft
+                   (story.stage === 'NEEDS_JOURNALIST_REVIEW' ||
+                    story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' ||
+                    (story.isTranslation && story.stage === 'DRAFT')) && (
+                    <ReassignButton
+                      storyId={story.id}
+                      storyTitle={story.title}
+                      currentAssignee={
+                        story.stage === 'NEEDS_JOURNALIST_REVIEW' && story.assignedReviewer
+                          ? `${story.assignedReviewer.firstName} ${story.assignedReviewer.lastName}`
+                          : story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' && story.assignedApprover
+                          ? `${story.assignedApprover.firstName} ${story.assignedApprover.lastName}`
+                          : story.isTranslation && story.author
+                          ? `${story.author.firstName} ${story.author.lastName}`
+                          : null
+                      }
+                      type={getReassignmentType(story.stage)!}
+                      targetLanguage={story.isTranslation ? story.language : undefined}
+                      compact={false}
+                    />
+                  )}
+
                   {/* Translate Button - For empty translation stories */}
                   {story.isTranslation &&
                    (!story.content || story.content.trim() === '') &&
