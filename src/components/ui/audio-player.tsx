@@ -173,7 +173,7 @@ export function CustomAudioPlayer({
     return (
       <div className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
         {/* Hidden audio element */}
-        <audio ref={audioRef} preload="metadata" crossOrigin="anonymous">
+        <audio ref={audioRef} preload="metadata">
           <source src={audioUrl} type={clip?.mimeType || localFile?.file.type || 'audio/mpeg'} />
         </audio>
 
@@ -233,7 +233,7 @@ export function CustomAudioPlayer({
   return (
     <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
       {/* Hidden audio element */}
-      <audio ref={audioRef} preload="metadata" crossOrigin="anonymous">
+      <audio ref={audioRef} preload="metadata">
         <source src={audioUrl} type={clip?.mimeType || localFile?.file.type || 'audio/mpeg'} />
         Your browser does not support the audio element.
       </audio>
