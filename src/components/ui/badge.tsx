@@ -5,6 +5,7 @@ import React, { forwardRef } from 'react'
 import { Link } from './link'
 
 const colors = {
+  white: 'bg-white text-zinc-900 group-data-hover:bg-zinc-100 dark:bg-white dark:text-zinc-900 dark:group-data-hover:bg-zinc-100',
   red: 'bg-red-500/15 text-red-700 group-data-hover:bg-red-500/25 dark:bg-red-500/10 dark:text-red-400 dark:group-data-hover:bg-red-500/20',
   orange:
     'bg-orange-500/15 text-orange-700 group-data-hover:bg-orange-500/25 dark:bg-orange-500/10 dark:text-orange-400 dark:group-data-hover:bg-orange-500/20',

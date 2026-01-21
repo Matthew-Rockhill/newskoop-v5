@@ -196,7 +196,7 @@ export function NewsroomDashboard() {
             >
               <DocumentTextIcon className="h-4 w-4 mr-2" />
               All Tasks
-              <Badge color="zinc" className="ml-2">
+              <Badge color={activeTaskFilter === 'all' ? 'white' : 'zinc'} className="ml-2">
                 {reviewStories.length + pendingApprovalStories.length + translationTasks.length + approvedForPublishingStories.length}
               </Badge>
             </Button>
@@ -208,7 +208,7 @@ export function NewsroomDashboard() {
               >
                 <EyeIcon className="h-4 w-4 mr-2" />
                 Review
-                <Badge color="amber" className="ml-2">
+                <Badge color={activeTaskFilter === 'review' ? 'white' : 'amber'} className="ml-2">
                   {reviewStories.length}
                 </Badge>
               </Button>
@@ -221,7 +221,7 @@ export function NewsroomDashboard() {
               >
                 <CheckCircleIcon className="h-4 w-4 mr-2" />
                 Approve
-                <Badge color="blue" className="ml-2">
+                <Badge color={activeTaskFilter === 'approve' ? 'white' : 'blue'} className="ml-2">
                   {pendingApprovalStories.length}
                 </Badge>
               </Button>
@@ -234,7 +234,7 @@ export function NewsroomDashboard() {
               >
                 <DocumentTextIcon className="h-4 w-4 mr-2" />
                 Translate
-                <Badge color="purple" className="ml-2">
+                <Badge color={activeTaskFilter === 'translate' ? 'white' : 'purple'} className="ml-2">
                   {translationTasks.length}
                 </Badge>
               </Button>
@@ -247,7 +247,7 @@ export function NewsroomDashboard() {
               >
                 <CheckCircleIcon className="h-4 w-4 mr-2" />
                 Publish
-                <Badge color="green" className="ml-2">
+                <Badge color={activeTaskFilter === 'publish' ? 'white' : 'green'} className="ml-2">
                   {approvedForPublishingStories.length}
                 </Badge>
               </Button>
@@ -654,7 +654,7 @@ export function NewsroomDashboard() {
             >
               <DocumentTextIcon className="h-4 w-4 mr-2" />
               All Work
-              <Badge color="zinc" className="ml-2">
+              <Badge color={activeWorkFilter === 'all' ? 'white' : 'zinc'} className="ml-2">
                 {draftStories.length + needsReviewStories.length + needsApprovalStories.length + approvedStories.length + publishedStories.length}
               </Badge>
             </Button>
@@ -665,7 +665,7 @@ export function NewsroomDashboard() {
             >
               <PencilIcon className="h-4 w-4 mr-2" />
               Drafts
-              <Badge color="zinc" className="ml-2">
+              <Badge color={activeWorkFilter === 'drafts' ? 'white' : 'zinc'} className="ml-2">
                 {draftStories.length}
               </Badge>
             </Button>
@@ -676,7 +676,7 @@ export function NewsroomDashboard() {
             >
               <ClockIcon className="h-4 w-4 mr-2" />
               In Review
-              <Badge color="amber" className="ml-2">
+              <Badge color={activeWorkFilter === 'in_review' ? 'white' : 'amber'} className="ml-2">
                 {needsReviewStories.length + needsApprovalStories.length}
               </Badge>
             </Button>
@@ -687,7 +687,7 @@ export function NewsroomDashboard() {
             >
               <CheckCircleIcon className="h-4 w-4 mr-2" />
               Approved
-              <Badge color="green" className="ml-2">
+              <Badge color={activeWorkFilter === 'approved' ? 'white' : 'green'} className="ml-2">
                 {approvedStories.length}
               </Badge>
             </Button>
@@ -698,7 +698,7 @@ export function NewsroomDashboard() {
             >
               <CheckCircleIcon className="h-4 w-4 mr-2" />
               Published
-              <Badge color="blue" className="ml-2">
+              <Badge color={activeWorkFilter === 'published' ? 'white' : 'blue'} className="ml-2">
                 {publishedStories.length}
               </Badge>
             </Button>
