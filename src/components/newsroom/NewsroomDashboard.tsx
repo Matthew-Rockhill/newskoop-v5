@@ -30,6 +30,37 @@ function handleKeyboardNavigation(callback: () => void) {
   };
 }
 
+// Helper to format date/time for tasks
+function formatTaskDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Less than 1 hour ago
+  if (diffMins < 60) {
+    if (diffMins < 1) return 'Just now';
+    return `${diffMins}m ago`;
+  }
+  // Less than 24 hours ago
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+  // Less than 7 days ago
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+  // Otherwise show date
+  return date.toLocaleDateString('en-ZA', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 type TaskFilter = 'all' | 'review' | 'approve' | 'translate' | 'publish';
 
 export function NewsroomDashboard() {
@@ -420,9 +451,15 @@ export function NewsroomDashboard() {
                                     <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
                                   )}
                                 </div>
-                                <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                                  By {story.author?.firstName} {story.author?.lastName}
-                                </Text>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    By {story.author?.firstName} {story.author?.lastName}
+                                  </Text>
+                                  <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
                               </div>
                               <Badge color="amber">Review</Badge>
                             </div>
@@ -456,9 +493,15 @@ export function NewsroomDashboard() {
                                     <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
                                   )}
                                 </div>
-                                <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                                  By {story.author?.firstName} {story.author?.lastName}
-                                </Text>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    By {story.author?.firstName} {story.author?.lastName}
+                                  </Text>
+                                  <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
                               </div>
                               <Badge color="blue">Approve</Badge>
                             </div>
@@ -492,9 +535,15 @@ export function NewsroomDashboard() {
                                     <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
                                   )}
                                 </div>
-                                <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                                  {story.language} translation
-                                </Text>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    {story.language} translation
+                                  </Text>
+                                  <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
                               </div>
                               <Badge color="purple">Translate</Badge>
                             </div>
@@ -528,9 +577,15 @@ export function NewsroomDashboard() {
                                     <MusicalNoteIcon className="h-4 w-4 text-kelly-green" aria-hidden="true" />
                                   )}
                                 </div>
-                                <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                                  Ready to publish
-                                </Text>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    Ready to publish
+                                  </Text>
+                                  <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                  <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                                    {formatTaskDate(story.updatedAt)}
+                                  </Text>
+                                </div>
                               </div>
                               <Badge color="green">Publish</Badge>
                             </div>
@@ -574,9 +629,15 @@ export function NewsroomDashboard() {
                               <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
                           </div>
-                          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                            by {story.author.firstName} {story.author.lastName}
-                          </Text>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                              by {story.author.firstName} {story.author.lastName}
+                            </Text>
+                            <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -616,9 +677,15 @@ export function NewsroomDashboard() {
                               <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
                           </div>
-                          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                            by {story.author.firstName} {story.author.lastName}
-                          </Text>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                              by {story.author.firstName} {story.author.lastName}
+                            </Text>
+                            <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -661,9 +728,15 @@ export function NewsroomDashboard() {
                               <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
                           </div>
-                          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                            Translation not yet started
-                          </Text>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                              Translation not yet started
+                            </Text>
+                            <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -703,9 +776,15 @@ export function NewsroomDashboard() {
                               <MusicalNoteIcon className="h-4 w-4 text-kelly-green flex-shrink-0" aria-hidden="true" title={`${story._count.audioClips} audio ${story._count.audioClips === 1 ? 'clip' : 'clips'}`} />
                             )}
                           </div>
-                          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-                            by {story.author.firstName} {story.author.lastName}
-                          </Text>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+                              by {story.author.firstName} {story.author.lastName}
+                            </Text>
+                            <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                            <Text className="text-sm text-zinc-500 dark:text-zinc-500">
+                              {formatTaskDate(story.updatedAt)}
+                            </Text>
+                          </div>
                         </div>
                       </div>
                     ))}
