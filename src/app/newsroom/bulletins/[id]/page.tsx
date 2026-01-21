@@ -1,8 +1,10 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import toast from 'react-hot-toast';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -11,9 +13,19 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
 import { formatLanguage } from '@/lib/language-utils';
-import { 
+import {
   PencilIcon,
+  PaperAirplaneIcon,
+  CheckCircleIcon,
+  ArrowPathIcon,
+  MegaphoneIcon,
+  ArchiveBoxIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
+import { Dialog } from '@headlessui/react';
+import { Select } from '@/components/ui/select';
+import { Heading } from '@/components/ui/heading';
+import { Text } from '@/components/ui/text';
 
 interface BulletinStory {
   id: string;
@@ -56,6 +68,16 @@ interface Bulletin {
     firstName: string;
     lastName: string;
   };
+  reviewer?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  publisher?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
   schedule?: {
     title: string;
     time: string;
@@ -63,11 +85,23 @@ interface Bulletin {
   bulletinStories?: BulletinStory[];
 }
 
+interface Reviewer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  staffRole: string;
+}
+
 export default function BulletinViewPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: session } = useSession();
   const bulletinId = params.id as string;
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showReviewerModal, setShowReviewerModal] = useState(false);
+  const [selectedReviewerId, setSelectedReviewerId] = useState<string>('');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['bulletin', bulletinId],
@@ -79,6 +113,88 @@ export default function BulletinViewPage() {
   });
 
   const bulletin: Bulletin = data?.bulletin;
+
+  // Fetch available reviewers (SUB_EDITOR and above)
+  const { data: reviewersData, isLoading: isLoadingReviewers } = useQuery({
+    queryKey: ['bulletin-reviewers'],
+    queryFn: async () => {
+      const response = await fetch('/api/users?staffRole=SUB_EDITOR,EDITOR,ADMIN,SUPERADMIN&isActive=true&perPage=100');
+      if (!response.ok) throw new Error('Failed to fetch reviewers');
+      return response.json();
+    },
+    enabled: showReviewerModal,
+  });
+
+  const reviewers: Reviewer[] = reviewersData?.users || [];
+
+  // Status update mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: async (data: { status: string; reviewerId?: string }) => {
+      const response = await fetch(`/api/newsroom/bulletins/${bulletinId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update status');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bulletin', bulletinId] });
+      queryClient.invalidateQueries({ queryKey: ['bulletins'] });
+    },
+  });
+
+  const handleStatusChange = async (newStatus: string, successMessage: string) => {
+    setIsUpdating(true);
+    try {
+      await updateStatusMutation.mutateAsync({ status: newStatus });
+      toast.success(successMessage);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update status');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSubmitForReview = async () => {
+    if (!selectedReviewerId) {
+      toast.error('Please select a reviewer');
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      await updateStatusMutation.mutateAsync({
+        status: 'IN_REVIEW',
+        reviewerId: selectedReviewerId,
+      });
+      toast.success('Bulletin submitted for review');
+      setShowReviewerModal(false);
+      setSelectedReviewerId('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit for review');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Permission helpers
+  const userRole = session?.user?.staffRole;
+  const isAuthor = bulletin?.author?.id === session?.user?.id;
+  const isEditor = userRole && ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+  const isSubEditorOrAbove = userRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+
+  // Workflow action helpers
+  const canSubmitForReview = bulletin?.status === 'DRAFT' && (isAuthor || isEditor);
+  const canRequestRevision = bulletin?.status === 'IN_REVIEW' && isSubEditorOrAbove;
+  const canApprove = bulletin?.status === 'IN_REVIEW' && isSubEditorOrAbove;
+  const canPublish = bulletin?.status === 'APPROVED' && isEditor;
+  const canArchive = bulletin?.status === 'PUBLISHED' && isEditor;
+  const canEdit = (bulletin?.status === 'DRAFT' && (isAuthor || isEditor)) ||
+                  (bulletin?.status === 'NEEDS_REVISION' && (isAuthor || isEditor)) ||
+                  isEditor;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -192,13 +308,75 @@ export default function BulletinViewPage() {
             >
               ← Back to Bulletins
             </Button>
-            {bulletin.status === 'DRAFT' && bulletin.author.id === session?.user?.id && (
+
+            {/* Edit Button */}
+            {canEdit && (
               <Button
-                color="secondary"
+                color="white"
                 onClick={() => router.push(`/newsroom/bulletins/${bulletin.id}/edit`)}
               >
                 <PencilIcon className="h-4 w-4 mr-2" />
-                Edit Bulletin
+                Edit
+              </Button>
+            )}
+
+            {/* Submit for Review - DRAFT → IN_REVIEW (opens modal to select reviewer) */}
+            {canSubmitForReview && (
+              <Button
+                color="secondary"
+                onClick={() => setShowReviewerModal(true)}
+                disabled={isUpdating}
+              >
+                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                Submit for Review
+              </Button>
+            )}
+
+            {/* Request Revision - IN_REVIEW → NEEDS_REVISION */}
+            {canRequestRevision && (
+              <Button
+                color="red"
+                onClick={() => handleStatusChange('NEEDS_REVISION', 'Revision requested')}
+                disabled={isUpdating}
+              >
+                <ArrowPathIcon className="h-4 w-4 mr-2" />
+                {isUpdating ? 'Processing...' : 'Request Revision'}
+              </Button>
+            )}
+
+            {/* Approve - IN_REVIEW → APPROVED */}
+            {canApprove && (
+              <Button
+                color="primary"
+                onClick={() => handleStatusChange('APPROVED', 'Bulletin approved')}
+                disabled={isUpdating}
+              >
+                <CheckCircleIcon className="h-4 w-4 mr-2" />
+                {isUpdating ? 'Approving...' : 'Approve'}
+              </Button>
+            )}
+
+            {/* Publish - APPROVED → PUBLISHED */}
+            {canPublish && (
+              <Button
+                color="primary"
+                onClick={() => handleStatusChange('PUBLISHED', 'Bulletin published!')}
+                disabled={isUpdating}
+              >
+                <MegaphoneIcon className="h-4 w-4 mr-2" />
+                {isUpdating ? 'Publishing...' : 'Publish'}
+              </Button>
+            )}
+
+            {/* Archive - PUBLISHED → ARCHIVED */}
+            {canArchive && (
+              <Button
+                color="secondary"
+                onClick={() => handleStatusChange('ARCHIVED', 'Bulletin archived')}
+                disabled={isUpdating}
+              >
+                <ArchiveBoxIcon className="h-4 w-4 mr-2" />
+                {isUpdating ? 'Archiving...' : 'Archive'}
               </Button>
             )}
           </div>
@@ -374,20 +552,143 @@ export default function BulletinViewPage() {
             </DescriptionList>
           </Card>
 
-          {bulletin.publishedAt && (
+          {/* Workflow Card - Show reviewer/publisher info */}
+          {(bulletin.reviewer || bulletin.publisher) && (
             <Card className="p-6">
-              <h3 className="text-lg font-semibold text-zinc-900 mb-4">Publication</h3>
-              
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Workflow</h3>
+
               <DescriptionList>
-                <DescriptionTerm>Published</DescriptionTerm>
-                <DescriptionDetails>
-                  {formatDate(bulletin.publishedAt)}
-                </DescriptionDetails>
+                {bulletin.reviewer && (
+                  <>
+                    <DescriptionTerm>Reviewer</DescriptionTerm>
+                    <DescriptionDetails>
+                      <div className="flex items-center gap-2">
+                        <Avatar
+                          className="h-6 w-6"
+                          name={`${bulletin.reviewer.firstName} ${bulletin.reviewer.lastName}`}
+                        />
+                        <span>{bulletin.reviewer.firstName} {bulletin.reviewer.lastName}</span>
+                      </div>
+                    </DescriptionDetails>
+                  </>
+                )}
+
+                {bulletin.publisher && (
+                  <>
+                    <DescriptionTerm>Published By</DescriptionTerm>
+                    <DescriptionDetails>
+                      <div className="flex items-center gap-2">
+                        <Avatar
+                          className="h-6 w-6"
+                          name={`${bulletin.publisher.firstName} ${bulletin.publisher.lastName}`}
+                        />
+                        <span>{bulletin.publisher.firstName} {bulletin.publisher.lastName}</span>
+                      </div>
+                    </DescriptionDetails>
+                  </>
+                )}
+
+                {bulletin.publishedAt && (
+                  <>
+                    <DescriptionTerm>Published At</DescriptionTerm>
+                    <DescriptionDetails>
+                      {formatDate(bulletin.publishedAt)}
+                    </DescriptionDetails>
+                  </>
+                )}
               </DescriptionList>
             </Card>
           )}
         </div>
       </div>
+
+      {/* Reviewer Selection Modal */}
+      <Dialog
+        open={showReviewerModal}
+        onClose={() => !isUpdating && setShowReviewerModal(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md w-full bg-white dark:bg-zinc-900 rounded-lg shadow-xl">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title as={Heading} level={3}>
+                  Submit for Review
+                </Dialog.Title>
+                <Button
+                  type="button"
+                  color="white"
+                  onClick={() => setShowReviewerModal(false)}
+                  disabled={isUpdating}
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Content */}
+              <div className="space-y-4">
+                <Text className="text-zinc-600 dark:text-zinc-400">
+                  Select a sub-editor or editor to review this bulletin:
+                </Text>
+
+                <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                  <Text className="font-medium text-zinc-900 dark:text-zinc-100">
+                    &ldquo;{bulletin.title}&rdquo;
+                  </Text>
+                </div>
+
+                {isLoadingReviewers ? (
+                  <div className="text-center py-4">
+                    <Text className="text-zinc-500">Loading reviewers...</Text>
+                  </div>
+                ) : reviewers.length === 0 ? (
+                  <div className="text-center py-4">
+                    <Text className="text-red-600">No reviewers available</Text>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Select Reviewer *
+                    </label>
+                    <Select
+                      value={selectedReviewerId}
+                      onChange={(e) => setSelectedReviewerId(e.target.value)}
+                      disabled={isUpdating}
+                    >
+                      <option value="">Choose a reviewer...</option>
+                      {reviewers.map((reviewer) => (
+                        <option key={reviewer.id} value={reviewer.id}>
+                          {reviewer.firstName} {reviewer.lastName} ({reviewer.staffRole})
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end space-x-3 mt-6">
+                <Button
+                  type="button"
+                  color="white"
+                  onClick={() => setShowReviewerModal(false)}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmitForReview}
+                  disabled={!selectedReviewerId || isUpdating || isLoadingReviewers}
+                >
+                  {isUpdating ? 'Submitting...' : 'Submit for Review'}
+                </Button>
+              </div>
+            </div>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </Container>
   );
 }

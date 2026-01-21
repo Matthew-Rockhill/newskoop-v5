@@ -196,6 +196,20 @@ export async function PATCH(
       updateData.scheduledFor = validatedData.scheduledFor ? new Date(validatedData.scheduledFor) : null;
     }
 
+    // Handle status transitions
+    if (validatedData.status) {
+      // When publishing, set publishedAt and publishedBy
+      if (validatedData.status === 'PUBLISHED' && existing.status !== 'PUBLISHED') {
+        updateData.publishedAt = new Date();
+        updateData.publishedById = session.user.id;
+      }
+      // When unpublishing (moving back from PUBLISHED), clear publish info
+      if (validatedData.status !== 'PUBLISHED' && existing.status === 'PUBLISHED') {
+        updateData.publishedAt = null;
+        updateData.publishedById = null;
+      }
+    }
+
     const bulletin = await prisma.bulletin.update({
       where: { id },
       data: updateData,
