@@ -15,8 +15,8 @@ async function canEditStory(userId: string, userRole: string | null, storyId: st
 
   if (!story) return false;
 
-  // Editors and above can edit any story
-  if (['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+  // Sub-editors and above can edit any story
+  if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
     return true;
   }
 

@@ -118,34 +118,39 @@ export function canUpdateStoryStatus(userRole: StaffRole | null, currentStatus: 
 export function canEditStory(userRole: StaffRole | null, storyAuthorId: string, currentUserId: string, storyStatus: StoryStatus): boolean {
   if (!userRole) return false;
   const permissions = storyPermissions[userRole];
-  
-  // Stories in review cannot be edited by anyone
+
+  // SUB_EDITOR and above can edit stories in ANY status
+  if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+    return true;
+  }
+
+  // Stories in review cannot be edited by lower roles
   if (storyStatus === StoryStatus.IN_REVIEW) {
     return false;
   }
-  
-  // Stories pending approval cannot be edited by anyone
+
+  // Stories pending approval cannot be edited by lower roles
   if (storyStatus === StoryStatus.PENDING_APPROVAL) {
     return false;
   }
-  
-  // Stories that are approved, published, or in translation workflow cannot be edited
-  if (storyStatus === StoryStatus.APPROVED || 
+
+  // Stories that are approved, published, or in translation workflow cannot be edited by lower roles
+  if (storyStatus === StoryStatus.APPROVED ||
       storyStatus === StoryStatus.PUBLISHED ||
       storyStatus === StoryStatus.PENDING_TRANSLATION ||
       storyStatus === StoryStatus.READY_TO_PUBLISH) {
     return false;
   }
-  
+
   // Stories in NEEDS_REVISION can be edited by the author (interns or journalists)
   if (storyStatus === StoryStatus.NEEDS_REVISION) {
     return storyAuthorId === currentUserId;
   }
-  
+
   if (permissions.canEditOwnOnly) {
     return storyAuthorId === currentUserId;
   }
-  
+
   return true;
 }
 
@@ -170,7 +175,12 @@ export function getAvailableStatusTransitions(userRole: StaffRole | null, curren
   return (permissions?.statusTransitions as any)?.[currentStatus] || [];
 }
 
-export function getEditLockReason(storyStatus: StoryStatus): string | null {
+export function getEditLockReason(storyStatus: StoryStatus, userRole?: StaffRole | null): string | null {
+  // Sub-editors and above can always edit, so no lock reason
+  if (userRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+    return null;
+  }
+
   switch (storyStatus) {
     case StoryStatus.IN_REVIEW:
       return 'Story is currently under review and cannot be edited';
@@ -283,15 +293,15 @@ export function canEditStoryByStage(
 ): boolean {
   if (!userRole || !stage) return false;
 
-  // Translations can ONLY be edited by the assigned translator (author)
-  // Sub-editors/editors cannot override translation editing
-  if (isTranslation) {
-    return storyAuthorId === currentUserId;
+  // SUB_EDITOR and above can edit ANY story at ANY stage (including translations)
+  if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+    return true;
   }
 
-  // Sub-editors and above can edit any NON-TRANSLATION story in DRAFT
-  if (stage === 'DRAFT' && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
-    return true;
+  // For lower roles (INTERN, JOURNALIST):
+  // Translations can ONLY be edited by the assigned translator (author)
+  if (isTranslation) {
+    return storyAuthorId === currentUserId;
   }
 
   // Stories in DRAFT can be edited by author
@@ -304,26 +314,15 @@ export function canEditStoryByStage(
     if (assignedReviewerId === currentUserId && canReviewStory(userRole)) {
       return true;
     }
-    // Sub-editors and above can always edit
-    if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
-      return true;
-    }
     return false;
   }
 
-  // Stories in NEEDS_SUB_EDITOR_APPROVAL can be edited by the assigned approver
+  // Stories in NEEDS_SUB_EDITOR_APPROVAL cannot be edited by lower roles
   if (stage === 'NEEDS_SUB_EDITOR_APPROVAL') {
-    if (assignedApproverId === currentUserId && canApproveStoryStage(userRole)) {
-      return true;
-    }
-    // Sub-editors and above can always edit
-    if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
-      return true;
-    }
     return false;
   }
 
-  // Stories that are approved, translated, or published are locked
+  // Stories that are approved, translated, or published are locked for lower roles
   if (stage === 'APPROVED' || stage === 'TRANSLATED' || stage === 'PUBLISHED') {
     return false;
   }
@@ -477,8 +476,13 @@ export function getNextStageAction(
 /**
  * Get stage-specific lock reason
  */
-export function getStageLockReason(stage: StoryStage | null): string | null {
+export function getStageLockReason(stage: StoryStage | null, userRole?: StaffRole | null): string | null {
   if (!stage) return null;
+
+  // Sub-editors and above can always edit, so no lock reason
+  if (userRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+    return null;
+  }
 
   switch (stage) {
     case 'NEEDS_JOURNALIST_REVIEW':
