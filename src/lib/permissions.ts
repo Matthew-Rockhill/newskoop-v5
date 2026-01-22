@@ -11,7 +11,7 @@ const storyPermissions = {
       [StoryStatus.NEEDS_REVISION]: [StoryStatus.IN_REVIEW],
     },
     canEditOwnOnly: true,
-    canDelete: false,
+    canDelete: true,
     canApprove: false,
     canPublish: false,
   },
@@ -24,7 +24,7 @@ const storyPermissions = {
       [StoryStatus.PENDING_TRANSLATION]: [StoryStatus.READY_TO_PUBLISH], // Mark translation ready
     },
     canEditOwnOnly: true,
-    canDelete: false,
+    canDelete: true,
     canApprove: false,
     canPublish: false,
   },
@@ -40,7 +40,7 @@ const storyPermissions = {
       [StoryStatus.READY_TO_PUBLISH]: [StoryStatus.PUBLISHED, StoryStatus.NEEDS_REVISION],
     },
     canEditOwnOnly: false,
-    canDelete: false,
+    canDelete: true,
     canApprove: true,
     canPublish: true,
   },
@@ -156,7 +156,34 @@ export function canEditStory(userRole: StaffRole | null, storyAuthorId: string, 
 
 export function canDeleteStory(userRole: StaffRole | null): boolean {
   if (!userRole) return false;
-  return storyPermissions[userRole]?.canDelete || false;
+  // All staff roles can potentially delete (stage-based check determines actual permission)
+  return ['INTERN', 'JOURNALIST', 'SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+/**
+ * Check if user can delete a story based on stage
+ * - INTERN/JOURNALIST: Can delete their OWN stories in DRAFT stage only
+ * - SUB_EDITOR+: Can delete ANY story at ANY stage
+ */
+export function canDeleteStoryByStage(
+  userRole: StaffRole | null,
+  stage: StoryStage | null,
+  storyAuthorId: string,
+  currentUserId: string
+): boolean {
+  if (!userRole || !stage) return false;
+
+  // SUB_EDITOR and above can delete ANY story at ANY stage
+  if (['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+    return true;
+  }
+
+  // INTERN and JOURNALIST can only delete their OWN stories in DRAFT stage
+  if (['INTERN', 'JOURNALIST'].includes(userRole)) {
+    return stage === 'DRAFT' && storyAuthorId === currentUserId;
+  }
+
+  return false;
 }
 
 export function canApproveStory(userRole: StaffRole | null): boolean {

@@ -48,6 +48,7 @@ import {
   canEditStory,
   canEditStoryByStage,
   canDeleteStory,
+  canDeleteStoryByStage,
   getEditLockReason,
   getStageLockReason,
   canUpdateStoryStatus
@@ -118,11 +119,14 @@ function canShowEditButton(
   return canEditStoryByStage(userRole, stage, authorId, userId ?? '', assignedReviewerId, assignedApproverId, isTranslation);
 }
 
-// Helper: should show delete button
-function canShowDeleteButton(userRole: StaffRole | null, status: string) {
-  // Only allow delete for DRAFT and NEEDS_REVISION (not IN_REVIEW)
-  const deletableStatuses = ['DRAFT', 'NEEDS_REVISION'];
-  return canDeleteStory(userRole) && deletableStatuses.includes(status);
+// Helper: should show delete button (stage-based)
+function canShowDeleteButton(
+  userRole: StaffRole | null,
+  stage: StoryStage | null,
+  authorId: string,
+  userId: string | null
+) {
+  return canDeleteStoryByStage(userRole, stage, authorId, userId ?? '');
 }
 
 // Helper: should show reassign button (SUB_EDITOR+ only)
@@ -488,9 +492,9 @@ export default function StoryDetailPage() {
 
 
   const handleDelete = async () => {
-    // Check permissions before attempting delete
-    if (!canDeleteStory(session?.user?.staffRole ?? null)) {
-      toast.error('You do not have permission to delete stories');
+    // Check permissions before attempting delete (stage-based)
+    if (!story || !canDeleteStoryByStage(session?.user?.staffRole ?? null, story.stage, story.authorId, session?.user?.id ?? '')) {
+      toast.error('You do not have permission to delete this story');
       return;
     }
 
@@ -951,7 +955,7 @@ export default function StoryDetailPage() {
                   )}
 
                   {/* Delete Button */}
-                  {canShowDeleteButton(session?.user?.staffRole ?? null, story.status) && (
+                  {canShowDeleteButton(session?.user?.staffRole ?? null, story.stage, story.authorId, session?.user?.id || null) && (
                     <Button
                       color="red"
                       onClick={() => setShowDeleteModal(true)}

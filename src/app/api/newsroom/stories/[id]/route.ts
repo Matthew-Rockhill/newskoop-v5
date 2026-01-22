@@ -605,15 +605,12 @@ const deleteStory = createHandler(
     const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
-    if (!hasStoryPermission(user.staffRole, 'delete')) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
-
-    // Check if story exists and get its status and audio clips
+    // Check if story exists and get its stage, authorId, and audio clips
     const story = await prisma.story.findUnique({
       where: { id },
-      select: { 
-        status: true, 
+      select: {
+        status: true,
+        stage: true,
         authorId: true,
         audioClips: {
           select: {
@@ -628,9 +625,10 @@ const deleteStory = createHandler(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
-    // Don't allow deletion of published stories unless you're an admin
-    if (story.status === 'PUBLISHED' && (!user.staffRole || !['ADMIN', 'SUPERADMIN'].includes(user.staffRole))) {
-      return NextResponse.json({ error: 'Cannot delete published stories' }, { status: 400 });
+    // Use stage-based permission check
+    const { canDeleteStoryByStage } = await import('@/lib/permissions');
+    if (!canDeleteStoryByStage(user.staffRole as any, story.stage, story.authorId, user.id)) {
+      return NextResponse.json({ error: 'Insufficient permissions to delete this story' }, { status: 403 });
     }
 
     // Delete audio files from storage before deleting story
