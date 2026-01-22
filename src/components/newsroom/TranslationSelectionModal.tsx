@@ -13,7 +13,7 @@ interface Translator {
   firstName: string;
   lastName: string;
   email: string;
-  translationLanguage?: 'AFRIKAANS' | 'XHOSA';
+  translationLanguage?: 'AFRIKAANS' | 'XHOSA' | 'ZULU';
 }
 
 interface TranslationRequest {
@@ -39,8 +39,10 @@ export function TranslationSelectionModal({
   const [selectedLanguages, setSelectedLanguages] = useState<Set<string>>(new Set(['AFRIKAANS']));
   const [afrikaansTranslators, setAfrikaansTranslators] = useState<Translator[]>([]);
   const [xhosaTranslators, setXhosaTranslators] = useState<Translator[]>([]);
+  const [zuluTranslators, setZuluTranslators] = useState<Translator[]>([]);
   const [selectedAfrikaansTranslator, setSelectedAfrikaansTranslator] = useState('');
   const [selectedXhosaTranslator, setSelectedXhosaTranslator] = useState('');
+  const [selectedZuluTranslator, setSelectedZuluTranslator] = useState('');
   const [isLoadingTranslators, setIsLoadingTranslators] = useState(false);
 
   useEffect(() => {
@@ -51,8 +53,10 @@ export function TranslationSelectionModal({
       setSelectedLanguages(new Set(['AFRIKAANS']));
       setAfrikaansTranslators([]);
       setXhosaTranslators([]);
+      setZuluTranslators([]);
       setSelectedAfrikaansTranslator('');
       setSelectedXhosaTranslator('');
+      setSelectedZuluTranslator('');
     }
   }, [isOpen]);
 
@@ -78,6 +82,17 @@ export function TranslationSelectionModal({
         setXhosaTranslators(xhosaUsers);
         if (xhosaUsers.length > 0) {
           setSelectedXhosaTranslator(xhosaUsers[0].id);
+        }
+      }
+
+      // Fetch Zulu translators
+      const zuluResponse = await fetch(`/api/users?userType=STAFF&isActive=true&translationLanguage=ZULU&perPage=100`);
+      if (zuluResponse.ok) {
+        const zuluData = await zuluResponse.json();
+        const zuluUsers = zuluData.users || [];
+        setZuluTranslators(zuluUsers);
+        if (zuluUsers.length > 0) {
+          setSelectedZuluTranslator(zuluUsers[0].id);
         }
       }
     } catch (error) {
@@ -119,12 +134,22 @@ export function TranslationSelectionModal({
       });
     }
 
+    // Include Zulu if selected
+    if (selectedLanguages.has('ZULU') && selectedZuluTranslator) {
+      translations.push({
+        language: 'ZULU',
+        translatorId: selectedZuluTranslator
+      });
+    }
+
     if (translations.length > 0) {
       onConfirm(translations);
     }
   };
 
-  const isFormValid = selectedAfrikaansTranslator && (!selectedLanguages.has('XHOSA') || selectedXhosaTranslator);
+  const isFormValid = selectedAfrikaansTranslator &&
+    (!selectedLanguages.has('XHOSA') || selectedXhosaTranslator) &&
+    (!selectedLanguages.has('ZULU') || selectedZuluTranslator);
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -184,6 +209,16 @@ export function TranslationSelectionModal({
                     />
                     <Text className="text-sm">Xhosa (Optional)</Text>
                   </div>
+
+                  {/* Zulu (Optional) */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedLanguages.has('ZULU')}
+                      onChange={(checked) => handleLanguageToggle('ZULU', checked)}
+                      disabled={isLoading}
+                    />
+                    <Text className="text-sm">Zulu (Optional)</Text>
+                  </div>
                 </div>
               </div>
 
@@ -236,6 +271,33 @@ export function TranslationSelectionModal({
                         >
                           <option value="">Choose a Xhosa translator...</option>
                           {xhosaTranslators.map(translator => (
+                            <option key={translator.id} value={translator.id}>
+                              {translator.firstName} {translator.lastName}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Zulu Translator Selection */}
+                  {selectedLanguages.has('ZULU') && (
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-zinc-700">
+                        Zulu Translator *
+                      </label>
+                      {zuluTranslators.length === 0 ? (
+                        <div className="text-center py-2">
+                          <Text className="text-red-600 text-sm">No Zulu translators available</Text>
+                        </div>
+                      ) : (
+                        <Select
+                          value={selectedZuluTranslator}
+                          onChange={e => setSelectedZuluTranslator(e.target.value)}
+                          disabled={isLoading}
+                        >
+                          <option value="">Choose a Zulu translator...</option>
+                          {zuluTranslators.map(translator => (
                             <option key={translator.id} value={translator.id}>
                               {translator.firstName} {translator.lastName}
                             </option>

@@ -174,6 +174,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
                 <option value="">None</option>
                 <option value="AFRIKAANS">Can translate to Afrikaans</option>
                 <option value="XHOSA">Can translate to Xhosa</option>
+                <option value="ZULU">Can translate to Zulu</option>
               </Select>
               {errors.translationLanguage && (
                 <ErrorMessage>{errors.translationLanguage.message}</ErrorMessage>

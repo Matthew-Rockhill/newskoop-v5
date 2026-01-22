@@ -24,6 +24,7 @@ enum StaffRole {
 enum TranslationLanguage {
   AFRIKAANS
   XHOSA
+  ZULU
 }
 
 enum Province {
@@ -104,6 +105,7 @@ enum StoryLanguage {
   ENGLISH
   AFRIKAANS
   XHOSA
+  ZULU
 }
 
 enum BulletinScheduleType {

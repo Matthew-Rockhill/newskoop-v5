@@ -14,7 +14,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 const scheduleSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   time: z.string().min(1, 'Time is required'),
-  language: z.enum(['ENGLISH', 'AFRIKAANS', 'XHOSA']),
+  language: z.enum(['ENGLISH', 'AFRIKAANS', 'XHOSA', 'ZULU']),
   scheduleType: z.enum(['WEEKDAY', 'WEEKEND', 'PUBLIC_HOLIDAY']),
   isActive: z.boolean(),
 });
@@ -25,7 +25,7 @@ interface BulletinSchedule {
   id: string;
   title: string;
   time: string;
-  language: 'ENGLISH' | 'AFRIKAANS' | 'XHOSA';
+  language: 'ENGLISH' | 'AFRIKAANS' | 'XHOSA' | 'ZULU';
   scheduleType: 'WEEKDAY' | 'WEEKEND' | 'PUBLIC_HOLIDAY';
   isActive: boolean;
 }
@@ -204,13 +204,14 @@ export function BulletinScheduleManager({
               <label className="block text-sm font-medium text-zinc-700 mb-1">
                 Language *
               </label>
-              <Select 
-                {...register('language')} 
+              <Select
+                {...register('language')}
                 data-invalid={!!errors.language}
               >
                 <option value="ENGLISH">English</option>
                 <option value="AFRIKAANS">Afrikaans</option>
                 <option value="XHOSA">Xhosa</option>
+                <option value="ZULU">Zulu</option>
               </Select>
               {errors.language && (
                 <p className="text-red-600 text-sm mt-1">{errors.language.message}</p>

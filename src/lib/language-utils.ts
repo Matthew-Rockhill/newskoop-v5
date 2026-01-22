@@ -2,7 +2,7 @@
  * Language utility functions for formatting and mapping language codes
  */
 
-export type LanguageCode = 'ENGLISH' | 'AFRIKAANS' | 'XHOSA';
+export type LanguageCode = 'ENGLISH' | 'AFRIKAANS' | 'XHOSA' | 'ZULU';
 
 /**
  * Maps technical language codes to readable display names
@@ -11,6 +11,7 @@ export const LANGUAGE_DISPLAY_NAMES: Record<LanguageCode, string> = {
   ENGLISH: 'English',
   AFRIKAANS: 'Afrikaans',
   XHOSA: 'Xhosa',
+  ZULU: 'Zulu',
 };
 
 /**
