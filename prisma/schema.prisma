@@ -192,6 +192,7 @@ model User {
   reviewedBulletins  Bulletin[]         @relation("ReviewedBulletins")
   publishedBulletins Bulletin[]         @relation("PublishedBulletins")
   bulletinSchedules  BulletinSchedule[]
+  flaggedStories     Story[]            @relation("FlaggedStories")
 
   // Show relationships
   createdShows      Show[]    @relation("CreatedShows")
@@ -351,6 +352,12 @@ model Story {
   // Bulletin relationships
   bulletinStories BulletinStory[]
 
+  // Bulletin flagging fields
+  flaggedForBulletin     Boolean   @default(false)
+  flaggedForBulletinAt   DateTime?
+  flaggedForBulletinById String?
+  flaggedForBulletinBy   User?     @relation("FlaggedStories", fields: [flaggedForBulletinById], references: [id])
+
   @@index([status])
   @@index([stage])
   @@index([authorId])
@@ -370,6 +377,7 @@ model Story {
   @@index([status, language])
   @@index([categoryId, status])
   @@index([language, status])
+  @@index([flaggedForBulletin])
 }
 
 model RevisionRequest {

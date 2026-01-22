@@ -15,7 +15,9 @@ import {
   DocumentTextIcon,
   TagIcon,
   SpeakerWaveIcon,
+  FlagIcon,
 } from '@heroicons/react/24/outline';
+import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import debounce from 'lodash.debounce';
 
 interface Story {
@@ -23,6 +25,7 @@ interface Story {
   title: string;
   content: string | null;
   publishedAt: string;
+  flaggedForBulletin?: boolean;
   audioClips?: Array<{
     id: string;
     url: string;
@@ -53,6 +56,7 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
   const [page, setPage] = useState(1);
 
   const truncateContent = (content: string | null, maxLength: number = 100) => {
@@ -75,13 +79,14 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
 
   // Fetch published stories
   const { data: storiesData, isLoading } = useQuery({
-    queryKey: ['published-stories', searchQuery, categoryFilter, tagFilter, language, page],
+    queryKey: ['published-stories', searchQuery, categoryFilter, tagFilter, flaggedOnly, language, page],
     queryFn: async () => {
       const params = new URLSearchParams({
         stage: 'PUBLISHED',
         language,
         page: page.toString(),
         perPage: '10',
+        sortFlaggedFirst: 'true', // Always sort flagged stories first
       });
 
       if (searchQuery.trim()) {
@@ -92,6 +97,9 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
       }
       if (tagFilter) {
         params.append('tag', tagFilter);
+      }
+      if (flaggedOnly) {
+        params.append('flaggedForBulletin', 'true');
       }
 
       const response = await fetch(`/api/newsroom/stories?${params}`);
@@ -144,6 +152,7 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
     setSearchQuery('');
     setCategoryFilter('');
     setTagFilter('');
+    setFlaggedOnly(false);
     setPage(1);
   };
 
@@ -193,7 +202,30 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
           </Select>
         </div>
 
-        {(searchQuery || categoryFilter || tagFilter) && (
+        {/* Flagged Filter Toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            setFlaggedOnly(!flaggedOnly);
+            setPage(1);
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+            flaggedOnly
+              ? 'bg-amber-50 border-amber-300 text-amber-700'
+              : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+          }`}
+        >
+          {flaggedOnly ? (
+            <FlagIconSolid className="h-4 w-4 text-amber-500" />
+          ) : (
+            <FlagIcon className="h-4 w-4" />
+          )}
+          <span className="text-sm font-medium">
+            {flaggedOnly ? 'Showing Flagged Only' : 'Show Flagged Only'}
+          </span>
+        </button>
+
+        {(searchQuery || categoryFilter || tagFilter || flaggedOnly) && (
           <div className="flex items-center justify-between">
             <Text className="text-sm text-zinc-500">
               {stories.length > 0 
@@ -249,6 +281,12 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
                       <h4 className="font-medium text-zinc-900 truncate">
                         {story.title}
                       </h4>
+                      {story.flaggedForBulletin && (
+                        <Badge color="amber" className="flex items-center gap-1">
+                          <FlagIconSolid className="h-3 w-3" />
+                          Flagged
+                        </Badge>
+                      )}
                       {languageTag && (
                         <Badge color="blue">
                           {languageTag.name}

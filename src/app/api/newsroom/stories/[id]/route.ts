@@ -257,6 +257,22 @@ const getStory = createHandler(
             },
           },
         },
+        // Bulletin flagging fields
+        flaggedForBulletin: true,
+        flaggedForBulletinAt: true,
+        flaggedForBulletinBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        // Bulletin count
+        _count: {
+          select: {
+            bulletinStories: true,
+          },
+        },
       },
     });
 

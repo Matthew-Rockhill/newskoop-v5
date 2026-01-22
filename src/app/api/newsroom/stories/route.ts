@@ -51,6 +51,8 @@ const getStories = createHandler(
       originalStoryId,
       isTranslation,
       tagIds,
+      flaggedForBulletin,
+      sortFlaggedFirst,
       page = 1,
       perPage = 10
     } = storySearchSchema.parse({
@@ -59,6 +61,8 @@ const getStories = createHandler(
       perPage: searchParams.perPage ? Number(searchParams.perPage) : 10,
       isTranslation: searchParams.isTranslation === 'true' ? true : searchParams.isTranslation === 'false' ? false : undefined,
       tagIds: searchParams.tagIds ? searchParams.tagIds.split(',') : undefined,
+      flaggedForBulletin: searchParams.flaggedForBulletin === 'true' ? true : searchParams.flaggedForBulletin === 'false' ? false : undefined,
+      sortFlaggedFirst: searchParams.sortFlaggedFirst === 'true' ? true : undefined,
     });
 
     // Build where clause
@@ -101,6 +105,7 @@ const getStories = createHandler(
           }
         }
       }),
+      ...(flaggedForBulletin !== undefined && { flaggedForBulletin }),
     };
 
     // Debug logging
@@ -283,7 +288,9 @@ const getStories = createHandler(
           },
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: sortFlaggedFirst
+        ? [{ flaggedForBulletin: 'desc' }, { updatedAt: 'desc' }]
+        : { updatedAt: 'desc' },
       skip: (page - 1) * perPage,
       take: perPage,
     });

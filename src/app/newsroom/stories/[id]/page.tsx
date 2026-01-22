@@ -16,7 +16,10 @@ import {
   GlobeAltIcon,
   ChevronRightIcon,
   PlusIcon,
+  FlagIcon,
+  NewspaperIcon,
 } from '@heroicons/react/24/outline';
+import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import toast from 'react-hot-toast';
 
 import { Container } from '@/components/ui/container';
@@ -39,7 +42,7 @@ import { CategoryModal } from '@/components/newsroom/CategoryModal';
 import { TagModal } from '@/components/newsroom/TagModal';
 import { ReassignButton } from '@/components/newsroom/ReassignButton';
 
-import { useStory, useDeleteStory } from '@/hooks/use-stories';
+import { useStory, useDeleteStory, useToggleStoryBulletinFlag } from '@/hooks/use-stories';
 import { useCategories } from '@/hooks/use-categories';
 import { useTags, useCreateTag } from '@/hooks/use-tags';
 import { useClassifications } from '@/hooks/use-classifications';
@@ -51,7 +54,8 @@ import {
   canDeleteStoryByStage,
   getEditLockReason,
   getStageLockReason,
-  canUpdateStoryStatus
+  canUpdateStoryStatus,
+  canFlagStoryForBulletin,
 } from '@/lib/permissions';
 import { StaffRole, StoryStatus, StoryStage, AudioClip } from '@prisma/client';
 import { StageBadge } from '@/components/ui/stage-badge';
@@ -238,6 +242,7 @@ export default function StoryDetailPage() {
 
   // Mutations
   const deleteStoryMutation = useDeleteStory();
+  const toggleBulletinFlagMutation = useToggleStoryBulletinFlag();
 
   // Only compute this after story is defined
   const canSendForTranslation = !!session?.user?.staffRole && !!story && canUpdateStoryStatus(session.user.staffRole, story.status, 'PENDING_TRANSLATION');
@@ -539,6 +544,21 @@ export default function StoryDetailPage() {
 
   const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
     setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
+  };
+
+  // Toggle bulletin flag handler
+  const handleToggleBulletinFlag = async () => {
+    if (!story) return;
+    try {
+      await toggleBulletinFlagMutation.mutateAsync({
+        id: storyId,
+        flagged: !story.flaggedForBulletin,
+      });
+      toast.success(story.flaggedForBulletin ? 'Story unflagged for bulletin' : 'Story flagged for bulletin');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to toggle bulletin flag';
+      toast.error(errorMessage);
+    }
   };
 
   // Modal handlers - each saves immediately
@@ -884,6 +904,20 @@ export default function StoryDetailPage() {
                       {story.language} Translation
                     </Badge>
                   )}
+                  {/* Used in Bulletin Badge */}
+                  {story._count?.bulletinStories && story._count.bulletinStories > 0 && (
+                    <Badge color="indigo">
+                      <NewspaperIcon className="h-3 w-3 mr-1" />
+                      In {story._count.bulletinStories} Bulletin{story._count.bulletinStories > 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                  {/* Flagged for Bulletin Badge */}
+                  {story.flaggedForBulletin && (
+                    <Badge color="amber">
+                      <FlagIconSolid className="h-3 w-3 mr-1" />
+                      Flagged for Bulletin
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Action Buttons - Top Right */}
@@ -931,6 +965,22 @@ export default function StoryDetailPage() {
                     >
                       <GlobeAltIcon className="h-4 w-4 mr-2" />
                       Translate
+                    </Button>
+                  )}
+
+                  {/* Flag for Bulletin Button */}
+                  {canFlagStoryForBulletin(session?.user?.staffRole ?? null) && (
+                    <Button
+                      color={story.flaggedForBulletin ? "amber" : "white"}
+                      onClick={handleToggleBulletinFlag}
+                      disabled={toggleBulletinFlagMutation.isPending}
+                    >
+                      {story.flaggedForBulletin ? (
+                        <FlagIconSolid className="h-4 w-4 mr-2" />
+                      ) : (
+                        <FlagIcon className="h-4 w-4 mr-2" />
+                      )}
+                      {story.flaggedForBulletin ? 'Unflag' : 'Flag'}
                     </Button>
                   )}
 

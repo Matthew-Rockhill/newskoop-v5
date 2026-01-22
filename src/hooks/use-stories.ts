@@ -94,10 +94,19 @@ export interface Story {
       };
     }>;
   }>;
+  // Bulletin flagging fields
+  flaggedForBulletin?: boolean;
+  flaggedForBulletinAt?: string;
+  flaggedForBulletinBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
   _count?: {
     comments: number;
     audioClips: number;
     translations: number;
+    bulletinStories: number;
   };
   reviewChecklist?: {
     storyStructure?: boolean;
@@ -337,4 +346,32 @@ export function useDeleteStory() {
       queryClient.invalidateQueries({ queryKey: ['translationTasks'] });
     },
   });
-} 
+}
+
+// Toggle story bulletin flag mutation
+export function useToggleStoryBulletinFlag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, flagged }: { id: string; flagged: boolean }) => {
+      const response = await fetch(`/api/newsroom/stories/${id}/flag`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ flagged }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to toggle bulletin flag');
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      queryClient.invalidateQueries({ queryKey: ['story', id] });
+    },
+  });
+}

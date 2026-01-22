@@ -662,4 +662,17 @@ export function canEditShow(
 export function canDeleteShow(userRole: StaffRole | null): boolean {
   if (!userRole) return false;
   return ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
-} 
+}
+
+// ============================================================================
+// BULLETIN PERMISSIONS
+// ============================================================================
+
+/**
+ * Check if user can flag a story for bulletin consideration
+ * SUB_EDITOR and above can flag stories
+ */
+export function canFlagStoryForBulletin(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}

@@ -221,6 +221,8 @@ export const storySearchSchema = z.object({
   originalStoryId: z.string().optional(),
   isTranslation: z.boolean().optional(),
   tagIds: z.array(z.string()).optional(),
+  flaggedForBulletin: z.boolean().optional(),
+  sortFlaggedFirst: z.boolean().optional(),
   page: z.number().int().positive().default(1),
   perPage: z.number().int().positive().default(10),
 });
