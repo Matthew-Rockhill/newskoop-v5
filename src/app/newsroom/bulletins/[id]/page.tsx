@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
+import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { formatLanguage } from '@/lib/language-utils';
 import {
   PencilIcon,
@@ -21,6 +22,7 @@ import {
   MegaphoneIcon,
   ArchiveBoxIcon,
   XMarkIcon,
+  SpeakerWaveIcon,
 } from '@heroicons/react/24/outline';
 import { Dialog } from '@headlessui/react';
 import { Select } from '@/components/ui/select';
@@ -31,9 +33,9 @@ interface BulletinStory {
   id: string;
   order: number;
   story?: {
+    id: string;
     title: string;
     content: string;
-    audioUrl?: string;
     author?: {
       firstName: string;
       lastName: string;
@@ -48,6 +50,13 @@ interface BulletinStory {
         name: string;
         category: string;
       };
+    }>;
+    audioClips?: Array<{
+      id: string;
+      url: string;
+      duration: number | null;
+      originalName?: string;
+      mimeType?: string;
     }>;
   };
 }
@@ -190,7 +199,7 @@ export default function BulletinViewPage() {
   const canSubmitForReview = bulletin?.status === 'DRAFT' && (isAuthor || isEditor);
   const canRequestRevision = bulletin?.status === 'IN_REVIEW' && isSubEditorOrAbove;
   const canApprove = bulletin?.status === 'IN_REVIEW' && isSubEditorOrAbove;
-  const canPublish = bulletin?.status === 'APPROVED' && isEditor;
+  const canPublish = bulletin?.status === 'APPROVED' && isSubEditorOrAbove;
   const canArchive = bulletin?.status === 'PUBLISHED' && isEditor;
   const canEdit = (bulletin?.status === 'DRAFT' && (isAuthor || isEditor)) ||
                   (bulletin?.status === 'NEEDS_REVISION' && (isAuthor || isEditor)) ||
@@ -384,128 +393,98 @@ export default function BulletinViewPage() {
       />
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content - Unified Script Flow */}
+        {/* Main Content - Preview Style */}
         <div className="lg:col-span-2">
-          <Card className="p-8">
-            {/* Script Header */}
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-700">
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
-                Bulletin Script
-              </h3>
-              <Badge color="zinc">
-                {bulletin.bulletinStories?.length || 0} stories
-              </Badge>
-            </div>
+          <Card className="p-6">
+            <Heading level={2} className="text-lg font-semibold text-zinc-900 mb-4">
+              Bulletin Content
+            </Heading>
 
-            {/* Continuous Script Flow */}
-            <div className="relative">
-              {/* Single continuous line */}
-              <div
-                className="absolute left-[3px] top-0 bottom-0 w-0.5"
-                style={{ backgroundColor: '#76BD43' }}
-              />
-
-              {/* Introduction Section */}
-              <div className="relative pl-8 pb-6">
-                <div
-                  className="absolute left-0 top-1 w-2 h-2 rounded-full"
-                  style={{ backgroundColor: '#76BD43' }}
-                />
-                <div className="mb-2">
-                  <span
-                    className="inline-block px-2 py-0.5 text-xs font-medium uppercase tracking-wider rounded"
-                    style={{ color: '#76BD43', backgroundColor: 'rgba(118, 189, 67, 0.1)' }}
-                  >
-                    Intro
-                  </span>
+            <div className="space-y-4">
+              {/* Introduction */}
+              <div className="border border-zinc-200 rounded-lg p-4 bg-white">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge color="zinc">Intro</Badge>
                 </div>
-                <div
-                  className="prose prose-sm max-w-none"
-                  style={{ color: '#272727' }}
-                  dangerouslySetInnerHTML={{ __html: bulletin.intro }}
-                />
+                <div className="prose prose-sm max-w-none text-zinc-700">
+                  {bulletin.intro ? (
+                    <div dangerouslySetInnerHTML={{ __html: bulletin.intro }} />
+                  ) : (
+                    <p className="text-zinc-500 italic">No introduction provided</p>
+                  )}
+                </div>
               </div>
 
-              {/* Stories Section */}
+              {/* Stories */}
               {bulletin.bulletinStories && bulletin.bulletinStories.length > 0 ? (
                 bulletin.bulletinStories
                   .sort((a: { order: number }, b: { order: number }) => a.order - b.order)
                   .map((bulletinStory: BulletinStory, index: number) => (
-                    <div key={bulletinStory.id} className="relative pl-8 py-6">
-                      <div
-                        className="absolute left-0 top-6 flex items-center justify-center w-2 h-2 rounded-full text-white text-xs font-bold"
-                        style={{ backgroundColor: '#76BD43', width: '24px', height: '24px', left: '-8px' }}
-                      >
-                        {index + 1}
-                      </div>
-
-                      <div className="mb-2">
-                        <span
-                          className="inline-block px-2 py-0.5 text-xs font-medium uppercase tracking-wider rounded"
-                          style={{ color: '#76BD43', backgroundColor: 'rgba(118, 189, 67, 0.1)' }}
-                        >
-                          Story {index + 1}
-                        </span>
+                    <div key={bulletinStory.id} className="border border-zinc-200 rounded-lg p-4 bg-white">
+                      {/* Story Badges */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <Badge color="zinc">Story {index + 1}</Badge>
                         {bulletinStory.story?.category && (
-                          <span className="ml-2 text-xs text-zinc-500">
-                            {bulletinStory.story.category.name}
-                          </span>
+                          <Badge color="green">{bulletinStory.story.category.name}</Badge>
+                        )}
+                        {bulletinStory.story?.audioClips && bulletinStory.story.audioClips.length > 0 && (
+                          <Badge color="purple" className="flex items-center gap-1">
+                            <SpeakerWaveIcon className="h-3 w-3" />
+                            Audio
+                          </Badge>
                         )}
                       </div>
 
-                      <div
-                        className="prose prose-sm max-w-none"
-                        style={{ color: '#272727' }}
-                        dangerouslySetInnerHTML={{ __html: bulletinStory.story?.content || '' }}
-                      />
+                      {/* Story Content */}
+                      <div className="prose prose-sm max-w-none text-zinc-700">
+                        {bulletinStory.story?.content ? (
+                          <div dangerouslySetInnerHTML={{ __html: bulletinStory.story.content }} />
+                        ) : (
+                          <p className="text-zinc-500 italic">No content available</p>
+                        )}
+                      </div>
 
-                      {/* Audio Player */}
-                      {bulletinStory.story?.audioUrl && (
-                        <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#f5f5f5' }}>
-                          <audio
-                            controls
-                            className="w-full h-10"
-                            preload="metadata"
-                          >
-                            <source src={bulletinStory.story.audioUrl} type="audio/mpeg" />
-                            <source src={bulletinStory.story.audioUrl} type="audio/wav" />
-                            <source src={bulletinStory.story.audioUrl} type="audio/ogg" />
-                            Your browser does not support the audio element.
-                          </audio>
+                      {/* Audio Clips */}
+                      {bulletinStory.story?.audioClips && bulletinStory.story.audioClips.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {bulletinStory.story.audioClips.map((clip) => (
+                            <CustomAudioPlayer
+                              key={clip.id}
+                              clip={{
+                                id: clip.id,
+                                url: clip.url,
+                                originalName: clip.originalName || 'Audio',
+                                duration: clip.duration,
+                                mimeType: clip.mimeType || 'audio/mpeg',
+                              }}
+                              compact
+                            />
+                          ))}
                         </div>
                       )}
                     </div>
                   ))
               ) : (
-                <div className="relative pl-8 py-6">
-                  <div className="text-center py-8 rounded-lg" style={{ backgroundColor: '#f5f5f5' }}>
-                    <svg className="mx-auto h-10 w-10 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="text-zinc-500 mt-2 text-sm">No stories added yet</p>
-                  </div>
+                <div className="text-center py-8 bg-zinc-50 rounded-lg border border-zinc-200">
+                  <svg className="mx-auto h-10 w-10 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <Text className="text-zinc-500 mt-2">No stories added yet</Text>
                 </div>
               )}
 
-              {/* Outro Section */}
-              <div className="relative pl-8 pt-6">
-                <div
-                  className="absolute left-0 top-7 w-2 h-2 rounded-full"
-                  style={{ backgroundColor: '#76BD43' }}
-                />
-                <div className="mb-2">
-                  <span
-                    className="inline-block px-2 py-0.5 text-xs font-medium uppercase tracking-wider rounded"
-                    style={{ color: '#76BD43', backgroundColor: 'rgba(118, 189, 67, 0.1)' }}
-                  >
-                    Outro
-                  </span>
+              {/* Outro */}
+              <div className="border border-zinc-200 rounded-lg p-4 bg-white">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge color="zinc">Outro</Badge>
                 </div>
-                <div
-                  className="prose prose-sm max-w-none"
-                  style={{ color: '#272727' }}
-                  dangerouslySetInnerHTML={{ __html: bulletin.outro }}
-                />
+                <div className="prose prose-sm max-w-none text-zinc-700">
+                  {bulletin.outro ? (
+                    <div dangerouslySetInnerHTML={{ __html: bulletin.outro }} />
+                  ) : (
+                    <p className="text-zinc-500 italic">No outro provided</p>
+                  )}
+                </div>
               </div>
             </div>
           </Card>

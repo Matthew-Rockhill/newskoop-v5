@@ -1063,7 +1063,9 @@ export default function StoryDetailPage() {
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
                     {story.authorId === session?.user?.id
                       ? 'This translation is waiting for you to add content. Click "Translate" to begin.'
-                      : `This translation is assigned to ${story.author.firstName} ${story.author.lastName} and has not yet been started.`
+                      : ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session?.user?.staffRole || '')
+                        ? `Assigned to ${story.author.firstName} ${story.author.lastName}. You can click "Translate" to start or edit the translation.`
+                        : `This translation is assigned to ${story.author.firstName} ${story.author.lastName} and has not yet been started.`
                     }
                   </p>
                 </div>
@@ -1256,6 +1258,8 @@ export default function StoryDetailPage() {
                   <Text className="text-sm text-purple-700 mt-1">
                     {story.authorId === session?.user?.id ? (
                       <>You have been assigned to translate this story to <strong>{story.language}</strong>.</>
+                    ) : ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session?.user?.staffRole || '') ? (
+                      <>Assigned to <strong>{story.author.firstName} {story.author.lastName}</strong> for translation to <strong>{story.language}</strong>. You can edit this translation.</>
                     ) : (
                       <>This story is assigned to <strong>{story.author.firstName} {story.author.lastName}</strong> for translation.</>
                     )}

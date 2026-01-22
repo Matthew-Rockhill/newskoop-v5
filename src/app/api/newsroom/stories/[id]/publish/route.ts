@@ -96,8 +96,33 @@ export async function POST(
       }, { status: 403 });
     }
 
-    // Note: Translation checks have been simplified in the new system
-    // Translations are now separate Story records with isTranslation=true
+    // Check that ALL translations are ready (APPROVED or TRANSLATED stage)
+    // Stories must be published together with all their translations
+    const allTranslations = await prisma.story.findMany({
+      where: {
+        originalStoryId: id,
+        isTranslation: true
+      },
+      select: {
+        id: true,
+        title: true,
+        language: true,
+        stage: true
+      }
+    });
+
+    const notReadyTranslations = allTranslations.filter(
+      t => !t.stage || !['APPROVED', 'TRANSLATED'].includes(t.stage)
+    );
+
+    if (notReadyTranslations.length > 0) {
+      const notReadyList = notReadyTranslations
+        .map(t => `${t.language} (${t.stage})`)
+        .join(', ');
+      return NextResponse.json({
+        error: `All translations must be approved before publishing. The following translations are not ready: ${notReadyList}`
+      }, { status: 400 });
+    }
 
     // Determine publish date
     let publishDate: Date;
@@ -292,23 +317,27 @@ export async function GET(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
-    // Count translation stories
-    const translationsCount = await prisma.story.count({
+    // Get all translation stories with their stages
+    const allTranslations = await prisma.story.findMany({
       where: {
         originalStoryId: id,
         isTranslation: true
+      },
+      select: {
+        id: true,
+        language: true,
+        stage: true
       }
     });
 
-    const approvedTranslationsCount = await prisma.story.count({
-      where: {
-        originalStoryId: id,
-        isTranslation: true,
-        stage: {
-          in: ['APPROVED', 'TRANSLATED', 'PUBLISHED']
-        }
-      }
-    });
+    const translationsCount = allTranslations.length;
+    const approvedTranslationsCount = allTranslations.filter(
+      t => t.stage && ['APPROVED', 'TRANSLATED', 'PUBLISHED'].includes(t.stage)
+    ).length;
+    const notReadyTranslations = allTranslations.filter(
+      t => !t.stage || !['APPROVED', 'TRANSLATED', 'PUBLISHED'].includes(t.stage)
+    );
+    const allTranslationsReady = notReadyTranslations.length === 0;
 
     const userRole = session.user.staffRole ?? null;
     const canPublish = canPublishStory(userRole);
@@ -316,13 +345,20 @@ export async function GET(
     const canChangeStage = canUpdateStoryStage(userRole, story.stage, 'PUBLISHED');
     const hasCategory = !!story.categoryId;
 
-    const readyToPublish = canPublish && isTranslatedStage && canChangeStage && hasCategory;
+    // All translations must be ready for publishing
+    const readyToPublish = canPublish && isTranslatedStage && canChangeStage && hasCategory && allTranslationsReady;
 
-    const issues = [];
+    const issues: string[] = [];
     if (!canPublish) issues.push('User does not have publish permissions');
     if (!isTranslatedStage) issues.push(`Story must be in TRANSLATED stage (current: ${story.stage}). Ensure all translations are approved first.`);
     if (!canChangeStage) issues.push(`Cannot publish story with current permissions and stage`);
     if (!hasCategory) issues.push('Story must have a category assigned');
+    if (!allTranslationsReady) {
+      const notReadyList = notReadyTranslations
+        .map(t => `${t.language} (${t.stage})`)
+        .join(', ');
+      issues.push(`All translations must be approved before publishing. Not ready: ${notReadyList}`);
+    }
 
     return NextResponse.json({
       canPublish: readyToPublish,
@@ -332,9 +368,11 @@ export async function GET(
         hasCorrectStage: isTranslatedStage,
         canChangeStage: canChangeStage,
         hasCategory,
+        allTranslationsReady,
         currentStage: story.stage,
         translationsCount,
         approvedTranslations: approvedTranslationsCount,
+        notReadyTranslations: notReadyTranslations.map(t => ({ language: t.language, stage: t.stage })),
       }
     });
 

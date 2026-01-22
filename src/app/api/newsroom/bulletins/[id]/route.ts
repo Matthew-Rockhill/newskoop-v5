@@ -169,19 +169,23 @@ export async function PATCH(
     const isAuthor = existing.authorId === session.user.id;
     const isReviewer = existing.reviewerId === session.user.id;
     const isEditor = userRole && ['EDITOR', 'SUPERADMIN', 'ADMIN'].includes(userRole);
-    const isSubEditor = userRole === 'SUB_EDITOR';
+    const isSubEditorOrAbove = userRole && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 
     // Permission logic
     if (existing.status === 'DRAFT' && !isAuthor && !isEditor) {
       return NextResponse.json({ error: 'Only the author can edit draft bulletins' }, { status: 403 });
     }
 
-    if (existing.status === 'IN_REVIEW' && !isReviewer && !isEditor) {
-      return NextResponse.json({ error: 'Only the reviewer can edit bulletins in review' }, { status: 403 });
+    if (existing.status === 'IN_REVIEW' && !isReviewer && !isSubEditorOrAbove) {
+      return NextResponse.json({ error: 'Only sub-editors and above can edit bulletins in review' }, { status: 403 });
     }
 
-    if (['APPROVED', 'PUBLISHED'].includes(existing.status) && !isEditor) {
-      return NextResponse.json({ error: 'Only editors can edit approved or published bulletins' }, { status: 403 });
+    if (existing.status === 'APPROVED' && !isSubEditorOrAbove) {
+      return NextResponse.json({ error: 'Only sub-editors and above can publish approved bulletins' }, { status: 403 });
+    }
+
+    if (existing.status === 'PUBLISHED' && !isEditor) {
+      return NextResponse.json({ error: 'Only editors can edit published bulletins' }, { status: 403 });
     }
 
     // Update slug if title changes using optimized single-query approach
@@ -201,12 +205,12 @@ export async function PATCH(
       // When publishing, set publishedAt and publishedBy
       if (validatedData.status === 'PUBLISHED' && existing.status !== 'PUBLISHED') {
         updateData.publishedAt = new Date();
-        updateData.publishedById = session.user.id;
+        updateData.publisher = { connect: { id: session.user.id } };
       }
       // When unpublishing (moving back from PUBLISHED), clear publish info
       if (validatedData.status !== 'PUBLISHED' && existing.status === 'PUBLISHED') {
         updateData.publishedAt = null;
-        updateData.publishedById = null;
+        updateData.publisher = { disconnect: true };
       }
     }
 
