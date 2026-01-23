@@ -971,7 +971,8 @@ export default function StoryDetailPage() {
                   {/* Flag for Bulletin Button */}
                   {canFlagStoryForBulletin(session?.user?.staffRole ?? null) && (
                     <Button
-                      color={story.flaggedForBulletin ? "amber" : "white"}
+                      color="white"
+                      className={story.flaggedForBulletin ? "!bg-amber-100 !border-amber-300 !text-amber-800" : ""}
                       onClick={handleToggleBulletinFlag}
                       disabled={toggleBulletinFlagMutation.isPending}
                     >
