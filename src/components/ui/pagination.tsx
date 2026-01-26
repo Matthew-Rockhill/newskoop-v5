@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import type React from 'react'
 import { Button } from './button'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid'
 
 interface PaginationProps {
   currentPage: number;
@@ -16,58 +17,85 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
     Math.min(totalPages, Math.max(5, currentPage + 2))
   );
 
+  const baseButtonStyles = 'inline-flex items-center justify-center h-8 min-w-8 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-kelly-green focus-visible:ring-offset-2';
+  const pageButtonStyles = 'px-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800';
+  const activePageStyles = 'px-3 bg-kelly-green text-white hover:bg-kelly-green/90';
+  const navButtonStyles = 'px-2 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent';
+
   return (
-    <div className={clsx('flex items-center gap-2', className)}>
-      <Button
-        outline
+    <nav className={clsx('flex items-center gap-1', className)} aria-label="Pagination">
+      {/* Previous Button */}
+      <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
+        className={clsx(baseButtonStyles, navButtonStyles)}
+        aria-label="Previous page"
       >
-        Previous
-      </Button>
+        <ChevronLeftIcon className="h-5 w-5" />
+      </button>
 
+      {/* First page + ellipsis */}
       {visiblePages[0] > 1 && (
         <>
-          <Button outline onClick={() => onPageChange(1)}>
+          <button
+            onClick={() => onPageChange(1)}
+            className={clsx(baseButtonStyles, pageButtonStyles)}
+            aria-label="Go to page 1"
+          >
             1
-          </Button>
-          {visiblePages[0] > 2 && <span className="px-2">...</span>}
+          </button>
+          {visiblePages[0] > 2 && (
+            <span className="px-1 text-zinc-400 dark:text-zinc-500 select-none" aria-hidden="true">
+              &hellip;
+            </span>
+          )}
         </>
       )}
 
+      {/* Visible page numbers */}
       {visiblePages.map((page) => (
-        <Button
+        <button
           key={page}
           onClick={() => onPageChange(page)}
           aria-label={`Go to page ${page}`}
           aria-current={page === currentPage ? 'page' : undefined}
           className={clsx(
-            page === currentPage ? 'bg-kelly-green text-white' : 'bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50'
+            baseButtonStyles,
+            page === currentPage ? activePageStyles : pageButtonStyles
           )}
         >
           {page}
-        </Button>
+        </button>
       ))}
 
+      {/* Last page + ellipsis */}
       {visiblePages[visiblePages.length - 1] < totalPages && (
         <>
           {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
-            <span className="px-2">...</span>
+            <span className="px-1 text-zinc-400 dark:text-zinc-500 select-none" aria-hidden="true">
+              &hellip;
+            </span>
           )}
-          <Button outline onClick={() => onPageChange(totalPages)}>
+          <button
+            onClick={() => onPageChange(totalPages)}
+            className={clsx(baseButtonStyles, pageButtonStyles)}
+            aria-label={`Go to page ${totalPages}`}
+          >
             {totalPages}
-          </Button>
+          </button>
         </>
       )}
 
-      <Button
-        outline
+      {/* Next Button */}
+      <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
+        className={clsx(baseButtonStyles, navButtonStyles)}
+        aria-label="Next page"
       >
-        Next
-      </Button>
-    </div>
+        <ChevronRightIcon className="h-5 w-5" />
+      </button>
+    </nav>
   );
 }
 
