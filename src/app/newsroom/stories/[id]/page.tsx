@@ -1167,9 +1167,8 @@ export default function StoryDetailPage() {
           </Card>
 
           {/* Contextual Banners - Moved below story preview */}
-          {/* Review Status Banner - Show when story is under review */}
-          {story.authorId === session?.user?.id &&
-           story.stage === 'NEEDS_JOURNALIST_REVIEW' &&
+          {/* Review Status Banner - Show when story is under review (visible to all staff) */}
+          {story.stage === 'NEEDS_JOURNALIST_REVIEW' &&
            story.assignedReviewer && (
             <ReviewStatusBanner
               stage={story.stage}
@@ -1178,9 +1177,8 @@ export default function StoryDetailPage() {
             />
           )}
 
-          {/* Review Status Banner - Show when story is awaiting approval */}
-          {story.authorId === session?.user?.id &&
-           story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
+          {/* Review Status Banner - Show when story is awaiting approval (visible to all staff) */}
+          {story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' &&
            story.assignedApprover && (
             <ReviewStatusBanner
               stage={story.stage}

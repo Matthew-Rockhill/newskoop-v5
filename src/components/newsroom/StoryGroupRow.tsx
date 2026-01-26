@@ -65,6 +65,14 @@ interface StoryGroupRowProps {
       translations: number;
     };
     translations?: Translation[];
+    assignedReviewer?: {
+      firstName: string;
+      lastName: string;
+    } | null;
+    assignedApprover?: {
+      firstName: string;
+      lastName: string;
+    } | null;
   };
   index?: number;
 }
@@ -216,7 +224,34 @@ export function StoryGroupRow({ story, index = 0 }: StoryGroupRowProps) {
 
         {/* Stage Column */}
         <td className="px-4 py-4 text-sm">
-          {story.stage && <StageBadge stage={story.stage as StoryStage} />}
+          <div className="flex flex-col gap-1">
+            {story.stage && <StageBadge stage={story.stage as StoryStage} />}
+            {/* Show assignee for review/approval stages */}
+            {story.stage === 'NEEDS_JOURNALIST_REVIEW' && (
+              story.assignedReviewer ? (
+                <span className="text-xs text-zinc-500">
+                  → {story.assignedReviewer.firstName} {story.assignedReviewer.lastName}
+                </span>
+              ) : (
+                <span className="text-xs text-amber-600 flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 bg-amber-500 rounded-full" />
+                  Unassigned
+                </span>
+              )
+            )}
+            {story.stage === 'NEEDS_SUB_EDITOR_APPROVAL' && (
+              story.assignedApprover ? (
+                <span className="text-xs text-zinc-500">
+                  → {story.assignedApprover.firstName} {story.assignedApprover.lastName}
+                </span>
+              ) : (
+                <span className="text-xs text-amber-600 flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 bg-amber-500 rounded-full" />
+                  Unassigned
+                </span>
+              )
+            )}
+          </div>
         </td>
 
         {/* Updated Column */}
