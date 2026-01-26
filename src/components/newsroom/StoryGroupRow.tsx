@@ -202,19 +202,17 @@ export function StoryGroupRow({ story, index = 0 }: StoryGroupRowProps) {
               <div className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
                 {story.title}
               </div>
-              {hasTranslations && (
-                <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 mt-0.5">
-                  <GlobeAltIcon className="h-3.5 w-3.5" />
-                  {translations.length} translation{translations.length !== 1 ? 's' : ''}
-                </div>
-              )}
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                by {story.author.firstName} {story.author.lastName}
+                {hasTranslations && (
+                  <span className="ml-2 text-purple-600 dark:text-purple-400">
+                    <GlobeAltIcon className="h-3 w-3 inline-block mr-0.5" />
+                    {translations.length} translation{translations.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </td>
-
-        {/* Author Column */}
-        <td className="px-4 py-4 text-sm text-zinc-600 dark:text-zinc-400 hidden sm:table-cell">
-          {story.author.firstName} {story.author.lastName}
         </td>
 
         {/* Category Column */}
@@ -308,16 +306,14 @@ export function StoryGroupRow({ story, index = 0 }: StoryGroupRowProps) {
                   <div className="font-medium text-zinc-700 dark:text-zinc-300 truncate">
                     {translation.title}
                   </div>
-                  <div className="text-xs text-purple-600 dark:text-purple-400">
-                    {languageMap[translation.language] || translation.language}
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    by {translation.author.firstName} {translation.author.lastName}
+                    <span className="ml-2 text-purple-600 dark:text-purple-400">
+                      {languageMap[translation.language] || translation.language}
+                    </span>
                   </div>
                 </div>
               </div>
-            </td>
-
-            {/* Author Column */}
-            <td className="px-4 py-4 text-sm text-zinc-500 dark:text-zinc-400 hidden sm:table-cell">
-              {translation.author.firstName} {translation.author.lastName}
             </td>
 
             {/* Category Column - shows Translation badge */}

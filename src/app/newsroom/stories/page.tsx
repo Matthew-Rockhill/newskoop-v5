@@ -197,9 +197,6 @@ function StoriesPageContent() {
                           <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-white">
                             Title
                           </th>
-                          <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-white hidden sm:table-cell">
-                            Author
-                          </th>
                           <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-white hidden lg:table-cell">
                             Category
                           </th>
