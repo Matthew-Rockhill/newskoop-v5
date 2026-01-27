@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { generateSlug, generateUniqueBulletinSlug } from '@/lib/slug-utils';
+import { publishBulletinEvent, createEvent } from '@/lib/ably';
 
 const createBulletinSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -205,6 +206,14 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    // Publish real-time event (non-blocking)
+    publishBulletinEvent(
+      createEvent('bulletin:created', 'bulletin', bulletin.id, session.user.id, undefined, {
+        title: bulletin.title,
+        language: bulletin.language,
+      })
+    ).catch(() => {});
 
     return NextResponse.json({ bulletin }, { status: 201 });
   } catch (error) {

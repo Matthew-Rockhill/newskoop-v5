@@ -5,6 +5,7 @@ import { hasShowPermission, canManageShows } from '@/lib/permissions';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { generateSlug, generateUniqueShowSlug } from '@/lib/slug-utils';
+import { publishShowEvent, createEvent } from '@/lib/ably';
 
 // Show search schema - validation only, defaults handled in code
 const showSearchSchema = z.object({
@@ -172,6 +173,13 @@ const createShow = createHandler(
         },
       },
     });
+
+    // Publish real-time event (non-blocking)
+    publishShowEvent(
+      createEvent('show:created', 'show', show.id, user.id, undefined, {
+        title: show.title,
+      })
+    ).catch(() => {});
 
     return NextResponse.json({ show }, { status: 201 });
   },

@@ -13,6 +13,8 @@ import { QueueDetail } from '@/components/newsroom/editorial-dashboard/QueueDeta
 import { TeamWorkload } from '@/components/newsroom/editorial-dashboard/TeamWorkload';
 import { TimeSensitiveContent } from '@/components/newsroom/editorial-dashboard/TimeSensitiveContent';
 import { ReassignModal } from '@/components/newsroom/editorial-dashboard/ReassignModal';
+import { RealtimeStatus } from '@/components/ui/RealtimeStatus';
+import { useAbly } from '@/components/providers/AblyProvider';
 import {
   ArrowPathIcon,
   ChartBarIcon,
@@ -51,8 +53,9 @@ export default function EditorialDashboardPage() {
   } | null>(null);
 
   const queryClient = useQueryClient();
+  const { connectionHealthy } = useAbly();
 
-  // Fetch dashboard data with auto-refresh every 30 seconds
+  // Fetch dashboard data - only poll when real-time is unhealthy
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
     queryKey: ['editorial-dashboard'],
     queryFn: async () => {
@@ -62,8 +65,9 @@ export default function EditorialDashboardPage() {
       }
       return response.json();
     },
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    staleTime: 25000,
+    // Only poll when real-time connection is unhealthy
+    refetchInterval: connectionHealthy ? false : 30000,
+    staleTime: connectionHealthy ? Infinity : 25000,
   });
 
   const handleReassign = (storyId: string, type: 'reviewer' | 'approver') => {
@@ -129,15 +133,18 @@ export default function EditorialDashboardPage() {
           title="Editorial Dashboard"
           description="Monitor workflow health, team workload, and content pipeline"
           actions={
-            <Button
-              color="white"
-              onClick={() => refetch()}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              <ArrowPathIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-4">
+              <RealtimeStatus />
+              <Button
+                color="white"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <ArrowPathIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           }
         />
 

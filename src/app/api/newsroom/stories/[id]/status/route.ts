@@ -4,6 +4,7 @@ import { createHandler, withAuth, withErrorHandling, withValidation } from '@/li
 import { storyStatusUpdateSchema } from '@/lib/validations';
 import { StoryStatus, StaffRole } from '@prisma/client';
 import { canUpdateStoryStatus } from '@/lib/permissions';
+import { publishStoryEvent, publishDashboardEvent, createEvent } from '@/lib/ably';
 
 // Helper function to check workflow permissions
 function canUpdateStatus(userRole: string | null, currentStatus: StoryStatus, newStatus: StoryStatus, storyAuthorId?: string, currentUserId?: string) {
@@ -182,6 +183,20 @@ const updateStoryStatus = createHandler(
         },
       },
     });
+
+    // Publish real-time events (non-blocking)
+    publishStoryEvent(
+      createEvent('story:stage_changed', 'story', id, user.id, undefined, {
+        previousStage: story.status,
+        newStage: status,
+      })
+    ).catch(() => {});
+
+    publishDashboardEvent(
+      createEvent('dashboard:metrics_updated', 'story', id, user.id, undefined, {
+        trigger: 'status_change',
+      })
+    ).catch(() => {});
 
     return NextResponse.json(updatedStory);
   },

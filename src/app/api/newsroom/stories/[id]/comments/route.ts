@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withValidation } from '@/lib/api-handler';
 import { commentCreateSchema } from '@/lib/validations';
 import { CommentType } from '@prisma/client';
+import { publishStoryEvent, createEvent } from '@/lib/ably';
 
 // Helper function to check permissions
 function hasCommentPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -241,6 +242,15 @@ const createComment = createHandler(
         },
       },
     });
+
+    // Publish real-time event (non-blocking)
+    publishStoryEvent(
+      createEvent('story:commented', 'story', storyId, user.id, undefined, {
+        commentId: comment.id,
+        commentType: data.type,
+        isReply: !!data.parentId,
+      })
+    ).catch(() => {});
 
     return NextResponse.json(comment, { status: 201 });
   },

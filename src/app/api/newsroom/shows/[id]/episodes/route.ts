@@ -4,6 +4,7 @@ import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api
 import { canManageShows } from '@/lib/permissions';
 import { z } from 'zod';
 import { generateSlug, generateUniqueEpisodeSlug } from '@/lib/slug-utils';
+import { publishEpisodeEvent, createEvent } from '@/lib/ably';
 
 const episodeCreateSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -108,6 +109,15 @@ const createEpisode = createHandler(
         },
       },
     });
+
+    // Publish real-time event (non-blocking)
+    publishEpisodeEvent(
+      createEvent('episode:created', 'episode', episode.id, user.id, undefined, {
+        showId: id,
+        title: episode.title,
+        episodeNumber: episode.episodeNumber,
+      })
+    ).catch(() => {});
 
     return NextResponse.json({ episode }, { status: 201 });
   },

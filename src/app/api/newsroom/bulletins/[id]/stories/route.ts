@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { publishBulletinEvent, createEvent } from '@/lib/ably';
 
 const updateStoriesSchema = z.object({
   stories: z.array(z.object({
@@ -153,6 +154,13 @@ export async function PATCH(
         },
       },
     });
+
+    // Publish real-time event (non-blocking)
+    publishBulletinEvent(
+      createEvent('bulletin:stories_reordered', 'bulletin', id, session.user.id, undefined, {
+        storyCount: validatedData.stories.length,
+      })
+    ).catch(() => {});
 
     // Transform bulletin stories to include audioUrl at story level
     const transformedBulletin = {

@@ -5,6 +5,7 @@ import { storyUpdateSchema } from '@/lib/validations';
 import { deleteAudioFile } from '@/lib/r2-storage';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 import { generateSlug, generateUniqueStorySlug } from '@/lib/slug-utils';
+import { publishStoryEvent, createEvent } from '@/lib/ably';
 
 // Helper function to check permissions
 function hasStoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -606,6 +607,13 @@ const updateStory = createHandler(
       },
     });
 
+    // Publish real-time event (non-blocking)
+    publishStoryEvent(
+      createEvent('story:updated', 'story', id, user.id, undefined, {
+        updatedFields: Object.keys(data),
+      })
+    ).catch(() => {});
+
     return NextResponse.json(story);
   },
   [
@@ -660,6 +668,11 @@ const deleteStory = createHandler(
     await prisma.story.delete({
       where: { id },
     });
+
+    // Publish real-time event (non-blocking)
+    publishStoryEvent(
+      createEvent('story:deleted', 'story', id, user.id)
+    ).catch(() => {});
 
     return NextResponse.json({ message: 'Story deleted successfully' });
   },

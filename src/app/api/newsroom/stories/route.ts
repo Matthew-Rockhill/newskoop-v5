@@ -5,6 +5,7 @@ import { storyCreateSchema, storySearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 import { generateSlug, generateUniqueStorySlug } from '@/lib/slug-utils';
+import { publishStoryEvent, publishDashboardEvent, createEvent } from '@/lib/ably';
 
 // Helper function to check permissions
 function hasStoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -555,6 +556,14 @@ const createStory = createHandler(
       });
       
       console.log('✅ Story created successfully:', story.id);
+
+      // Publish real-time event (non-blocking)
+      publishStoryEvent(
+        createEvent('story:created', 'story', story.id, user.id, undefined, {
+          title: story.title,
+        })
+      ).catch(() => {});
+
       return NextResponse.json(story, { status: 201 });
     } catch (error) {
       console.error('💥 Database error creating story:', error);

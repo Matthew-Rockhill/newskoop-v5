@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { hasShowPermission, canEditShow, canDeleteShow } from '@/lib/permissions';
 import { z } from 'zod';
+import { publishShowEvent, createEvent } from '@/lib/ably';
 
 const showUpdateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -137,6 +138,13 @@ const updateShow = createHandler(
       },
     });
 
+    // Publish real-time event (non-blocking)
+    publishShowEvent(
+      createEvent('show:updated', 'show', id, user.id, undefined, {
+        updatedFields: Object.keys(data),
+      })
+    ).catch(() => {});
+
     return NextResponse.json({ show: updatedShow });
   },
   [withErrorHandling, withAuth, withAudit('show.update')]
@@ -172,6 +180,11 @@ const deleteShow = createHandler(
       where: { id: id },
       data: { isActive: false },
     });
+
+    // Publish real-time event (non-blocking)
+    publishShowEvent(
+      createEvent('show:deleted', 'show', id, user.id)
+    ).catch(() => {});
 
     return NextResponse.json({ message: 'Show deleted successfully' });
   },

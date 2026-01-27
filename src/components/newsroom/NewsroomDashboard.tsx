@@ -8,6 +8,7 @@ import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
+import { RealtimeStatus } from '@/components/ui/RealtimeStatus';
 import { useStories } from '@/hooks/use-stories';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -19,7 +20,7 @@ import {
   MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
 import { ReassignButton } from '@/components/newsroom/ReassignButton';
-import { useState, useEffect, useCallback, KeyboardEvent } from 'react';
+import { useState, KeyboardEvent } from 'react';
 
 // Helper for keyboard navigation on clickable elements
 function handleKeyboardNavigation(callback: () => void) {
@@ -156,10 +157,16 @@ export function NewsroomDashboard() {
       <PageHeader
         title="My Dashboard"
         description={`Welcome back, ${session?.user?.firstName || (isSubEditor ? 'Sub-Editor' : isJournalist ? 'Journalist' : 'Intern')}!`}
-        action={!isSubEditor ? {
-          label: "Create Story",
-          onClick: () => router.push('/newsroom/stories/new')
-        } : undefined}
+        actions={
+          <div className="flex items-center gap-4">
+            <RealtimeStatus />
+            {!isSubEditor && (
+              <Button color="primary" onClick={() => router.push('/newsroom/stories/new')}>
+                Create Story
+              </Button>
+            )}
+          </div>
+        }
       />
 
       <div className="mt-8 space-y-8">

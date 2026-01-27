@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { publishStoryEvent, createEvent } from '@/lib/ably';
 
 /**
  * POST /api/newsroom/stories/[id]/reassign
@@ -129,6 +130,15 @@ export async function POST(
         },
       });
 
+      // Publish real-time event (non-blocking)
+      publishStoryEvent(
+        createEvent('story:assigned', 'story', storyId, session.user.id, undefined, {
+          assignmentType: 'reviewer',
+          previousAssigneeId: story.assignedReviewerId,
+          newAssigneeId: assignedToId,
+        })
+      ).catch(() => {});
+
       return NextResponse.json({
         success: true,
         message: `Story reassigned to ${targetUser.firstName} ${targetUser.lastName}`,
@@ -171,6 +181,15 @@ export async function POST(
           note,
         },
       });
+
+      // Publish real-time event (non-blocking)
+      publishStoryEvent(
+        createEvent('story:assigned', 'story', storyId, session.user.id, undefined, {
+          assignmentType: 'approver',
+          previousAssigneeId: story.assignedApproverId,
+          newAssigneeId: assignedToId,
+        })
+      ).catch(() => {});
 
       return NextResponse.json({
         success: true,
@@ -225,6 +244,15 @@ export async function POST(
           note,
         },
       });
+
+      // Publish real-time event (non-blocking)
+      publishStoryEvent(
+        createEvent('story:assigned', 'story', storyId, session.user.id, undefined, {
+          assignmentType: 'translator',
+          previousAssigneeId: story.authorId,
+          newAssigneeId: assignedToId,
+        })
+      ).catch(() => {});
 
       return NextResponse.json({
         success: true,

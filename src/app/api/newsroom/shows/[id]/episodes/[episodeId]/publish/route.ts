@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { canPublishEpisode } from '@/lib/permissions';
 import { z } from 'zod';
+import { publishEpisodeEvent, createEvent } from '@/lib/ably';
 
 const publishSchema = z.object({
   scheduledPublishAt: z.string().datetime().optional(),
@@ -68,6 +69,16 @@ const publishEpisode = createHandler(
         show: true,
       },
     });
+
+    // Publish real-time event (non-blocking)
+    if (shouldPublishNow) {
+      publishEpisodeEvent(
+        createEvent('episode:published', 'episode', episodeId, user.id, undefined, {
+          showId: id,
+          publishedAt: now.toISOString(),
+        })
+      ).catch(() => {});
+    }
 
     return NextResponse.json({
       episode: updatedEpisode,

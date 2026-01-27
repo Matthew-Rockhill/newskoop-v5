@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { generateSlug, generateUniqueBulletinSlug } from '@/lib/slug-utils';
+import { publishBulletinEvent, createEvent } from '@/lib/ably';
 
 const updateBulletinSchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
@@ -261,6 +262,23 @@ export async function PATCH(
       },
     });
 
+    // Publish real-time event (non-blocking)
+    const isStatusChange = validatedData.status && validatedData.status !== existing.status;
+    if (isStatusChange) {
+      publishBulletinEvent(
+        createEvent('bulletin:status_changed', 'bulletin', bulletin.id, session.user.id, undefined, {
+          previousStatus: existing.status,
+          newStatus: validatedData.status,
+        })
+      ).catch(() => {});
+    } else {
+      publishBulletinEvent(
+        createEvent('bulletin:updated', 'bulletin', bulletin.id, session.user.id, undefined, {
+          updatedFields: Object.keys(validatedData),
+        })
+      ).catch(() => {});
+    }
+
     return NextResponse.json({ bulletin });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -337,6 +355,11 @@ export async function DELETE(
         },
       },
     });
+
+    // Publish real-time event (non-blocking)
+    publishBulletinEvent(
+      createEvent('bulletin:deleted', 'bulletin', id, session.user.id)
+    ).catch(() => {});
 
     return NextResponse.json({ message: 'Bulletin deleted successfully' });
   } catch (error) {

@@ -11,6 +11,7 @@ import {
   canRequestRevision,
 } from '@/lib/permissions';
 import { StoryStage, StaffRole, ClassificationType } from '@prisma/client';
+import { publishStoryEvent, publishDashboardEvent, createEvent } from '@/lib/ably';
 
 // Validation schema for stage transitions
 const stageTransitionSchema = z.object({
@@ -457,6 +458,21 @@ export async function POST(
 
       return updatedStory;
     });
+
+    // Publish real-time events (non-blocking)
+    publishStoryEvent(
+      createEvent('story:stage_changed', 'story', id, session.user.id, undefined, {
+        previousStage: story.stage,
+        newStage,
+        action: validatedData.action,
+      })
+    ).catch(() => {});
+
+    publishDashboardEvent(
+      createEvent('dashboard:metrics_updated', 'story', id, session.user.id, undefined, {
+        trigger: 'stage_change',
+      })
+    ).catch(() => {});
 
     return NextResponse.json({
       message: 'Stage transition successful',
