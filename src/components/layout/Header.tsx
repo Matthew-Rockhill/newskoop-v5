@@ -6,6 +6,12 @@ import { Button } from '../ui/button';
 import { Link } from '../ui/link';
 import Logo from '../shared/Logo';
 
+const navLinks = [
+  { label: 'Services', href: '#services' },
+  { label: 'About', href: '#about' },
+  { label: 'Contact', href: '#contact' },
+];
+
 interface HeaderProps {
   isLoggedIn?: boolean;
   transparent?: boolean;
@@ -19,20 +25,23 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
     if (!transparent) return;
 
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 50);
+      setIsScrolled(window.scrollY > 50);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [transparent]);
 
+  const linkColor = transparent && !isScrolled
+    ? 'text-white hover:text-[#76BD43]'
+    : 'text-zinc-700 hover:text-[#76BD43]';
+
   return (
-    <header 
+    <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        transparent 
-          ? isScrolled 
-            ? 'bg-white shadow-sm border-b border-kelly-green' 
+        transparent
+          ? isScrolled
+            ? 'bg-white shadow-sm border-b border-kelly-green'
             : 'bg-transparent'
           : 'bg-white shadow-sm border-b border-zinc-100'
       }`}
@@ -40,65 +49,59 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <Link href="/" className="bg-transparent">
-            <Logo 
-              className="h-12 w-auto bg-transparent" 
-              variant={transparent && !isScrolled ? 'transparent-white' : 'full'} 
+            <Logo
+              className="h-12 w-auto bg-transparent"
+              variant={transparent && !isScrolled ? 'transparent-white' : 'full'}
             />
           </Link>
 
-          <div className="hidden md:block">
+          {/* Right side: Login + Hamburger */}
+          <div className="flex items-center gap-3">
             {isLoggedIn ? (
-              <Button 
-                color={transparent && !isScrolled ? "white" : "primary"} 
+              <Button
+                color={transparent && !isScrolled ? "white" : "primary"}
                 href="/logout"
               >
                 LOGOUT
               </Button>
             ) : (
-              <Button 
-                color={transparent && !isScrolled ? "white" : "primary"} 
+              <Button
+                color={transparent && !isScrolled ? "white" : "primary"}
                 href="/login"
               >
                 LOGIN
               </Button>
             )}
-          </div>
 
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`md:hidden p-2 rounded-md ${
-              transparent && !isScrolled ? 'text-white' : 'text-zinc-600'
-            }`}
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
+            <div className="relative">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className={`p-2 rounded-md ${
+                  transparent && !isScrolled ? 'text-white' : 'text-zinc-600'
+                }`}
+              >
+                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
 
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className={`md:hidden py-4 border-t ${
-            transparent && !isScrolled ? 'border-white/20' : 'border-zinc-100'
-          }`}>
-            <div className="flex flex-col space-y-4">
-              {isLoggedIn ? (
-                <Button 
-                  color={transparent && !isScrolled ? "white" : "primary"} 
-                  href="/logout"
-                >
-                  LOGOUT
-                </Button>
-              ) : (
-                <Button 
-                  color={transparent && !isScrolled ? "white" : "primary"} 
-                  href="/login"
-                >
-                  LOGIN
-                </Button>
+              {/* Dropdown Navigation */}
+              {isMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg border border-zinc-100 py-2">
+                  {navLinks.map((link) => (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block px-4 py-2.5 text-sm font-semibold tracking-wide uppercase text-zinc-700 hover:text-[#76BD43] hover:bg-zinc-50 transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
               )}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </header>
   );
-} 
+}
