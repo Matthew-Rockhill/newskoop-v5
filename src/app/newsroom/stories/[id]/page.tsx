@@ -56,6 +56,7 @@ import {
   getStageLockReason,
   canUpdateStoryStatus,
   canFlagStoryForBulletin,
+  canRequestRevision,
 } from '@/lib/permissions';
 import { StaffRole, StoryStatus, StoryStage, AudioClip } from '@prisma/client';
 import { StageBadge } from '@/components/ui/stage-badge';
@@ -81,19 +82,6 @@ function canShowSubmitForReviewButton(userRole: StaffRole | null, status: string
   if (!userRole || !userId) return false;
   // Only interns can submit their own draft stories for review
   return userRole === 'INTERN' && status === 'DRAFT' && authorId === userId;
-}
-
-// Helper: should show request revision button
-function canShowRequestRevisionButton(userRole: StaffRole | null, status: string, isOwnStory: boolean = false) {
-  if (!userRole) return false;
-  // Journalists can request revision when reviewing OTHER people's stories
-  if (userRole === 'JOURNALIST' && status === 'IN_REVIEW' && !isOwnStory) return true;
-  // Sub-editors and above can request revision on PENDING_APPROVAL stories
-  if (
-    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) &&
-    status === 'PENDING_APPROVAL'
-  ) return true;
-  return false;
 }
 
 // Helper: should show final review button
@@ -332,28 +320,14 @@ export default function StoryDetailPage() {
 
   const nextAction = getNextStageAction();
 
-  // Determine if user can request revision
-  const canRequestRevision = () => {
-    if (!story || !session?.user?.staffRole || !story.stage) return false;
-
-    const userRole = session.user.staffRole as StaffRole;
-    const stage = story.stage as StoryStage;
-    const isAuthor = story.authorId === session.user.id;
-
-    // Journalist can request revision when reviewing intern's work
-    if (stage === 'NEEDS_JOURNALIST_REVIEW' && userRole === 'JOURNALIST' && !isAuthor) {
-      return true;
-    }
-
-    // Sub-Editor can request revision when approving
-    if (stage === 'NEEDS_SUB_EDITOR_APPROVAL' && ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
-      return true;
-    }
-
-    return false;
-  };
-
-  const showRevisionButton = canRequestRevision();
+  // Determine if user can request revision (uses imported canRequestRevision from permissions.ts)
+  const showRevisionButton = canRequestRevision(
+    (session?.user?.staffRole as StaffRole) ?? null,
+    (story?.stage as StoryStage) ?? null,
+    story?.assignedReviewerId ?? null,
+    story?.assignedApproverId ?? null,
+    session?.user?.id ?? ''
+  );
 
   const handleSendForTranslation = () => {
     setShowTranslationModal(true);
