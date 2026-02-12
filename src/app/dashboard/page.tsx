@@ -47,10 +47,10 @@ export default function DashboardRouter() {
       console.log('👑 Dashboard Router - ADMIN, redirecting to /admin');
       router.push('/admin');
     }
-    // SUPERADMIN goes to admin dashboard (they can access both from there)
+    // SUPERADMIN goes to super admin dashboard
     else if (staffRole === 'SUPERADMIN') {
-      console.log('🦸 Dashboard Router - SUPERADMIN, redirecting to /admin');
-      router.push('/admin');
+      console.log('🦸 Dashboard Router - SUPERADMIN, redirecting to /admin/super');
+      router.push('/admin/super');
     }
     // Default fallback
     else {

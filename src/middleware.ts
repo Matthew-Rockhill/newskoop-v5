@@ -7,6 +7,7 @@ const publicPaths = ['/', '/login', '/password-reset', '/auth/set-password', '/d
 
 // Paths that require specific roles
 const roleBasedPaths: Record<string, string[]> = {
+  '/admin/super': ['SUPERADMIN'],
   '/admin': ['SUPERADMIN', 'ADMIN'],
   '/admin/users': ['SUPERADMIN', 'ADMIN'],
   '/admin/stations': ['SUPERADMIN', 'ADMIN'],

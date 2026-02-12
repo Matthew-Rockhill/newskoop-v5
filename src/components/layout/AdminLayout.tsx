@@ -17,6 +17,7 @@ import {
   UserIcon,
   NewspaperIcon,
   ChartBarIcon,
+  ServerIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -57,9 +58,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     enabled: !!session,
   });
 
+  // Check if user is SUPERADMIN
+  const isSuperAdmin = session?.user?.staffRole === 'SUPERADMIN'
+
   // Clean admin navigation for both ADMIN and SUPERADMIN
   const getNavigation = (): NavigationItem[] => {
     const navigation: NavigationItem[] = []
+
+    // System Status - SUPERADMIN only
+    if (isSuperAdmin) {
+      navigation.push({ name: 'System Status', href: '/admin/super', icon: ServerIcon })
+    }
 
     // Dashboard - always admin dashboard
     navigation.push({ name: 'Dashboard', href: '/admin', icon: HomeIcon })

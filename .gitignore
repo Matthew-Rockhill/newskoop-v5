@@ -56,3 +56,5 @@ next-env.d.ts
 !.claude/build-patterns.json
 !.claude/build-errors.json
 !.claude/coding-insights.json
+
+.vercel
