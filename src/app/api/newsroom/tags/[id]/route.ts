@@ -19,8 +19,6 @@ function hasTagPermission(userRole: string | null, action: 'update' | 'delete') 
 const tagUpdateSchema = z.object({
   name: z.string().min(1).optional(),
   nameAfrikaans: z.string().optional(),
-  descriptionAfrikaans: z.string().optional(),
-  color: z.string().optional(),
 });
 
 // GET /api/newsroom/tags/[id] - Get single tag

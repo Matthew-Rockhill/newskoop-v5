@@ -66,16 +66,8 @@ export default function TagsPage() {
       render: (tag) => (
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0">
-            <div
-              className="h-12 w-12 rounded-full flex items-center justify-center"
-              style={{
-                backgroundColor: tag.color ? `${tag.color}20` : '#f4f4f5'
-              }}
-            >
-              <TagIcon
-                className="h-6 w-6"
-                style={{ color: tag.color || '#71717a' }}
-              />
+            <div className="h-12 w-12 rounded-full flex items-center justify-center bg-zinc-100">
+              <TagIcon className="h-6 w-6 text-zinc-500" />
             </div>
           </div>
           <div className="min-w-0 flex-1">
@@ -105,16 +97,8 @@ export default function TagsPage() {
       mobileRender: (tag) => (
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <div
-              className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: tag.color ? `${tag.color}20` : '#f4f4f5'
-              }}
-            >
-              <TagIcon
-                className="h-5 w-5"
-                style={{ color: tag.color || '#71717a' }}
-              />
+            <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 bg-zinc-100">
+              <TagIcon className="h-5 w-5 text-zinc-500" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-medium text-zinc-900 dark:text-white truncate">

@@ -68,7 +68,7 @@ const getTags = createHandler(
 const createTag = createHandler(
   async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
-    const data = (req as NextRequest & { validatedData: { name: string; nameAfrikaans?: string; descriptionAfrikaans?: string; color?: string } }).validatedData;
+    const data = (req as NextRequest & { validatedData: { name: string; nameAfrikaans?: string } }).validatedData;
 
     if (!hasTagPermission(user.staffRole, 'create')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -83,8 +83,6 @@ const createTag = createHandler(
         name: data.name,
         slug,
         nameAfrikaans: data.nameAfrikaans,
-        descriptionAfrikaans: data.descriptionAfrikaans,
-        color: data.color,
       },
       include: {
         _count: {

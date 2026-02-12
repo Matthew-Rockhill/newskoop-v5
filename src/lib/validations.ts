@@ -248,15 +248,11 @@ export const categoryUpdateSchema = z.object({
 export const tagCreateSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50),
   nameAfrikaans: z.string().max(50).optional(),
-  descriptionAfrikaans: z.string().optional(),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
 });
 
 export const tagUpdateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   nameAfrikaans: z.string().max(50).optional(),
-  descriptionAfrikaans: z.string().optional(),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional(),
 });
 
 // Classification schemas (Language, Religion, Locality)

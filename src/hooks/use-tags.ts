@@ -6,8 +6,6 @@ export interface Tag {
   name: string;
   slug: string;
   nameAfrikaans?: string;
-  descriptionAfrikaans?: string;
-  color?: string;
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -18,15 +16,11 @@ export interface Tag {
 export interface CreateTagData {
   name: string;
   nameAfrikaans?: string;
-  descriptionAfrikaans?: string;
-  color?: string;
 }
 
 export interface UpdateTagData {
   name?: string;
   nameAfrikaans?: string;
-  descriptionAfrikaans?: string;
-  color?: string;
 }
 
 // Fetch tags

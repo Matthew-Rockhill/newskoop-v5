@@ -440,16 +440,14 @@ model Category {
 }
 
 model Tag {
-  id                   String    @id @default(cuid())
-  name                 String    @unique
-  slug                 String    @unique
-  nameAfrikaans        String?
-  descriptionAfrikaans String?   @db.Text
-  color                String?
-  stories              StoryTag[]
-  shows                ShowTag[]
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  name          String    @unique
+  slug          String    @unique
+  nameAfrikaans String?
+  stories       StoryTag[]
+  shows         ShowTag[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model StoryTag {

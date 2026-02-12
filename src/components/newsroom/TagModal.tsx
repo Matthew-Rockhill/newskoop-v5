@@ -15,7 +15,6 @@ interface Tag {
   id: string;
   name: string;
   slug: string;
-  color?: string;
   _count?: {
     stories: number;
   };

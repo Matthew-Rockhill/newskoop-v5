@@ -145,7 +145,6 @@ const createTranslations = createHandler(
                   id: true,
                   name: true,
                   slug: true,
-                  color: true
                 }
               }
             }

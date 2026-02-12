@@ -15,7 +15,6 @@ import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { useTags, useUpdateTag, useDeleteTag, type Tag } from "@/hooks/use-tags";
@@ -26,8 +25,6 @@ import { StaffRole } from "@prisma/client";
 const tagSchema = z.object({
   name: z.string().min(1, "Name is required").max(50),
   nameAfrikaans: z.string().max(50).optional(),
-  descriptionAfrikaans: z.string().optional(),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color').optional().or(z.literal('')),
 });
 
 type TagFormData = z.infer<typeof tagSchema>;
@@ -64,8 +61,6 @@ export default function EditTagPage() {
       reset({
         name: tag.name,
         nameAfrikaans: tag.nameAfrikaans || '',
-        descriptionAfrikaans: tag.descriptionAfrikaans || '',
-        color: tag.color || '',
       });
     }
   }, [tag, reset]);
@@ -78,8 +73,6 @@ export default function EditTagPage() {
         data: {
           name: formData.name,
           nameAfrikaans: formData.nameAfrikaans || undefined,
-          descriptionAfrikaans: formData.descriptionAfrikaans || undefined,
-          color: formData.color || undefined,
         }
       });
       toast.success("Tag updated successfully!");
@@ -168,36 +161,6 @@ export default function EditTagPage() {
                     disabled={!canEdit}
                   />
                   {errors.nameAfrikaans && <ErrorMessage>{errors.nameAfrikaans.message}</ErrorMessage>}
-                </Field>
-                <Field>
-                  <Label htmlFor="descriptionAfrikaans">Description (Afrikaans)</Label>
-                  <Textarea
-                    id="descriptionAfrikaans"
-                    {...register("descriptionAfrikaans")}
-                    placeholder="Enter Afrikaans description..."
-                    rows={3}
-                    disabled={!canEdit}
-                  />
-                  {errors.descriptionAfrikaans && <ErrorMessage>{errors.descriptionAfrikaans.message}</ErrorMessage>}
-                </Field>
-                <Field>
-                  <Label htmlFor="color">Color (optional)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="color"
-                      type="color"
-                      {...register("color")}
-                      className="w-14 h-10 p-1 cursor-pointer"
-                      disabled={!canEdit}
-                    />
-                    <Input
-                      {...register("color")}
-                      placeholder="#000000"
-                      disabled={!canEdit}
-                      className="flex-1"
-                    />
-                  </div>
-                  {errors.color && <ErrorMessage>{errors.color.message}</ErrorMessage>}
                 </Field>
               </FieldGroup>
             </Fieldset>
