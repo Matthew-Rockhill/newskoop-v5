@@ -23,7 +23,8 @@ interface StoryCardProps {
     author: { firstName: string; lastName: string } | null;
     createdAt: string | Date;
     publishedAt?: string | Date;
-    tags: Array<{ id: string; name: string; category: string }>;
+    tags: Array<{ id: string; name: string; category?: string }>;
+    classifications?: Array<{ id: string; name: string; type: string }>;
     audioClips?: Array<{ id: string; url: string; originalName: string; duration: number | null; mimeType: string }>;
     translations?: Array<{ id: string; title: string; content: string | null; targetLanguage: string }>;
   };
@@ -33,9 +34,9 @@ interface StoryCardProps {
 export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
 
-  // Get language tags
-  const languageTags = story.tags?.filter((tag) => tag.category === 'LANGUAGE') || [];
-  const hasSelectedLanguage = selectedLanguage ? languageTags.some((tag) => tag.name === selectedLanguage) : true;
+  // Get language classifications
+  const languageClassifications = story.classifications?.filter((c) => c.type === 'LANGUAGE') || [];
+  const hasSelectedLanguage = selectedLanguage ? languageClassifications.some((c) => c.name === selectedLanguage) : true;
 
   // Get the story content (could be original or translation)
   const displayTitle = story.title;
@@ -86,17 +87,17 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
           )}
         </div>
         
-        {languageTags.length > 0 && (
+        {languageClassifications.length > 0 && (
           <div className="flex gap-1">
-            {languageTags.map((tag) => (
-              <Badge 
-                key={tag.id}
-                color={selectedLanguage && tag.name === selectedLanguage ? "green" : "zinc"}
+            {languageClassifications.map((c) => (
+              <Badge
+                key={c.id}
+                color={selectedLanguage && c.name === selectedLanguage ? "green" : "zinc"}
                 className="text-xs"
               >
-                {tag.name === 'English' ? 'EN' : 
-                 tag.name === 'Afrikaans' ? 'AF' : 
-                 tag.name === 'Xhosa' ? 'XH' : tag.name}
+                {c.name === 'English' ? 'EN' :
+                 c.name === 'Afrikaans' ? 'AF' :
+                 c.name === 'Xhosa' ? 'XH' : c.name}
               </Badge>
             ))}
           </div>

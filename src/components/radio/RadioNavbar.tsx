@@ -32,6 +32,7 @@ interface MenuItem {
     name: string;
     nameAfrikaans: string | null;
     slug: string;
+    parent: { slug: string } | null;
   } | null;
   url: string | null;
   openInNewTab: boolean;
@@ -147,6 +148,10 @@ export function RadioNavbar() {
       return item.url;
     }
     if (item.type === 'CATEGORY' && item.category) {
+      // Subcategories need /radio/{parent-slug}/{subcategory-slug}
+      if (item.category.parent?.slug) {
+        return `/radio/${item.category.parent.slug}/${item.category.slug}`;
+      }
       return `/radio/${item.category.slug}`;
     }
     return '#';
@@ -184,14 +189,6 @@ export function RadioNavbar() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              {/* Home Link */}
-              <Link
-                href="/radio"
-                className="px-4 py-2 rounded-lg text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium"
-              >
-                Home
-              </Link>
-
               {/* Dynamic Menu Items */}
               {menuItems.map((item) => {
                 // Skip dividers in main nav
@@ -508,15 +505,6 @@ export function RadioNavbar() {
 
               {/* Navigation Links */}
               <div className="space-y-1 mb-6">
-                {/* Home Link */}
-                <Link
-                  href="/radio"
-                  className="block px-4 py-3 text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg font-medium"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Home
-                </Link>
-
                 {/* Dynamic Menu Items */}
                 {menuItems.map((item) => {
                   // Skip dividers in mobile nav or show as visual separator

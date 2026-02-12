@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
+import { PageHeader } from '@/components/ui/page-header';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { LanguageToggle } from '@/components/radio/LanguageToggle';
 import {
@@ -19,7 +20,6 @@ import {
   UserIcon,
   MusicalNoteIcon,
   LanguageIcon,
-  TagIcon,
   PrinterIcon,
   ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
@@ -345,84 +345,52 @@ Downloaded from NewsKoop Radio Station Zone
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
-      <Container className="py-8">
-        {/* Back Navigation */}
+      <Container className="pt-24 pb-8">
+        {/* Page Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4">
-            <Button
-              color="white"
-              onClick={() => router.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeftIcon className="h-4 w-4" />
-              Back to Radio Station Zone
-            </Button>
-            
-            {story.category && (
-              <Button
-                color="white"
-                onClick={() => router.push(`/radio/${story.category.slug}`)}
-                className="flex items-center gap-2"
-              >
-                <TagIcon className="h-4 w-4" />
-                {story.category.name}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Story Hero Card */}
-        <Card className="mb-12 bg-white shadow-lg border-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-kelly-green to-kelly-green-dark p-8">
-            <div className="flex items-start justify-between">
-              {/* Story Information */}
-              <div className="flex-1 text-white">
-                <Heading level={1} className="text-3xl font-bold text-white mb-3">
-                  {displayContent?.title}
-                </Heading>
-                <div className="flex items-center flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-zinc-700">
-                    <CalendarIcon className="h-4 w-4 text-zinc-600" />
-                    <span>{publishedDate}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-zinc-700">
-                    {story.author ? (
-                      <>
-                        <Avatar
-                          className="h-6 w-6"
-                          name={`${story.author.firstName} ${story.author.lastName}`}
-                        />
-                        <span>{story.author.firstName} {story.author.lastName}</span>
-                      </>
-                    ) : (
-                      <>
-                        <UserIcon className="h-4 w-4 text-zinc-600" />
-                        <span>NewsKoop</span>
-                      </>
-                    )}
-                  </div>
-                  {story.audioClips?.length > 0 && (
-                    <div className="flex items-center gap-2 text-zinc-700">
-                      <MusicalNoteIcon className="h-4 w-4 text-zinc-600" />
-                      <span>{story.audioClips.length} audio clip{story.audioClips.length !== 1 ? 's' : ''}</span>
-                    </div>
-                  )}
-                  {story.category && (
-                    <Badge color="blue" className="font-medium">
-                      {story.category.name}
-                    </Badge>
-                  )}
-                  {isTranslation && (
-                    <Badge color="purple" className="font-medium">
-                      <LanguageIcon className="h-3 w-3 mr-1" />
-                      {selectedLanguage} Translation
-                    </Badge>
+          <PageHeader
+            title={displayContent?.title || 'Story'}
+            description={
+              <div className="flex items-center flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2 text-zinc-500">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>{publishedDate}</span>
+                </div>
+                <div className="flex items-center gap-2 text-zinc-500">
+                  {story.author ? (
+                    <>
+                      <Avatar
+                        className="h-5 w-5"
+                        name={`${story.author.firstName} ${story.author.lastName}`}
+                      />
+                      <span>{story.author.firstName} {story.author.lastName}</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserIcon className="h-4 w-4" />
+                      <span>NewsKoop</span>
+                    </>
                   )}
                 </div>
+                {story.category && (
+                  <Badge color="zinc">{story.category.name}</Badge>
+                )}
+                {story.audioClips?.length > 0 && (
+                  <Badge color="green" className="flex items-center gap-1">
+                    <MusicalNoteIcon className="h-3 w-3" />
+                    {story.audioClips.length} clip{story.audioClips.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+                {isTranslation && (
+                  <Badge color="purple" className="flex items-center gap-1">
+                    <LanguageIcon className="h-3 w-3" />
+                    {selectedLanguage} Translation
+                  </Badge>
+                )}
               </div>
-
-              {/* Actions */}
-              <div className="flex-shrink-0 flex items-start gap-3">
+            }
+            actions={
+              <div className="flex items-center gap-3">
                 {availableLanguages.length > 1 && (
                   <LanguageToggle
                     selectedLanguage={selectedLanguage}
@@ -447,56 +415,9 @@ Downloaded from NewsKoop Radio Station Zone
                   Print
                 </Button>
               </div>
-            </div>
-          </div>
-          
-          {/* Story Info Bar */}
-          <div className="bg-zinc-50 px-8 py-4 border-t border-zinc-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Text className="text-sm text-zinc-600">Word Count:</Text>
-                    <Badge color="blue" className="text-xs">
-                      {displayContent?.content ? 
-                        displayContent.content.replace(/<[^>]*>/g, '').split(/\s+/).filter((word: string) => word.length > 0).length 
-                        : 0} words
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Text className="text-sm text-zinc-600">Audio:</Text>
-                    <Badge color="zinc" className="text-xs">
-                      {story.audioClips?.length > 0 ? 
-                        `${story.audioClips.length} clip${story.audioClips.length !== 1 ? 's' : ''}` : 
-                        'No audio'
-                      }
-                    </Badge>
-                  </div>
-                </div>
-                {availableLanguages.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <Text className="text-sm text-zinc-600">Available Languages:</Text>
-                    <div className="flex gap-1">
-                      {availableLanguages.map((lang: string) => (
-                        <Badge key={lang} color="zinc" className="text-xs">
-                          {lang === 'English' ? 'EN' : lang === 'Afrikaans' ? 'AF' : 'XH'}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Text className="text-sm text-zinc-600">
-                  Last updated: {new Date().toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </Text>
-              </div>
-            </div>
-          </div>
-        </Card>
+            }
+          />
+        </div>
 
         {/* Story Content Card */}
         <Card className="p-8 bg-white shadow-lg">

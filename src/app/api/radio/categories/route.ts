@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
         id: 'staff-access',
         name: 'Newskoop',
         allowedLanguages: ['English', 'Afrikaans', 'Xhosa'],
+        allowedReligions: ['Christian', 'Muslim', 'Neutral'],
         hasContentAccess: true,
         isActive: true,
         blockedCategories: [],

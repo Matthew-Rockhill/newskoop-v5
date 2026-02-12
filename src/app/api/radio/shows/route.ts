@@ -123,6 +123,11 @@ export async function GET(req: NextRequest) {
             tag: true,
           },
         },
+        classifications: {
+          include: {
+            classification: true,
+          },
+        },
         _count: {
           select: {
             episodes: {
@@ -140,13 +145,24 @@ export async function GET(req: NextRequest) {
       take: perPage,
     });
 
+    // Flatten tags and classifications for easier client-side use
+    const transformedShows = shows.map(show => ({
+      ...show,
+      tags: show.tags.map(st => st.tag),
+      classifications: show.classifications.map(sc => sc.classification),
+    }));
+
     return NextResponse.json({
-      shows,
+      shows: transformedShows,
       pagination: {
         page,
         perPage,
         total,
         totalPages: Math.ceil(total / perPage),
+      },
+      station: {
+        name: station?.name || 'Newskoop',
+        allowedLanguages: station?.allowedLanguages || allowedLanguages,
       },
     });
   } catch (error) {

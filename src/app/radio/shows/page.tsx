@@ -8,6 +8,7 @@ import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { DataList, type DataListColumn } from '@/components/ui/data-list';
+import { PageHeader } from '@/components/ui/page-header';
 import { PlayCircleIcon } from '@heroicons/react/24/outline';
 
 interface Show {
@@ -23,11 +24,13 @@ interface Show {
     slug: string;
   };
   tags: Array<{
-    tag: {
-      id: string;
-      name: string;
-      category: string;
-    };
+    id: string;
+    name: string;
+  }>;
+  classifications: Array<{
+    id: string;
+    name: string;
+    type: string;
   }>;
   _count: {
     episodes: number;
@@ -41,6 +44,10 @@ interface ShowsResponse {
     perPage: number;
     total: number;
     totalPages: number;
+  };
+  station?: {
+    name: string;
+    allowedLanguages: string[];
   };
 }
 
@@ -62,19 +69,19 @@ export default function ShowsPage() {
   const shows = data?.shows || [];
   const pagination = data?.pagination;
 
+  const station = data?.station;
+
   // Filter by language on client side
   const filteredShows = useMemo(() => {
     return selectedLanguage === 'all'
       ? shows
       : shows.filter(show =>
-          show.tags.some(t =>
-            t.tag.category === 'LANGUAGE' &&
-            t.tag.name.toLowerCase() === selectedLanguage.toLowerCase()
+          show.classifications?.some(c =>
+            c.type === 'LANGUAGE' &&
+            c.name.toLowerCase() === selectedLanguage.toLowerCase()
           )
         );
   }, [shows, selectedLanguage]);
-
-  const languages = ['English', 'Afrikaans', 'Xhosa'];
 
   // Define columns for the DataList
   const columns: DataListColumn<Show>[] = useMemo(() => [
@@ -103,7 +110,7 @@ export default function ShowsPage() {
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
-              <Heading level={3} className="text-xl font-semibold text-zinc-900 dark:text-white group-hover:text-kelly-green transition-colors">
+              <Heading level={3} className="text-xl font-semibold text-zinc-900 group-hover:text-kelly-green transition-colors">
                 {show.title}
               </Heading>
               <Badge color="zinc" className="ml-4 flex-shrink-0">
@@ -112,7 +119,7 @@ export default function ShowsPage() {
             </div>
 
             {/* Description */}
-            <Text className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 mb-3">
+            <Text className="text-sm text-zinc-600 line-clamp-2 mb-3">
               {show.description || 'No description available'}
             </Text>
 
@@ -123,12 +130,12 @@ export default function ShowsPage() {
                   {show.category.name}
                 </Badge>
               )}
-              {show.tags
-                .filter(t => t.tag.category === 'LANGUAGE')
+              {show.classifications
+                ?.filter(c => c.type === 'LANGUAGE')
                 .slice(0, 2)
-                .map(({ tag }) => (
-                  <Badge key={tag.id} color="zinc" className="text-xs">
-                    {tag.name}
+                .map((c) => (
+                  <Badge key={c.id} color="zinc" className="text-xs">
+                    {c.name}
                   </Badge>
                 ))}
             </div>
@@ -153,10 +160,10 @@ export default function ShowsPage() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-zinc-900 dark:text-white truncate">
+              <div className="font-semibold text-zinc-900 truncate">
                 {show.title}
               </div>
-              <Text className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
+              <Text className="text-sm text-zinc-600 line-clamp-2">
                 {show.description || 'No description available'}
               </Text>
             </div>
@@ -175,49 +182,46 @@ export default function ShowsPage() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pt-20">
-      <Container className="py-8">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
+      <Container className="pt-24 pb-8">
         {/* Header */}
         <div className="mb-8">
-          <Heading level={1} className="text-3xl font-bold text-zinc-900 dark:text-white">
-            Shows & Podcasts
-          </Heading>
-          <Text className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Browse our collection of shows and podcast episodes
-          </Text>
-        </div>
-
-        {/* Language Filter */}
-        <div
-          role="group"
-          aria-label="Filter shows by language"
-          className="mb-6 flex flex-wrap gap-2"
-        >
-          <button
-            onClick={() => setSelectedLanguage('all')}
-            aria-pressed={selectedLanguage === 'all'}
-            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
-              selectedLanguage === 'all'
-                ? 'bg-kelly-green text-white'
-                : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-600 hover:border-kelly-green hover:text-kelly-green'
-            }`}
-          >
-            All Languages
-          </button>
-          {languages.map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setSelectedLanguage(lang)}
-              aria-pressed={selectedLanguage === lang}
-              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
-                selectedLanguage === lang
-                  ? 'bg-kelly-green text-white'
-                  : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-600 hover:border-kelly-green hover:text-kelly-green'
-              }`}
-            >
-              {lang}
-            </button>
-          ))}
+          <PageHeader
+            title="Shows & Podcasts"
+            description="Browse our collection of shows and podcast episodes"
+            actions={
+              <div className="flex items-center gap-2">
+                <Text className="text-sm text-zinc-600">Language:</Text>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setSelectedLanguage('all')}
+                    className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                      selectedLanguage === 'all'
+                        ? 'bg-kelly-green text-white border-kelly-green'
+                        : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {(station?.allowedLanguages || ['English', 'Afrikaans', 'Xhosa']).map((lang: string) => (
+                    <button
+                      key={lang}
+                      onClick={() => setSelectedLanguage(lang)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        selectedLanguage === lang
+                          ? 'bg-kelly-green text-white border-kelly-green'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
+                      }`}
+                    >
+                      {lang === 'English' ? 'EN' :
+                       lang === 'Afrikaans' ? 'AF' :
+                       lang === 'Xhosa' ? 'XH' : lang}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            }
+          />
         </div>
 
         <DataList<Show>

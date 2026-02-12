@@ -9,6 +9,7 @@ import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { DataList, type DataListColumn } from '@/components/ui/data-list';
+import { PageHeader } from '@/components/ui/page-header';
 import { MegaphoneIcon } from '@heroicons/react/24/outline';
 
 interface Bulletin {
@@ -23,10 +24,10 @@ interface Bulletin {
   category?: {
     name: string;
   };
-  tags?: Array<{
+  classifications?: Array<{
     id: string;
     name: string;
-    category: string;
+    type: string;
   }>;
   audioClips?: Array<{ id: string }>;
 }
@@ -93,10 +94,10 @@ export default function BulletinsPage() {
       render: (bulletin) => (
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <Heading level={3} className="text-xl font-semibold text-zinc-900 dark:text-white group-hover:text-kelly-green transition-colors mb-2">
+            <Heading level={3} className="text-xl font-semibold text-zinc-900 group-hover:text-kelly-green transition-colors mb-2">
               {bulletin.title}
             </Heading>
-            <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400 mb-3">
+            <div className="flex items-center gap-3 text-sm text-zinc-500 mb-3">
               {bulletin.publishedAt && (
                 <span>{formatDate(bulletin.publishedAt)}</span>
               )}
@@ -110,7 +111,7 @@ export default function BulletinsPage() {
 
             {/* Excerpt */}
             {bulletin.excerpt && (
-              <Text className="text-zinc-600 dark:text-zinc-400 mb-3 line-clamp-2">
+              <Text className="text-zinc-600 mb-3 line-clamp-2">
                 {bulletin.excerpt}
               </Text>
             )}
@@ -122,12 +123,12 @@ export default function BulletinsPage() {
                   {bulletin.category.name}
                 </Badge>
               )}
-              {bulletin.tags
-                ?.filter((t) => t.category === 'LANGUAGE')
+              {bulletin.classifications
+                ?.filter((c) => c.type === 'LANGUAGE')
                 .slice(0, 2)
-                .map((tag) => (
-                  <Badge key={tag.id} color="zinc" className="text-xs">
-                    {tag.name}
+                .map((c) => (
+                  <Badge key={c.id} color="zinc" className="text-xs">
+                    {c.name}
                   </Badge>
                 ))}
               {bulletin.audioClips && bulletin.audioClips.length > 0 && (
@@ -145,16 +146,16 @@ export default function BulletinsPage() {
           <div className="flex items-start gap-4">
             <MegaphoneIcon className="h-6 w-6 text-kelly-green flex-shrink-0 mt-1" />
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-zinc-900 dark:text-white">
+              <div className="font-semibold text-zinc-900">
                 {bulletin.title}
               </div>
-              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+              <div className="text-sm text-zinc-500">
                 {bulletin.publishedAt && formatDate(bulletin.publishedAt)}
               </div>
             </div>
           </div>
           {bulletin.excerpt && (
-            <Text className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
+            <Text className="text-sm text-zinc-600 line-clamp-2">
               {bulletin.excerpt}
             </Text>
           )}
@@ -174,16 +175,14 @@ export default function BulletinsPage() {
   ], []);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pt-20">
-      <Container className="py-8">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
+      <Container className="pt-24 pb-8">
         {/* Header */}
         <div className="mb-8">
-          <Heading level={1} className="text-3xl font-bold text-zinc-900 dark:text-white">
-            News Bulletins
-          </Heading>
-          <Text className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Browse our collection of news bulletins
-          </Text>
+          <PageHeader
+            title="News Bulletins"
+            description="Browse our collection of news bulletins"
+          />
         </div>
 
         {/* Language Filter */}
@@ -193,7 +192,7 @@ export default function BulletinsPage() {
             aria-label="Filter bulletins by language"
             className="mb-6 flex flex-wrap gap-2"
           >
-            <Text className="text-sm text-zinc-600 dark:text-zinc-400 self-center mr-2">Language:</Text>
+            <Text className="text-sm text-zinc-600 self-center mr-2">Language:</Text>
             {station.allowedLanguages.map((lang: string) => (
               <button
                 key={lang}
@@ -202,7 +201,7 @@ export default function BulletinsPage() {
                 className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
                   selectedLanguage === lang
                     ? 'bg-kelly-green text-white'
-                    : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-600 hover:border-kelly-green hover:text-kelly-green'
+                    : 'bg-white text-zinc-600 border border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
                 }`}
               >
                 {lang}

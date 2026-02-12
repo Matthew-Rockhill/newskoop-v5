@@ -87,30 +87,30 @@ export default function RadioDashboard() {
   const bulletins = bulletinsData?.stories || [];
   const shows = showsData?.shows || [];
 
-  // Filter stories by selected language
+  // Filter stories by selected language (uses classifications, not tags)
   const filteredStories = stories.filter((story: any) => {
     if (!selectedLanguage) return true;
-    const languageTags = story.tags?.filter((tag: any) => tag.category === 'LANGUAGE') || [];
-    return languageTags.some((tag: any) => tag.name === selectedLanguage);
+    const langs = story.classifications?.filter((c: any) => c.type === 'LANGUAGE') || [];
+    return langs.some((c: any) => c.name === selectedLanguage);
   });
 
   // Filter bulletins by selected language
   const filteredBulletins = bulletins.filter((bulletin: any) => {
     if (!selectedBulletinLanguage) return true;
-    const languageTags = bulletin.tags?.filter((tag: any) => tag.category === 'LANGUAGE') || [];
-    return languageTags.some((tag: any) => tag.name === selectedBulletinLanguage);
+    const langs = bulletin.classifications?.filter((c: any) => c.type === 'LANGUAGE') || [];
+    return langs.some((c: any) => c.name === selectedBulletinLanguage);
   });
 
   // Filter shows by selected language
   const filteredShows = shows.filter((show: any) => {
     if (!selectedEpisodeLanguage) return true;
-    const languageTags = show.tags?.map((st: any) => st.tag).filter((tag: any) => tag.category === 'LANGUAGE') || [];
-    return languageTags.some((tag: any) => tag.name === selectedEpisodeLanguage);
+    const langs = show.classifications?.filter((c: any) => c.type === 'LANGUAGE') || [];
+    return langs.some((c: any) => c.name === selectedEpisodeLanguage);
   });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
-      <Container className="pt-12 pb-8">
+      <Container className="pt-24 pb-8">
         {/* Welcome */}
         <div className="mb-8">
           <PageHeader
@@ -371,9 +371,9 @@ export default function RadioDashboard() {
                       <Badge color="blue" className="text-xs">
                         {show._count?.episodes || 0} Episodes
                       </Badge>
-                      {show.tags?.map((st: any) => st.tag).filter((tag: any) => tag.category === 'LANGUAGE').slice(0, 2).map((tag: any) => (
-                        <Badge key={tag.id} color="zinc" className="text-xs">
-                          {tag.name}
+                      {show.classifications?.filter((c: any) => c.type === 'LANGUAGE').slice(0, 2).map((c: any) => (
+                        <Badge key={c.id} color="zinc" className="text-xs">
+                          {c.name}
                         </Badge>
                       ))}
                     </div>

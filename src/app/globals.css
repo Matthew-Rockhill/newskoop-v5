@@ -1,7 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --color-kelly-green: #76BD43;
+  --color-kelly-green-dark: #5fa013;
+}
+
 /* Disable dark mode completely - app is light mode only */
 @variant dark (&:where(.dark-mode-disabled));
+
+html {
+  scroll-behavior: smooth;
+}
 
 :root {
   color-scheme: light;

@@ -21,7 +21,7 @@ export async function GET(
 
     const { id } = await params;
 
-    const show = await prisma.show.findUnique({
+    const showRaw = await prisma.show.findUnique({
       where: {
         id,
         isActive: true,
@@ -29,6 +29,11 @@ export async function GET(
       },
       include: {
         category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
         classifications: {
           include: {
             classification: true,
@@ -48,7 +53,7 @@ export async function GET(
       },
     });
 
-    if (!show) {
+    if (!showRaw) {
       return NextResponse.json(
         { error: 'Show not found' },
         { status: 404 }
@@ -72,7 +77,7 @@ export async function GET(
       const station = user.radioStation;
 
       // Check if category is blocked
-      if (show.categoryId && station.blockedCategories.includes(show.categoryId)) {
+      if (showRaw.categoryId && station.blockedCategories.includes(showRaw.categoryId)) {
         return NextResponse.json(
           { error: 'This show is not available for your station' },
           { status: 403 }
@@ -80,7 +85,7 @@ export async function GET(
       }
 
       // Check language classifications
-      const languageClassifications = show.classifications
+      const languageClassifications = showRaw.classifications
         .filter(sc => sc.classification.type === ClassificationType.LANGUAGE)
         .map(sc => sc.classification.name);
 
@@ -95,6 +100,13 @@ export async function GET(
         );
       }
     }
+
+    // Flatten tags and classifications
+    const show = {
+      ...showRaw,
+      tags: showRaw.tags.map(st => st.tag),
+      classifications: showRaw.classifications.map(sc => sc.classification),
+    };
 
     return NextResponse.json({ show });
   } catch (error) {

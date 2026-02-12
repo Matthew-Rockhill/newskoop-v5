@@ -10,7 +10,7 @@ function buildMenuTree(items: Array<{
   labelAfrikaans: string | null;
   type: MenuItemType;
   categoryId: string | null;
-  category: { id: string; name: string; nameAfrikaans: string | null; slug: string } | null;
+  category: { id: string; name: string; nameAfrikaans: string | null; slug: string; parent: { slug: string } | null } | null;
   url: string | null;
   openInNewTab: boolean;
   parentId: string | null;
@@ -84,6 +84,11 @@ const getRadioMenu = createHandler(
             name: true,
             nameAfrikaans: true,
             slug: true,
+            parent: {
+              select: {
+                slug: true,
+              },
+            },
           },
         },
       },

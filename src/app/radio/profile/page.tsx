@@ -244,7 +244,7 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
-        <Container className="py-8">
+        <Container className="pt-24 pb-8">
           <Card className="p-8 text-center bg-white animate-pulse">
             <div className="h-8 bg-zinc-200 rounded w-1/4 mx-auto mb-4"></div>
             <div className="h-4 bg-zinc-200 rounded w-1/2 mx-auto"></div>
@@ -263,7 +263,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
-      <Container className="py-8">
+      <Container className="pt-24 pb-8">
         {/* Back Navigation */}
         <div className="mb-8">
           <Button

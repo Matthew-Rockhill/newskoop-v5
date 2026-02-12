@@ -49,11 +49,13 @@ interface Show {
     slug: string;
   };
   tags: Array<{
-    tag: {
-      id: string;
-      name: string;
-      category: string;
-    };
+    id: string;
+    name: string;
+  }>;
+  classifications: Array<{
+    id: string;
+    name: string;
+    type: string;
   }>;
   episodes: Episode[];
 }
@@ -106,9 +108,9 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
     ? episodes
     : episodes; // Episodes inherit show language, so no filtering needed here
 
-  const languages = show?.tags
-    .filter(t => t.tag.category === 'LANGUAGE')
-    .map(t => t.tag.name) || [];
+  const languages = show?.classifications
+    ?.filter(c => c.type === 'LANGUAGE')
+    .map(c => c.name) || [];
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return 'Unknown';
@@ -178,8 +180,8 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 pt-20">
-      <Container className="py-8">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
+      <Container className="pt-24 pb-8">
         {/* Back Button */}
         <Link
           href="/radio/shows"
@@ -232,10 +234,10 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                     {show.category && (
                       <Badge color="blue">{show.category.name}</Badge>
                     )}
-                    {show.tags
-                      .filter(t => t.tag.category === 'LANGUAGE')
-                      .map(({ tag }) => (
-                        <Badge key={tag.id} color="zinc">{tag.name}</Badge>
+                    {show.classifications
+                      ?.filter(c => c.type === 'LANGUAGE')
+                      .map((c) => (
+                        <Badge key={c.id} color="zinc">{c.name}</Badge>
                       ))}
                   </div>
 
