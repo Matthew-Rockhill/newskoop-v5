@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
   Bars3Icon,
@@ -13,6 +13,7 @@ import {
   ArrowRightOnRectangleIcon,
   ArrowLeftIcon,
   CogIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline';
 import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
@@ -43,8 +44,10 @@ interface MenuItem {
 
 export function RadioNavbar() {
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // Fetch user profile to get profile picture
   const { data: profileData } = useQuery({
@@ -67,6 +70,54 @@ export function RadioNavbar() {
     },
     enabled: !!session,
   });
+
+  // Fetch announcements
+  const { data: announcementsData } = useQuery({
+    queryKey: ['radio-announcements'],
+    queryFn: async () => {
+      const response = await fetch('/api/radio/announcements?perPage=10');
+      if (!response.ok) throw new Error('Failed to fetch announcements');
+      return response.json();
+    },
+    enabled: !!session,
+  });
+
+  const announcements = announcementsData?.announcements || [];
+
+  // Dismiss announcement mutation
+  const dismissMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/radio/announcements/${id}/dismiss`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to dismiss announcement');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radio-announcements'] });
+    },
+  });
+
+  const handleDismissAnnouncement = async (id: string) => {
+    try {
+      await dismissMutation.mutateAsync(id);
+    } catch (error) {
+      console.error('Error dismissing announcement:', error);
+    }
+  };
+
+  const timeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const diff = Date.now() - date.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+  };
 
   const menuItems: MenuItem[] = menuData?.menu || [];
 
@@ -122,9 +173,9 @@ export function RadioNavbar() {
             {/* Logo */}
             <div className="flex items-center">
               <Link href="/radio" className="flex items-center hover:opacity-80 transition-opacity">
-                <img 
-                  src="/nk-logo-full.svg" 
-                  alt="NewsKoop" 
+                <img
+                  src="/nk-logo-full.svg"
+                  alt="NewsKoop"
                   className="h-12 w-auto"
                 />
               </Link>
@@ -227,12 +278,113 @@ export function RadioNavbar() {
               })}
             </div>
 
-            {/* User Menu */}
-            <div className="flex items-center">
+            {/* Right side: Notifications + User Menu + Mobile hamburger */}
+            <div className="flex items-center gap-2">
+              {/* Notification Bell */}
               {session?.user && (
                 <div className="relative">
                   <button
-                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    onClick={() => {
+                      setIsNotificationsOpen(!isNotificationsOpen);
+                      setIsUserDropdownOpen(false);
+                    }}
+                    className="relative p-2 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                    aria-label="Notifications"
+                  >
+                    <BellIcon className="h-6 w-6" />
+                    {announcements.length > 0 && (
+                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                        {announcements.length > 9 ? '9+' : announcements.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Notifications Dropdown */}
+                  {isNotificationsOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsNotificationsOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-zinc-200 z-20 overflow-hidden">
+                        {/* Header */}
+                        <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
+                          <p className="text-sm font-semibold text-zinc-900">
+                            Notifications
+                          </p>
+                          {announcements.length > 0 && (
+                            <Badge color="red" className="text-xs">
+                              {announcements.length}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Announcement List */}
+                        <div className="max-h-96 overflow-y-auto">
+                          {announcements.length > 0 ? (
+                            announcements.map((announcement: any) => (
+                              <div
+                                key={announcement.id}
+                                className="px-4 py-3 border-b border-zinc-50 hover:bg-zinc-50 transition-colors"
+                              >
+                                <div className="flex items-start gap-2">
+                                  {/* Priority dot */}
+                                  <span
+                                    className={`mt-1.5 h-2 w-2 rounded-full flex-shrink-0 ${
+                                      announcement.priority === 'HIGH'
+                                        ? 'bg-red-500'
+                                        : announcement.priority === 'MEDIUM'
+                                        ? 'bg-amber-500'
+                                        : 'bg-blue-500'
+                                    }`}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-zinc-900 truncate">
+                                      {announcement.title}
+                                    </p>
+                                    <p className="text-xs text-zinc-600 line-clamp-2 mt-0.5">
+                                      {announcement.message}
+                                    </p>
+                                    <p className="text-xs text-zinc-400 mt-1">
+                                      {timeAgo(announcement.createdAt)}
+                                    </p>
+                                  </div>
+                                  {/* Dismiss button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDismissAnnouncement(announcement.id);
+                                    }}
+                                    disabled={dismissMutation.isPending}
+                                    className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded transition-colors flex-shrink-0"
+                                    title="Dismiss"
+                                  >
+                                    <XMarkIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-8 text-center">
+                              <BellIcon className="h-8 w-8 text-zinc-300 mx-auto mb-2" />
+                              <p className="text-sm text-zinc-500">No new announcements</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* User Menu */}
+              {session?.user && (
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setIsUserDropdownOpen(!isUserDropdownOpen);
+                      setIsNotificationsOpen(false);
+                    }}
                     className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-50 transition-colors"
                   >
                     <Avatar
@@ -252,11 +404,11 @@ export function RadioNavbar() {
                   {isUserDropdownOpen && (
                     <>
                       {/* Backdrop */}
-                      <div 
-                        className="fixed inset-0 z-10" 
+                      <div
+                        className="fixed inset-0 z-10"
                         onClick={() => setIsUserDropdownOpen(false)}
                       />
-                      
+
                       {/* Dropdown Menu */}
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-zinc-200 z-20">
                         <div className="py-2">
@@ -266,7 +418,7 @@ export function RadioNavbar() {
                               {`${session.user.firstName} ${session.user.lastName}`}
                             </p>
                           </div>
-                          
+
                           {/* Menu Items */}
                           <div className="py-1">
                             {/* Staff Navigation Links */}
@@ -282,7 +434,7 @@ export function RadioNavbar() {
                                     Admin Dashboard
                                   </Link>
                                 )}
-                                
+
                                 {(['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole || '')) && (
                                   <Link
                                     href="/newsroom"
@@ -293,11 +445,11 @@ export function RadioNavbar() {
                                     Newsroom Dashboard
                                   </Link>
                                 )}
-                                
+
                                 <div className="border-t border-zinc-100 my-1"></div>
                               </>
                             )}
-                            
+
                             <Link
                               href="/radio/profile"
                               className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
@@ -307,7 +459,7 @@ export function RadioNavbar() {
                               Profile & Settings
                             </Link>
                           </div>
-                          
+
                           {/* Sign Out */}
                           <div className="border-t border-zinc-100 py-1">
                             <button
@@ -350,7 +502,7 @@ export function RadioNavbar() {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="fixed inset-0 bg-black bg-opacity-25" onClick={() => setIsMobileMenuOpen(false)} />
-          
+
           <div className="fixed top-20 left-0 right-0 bg-white border-b border-zinc-200 shadow-lg">
             <Container className="py-4">
 
@@ -464,7 +616,7 @@ export function RadioNavbar() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="py-2">
                     {/* Staff Navigation Links for Mobile */}
                     {session.user.userType === 'STAFF' && (
@@ -479,7 +631,7 @@ export function RadioNavbar() {
                             Admin Dashboard
                           </Link>
                         )}
-                        
+
                         {(['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'].includes(session.user.staffRole || '')) && (
                           <Link
                             href="/newsroom"
@@ -490,11 +642,11 @@ export function RadioNavbar() {
                             Newsroom Dashboard
                           </Link>
                         )}
-                        
+
                         <div className="border-t border-zinc-100 my-2"></div>
                       </>
                     )}
-                    
+
                     <Link
                       href="/radio/profile"
                       className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
