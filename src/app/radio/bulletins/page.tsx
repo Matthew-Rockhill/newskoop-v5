@@ -5,18 +5,34 @@ import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Container } from '@/components/ui/container';
-import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { DataList, type DataListColumn } from '@/components/ui/data-list';
 import { PageHeader } from '@/components/ui/page-header';
 import { MegaphoneIcon } from '@heroicons/react/24/outline';
 
+interface BulletinStory {
+  id: string;
+  order: number;
+  story: {
+    id: string;
+    title: string;
+    excerpt?: string;
+    audioClips?: Array<{ id: string; url: string; duration?: number }>;
+  };
+}
+
 interface Bulletin {
   id: string;
   title: string;
-  excerpt?: string;
+  intro: string;
+  outro: string;
+  language: string;
+  languageDisplay: string;
+  status: string;
   publishedAt: string | null;
+  scheduledFor: string | null;
+  storyCount: number;
   author?: {
     firstName: string;
     lastName: string;
@@ -24,12 +40,11 @@ interface Bulletin {
   category?: {
     name: string;
   };
-  classifications?: Array<{
-    id: string;
-    name: string;
-    type: string;
-  }>;
-  audioClips?: Array<{ id: string }>;
+  schedule?: {
+    title: string;
+    time: string;
+  };
+  bulletinStories: BulletinStory[];
 }
 
 export default function BulletinsPage() {
@@ -48,23 +63,21 @@ export default function BulletinsPage() {
     enabled: !!session,
   });
 
-  // Initialize language state with user's preference or fallback to English
   const defaultLanguage = profileData?.user?.defaultLanguagePreference || 'English';
   const [selectedLanguage, setSelectedLanguage] = useState<string>(defaultLanguage);
 
-  // Update language state when user profile loads or changes
   useEffect(() => {
     if (profileData?.user?.defaultLanguagePreference) {
       setSelectedLanguage(profileData.user.defaultLanguagePreference);
     }
   }, [profileData?.user?.defaultLanguagePreference]);
 
-  // Fetch bulletins (using stories API with news-bulletins category)
+  // Fetch bulletins from the correct API
   const { data, isLoading, error } = useQuery({
     queryKey: ['radio-bulletins', currentPage, selectedLanguage],
     queryFn: async () => {
       const response = await fetch(
-        `/api/radio/stories?category=news-bulletins&language=${selectedLanguage}&page=${currentPage}&perPage=20`
+        `/api/radio/bulletins?language=${selectedLanguage}&page=${currentPage}&perPage=20`
       );
       if (!response.ok) throw new Error('Failed to fetch bulletins');
       return response.json();
@@ -72,7 +85,7 @@ export default function BulletinsPage() {
     enabled: !!session,
   });
 
-  const bulletins: Bulletin[] = data?.stories || [];
+  const bulletins: Bulletin[] = data?.bulletins || [];
   const pagination = data?.pagination;
   const station = data?.station;
 
@@ -84,7 +97,6 @@ export default function BulletinsPage() {
     });
   };
 
-  // Define columns for the DataList
   const columns: DataListColumn<Bulletin>[] = useMemo(() => [
     {
       key: 'bulletin',
@@ -94,46 +106,39 @@ export default function BulletinsPage() {
       render: (bulletin) => (
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <Heading level={3} className="text-xl font-semibold text-zinc-900 group-hover:text-kelly-green transition-colors mb-2">
+            <div className="text-xl font-semibold text-zinc-900 group-hover:text-kelly-green transition-colors mb-2">
               {bulletin.title}
-            </Heading>
+            </div>
             <div className="flex items-center gap-3 text-sm text-zinc-500 mb-3">
               {bulletin.publishedAt && (
                 <span>{formatDate(bulletin.publishedAt)}</span>
               )}
               {bulletin.author && (
                 <>
-                  <span>•</span>
+                  <span>·</span>
                   <span>{bulletin.author.firstName} {bulletin.author.lastName}</span>
+                </>
+              )}
+              {bulletin.schedule && (
+                <>
+                  <span>·</span>
+                  <span>{bulletin.schedule.title}</span>
                 </>
               )}
             </div>
 
-            {/* Excerpt */}
-            {bulletin.excerpt && (
-              <Text className="text-zinc-600 mb-3 line-clamp-2">
-                {bulletin.excerpt}
-              </Text>
-            )}
-
-            {/* Tags */}
             <div className="flex flex-wrap gap-2">
-              {bulletin.category && (
-                <Badge color="blue" className="text-xs">
-                  {bulletin.category.name}
+              <Badge color="blue" className="text-xs">
+                {bulletin.languageDisplay}
+              </Badge>
+              {bulletin.storyCount > 0 && (
+                <Badge color="zinc" className="text-xs">
+                  {bulletin.storyCount} {bulletin.storyCount === 1 ? 'story' : 'stories'}
                 </Badge>
               )}
-              {bulletin.classifications
-                ?.filter((c) => c.type === 'LANGUAGE')
-                .slice(0, 2)
-                .map((c) => (
-                  <Badge key={c.id} color="zinc" className="text-xs">
-                    {c.name}
-                  </Badge>
-                ))}
-              {bulletin.audioClips && bulletin.audioClips.length > 0 && (
+              {bulletin.bulletinStories?.some(bs => bs.story.audioClips && bs.story.audioClips.length > 0) && (
                 <Badge color="green" className="text-xs">
-                  🎵 {bulletin.audioClips.length} Audio {bulletin.audioClips.length === 1 ? 'Clip' : 'Clips'}
+                  Audio available
                 </Badge>
               )}
             </div>
@@ -151,21 +156,17 @@ export default function BulletinsPage() {
               </div>
               <div className="text-sm text-zinc-500">
                 {bulletin.publishedAt && formatDate(bulletin.publishedAt)}
+                {bulletin.schedule && ` · ${bulletin.schedule.title}`}
               </div>
             </div>
           </div>
-          {bulletin.excerpt && (
-            <Text className="text-sm text-zinc-600 line-clamp-2">
-              {bulletin.excerpt}
-            </Text>
-          )}
           <div className="flex flex-wrap gap-2">
-            {bulletin.category && (
-              <Badge color="blue" className="text-xs">{bulletin.category.name}</Badge>
-            )}
-            {bulletin.audioClips && bulletin.audioClips.length > 0 && (
-              <Badge color="green" className="text-xs">
-                🎵 {bulletin.audioClips.length} Clips
+            <Badge color="blue" className="text-xs">
+              {bulletin.languageDisplay}
+            </Badge>
+            {bulletin.storyCount > 0 && (
+              <Badge color="zinc" className="text-xs">
+                {bulletin.storyCount} stories
               </Badge>
             )}
           </div>
@@ -177,11 +178,10 @@ export default function BulletinsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
       <Container className="pt-24 pb-8">
-        {/* Header */}
         <div className="mb-8">
           <PageHeader
             title="News Bulletins"
-            description="Browse our collection of news bulletins"
+            description="Browse published news bulletins"
           />
         </div>
 
@@ -216,8 +216,8 @@ export default function BulletinsPage() {
           error={error instanceof Error ? error : null}
           variant="cards"
           columns={columns}
-          onRowClick={(bulletin) => router.push(`/radio/story/${bulletin.id}`)}
-          getRowHref={(bulletin) => `/radio/story/${bulletin.id}`}
+          onRowClick={(bulletin) => router.push(`/radio/bulletins/${bulletin.id}`)}
+          getRowHref={(bulletin) => `/radio/bulletins/${bulletin.id}`}
           pagination={pagination ? {
             page: pagination.page,
             pageSize: 20,
