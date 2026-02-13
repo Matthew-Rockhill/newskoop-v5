@@ -19,6 +19,13 @@ export interface Show {
     slug: string;
     color?: string;
   };
+  parentId?: string | null;
+  parent?: {
+    id: string;
+    title: string;
+    slug: string;
+  };
+  subShows?: Show[];
   tags: Array<{
     tag: {
       id: string;
@@ -37,6 +44,7 @@ export interface Show {
   episodes?: Episode[];
   _count?: {
     episodes: number;
+    subShows?: number;
   };
 }
 
@@ -77,6 +85,8 @@ export interface ShowFilters {
   query?: string;
   isPublished?: boolean;
   tagIds?: string[];
+  parentId?: string | null;
+  topLevelOnly?: boolean;
   page?: number;
   perPage?: number;
 }
@@ -86,6 +96,7 @@ export interface CreateShowData {
   description?: string;
   tagIds?: string[];
   isPublished?: boolean;
+  parentId?: string | null;
 }
 
 export interface UpdateShowData {
@@ -94,6 +105,7 @@ export interface UpdateShowData {
   tagIds?: string[];
   isPublished?: boolean;
   coverImage?: string | null;
+  parentId?: string | null;
 }
 
 export interface CreateEpisodeData {
@@ -262,6 +274,24 @@ export function useUploadShowCover() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shows', variables.id] });
+    },
+  });
+}
+
+// Fetch top-level shows for parent show dropdown
+export function useParentShows() {
+  return useQuery({
+    queryKey: ['shows', 'parents'],
+    queryFn: async () => {
+      const response = await fetch('/api/newsroom/shows?topLevelOnly=true&perPage=100');
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch parent shows');
+      }
+
+      const data = await response.json();
+      return data.shows as Show[];
     },
   });
 }

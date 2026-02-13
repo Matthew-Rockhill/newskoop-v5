@@ -62,9 +62,8 @@ async function main() {
   const categories = [
     { name: 'News Bulletins', description: 'Short news updates and bulletins' },
     { name: 'News Stories', description: 'In-depth news articles and reports' },
-    { name: 'Sports', description: 'Sports news and coverage' },
+    { name: 'Sports News', description: 'Sports news and coverage' },
     { name: 'Finance', description: 'Financial news and market updates' },
-    { name: 'Speciality', description: 'Special interest and feature content' },
   ];
 
   for (const category of categories) {
@@ -95,6 +94,8 @@ async function main() {
       { name: 'International News', description: 'News from around the world' },
       { name: 'South African Community News', description: 'Local community news by province' },
       { name: 'South African National News', description: 'National news and politics' },
+      { name: 'Paperskoops', description: 'Print media highlights and reviews' },
+      { name: 'Goodskoops', description: 'Community good news and positive stories' },
     ];
 
     for (const category of level2Categories) {
@@ -116,9 +117,9 @@ async function main() {
     }
   }
 
-  // Create Level 2 Categories for Sports
+  // Create Level 2 Categories for Sports News
   const sportsParent = await prisma.category.findUnique({
-    where: { slug: 'sports' }
+    where: { slug: 'sports-news' }
   });
 
   if (sportsParent) {
@@ -179,37 +180,72 @@ async function main() {
     }
   }
 
-  // Create Level 2 Categories for Speciality
-  const specialityParent = await prisma.category.findUnique({
-    where: { slug: 'speciality' }
+  // Create Shows
+  const showsToCreate = [
+    { title: 'Lifestyle', description: 'Lifestyle trends, health, and wellness' },
+    { title: 'Agriskoops', description: 'Agricultural news and farming updates' },
+    { title: 'Techskoops', description: 'Technology news and digital innovation' },
+  ];
+
+  for (const showData of showsToCreate) {
+    const slug = showData.title.toLowerCase().replace(/\s+/g, '-');
+
+    await prisma.show.upsert({
+      where: { slug },
+      update: {},
+      create: {
+        title: showData.title,
+        slug,
+        description: showData.description,
+        isPublished: true,
+        isActive: true,
+        createdById: adminUser.id,
+      },
+    });
+    console.log(`✅ Show created: ${showData.title}`);
+  }
+
+  // Create Sportskoops parent show with sub-shows
+  const sportskoopsSlug = 'sportskoops';
+  const sportskoops = await prisma.show.upsert({
+    where: { slug: sportskoopsSlug },
+    update: {},
+    create: {
+      title: 'Sportskoops',
+      slug: sportskoopsSlug,
+      description: 'Sports news, analysis, and coverage',
+      isPublished: true,
+      isActive: true,
+      createdById: adminUser.id,
+    },
   });
+  console.log('✅ Show created: Sportskoops');
 
-  if (specialityParent) {
-    const specialityLevel2Categories = [
-      { name: 'Lifestyle', description: 'Lifestyle trends, health, and wellness' },
-      { name: 'Agriskoops', description: 'Agricultural news and farming updates' },
-      { name: 'Techskoops', description: 'Technology news and digital innovation' },
-      { name: 'Paperskoops', description: 'Print media highlights and reviews' },
-      { name: 'Goodskoops', description: 'Community good news and positive stories' },
-    ];
+  const subShows = [
+    { title: 'Rugby', description: 'Rugby news and match coverage' },
+    { title: 'Cricket', description: 'Cricket news and match coverage' },
+    { title: 'F1', description: 'Formula 1 racing news and updates' },
+    { title: 'Soccer', description: 'Soccer news and match coverage' },
+    { title: 'Tennis', description: 'Tennis news and tournament coverage' },
+  ];
 
-    for (const category of specialityLevel2Categories) {
-      const slug = category.name.toLowerCase().replace(/\s+/g, '-');
-      
-      await prisma.category.upsert({
-        where: { slug },
-        update: {},
-        create: {
-          name: category.name,
-          slug,
-          description: category.description,
-          level: 2,
-          isParent: false,
-          parentId: specialityParent.id,
-        },
-      });
-      console.log(`✅ Speciality Level 2 Category created: ${category.name}`);
-    }
+  for (const subShowData of subShows) {
+    const slug = subShowData.title.toLowerCase().replace(/\s+/g, '-');
+
+    await prisma.show.upsert({
+      where: { slug },
+      update: {},
+      create: {
+        title: subShowData.title,
+        slug,
+        description: subShowData.description,
+        isPublished: true,
+        isActive: true,
+        createdById: adminUser.id,
+        parentId: sportskoops.id,
+      },
+    });
+    console.log(`✅ Sub-show created: ${subShowData.title}`);
   }
 
   // Create Language Classifications

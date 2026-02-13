@@ -12,10 +12,12 @@ import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Dialog, DialogTitle, DialogDescription, DialogBody, DialogActions } from '@/components/ui/dialog';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
-import { useShow, useUpdateShow, CreateEpisodeData } from '@/hooks/use-shows';
+import { useShow, useCreateShow, CreateEpisodeData, CreateShowData, UpdateShowData, Show } from '@/hooks/use-shows';
 import { useEpisodes, useCreateEpisode, useDeleteEpisode } from '@/hooks/use-episodes';
+import { ShowForm } from '@/components/newsroom/shows/ShowForm';
 import { canManageShows, canDeleteShow as canDeleteShowPerm } from '@/lib/permissions';
-import { PlusIcon, PencilIcon, TrashIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, MusicalNoteIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
@@ -40,10 +42,12 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
   const userRole = session?.user?.staffRole;
 
   const [isCreateEpisodeModalOpen, setIsCreateEpisodeModalOpen] = useState(false);
+  const [isCreateSubShowModalOpen, setIsCreateSubShowModalOpen] = useState(false);
 
   const { data: show, isLoading } = useShow(id);
   const { data: episodes } = useEpisodes(id);
   const createEpisode = useCreateEpisode();
+  const createShow = useCreateShow();
   const deleteEpisode = useDeleteEpisode();
 
   const {
@@ -79,6 +83,16 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
     }
   };
 
+  const handleCreateSubShow = async (data: CreateShowData | UpdateShowData) => {
+    try {
+      await createShow.mutateAsync({ ...data, parentId: id } as CreateShowData);
+      toast.success('Sub-show created successfully');
+      setIsCreateSubShowModalOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create sub-show');
+    }
+  };
+
   if (isLoading) {
     return (
       <Container>
@@ -102,6 +116,17 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
   return (
     <Container>
       <div className="space-y-6">
+        {/* Parent breadcrumb */}
+        {show.parent && (
+          <Link
+            href={`/newsroom/shows/${show.parent.id}`}
+            className="inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-kelly-green transition-colors"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back to {show.parent.title}
+          </Link>
+        )}
+
         <PageHeader
           title={show.title}
           description={show.description}
@@ -159,6 +184,70 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
       </Card>
+
+      {/* Sub-Shows Section */}
+      {show.subShows && show.subShows.length > 0 && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <Heading level={3}>Sub-Shows</Heading>
+            {canManage && (
+              <Button onClick={() => setIsCreateSubShowModalOpen(true)}>
+                <PlusIcon className="w-5 h-5" />
+                New Sub-Show
+              </Button>
+            )}
+          </div>
+          <Table striped>
+            <TableHead>
+              <TableRow>
+                <TableHeader>Title</TableHeader>
+                <TableHeader className="text-center">Episodes</TableHeader>
+                <TableHeader className="text-center">Status</TableHeader>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {show.subShows.map((sub: Show) => (
+                <TableRow
+                  key={sub.id}
+                  className="hover:bg-zinc-50 cursor-pointer"
+                  onClick={() => router.push(`/newsroom/shows/${sub.id}`)}
+                >
+                  <TableCell className="px-4 py-3">
+                    <p className="font-medium text-zinc-900">{sub.title}</p>
+                    {sub.description && (
+                      <p className="text-sm text-zinc-500 line-clamp-1 mt-0.5">{sub.description}</p>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-center">
+                    <span className="text-sm font-medium text-zinc-700">{sub._count?.episodes || 0}</span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-center">
+                    <Badge color={sub.isPublished ? 'green' : 'zinc'}>
+                      {sub.isPublished ? 'Published' : 'Draft'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {/* Show "New Sub-Show" button if no sub-shows yet but this is a top-level show (no parent) */}
+      {!show.parent && (!show.subShows || show.subShows.length === 0) && canManage && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <Heading level={3}>Sub-Shows</Heading>
+            <Button onClick={() => setIsCreateSubShowModalOpen(true)}>
+              <PlusIcon className="w-5 h-5" />
+              New Sub-Show
+            </Button>
+          </div>
+          <div className="text-center py-8">
+            <p className="text-sm text-zinc-500">No sub-shows yet. Create one to organize content within this show.</p>
+          </div>
+        </Card>
+      )}
 
       {/* Episodes List */}
       <Card className="p-6">
@@ -241,6 +330,22 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
         )}
       </Card>
       </div>
+
+      {/* Create Sub-Show Modal */}
+      <Dialog open={isCreateSubShowModalOpen} onClose={() => setIsCreateSubShowModalOpen(false)} size="2xl">
+        <DialogTitle>Create New Sub-Show</DialogTitle>
+        <DialogDescription>
+          Create a new sub-show under {show.title}
+        </DialogDescription>
+        <DialogBody>
+          <ShowForm
+            defaultParentId={id}
+            onSubmit={handleCreateSubShow}
+            onCancel={() => setIsCreateSubShowModalOpen(false)}
+            isSubmitting={createShow.isPending}
+          />
+        </DialogBody>
+      </Dialog>
 
       {/* Create Episode Modal */}
       <Dialog open={isCreateEpisodeModalOpen} onClose={() => setIsCreateEpisodeModalOpen(false)} size="2xl">

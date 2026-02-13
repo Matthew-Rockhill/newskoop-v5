@@ -814,6 +814,11 @@ model Show {
   description String? @db.Text
   coverImage  String? // Vercel Blob URL
 
+  // Sub-show hierarchy (1 level deep)
+  parentId  String?
+  parent    Show?   @relation("ShowHierarchy", fields: [parentId], references: [id])
+  subShows  Show[]  @relation("ShowHierarchy")
+
   // Categorization
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
@@ -842,6 +847,7 @@ model Show {
   @@index([isPublished])
   @@index([isActive])
   @@index([createdById])
+  @@index([parentId])
 }
 
 model Episode {

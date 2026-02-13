@@ -13,6 +13,7 @@ const showUpdateSchema = z.object({
   tagIds: z.array(z.string()).optional(),
   isPublished: z.boolean().optional(),
   coverImage: z.string().nullable().optional(),
+  parentId: z.string().nullable().optional(),
 });
 
 // GET /api/newsroom/shows/[id] - Get a single show
@@ -41,6 +42,19 @@ const getShow = createHandler(
             lastName: true,
             email: true,
           },
+        },
+        parent: {
+          select: { id: true, title: true, slug: true },
+        },
+        subShows: {
+          where: { isActive: true },
+          include: {
+            _count: { select: { episodes: true } },
+            createdBy: {
+              select: { id: true, firstName: true, lastName: true, email: true },
+            },
+          },
+          orderBy: { title: 'asc' },
         },
         episodes: {
           include: {
@@ -90,6 +104,20 @@ const updateShow = createHandler(
     const body = await req.json();
     const data = showUpdateSchema.parse(body);
 
+    // Validate parentId if provided
+    if (data.parentId !== undefined && data.parentId !== null) {
+      if (data.parentId === id) {
+        return NextResponse.json({ error: 'A show cannot be its own parent' }, { status: 400 });
+      }
+      const parentShow = await prisma.show.findUnique({ where: { id: data.parentId } });
+      if (!parentShow) {
+        return NextResponse.json({ error: 'Parent show not found' }, { status: 400 });
+      }
+      if (parentShow.parentId) {
+        return NextResponse.json({ error: 'Cannot nest sub-shows more than 1 level deep' }, { status: 400 });
+      }
+    }
+
     // If slug is being updated, check uniqueness
     if (data.slug && data.slug !== show.slug) {
       const existingShow = await prisma.show.findUnique({
@@ -111,6 +139,7 @@ const updateShow = createHandler(
         ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
         ...(data.isPublished !== undefined && { isPublished: data.isPublished }),
         ...(data.coverImage !== undefined && { coverImage: data.coverImage }),
+        ...(data.parentId !== undefined && { parentId: data.parentId }),
         ...(data.tagIds !== undefined && {
           tags: {
             deleteMany: {},

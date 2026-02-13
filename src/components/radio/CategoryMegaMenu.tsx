@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Text } from '@/components/ui/text';
 import { Heading } from '@/components/ui/heading';
 import { FinanceHierarchicalMenu } from './CategoryMegaMenuFinance';
-import { SpecialityHierarchicalMenu } from './CategoryMegaMenuSpeciality';
+import { ShowsHierarchicalMenu } from './CategoryMegaMenuShows';
 import { 
   NewspaperIcon,
   ClockIcon,
@@ -147,12 +147,12 @@ export function CategoryMegaMenu({ category, onClose }: CategoryMegaMenuProps) {
           </>
         ) : category.name === 'News Stories' ? (
           <NewsStoriesHierarchicalMenu onClose={onClose} />
-        ) : category.name === 'Sports' ? (
+        ) : category.name === 'Sports News' || category.name === 'Sports' ? (
           <SportsHierarchicalMenu onClose={onClose} />
         ) : category.name === 'Finance' ? (
           <FinanceHierarchicalMenu onClose={onClose} />
-        ) : category.name === 'Speciality' ? (
-          <SpecialityHierarchicalMenu onClose={onClose} />
+        ) : category.name === 'Shows' ? (
+          <ShowsHierarchicalMenu onClose={onClose} />
         ) : isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (

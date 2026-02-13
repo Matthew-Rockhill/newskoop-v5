@@ -68,10 +68,11 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * perPage;
     const categorySlug = url.searchParams.get('category');
 
-    // Build where clause
+    // Build where clause - only show top-level shows in list
     const where: Prisma.ShowWhereInput = {
       isActive: true,
       isPublished: true,
+      parentId: null,
     };
 
     // Filter by category if specified
@@ -128,6 +129,20 @@ export async function GET(req: NextRequest) {
             classification: true,
           },
         },
+        subShows: {
+          where: { isActive: true, isPublished: true },
+          include: {
+            classifications: {
+              include: { classification: true },
+            },
+            _count: {
+              select: {
+                episodes: { where: { status: 'PUBLISHED' } },
+              },
+            },
+          },
+          orderBy: { title: 'asc' },
+        },
         _count: {
           select: {
             episodes: {
@@ -135,6 +150,7 @@ export async function GET(req: NextRequest) {
                 status: 'PUBLISHED',
               },
             },
+            subShows: true,
           },
         },
       },
@@ -150,6 +166,10 @@ export async function GET(req: NextRequest) {
       ...show,
       tags: show.tags.map(st => st.tag),
       classifications: show.classifications.map(sc => sc.classification),
+      subShows: show.subShows.map(sub => ({
+        ...sub,
+        classifications: sub.classifications.map(sc => sc.classification),
+      })),
     }));
 
     return NextResponse.json({

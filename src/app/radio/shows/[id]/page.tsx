@@ -38,6 +38,21 @@ interface Episode {
   audioClips: AudioClip[];
 }
 
+interface SubShow {
+  id: string;
+  title: string;
+  description?: string;
+  coverImageUrl?: string;
+  classifications: Array<{
+    id: string;
+    name: string;
+    type: string;
+  }>;
+  _count: {
+    episodes: number;
+  };
+}
+
 interface Show {
   id: string;
   title: string;
@@ -57,6 +72,12 @@ interface Show {
     name: string;
     type: string;
   }>;
+  parent?: {
+    id: string;
+    title: string;
+    slug: string;
+  };
+  subShows?: SubShow[];
   episodes: Episode[];
 }
 
@@ -184,11 +205,11 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
       <Container className="pt-24 pb-8">
         {/* Back Button */}
         <Link
-          href="/radio/shows"
+          href={show?.parent ? `/radio/shows/${show.parent.id}` : '/radio/shows'}
           className="inline-flex items-center gap-2 text-zinc-600 hover:text-kelly-green mb-6 transition-colors"
         >
           <ArrowLeftIcon className="h-4 w-4" />
-          Back to Shows
+          {show?.parent ? `Back to ${show.parent.title}` : 'Back to Shows'}
         </Link>
 
         {/* Loading State */}
@@ -258,6 +279,37 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </div>
             </div>
+
+            {/* Sub-Shows Section */}
+            {show.subShows && show.subShows.length > 0 && (
+              <div className="mb-8">
+                <Heading level={2} className="text-2xl font-bold text-zinc-900 mb-4">
+                  Browse Sub-Shows
+                </Heading>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {show.subShows.map((sub) => (
+                    <Link
+                      key={sub.id}
+                      href={`/radio/shows/${sub.id}`}
+                      className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow group"
+                    >
+                      <Heading level={3} className="text-lg font-semibold text-zinc-900 group-hover:text-kelly-green transition-colors mb-2">
+                        {sub.title}
+                      </Heading>
+                      {sub.description && (
+                        <Text className="text-sm text-zinc-600 line-clamp-2 mb-3">
+                          {sub.description}
+                        </Text>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-zinc-500">
+                        <PlayCircleIcon className="h-4 w-4" />
+                        <span>{sub._count.episodes} {sub._count.episodes === 1 ? 'Episode' : 'Episodes'}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Episodes Section */}
             <div className="mb-6">

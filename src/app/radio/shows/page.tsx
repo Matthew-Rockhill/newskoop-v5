@@ -32,8 +32,15 @@ interface Show {
     name: string;
     type: string;
   }>;
+  subShows?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    _count: { episodes: number };
+  }>;
   _count: {
     episodes: number;
+    subShows?: number;
   };
 }
 
@@ -113,9 +120,16 @@ export default function ShowsPage() {
               <Heading level={3} className="text-xl font-semibold text-zinc-900 group-hover:text-kelly-green transition-colors">
                 {show.title}
               </Heading>
-              <Badge color="zinc" className="ml-4 flex-shrink-0">
-                {show._count.episodes} {show._count.episodes === 1 ? 'Episode' : 'Episodes'}
-              </Badge>
+              <div className="ml-4 flex-shrink-0 flex gap-2">
+                <Badge color="zinc">
+                  {show._count.episodes} {show._count.episodes === 1 ? 'Episode' : 'Episodes'}
+                </Badge>
+                {(show._count.subShows ?? 0) > 0 && (
+                  <Badge color="blue">
+                    {show._count.subShows} Sub-Shows
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {/* Description */}
@@ -172,6 +186,11 @@ export default function ShowsPage() {
             <Badge color="zinc">
               {show._count.episodes} {show._count.episodes === 1 ? 'Episode' : 'Episodes'}
             </Badge>
+            {(show._count.subShows ?? 0) > 0 && (
+              <Badge color="blue">
+                {show._count.subShows} Sub-Shows
+              </Badge>
+            )}
             {show.category && (
               <Badge color="blue">{show.category.name}</Badge>
             )}

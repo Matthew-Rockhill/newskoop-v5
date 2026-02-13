@@ -90,7 +90,6 @@ export async function GET(req: NextRequest) {
       'news-bulletins',
       'finance',
       'sports',
-      'speciality',
     ];
 
     // Sort categories by the defined order

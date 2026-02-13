@@ -17,7 +17,8 @@
     "seed:production": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/seed-production-users.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:json": "vitest run --reporter=json --outputFile=./test-results.json"
+    "test:json": "vitest run --reporter=json --outputFile=./test-results.json",
+    "migrate:shows": "npx tsx prisma/migrate-shows.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",

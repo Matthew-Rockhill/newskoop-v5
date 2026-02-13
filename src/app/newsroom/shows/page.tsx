@@ -25,7 +25,7 @@ export default function ShowsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedShow, setSelectedShow] = useState<Show | null>(null);
 
-  const { data: showsData, isLoading } = useShows({ page: 1, perPage: 50 });
+  const { data: showsData, isLoading } = useShows({ page: 1, perPage: 50, topLevelOnly: true });
   const createShow = useCreateShow();
   const updateShow = useUpdateShow();
   const deleteShow = useDeleteShow();

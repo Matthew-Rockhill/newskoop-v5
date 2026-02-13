@@ -39,6 +39,23 @@ export async function GET(
             classification: true,
           },
         },
+        parent: {
+          select: { id: true, title: true, slug: true },
+        },
+        subShows: {
+          where: { isActive: true, isPublished: true },
+          include: {
+            classifications: {
+              include: { classification: true },
+            },
+            _count: {
+              select: {
+                episodes: { where: { status: 'PUBLISHED' } },
+              },
+            },
+          },
+          orderBy: { title: 'asc' },
+        },
         episodes: {
           where: {
             status: 'PUBLISHED',
@@ -106,6 +123,10 @@ export async function GET(
       ...showRaw,
       tags: showRaw.tags.map(st => st.tag),
       classifications: showRaw.classifications.map(sc => sc.classification),
+      subShows: showRaw.subShows.map(sub => ({
+        ...sub,
+        classifications: sub.classifications.map(sc => sc.classification),
+      })),
     };
 
     return NextResponse.json({ show });
