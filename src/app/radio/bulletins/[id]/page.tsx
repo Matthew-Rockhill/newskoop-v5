@@ -16,10 +16,9 @@ import {
   ArrowLeftIcon,
   CalendarIcon,
   UserIcon,
-  MusicalNoteIcon,
-  MegaphoneIcon,
   PrinterIcon,
   ArrowDownTrayIcon,
+  SpeakerWaveIcon,
 } from '@heroicons/react/24/outline';
 
 interface BulletinStoryAudioClip {
@@ -81,8 +80,6 @@ export default function BulletinDetailPage() {
   const { data: session } = useSession();
   const bulletinId = params.id as string;
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['radio-bulletin', bulletinId],
@@ -111,23 +108,6 @@ export default function BulletinDetailPage() {
     }
   }, [bulletin?.id, bulletin?.languageDisplay]);
 
-  // Audio handlers
-  const handleAudioPlay = (audioId: string) => setPlayingAudioId(audioId);
-  const handleAudioStop = () => setPlayingAudioId(null);
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-    setPlayingAudioId(audioId);
-  };
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-  const handleAudioTimeUpdate = (audioId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
-  };
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
-  };
-
   const handlePrint = () => {
     if (!bulletin) return;
     const printWindow = window.open('', '_blank');
@@ -137,7 +117,7 @@ export default function BulletinDetailPage() {
       .map((bs, idx) => `
         <div class="story">
           <h3>${idx + 1}. ${bs.story.title}</h3>
-          ${bs.story.excerpt ? `<p>${bs.story.excerpt}</p>` : ''}
+          ${bs.story.content ? `<div>${bs.story.content}</div>` : ''}
           ${bs.story.audioClips?.length > 0 ? '<p class="audio-note">Audio available in digital version</p>' : ''}
         </div>
       `)
@@ -186,11 +166,11 @@ export default function BulletinDetailPage() {
   const handleDownload = () => {
     if (!bulletin) return;
 
-    const storiesText = bulletin.bulletinStories
-      .map((bs, idx) => `${idx + 1}. ${bs.story.title}\n${bs.story.excerpt || ''}`)
-      .join('\n\n');
-
     const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+
+    const storiesText = bulletin.bulletinStories
+      .map((bs, idx) => `${idx + 1}. ${bs.story.title}\n${stripHtml(bs.story.content || '')}`)
+      .join('\n\n');
 
     const textContent = `
 ${bulletin.title}
@@ -317,93 +297,91 @@ Downloaded from NewsKoop Radio Station Zone
           />
         </div>
 
-        {/* Introduction */}
-        <Card className="p-6 bg-white shadow-lg mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <MegaphoneIcon className="h-5 w-5 text-kelly-green" />
-            <Heading level={3} className="text-lg font-semibold text-zinc-900">Introduction</Heading>
-          </div>
-          <div
-            className="prose prose-lg max-w-none text-zinc-800 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: bulletin.intro }}
-          />
-        </Card>
-
-        {/* Stories */}
-        {bulletin.bulletinStories.length > 0 && (
-          <div className="space-y-4 mb-6">
-            <Heading level={3} className="text-lg font-semibold text-zinc-900 px-1">
-              Stories ({bulletin.bulletinStories.length})
-            </Heading>
-            {bulletin.bulletinStories.map((bs, idx) => (
-              <Card key={bs.id} className="p-6 bg-white shadow-sm">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-kelly-green text-white flex items-center justify-center text-sm font-bold">
-                    {idx + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <button
-                      onClick={() => router.push(`/radio/story/${bs.story.id}`)}
-                      className="text-left w-full"
-                    >
-                      <Heading level={4} className="text-base font-semibold text-zinc-900 hover:text-kelly-green transition-colors">
-                        {bs.story.title}
-                      </Heading>
-                    </button>
-                    {bs.story.excerpt && (
-                      <Text className="text-sm text-zinc-600 mt-1 line-clamp-2">
-                        {bs.story.excerpt}
-                      </Text>
-                    )}
-                    <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
-                      {bs.story.author && (
-                        <span>{bs.story.author.firstName} {bs.story.author.lastName}</span>
-                      )}
-                      {bs.story.category && (
-                        <Badge color="zinc" className="text-xs">{bs.story.category.name}</Badge>
-                      )}
-                    </div>
-
-                    {/* Audio clips for this story */}
-                    {bs.story.audioClips && bs.story.audioClips.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        {bs.story.audioClips.map((clip) => (
-                          <div key={clip.id} className="bg-zinc-50 rounded-lg p-3">
-                            <CustomAudioPlayer
-                              clip={clip}
-                              isPlaying={playingAudioId === clip.id}
-                              currentTime={audioProgress[clip.id] || 0}
-                              duration={audioDuration[clip.id] || 0}
-                              onPlay={handleAudioPlay}
-                              onStop={handleAudioStop}
-                              onRestart={handleAudioRestart}
-                              onSeek={handleAudioSeek}
-                              onTimeUpdate={handleAudioTimeUpdate}
-                              onLoadedMetadata={handleAudioLoadedMetadata}
-                              onEnded={() => setPlayingAudioId(null)}
-                              onError={() => setPlayingAudioId(null)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Outro */}
+        {/* Bulletin Content */}
         <Card className="p-6 bg-white shadow-lg">
-          <div className="flex items-center gap-2 mb-4">
-            <MegaphoneIcon className="h-5 w-5 text-kelly-green" />
-            <Heading level={3} className="text-lg font-semibold text-zinc-900">Outro</Heading>
+          <Heading level={2} className="text-lg font-semibold text-zinc-900 mb-4">
+            Bulletin Content
+          </Heading>
+
+          <div className="space-y-4">
+            {/* Introduction */}
+            <div className="border border-zinc-200 rounded-lg p-4 bg-white">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge color="zinc">Intro</Badge>
+              </div>
+              <div className="prose prose-sm max-w-none text-zinc-700">
+                {bulletin.intro ? (
+                  <div dangerouslySetInnerHTML={{ __html: bulletin.intro }} />
+                ) : (
+                  <p className="text-zinc-500 italic">No introduction provided</p>
+                )}
+              </div>
+            </div>
+
+            {/* Stories */}
+            {bulletin.bulletinStories.length > 0 ? (
+              bulletin.bulletinStories.map((bs, idx) => (
+                <div key={bs.id} className="border border-zinc-200 rounded-lg p-4 bg-white">
+                  {/* Story Badges */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge color="zinc">Story {idx + 1}</Badge>
+                    {bs.story.category && (
+                      <Badge color="green">{bs.story.category.name}</Badge>
+                    )}
+                    {bs.story.audioClips && bs.story.audioClips.length > 0 && (
+                      <Badge color="purple" className="flex items-center gap-1">
+                        <SpeakerWaveIcon className="h-3 w-3" />
+                        Audio
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Story Content */}
+                  <div className="prose prose-sm max-w-none text-zinc-700">
+                    {bs.story.content ? (
+                      <div dangerouslySetInnerHTML={{ __html: bs.story.content }} />
+                    ) : (
+                      <p className="text-zinc-500 italic">No content available</p>
+                    )}
+                  </div>
+
+                  {/* Audio Clips */}
+                  {bs.story.audioClips && bs.story.audioClips.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {bs.story.audioClips.map((clip) => (
+                        <CustomAudioPlayer
+                          key={clip.id}
+                          clip={clip}
+                          compact
+                          onPlay={(id) => setPlayingAudioId(id)}
+                          onEnded={() => setPlayingAudioId(null)}
+                          onError={() => setPlayingAudioId(null)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 bg-zinc-50 rounded-lg border border-zinc-200">
+                <Text className="text-zinc-500">No stories in this bulletin</Text>
+              </div>
+            )}
+
+            {/* Outro */}
+            <div className="border border-zinc-200 rounded-lg p-4 bg-white">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge color="zinc">Outro</Badge>
+              </div>
+              <div className="prose prose-sm max-w-none text-zinc-700">
+                {bulletin.outro ? (
+                  <div dangerouslySetInnerHTML={{ __html: bulletin.outro }} />
+                ) : (
+                  <p className="text-zinc-500 italic">No outro provided</p>
+                )}
+              </div>
+            </div>
           </div>
-          <div
-            className="prose prose-lg max-w-none text-zinc-800 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: bulletin.outro }}
-          />
         </Card>
       </Container>
     </div>
