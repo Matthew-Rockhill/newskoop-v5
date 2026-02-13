@@ -59,12 +59,11 @@ export default function RadioDashboard() {
     enabled: !!session,
   });
 
-  // Fetch today's bulletins
+  // Fetch bulletins from the correct API
   const { data: bulletinsData, isLoading: bulletinsLoading } = useQuery({
-    queryKey: ['radio-bulletins'],
+    queryKey: ['radio-bulletins-dashboard', selectedBulletinLanguage],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const response = await fetch(`/api/radio/stories?category=news-bulletins&publishedAfter=${today}&perPage=10`);
+      const response = await fetch(`/api/radio/bulletins?language=${selectedBulletinLanguage}&perPage=6`);
       if (!response.ok) throw new Error('Failed to fetch bulletins');
       return response.json();
     },
@@ -83,23 +82,18 @@ export default function RadioDashboard() {
   });
 
   const stories = storiesData?.stories || [];
-  const station = storiesData?.station;
-  const bulletins = bulletinsData?.stories || [];
+  const station = storiesData?.station || bulletinsData?.station;
+  const bulletins = bulletinsData?.bulletins || [];
   const shows = showsData?.shows || [];
 
-  // Filter stories by selected language (uses classifications, not tags)
+  // Filter stories by selected language (uses classifications)
   const filteredStories = stories.filter((story: any) => {
     if (!selectedLanguage) return true;
     const langs = story.classifications?.filter((c: any) => c.type === 'LANGUAGE') || [];
     return langs.some((c: any) => c.name === selectedLanguage);
   });
 
-  // Filter bulletins by selected language
-  const filteredBulletins = bulletins.filter((bulletin: any) => {
-    if (!selectedBulletinLanguage) return true;
-    const langs = bulletin.classifications?.filter((c: any) => c.type === 'LANGUAGE') || [];
-    return langs.some((c: any) => c.name === selectedBulletinLanguage);
-  });
+  // Bulletins are already filtered by language via the API query param — no client-side filter needed
 
   // Filter shows by selected language
   const filteredShows = shows.filter((show: any) => {
@@ -107,6 +101,15 @@ export default function RadioDashboard() {
     const langs = show.classifications?.filter((c: any) => c.type === 'LANGUAGE') || [];
     return langs.some((c: any) => c.name === selectedEpisodeLanguage);
   });
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
@@ -123,14 +126,14 @@ export default function RadioDashboard() {
         <div className="mb-12">
           <div className="flex justify-between items-center mb-6">
             <Heading level={2} className="text-2xl font-semibold text-zinc-900">
-              Today's Bulletins
+              Latest Bulletins
               <Badge color="blue" className="ml-3">
                 {selectedBulletinLanguage}
               </Badge>
             </Heading>
             <div className="flex items-center gap-4">
               <Text className="text-zinc-500">
-                {filteredBulletins.length} of {bulletins.length} bulletins
+                {bulletins.length} bulletins
               </Text>
               {/* Language Filter */}
               <div className="flex items-center gap-2">
@@ -153,42 +156,75 @@ export default function RadioDashboard() {
                   ))}
                 </div>
               </div>
-              <Button
-                color="white"
-                onClick={() => window.location.href = '/radio/news-bulletins'}
-                className="flex items-center gap-2"
-              >
-                View All
-              </Button>
+              <Link href="/radio/bulletins">
+                <Button color="white" className="flex items-center gap-2">
+                  View All
+                </Button>
+              </Link>
             </div>
           </div>
 
           {bulletinsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
+              {[...Array(3)].map((_, i) => (
                 <Card key={i} className="p-6 animate-pulse bg-white">
                   <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
                   <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-20 bg-zinc-200 rounded mb-4"></div>
+                  <div className="h-12 bg-zinc-200 rounded mb-4"></div>
                   <div className="h-3 bg-zinc-200 rounded w-1/4"></div>
                 </Card>
               ))}
             </div>
-          ) : filteredBulletins.length > 0 ? (
+          ) : bulletins.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredBulletins.slice(0, 6).map((bulletin: any) => (
-                <StoryCard
+              {bulletins.slice(0, 6).map((bulletin: any) => (
+                <Link
                   key={bulletin.id}
-                  story={bulletin}
-                  selectedLanguage={selectedBulletinLanguage}
-                />
+                  href={`/radio/bulletins/${bulletin.id}`}
+                  className="group"
+                >
+                  <Card className="p-6 bg-white hover:shadow-md transition-shadow h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <Heading level={3} className="text-lg font-semibold text-zinc-900 group-hover:text-kelly-green transition-colors line-clamp-2">
+                        {bulletin.title}
+                      </Heading>
+                      <MegaphoneIcon className="h-6 w-6 text-kelly-green flex-shrink-0 ml-2" />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3">
+                      {bulletin.publishedAt && (
+                        <span>{formatDate(bulletin.publishedAt)}</span>
+                      )}
+                      {bulletin.author && (
+                        <>
+                          <span>·</span>
+                          <span>{bulletin.author.firstName} {bulletin.author.lastName}</span>
+                        </>
+                      )}
+                    </div>
+                    {bulletin.schedule && (
+                      <Text className="text-sm text-zinc-500 mb-3">
+                        {bulletin.schedule.title}
+                      </Text>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Badge color="blue" className="text-xs">
+                        {bulletin.languageDisplay}
+                      </Badge>
+                      {bulletin.storyCount > 0 && (
+                        <Badge color="zinc" className="text-xs">
+                          {bulletin.storyCount} {bulletin.storyCount === 1 ? 'story' : 'stories'}
+                        </Badge>
+                      )}
+                    </div>
+                  </Card>
+                </Link>
               ))}
             </div>
           ) : (
             <Card className="p-8 text-center bg-white">
               <MegaphoneIcon className="h-12 w-12 text-zinc-300 mx-auto mb-3" />
               <Heading level={3} className="text-zinc-500 mb-2">
-                No bulletins available in {selectedBulletinLanguage} today
+                No bulletins available in {selectedBulletinLanguage}
               </Heading>
               <Text className="text-zinc-400">
                 Check back later or try a different language.
@@ -231,13 +267,11 @@ export default function RadioDashboard() {
                   ))}
                 </div>
               </div>
-              <Button
-                color="white"
-                onClick={() => window.location.href = '/radio/news-stories'}
-                className="flex items-center gap-2"
-              >
-                View All
-              </Button>
+              <Link href="/radio/news-stories">
+                <Button color="white" className="flex items-center gap-2">
+                  View All
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -309,13 +343,11 @@ export default function RadioDashboard() {
                   ))}
                 </div>
               </div>
-              <Button
-                color="white"
-                onClick={() => window.location.href = '/radio/shows'}
-                className="flex items-center gap-2"
-              >
-                View All
-              </Button>
+              <Link href="/radio/shows">
+                <Button color="white" className="flex items-center gap-2">
+                  View All
+                </Button>
+              </Link>
             </div>
           </div>
 
