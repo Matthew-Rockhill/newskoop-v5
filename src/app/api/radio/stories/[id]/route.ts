@@ -105,12 +105,17 @@ export async function GET(
         audioClips: {
           select: {
             id: true,
-            filename: true,
-            originalName: true,
-            url: true,
-            duration: true,
-            fileSize: true,
-            mimeType: true,
+            audioClip: {
+              select: {
+                id: true,
+                filename: true,
+                originalName: true,
+                url: true,
+                duration: true,
+                fileSize: true,
+                mimeType: true,
+              },
+            },
           },
           orderBy: {
             createdAt: 'asc',

@@ -8,14 +8,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { AudioClip } from "@prisma/client";
 
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
-import { Fieldset, FieldGroup, Field, Label, Description } from "@/components/ui/fieldset";
+import { Field, Label, Description } from "@/components/ui/fieldset";
 import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CustomAudioPlayer } from "@/components/ui/audio-player";
@@ -414,26 +414,29 @@ export default function PublishStoryPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {story.audioClips.map((clip: AudioClip) => (
-                      <CustomAudioPlayer
-                        key={clip.id}
-                        clip={clip}
-                        isPlaying={playingAudioId === clip.id}
-                        currentTime={audioProgress[clip.id] || 0}
-                        duration={audioDuration[clip.id] || 0}
-                        onPlay={handleAudioPlay}
-                        onStop={handleAudioStop}
-                        onRestart={handleAudioRestart}
-                        onSeek={handleAudioSeek}
-                        onTimeUpdate={handleAudioTimeUpdate}
-                        onLoadedMetadata={handleAudioLoadedMetadata}
-                        onEnded={() => setPlayingAudioId(null)}
-                        onError={() => {
-                          toast.error('Failed to play audio file');
-                          setPlayingAudioId(null);
-                        }}
-                      />
-                    ))}
+                    {story.audioClips.map((sac: any) => {
+                      const clip = sac.audioClip || sac;
+                      return (
+                        <CustomAudioPlayer
+                          key={clip.id}
+                          clip={clip}
+                          isPlaying={playingAudioId === clip.id}
+                          currentTime={audioProgress[clip.id] || 0}
+                          duration={audioDuration[clip.id] || 0}
+                          onPlay={handleAudioPlay}
+                          onStop={handleAudioStop}
+                          onRestart={handleAudioRestart}
+                          onSeek={handleAudioSeek}
+                          onTimeUpdate={handleAudioTimeUpdate}
+                          onLoadedMetadata={handleAudioLoadedMetadata}
+                          onEnded={() => setPlayingAudioId(null)}
+                          onError={() => {
+                            toast.error('Failed to play audio file');
+                            setPlayingAudioId(null);
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </Card>
@@ -587,6 +590,18 @@ export default function PublishStoryPage() {
                       Story has a scheduled follow-up date
                     </Description>
                   </CheckboxField>
+                  {watch('followUpRequired') && (
+                    <div className="ml-6 mt-3 space-y-3">
+                      <Field>
+                        <Label>Follow-up Date</Label>
+                        <Input type="date" {...register("followUpDate")} />
+                      </Field>
+                      <Field>
+                        <Label>Follow-up Note</Label>
+                        <Textarea {...register("followUpNote")} placeholder="What needs following up?" rows={2} />
+                      </Field>
+                    </div>
+                  )}
                 </CheckboxGroup>
               </Card>
 
@@ -626,39 +641,6 @@ export default function PublishStoryPage() {
                 </CheckboxGroup>
               </Card>
 
-              {/* Follow-up Planning */}
-              <Card className="p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <CalendarDaysIcon className="h-6 w-6 text-kelly-green" />
-                  <Heading level={4}>Follow-up Planning (Optional)</Heading>
-                </div>
-                
-                <Fieldset>
-                  <FieldGroup>
-                    <Field>
-                      <Label htmlFor="followUpDate">Follow-up Date</Label>
-                      <Input
-                        id="followUpDate"
-                        type="date"
-                        {...register("followUpDate")}
-                      />
-                      <Description>
-                        Set a date if this story needs to be followed up on
-                      </Description>
-                    </Field>
-                    <Field>
-                      <Label htmlFor="followUpNote">Follow-up Note</Label>
-                      <textarea
-                        id="followUpNote"
-                        {...register("followUpNote")}
-                        placeholder="Add a note for the follow-up"
-                        className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-kelly-green focus:border-kelly-green"
-                        rows={3}
-                      />
-                    </Field>
-                  </FieldGroup>
-                </Fieldset>
-              </Card>
             </div>
           </div>
         </form>

@@ -246,10 +246,15 @@ const getStories = createHandler(
         audioClips: {
           select: {
             id: true,
-            filename: true,
-            originalName: true,
-            url: true,
-            duration: true,
+            audioClip: {
+              select: {
+                id: true,
+                filename: true,
+                originalName: true,
+                url: true,
+                duration: true,
+              },
+            },
           },
         },
         storyGroup: {
@@ -466,44 +471,7 @@ const createStory = createHandler(
       console.log('🏷️ Added tags:', tagIds);
     }
 
-    if (uploadedAudioFiles.length > 0) {
-      createData.audioClips = {
-        create: uploadedAudioFiles
-      };
-      console.log('🎵 Added audio clips:', uploadedAudioFiles.length);
-    }
-
-    // Copy audio clips from original story if this is a translation
-    if (storyData.isTranslation && storyData.originalStoryId && uploadedAudioFiles.length === 0) {
-      console.log('🔄 Copying audio clips from original story...');
-      try {
-        const originalStory = await prisma.story.findUnique({
-          where: { id: storyData.originalStoryId as string },
-          include: { audioClips: true }
-        });
-
-        if (originalStory?.audioClips && originalStory.audioClips.length > 0) {
-          // Copy audio clips from original story
-          const audioClipsToCreate = originalStory.audioClips.map(clip => ({
-            filename: clip.filename,
-            originalName: clip.originalName,
-            url: clip.url,
-            fileSize: clip.fileSize,
-            mimeType: clip.mimeType,
-            duration: clip.duration,
-            uploadedBy: user.id, // Credit current user as uploader for the translation
-          }));
-
-          createData.audioClips = {
-            create: audioClipsToCreate
-          };
-          console.log(`✅ Copied ${audioClipsToCreate.length} audio clips from original story`);
-        }
-      } catch (error) {
-        console.error('❌ Failed to copy audio clips from original story:', error);
-        // Continue without audio clips rather than failing the entire translation creation
-      }
-    }
+    // Audio clips are handled after story creation (need the story ID for join table)
 
     // Create story with audio files
     console.log('💾 Creating story in database...');
@@ -543,17 +511,66 @@ const createStory = createHandler(
           audioClips: {
             select: {
               id: true,
-              filename: true,
-              originalName: true,
-              url: true,
-              fileSize: true,
-              mimeType: true,
+              audioClip: {
+                select: {
+                  id: true,
+                  filename: true,
+                  originalName: true,
+                  url: true,
+                  fileSize: true,
+                  mimeType: true,
+                },
+              },
             },
           },
         },
       });
-      
+
       console.log('✅ Story created successfully:', story.id);
+
+      // Handle audio clips after story creation (need story ID for join table)
+      if (uploadedAudioFiles.length > 0) {
+        for (const audioFileData of uploadedAudioFiles) {
+          await prisma.audioClip.create({
+            data: {
+              ...audioFileData,
+              sourceStoryId: story.id,
+              stories: {
+                create: {
+                  storyId: story.id,
+                  addedBy: user.id,
+                },
+              },
+            },
+          });
+        }
+        console.log('🎵 Added audio clips:', uploadedAudioFiles.length);
+      }
+
+      // Link audio clips from original story if this is a translation
+      if (storyData.isTranslation && storyData.originalStoryId && uploadedAudioFiles.length === 0) {
+        console.log('🔄 Linking audio clips from original story...');
+        try {
+          const originalAudioLinks = await prisma.storyAudioClip.findMany({
+            where: { storyId: storyData.originalStoryId as string },
+            select: { audioClipId: true },
+          });
+
+          if (originalAudioLinks.length > 0) {
+            await prisma.storyAudioClip.createMany({
+              data: originalAudioLinks.map(link => ({
+                storyId: story.id,
+                audioClipId: link.audioClipId,
+                addedBy: user.id,
+              })),
+              skipDuplicates: true,
+            });
+            console.log(`✅ Linked ${originalAudioLinks.length} audio clips from original story`);
+          }
+        } catch (error) {
+          console.error('❌ Failed to link audio clips from original story:', error);
+        }
+      }
 
       // Publish real-time event (non-blocking)
       publishStoryEvent(

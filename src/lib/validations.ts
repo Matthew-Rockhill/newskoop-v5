@@ -350,4 +350,18 @@ export const audioClipUpdateSchema = z.object({
   description: z.string().optional(),
 });
 
+// Audio Library schemas
+export const audioLibrarySearchSchema = z.object({
+  query: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  page: z.number().int().positive().default(1),
+  perPage: z.number().int().positive().default(20),
+});
+
+export const audioLibraryUpdateSchema = z.object({
+  title: z.string().max(255).optional(),
+  description: z.string().max(1000).optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+});
+
  

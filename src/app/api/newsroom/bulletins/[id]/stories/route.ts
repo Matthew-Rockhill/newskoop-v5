@@ -125,10 +125,15 @@ export async function PATCH(
                 audioClips: {
                   select: {
                     id: true,
-                    filename: true,
-                    url: true,
-                    duration: true,
-                    mimeType: true,
+                    audioClip: {
+                      select: {
+                        id: true,
+                        filename: true,
+                        url: true,
+                        duration: true,
+                        mimeType: true,
+                      },
+                    },
                   },
                   take: 1, // Get only the first audio clip
                 },
@@ -169,7 +174,8 @@ export async function PATCH(
         ...bs,
         story: {
           ...bs.story,
-          audioUrl: bs.story.audioClips?.[0]?.url || null,
+          audioUrl: bs.story.audioClips?.[0]?.audioClip?.url || null,
+          audioClips: bs.story.audioClips?.map((sac: any) => sac.audioClip) || [],
         },
       })) || [],
     };

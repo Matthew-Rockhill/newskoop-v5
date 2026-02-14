@@ -74,7 +74,11 @@ export async function POST(
       include: {
         author: true,
         category: true,
-        audioClips: true,
+        audioClips: {
+          select: {
+            audioClip: true,
+          },
+        },
       }
     });
 
@@ -309,7 +313,11 @@ export async function GET(
       where: { id },
       include: {
         category: true,
-        audioClips: true,
+        audioClips: {
+          select: {
+            audioClip: true,
+          },
+        },
       }
     });
 

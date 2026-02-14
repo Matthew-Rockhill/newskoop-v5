@@ -10,7 +10,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
 import { RealtimeStatus } from '@/components/ui/RealtimeStatus';
 import { useStories } from '@/hooks/use-stories';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import {
   PencilIcon,
   ClockIcon,
@@ -18,6 +19,8 @@ import {
   DocumentTextIcon,
   EyeIcon,
   MusicalNoteIcon,
+  CalendarDaysIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { ReassignButton } from '@/components/newsroom/ReassignButton';
 import { useState, KeyboardEvent } from 'react';
@@ -138,6 +141,38 @@ export function NewsroomDashboard() {
     },
     enabled: !!userId,
   });
+
+  // SUB_EDITOR+: Follow-up diary
+  const isSubEditorPlus = ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole || '');
+  const queryClient = useQueryClient();
+
+  const { data: followUpsData } = useQuery({
+    queryKey: ['followUps'],
+    queryFn: async () => {
+      const response = await fetch('/api/newsroom/stories/follow-ups');
+      if (!response.ok) throw new Error('Failed to fetch follow-ups');
+      return response.json();
+    },
+    enabled: !!userId && isSubEditorPlus,
+  });
+
+  const markFollowUpDone = useMutation({
+    mutationFn: async (storyId: string) => {
+      const response = await fetch('/api/newsroom/stories/follow-ups', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId, completed: true }),
+      });
+      if (!response.ok) throw new Error('Failed to mark follow-up as done');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followUps'] });
+    },
+  });
+
+  const followUpsGrouped = followUpsData?.grouped;
+  const followUpsTotal = followUpsData?.total || 0;
 
   const draftStories = draftStoriesData?.stories || [];
   const needsReviewStories = needsReviewStoriesData?.stories || [];
@@ -689,6 +724,234 @@ export function NewsroomDashboard() {
             </div>
           )}
         </div>
+
+        {/* FOLLOW-UP DIARY - SUB_EDITOR+ only */}
+        {isSubEditorPlus && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Heading level={2}>Follow-Up Diary</Heading>
+                {followUpsTotal > 0 && (
+                  <Badge color="amber">{followUpsTotal}</Badge>
+                )}
+              </div>
+            </div>
+
+            {followUpsTotal === 0 ? (
+              <Card className="p-12">
+                <div className="text-center">
+                  <CalendarDaysIcon className="h-12 w-12 text-zinc-400 mx-auto mb-4" aria-hidden="true" />
+                  <Heading level={3} className="text-zinc-900 dark:text-zinc-100 mb-2">No follow-ups scheduled</Heading>
+                  <Text className="text-zinc-600 dark:text-zinc-400">Follow-up dates set during publishing will appear here.</Text>
+                </div>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {/* Overdue */}
+                {followUpsGrouped?.overdue?.length > 0 && (
+                  <div>
+                    <Heading level={3} className="mb-3 flex items-center gap-2">
+                      <ExclamationTriangleIcon className="h-5 w-5 text-red-600" aria-hidden="true" />
+                      <span className="text-red-700 dark:text-red-400">Overdue</span>
+                      <Badge color="red">{followUpsGrouped.overdue.length}</Badge>
+                    </Heading>
+                    <div className="space-y-2">
+                      {followUpsGrouped.overdue.map((story: any) => (
+                        <Card key={story.id} className="p-4 border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
+                          <div className="flex items-center justify-between">
+                            <div
+                              className="flex-1 min-w-0 cursor-pointer"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                              onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                            >
+                              <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Text className="text-sm text-red-600 dark:text-red-400 font-medium">
+                                  {format(new Date(story.followUpDate), 'MMM d')}
+                                </Text>
+                                <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                <Text className="text-sm text-red-600 dark:text-red-400">
+                                  {Math.abs(story.daysUntilFollowUp)} day{Math.abs(story.daysUntilFollowUp) !== 1 ? 's' : ''} overdue
+                                </Text>
+                                {story.followUpNote && (
+                                  <>
+                                    <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                    <Text className="text-sm text-zinc-500 dark:text-zinc-400 truncate max-w-xs">{story.followUpNote}</Text>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              color="white"
+                              className="flex-shrink-0 ml-3"
+                              onClick={() => markFollowUpDone.mutate(story.id)}
+                              disabled={markFollowUpDone.isPending}
+                            >
+                              Mark Done
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Due Today */}
+                {followUpsGrouped?.dueToday?.length > 0 && (
+                  <div>
+                    <Heading level={3} className="mb-3 flex items-center gap-2">
+                      <CalendarDaysIcon className="h-5 w-5 text-amber-600" aria-hidden="true" />
+                      <span className="text-amber-700 dark:text-amber-400">Due Today</span>
+                      <Badge color="amber">{followUpsGrouped.dueToday.length}</Badge>
+                    </Heading>
+                    <div className="space-y-2">
+                      {followUpsGrouped.dueToday.map((story: any) => (
+                        <Card key={story.id} className="p-4 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+                          <div className="flex items-center justify-between">
+                            <div
+                              className="flex-1 min-w-0 cursor-pointer"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                              onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                            >
+                              <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Text className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                                  {format(new Date(story.followUpDate), 'MMM d')}
+                                </Text>
+                                <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                <Text className="text-sm text-amber-600 dark:text-amber-400">Due today</Text>
+                                {story.followUpNote && (
+                                  <>
+                                    <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                    <Text className="text-sm text-zinc-500 dark:text-zinc-400 truncate max-w-xs">{story.followUpNote}</Text>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              color="white"
+                              className="flex-shrink-0 ml-3"
+                              onClick={() => markFollowUpDone.mutate(story.id)}
+                              disabled={markFollowUpDone.isPending}
+                            >
+                              Mark Done
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Due Soon (1-7 days) */}
+                {followUpsGrouped?.dueSoon?.length > 0 && (
+                  <div>
+                    <Heading level={3} className="mb-3 flex items-center gap-2">
+                      <CalendarDaysIcon className="h-5 w-5" aria-hidden="true" />
+                      <span className="text-amber-700 dark:text-amber-400">Due Soon</span>
+                      <Badge color="zinc">{followUpsGrouped.dueSoon.length}</Badge>
+                    </Heading>
+                    <div className="space-y-2">
+                      {followUpsGrouped.dueSoon.map((story: any) => (
+                        <Card key={story.id} className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div
+                              className="flex-1 min-w-0 cursor-pointer"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                              onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                            >
+                              <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Text className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                                  {format(new Date(story.followUpDate), 'MMM d')}
+                                </Text>
+                                <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                <Text className="text-sm text-amber-600 dark:text-amber-400">
+                                  In {story.daysUntilFollowUp} day{story.daysUntilFollowUp !== 1 ? 's' : ''}
+                                </Text>
+                                {story.followUpNote && (
+                                  <>
+                                    <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                    <Text className="text-sm text-zinc-500 dark:text-zinc-400 truncate max-w-xs">{story.followUpNote}</Text>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              color="white"
+                              className="flex-shrink-0 ml-3"
+                              onClick={() => markFollowUpDone.mutate(story.id)}
+                              disabled={markFollowUpDone.isPending}
+                            >
+                              Mark Done
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upcoming */}
+                {followUpsGrouped?.upcoming?.length > 0 && (
+                  <div>
+                    <Heading level={3} className="mb-3 flex items-center gap-2">
+                      <CalendarDaysIcon className="h-5 w-5 text-zinc-400" aria-hidden="true" />
+                      Upcoming
+                      <Badge color="zinc">{followUpsGrouped.upcoming.length}</Badge>
+                    </Heading>
+                    <div className="space-y-2">
+                      {followUpsGrouped.upcoming.map((story: any) => (
+                        <Card key={story.id} className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div
+                              className="flex-1 min-w-0 cursor-pointer"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
+                              onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                            >
+                              <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Text className="text-sm text-zinc-500 dark:text-zinc-400">
+                                  {format(new Date(story.followUpDate), 'MMM d')}
+                                </Text>
+                                <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                <Text className="text-sm text-zinc-500 dark:text-zinc-400">
+                                  In {story.daysUntilFollowUp} day{story.daysUntilFollowUp !== 1 ? 's' : ''}
+                                </Text>
+                                {story.followUpNote && (
+                                  <>
+                                    <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                                    <Text className="text-sm text-zinc-500 dark:text-zinc-400 truncate max-w-xs">{story.followUpNote}</Text>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              color="white"
+                              className="flex-shrink-0 ml-3"
+                              onClick={() => markFollowUpDone.mutate(story.id)}
+                              disabled={markFollowUpDone.isPending}
+                            >
+                              Mark Done
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* MY WORK SECTION - Stories authored by the user */}
         <div>

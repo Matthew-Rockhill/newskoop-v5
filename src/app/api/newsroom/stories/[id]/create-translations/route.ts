@@ -27,7 +27,9 @@ const createTranslations = createHandler(
     const originalStory = await prisma.story.findUnique({
       where: { id: storyId },
       include: {
-        audioClips: true,
+        audioClips: {
+          select: { audioClipId: true },
+        },
         tags: {
           include: {
             tag: true
@@ -100,16 +102,11 @@ const createTranslations = createHandler(
           categoryId: originalStory.categoryId,
           stage: 'DRAFT',
           status: 'DRAFT',
-          // Copy audio clips
+          // Link same audio clips from original story (shared references, not copies)
           audioClips: {
-            create: originalStory.audioClips.map(clip => ({
-              filename: clip.filename,
-              originalName: clip.originalName,
-              url: clip.url,
-              fileSize: clip.fileSize,
-              mimeType: clip.mimeType,
-              duration: clip.duration,
-              uploadedBy: translation.assignedToId
+            create: originalStory.audioClips.map(link => ({
+              audioClipId: link.audioClipId,
+              addedBy: translation.assignedToId,
             }))
           },
           // Copy tags
@@ -152,11 +149,16 @@ const createTranslations = createHandler(
           audioClips: {
             select: {
               id: true,
-              filename: true,
-              originalName: true,
-              url: true,
-              duration: true
-            }
+              audioClip: {
+                select: {
+                  id: true,
+                  filename: true,
+                  originalName: true,
+                  url: true,
+                  duration: true,
+                },
+              },
+            },
           }
         }
       });

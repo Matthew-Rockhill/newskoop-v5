@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeftIcon, DocumentTextIcon, LanguageIcon, GlobeAltIcon, MusicalNoteIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, DocumentTextIcon, LanguageIcon, GlobeAltIcon, MusicalNoteIcon, TrashIcon, FolderOpenIcon } from '@heroicons/react/24/outline';
 
 import { Container } from '@/components/ui/container';
 import { Card } from '@/components/ui/card';
@@ -24,6 +24,8 @@ import { Avatar } from '@/components/ui/avatar';
 import { Divider } from '@/components/ui/divider';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { FileUpload } from '@/components/ui/file-upload';
+import { AudioPickerModal } from '@/components/newsroom/AudioPickerModal';
+import { useLinkAudioToStory } from '@/hooks/use-audio-library';
 
 interface AudioFile {
   id: string;
@@ -54,6 +56,8 @@ export default function TranslatePage() {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
   const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
+  const [showAudioPicker, setShowAudioPicker] = useState(false);
+  const linkAudioMutation = useLinkAudioToStory(storyId);
 
   const {
     register,
@@ -376,7 +380,7 @@ export default function TranslatePage() {
                     <Field>
                       <Label>Audio Clips</Label>
                       <Description>
-                        Manage audio clips for this translation. You can keep the original audio or upload new audio in {translationStory.language}.
+                        Manage audio clips for this translation. You can keep the original audio, browse the library, or upload new audio in {translationStory.language}.
                       </Description>
 
                       <div className="mt-3 space-y-4">
@@ -387,50 +391,84 @@ export default function TranslatePage() {
                               <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                 Current Audio Clips
                               </Text>
-                              <Badge color="zinc">{translationStory.audioClips.filter((clip: any) => !removedAudioIds.includes(clip.id)).length}</Badge>
+                              <Badge color="zinc">{translationStory.audioClips.filter((sac: any) => !removedAudioIds.includes(sac.audioClip?.id || sac.id)).length}</Badge>
                             </div>
                             {translationStory.audioClips
-                              .filter((clip: any) => !removedAudioIds.includes(clip.id))
-                              .map((clip: any) => (
-                                <div key={clip.id} className="relative">
-                                  <CustomAudioPlayer
-                                    clip={clip}
-                                    isPlaying={playingAudioId === clip.id}
-                                    currentTime={audioProgress[clip.id] || 0}
-                                    duration={audioDuration[clip.id] || 0}
-                                    onPlay={handleAudioPlay}
-                                    onStop={handleAudioStop}
-                                    onRestart={handleAudioRestart}
-                                    onSeek={handleAudioSeek}
-                                    onTimeUpdate={handleAudioTimeUpdate}
-                                    onLoadedMetadata={handleAudioLoadedMetadata}
-                                    onEnded={() => setPlayingAudioId(null)}
-                                    onError={() => toast.error('Failed to play audio file')}
-                                  />
-                                  <Button
-                                    type="button"
-                                    color="red"
-                                    className="absolute top-2 right-2"
-                                    onClick={() => handleRemoveAudioClip(clip.id)}
-                                  >
-                                    <TrashIcon className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ))}
+                              .filter((sac: any) => !removedAudioIds.includes(sac.audioClip?.id || sac.id))
+                              .map((sac: any) => {
+                                const clip = sac.audioClip || sac;
+                                return (
+                                  <div key={sac.id} className="relative">
+                                    <CustomAudioPlayer
+                                      clip={{
+                                        id: clip.id,
+                                        url: clip.url,
+                                        originalName: clip.title || clip.originalName,
+                                        duration: clip.duration ?? null,
+                                        mimeType: clip.mimeType,
+                                      }}
+                                      isPlaying={playingAudioId === clip.id}
+                                      currentTime={audioProgress[clip.id] || 0}
+                                      duration={audioDuration[clip.id] || 0}
+                                      onPlay={handleAudioPlay}
+                                      onStop={handleAudioStop}
+                                      onRestart={handleAudioRestart}
+                                      onSeek={handleAudioSeek}
+                                      onTimeUpdate={handleAudioTimeUpdate}
+                                      onLoadedMetadata={handleAudioLoadedMetadata}
+                                      onEnded={() => setPlayingAudioId(null)}
+                                      onError={() => toast.error('Failed to play audio file')}
+                                    />
+                                    <Button
+                                      type="button"
+                                      color="red"
+                                      className="absolute top-2 right-2"
+                                      onClick={() => handleRemoveAudioClip(clip.id)}
+                                    >
+                                      <TrashIcon className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
                           </div>
                         )}
 
-                        {/* Upload New Audio */}
+                        {/* Browse Library + Upload New Audio */}
                         <div>
-                          <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Upload New Audio (Optional)
-                          </Text>
+                          <div className="flex items-center gap-3 mb-3">
+                            <Button
+                              type="button"
+                              color="white"
+                              onClick={() => setShowAudioPicker(true)}
+                            >
+                              <FolderOpenIcon className="h-4 w-4 mr-1.5" />
+                              Browse Library
+                            </Button>
+                            <Text className="text-sm text-zinc-400">or upload new audio below</Text>
+                          </div>
                           <FileUpload
                             onFilesChange={setNewAudioFiles}
                             maxFiles={5}
                             maxFileSize={50}
                           />
                         </div>
+
+                        {/* Audio Picker Modal */}
+                        <AudioPickerModal
+                          isOpen={showAudioPicker}
+                          onClose={() => setShowAudioPicker(false)}
+                          onConfirm={async (clipIds) => {
+                            try {
+                              await linkAudioMutation.mutateAsync(clipIds);
+                              queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+                              toast.success(`Linked ${clipIds.length} audio clip${clipIds.length !== 1 ? 's' : ''}`);
+                            } catch {
+                              toast.error('Failed to link audio clips');
+                            }
+                          }}
+                          excludeClipIds={translationStory.audioClips?.map((sac: any) => sac.audioClip?.id || sac.id) || []}
+                          isLoading={linkAudioMutation.isPending}
+                        />
                       </div>
                     </Field>
                   </FieldGroup>
@@ -512,23 +550,32 @@ export default function TranslatePage() {
                         Reference audio from the original story
                       </Text>
                       <div className="space-y-3">
-                        {originalStory.audioClips.map((clip: any) => (
-                          <CustomAudioPlayer
-                            key={clip.id}
-                            clip={clip}
-                            isPlaying={playingAudioId === `original-${clip.id}`}
-                            currentTime={audioProgress[`original-${clip.id}`] || 0}
-                            duration={audioDuration[`original-${clip.id}`] || 0}
-                            onPlay={(id) => handleAudioPlay(`original-${id}`)}
-                            onStop={handleAudioStop}
-                            onRestart={(id) => handleAudioRestart(`original-${id}`)}
-                            onSeek={(id, time) => handleAudioSeek(`original-${id}`, time)}
-                            onTimeUpdate={(id, time) => handleAudioTimeUpdate(`original-${id}`, time)}
-                            onLoadedMetadata={(id, duration) => handleAudioLoadedMetadata(`original-${id}`, duration)}
-                            onEnded={() => setPlayingAudioId(null)}
-                            onError={() => toast.error('Failed to play audio file')}
-                          />
-                        ))}
+                        {originalStory.audioClips.map((sac: any) => {
+                          const clip = sac.audioClip || sac;
+                          return (
+                            <CustomAudioPlayer
+                              key={sac.id || clip.id}
+                              clip={{
+                                id: clip.id,
+                                url: clip.url,
+                                originalName: clip.title || clip.originalName,
+                                duration: clip.duration ?? null,
+                                mimeType: clip.mimeType,
+                              }}
+                              isPlaying={playingAudioId === `original-${clip.id}`}
+                              currentTime={audioProgress[`original-${clip.id}`] || 0}
+                              duration={audioDuration[`original-${clip.id}`] || 0}
+                              onPlay={(id) => handleAudioPlay(`original-${id}`)}
+                              onStop={handleAudioStop}
+                              onRestart={(id) => handleAudioRestart(`original-${id}`)}
+                              onSeek={(id, time) => handleAudioSeek(`original-${id}`, time)}
+                              onTimeUpdate={(id, time) => handleAudioTimeUpdate(`original-${id}`, time)}
+                              onLoadedMetadata={(id, duration) => handleAudioLoadedMetadata(`original-${id}`, duration)}
+                              onEnded={() => setPlayingAudioId(null)}
+                              onError={() => toast.error('Failed to play audio file')}
+                            />
+                          );
+                        })}
                       </div>
                     </div>
 

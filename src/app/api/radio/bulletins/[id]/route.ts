@@ -61,11 +61,16 @@ export async function GET(
                 audioClips: {
                   select: {
                     id: true,
-                    filename: true,
-                    originalName: true,
-                    url: true,
-                    duration: true,
-                    mimeType: true,
+                    audioClip: {
+                      select: {
+                        id: true,
+                        filename: true,
+                        originalName: true,
+                        url: true,
+                        duration: true,
+                        mimeType: true,
+                      },
+                    },
                   },
                 },
               },
@@ -99,7 +104,7 @@ export async function GET(
         ...bs,
         story: {
           ...bs.story,
-          audioUrl: bs.story.audioClips?.[0]?.url || null,
+          audioUrl: bs.story.audioClips?.[0]?.audioClip?.url || null,
         },
       })),
     };

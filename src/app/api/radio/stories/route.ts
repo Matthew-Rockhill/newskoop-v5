@@ -234,9 +234,15 @@ export async function GET(req: NextRequest) {
           audioClips: {
             select: {
               id: true,
-              filename: true,
-              url: true,
-              duration: true,
+              audioClip: {
+                select: {
+                  id: true,
+                  filename: true,
+                  originalName: true,
+                  url: true,
+                  duration: true,
+                },
+              },
             },
           },
         },
@@ -253,6 +259,7 @@ export async function GET(req: NextRequest) {
       ...story,
       tags: story.tags.map((st: any) => st.tag),
       classifications: story.classifications.map((sc: any) => sc.classification),
+      audioClips: story.audioClips.map((sac: any) => sac.audioClip),
     }));
 
     const responseData = {

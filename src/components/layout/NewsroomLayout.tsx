@@ -21,6 +21,7 @@ import {
   ChartBarIcon,
   AdjustmentsHorizontalIcon,
   Bars3BottomLeftIcon,
+  MusicalNoteIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -81,6 +82,7 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
     // Content group
     const contentItems: NavigationItem[] = []
     contentItems.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
+    contentItems.push({ name: 'Audio Library', href: '/newsroom/audio-library', icon: MusicalNoteIcon })
 
     if (role && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(role)) {
       contentItems.push({ name: 'Shows', href: '/newsroom/shows', icon: SpeakerWaveIcon })

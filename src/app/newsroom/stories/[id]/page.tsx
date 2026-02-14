@@ -1068,27 +1068,30 @@ export default function StoryDetailPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    {story.audioClips.map((clip: AudioClip) => (
-                      <CustomAudioPlayer
-                        key={clip.id}
-                        clip={clip}
-                        isPlaying={playingAudioId === clip.id}
-                        currentTime={audioProgress[clip.id] || 0}
-                        duration={audioDuration[clip.id] || 0}
-                        onPlay={handleAudioPlay}
-                        onStop={handleAudioStop}
-                        onRestart={handleAudioRestart}
-                        onSeek={handleAudioSeek}
-                        onTimeUpdate={handleAudioTimeUpdate}
-                        onLoadedMetadata={handleAudioLoadedMetadata}
-                        onEnded={() => setPlayingAudioId(null)}
-                        onError={() => {
-                          toast.error('Failed to play audio file');
-                          setPlayingAudioId(null);
-                        }}
-                        compact
-                      />
-                    ))}
+                    {story.audioClips.map((sac: { id: string; audioClip: AudioClip }) => {
+                      const clip = sac.audioClip;
+                      return (
+                        <CustomAudioPlayer
+                          key={clip.id}
+                          clip={clip}
+                          isPlaying={playingAudioId === clip.id}
+                          currentTime={audioProgress[clip.id] || 0}
+                          duration={audioDuration[clip.id] || 0}
+                          onPlay={handleAudioPlay}
+                          onStop={handleAudioStop}
+                          onRestart={handleAudioRestart}
+                          onSeek={handleAudioSeek}
+                          onTimeUpdate={handleAudioTimeUpdate}
+                          onLoadedMetadata={handleAudioLoadedMetadata}
+                          onEnded={() => setPlayingAudioId(null)}
+                          onError={() => {
+                            toast.error('Failed to play audio file');
+                            setPlayingAudioId(null);
+                          }}
+                          compact
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -5,7 +5,7 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { MusicalNoteIcon, CheckCircleIcon, ArrowLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { MusicalNoteIcon, CheckCircleIcon, ArrowLeftIcon, TrashIcon, FolderOpenIcon } from '@heroicons/react/24/outline';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 
@@ -21,6 +21,8 @@ import { Avatar } from '@/components/ui/avatar';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { FileUpload } from '@/components/ui/file-upload';
 import { ReviewerSelectionModal } from './ReviewerSelectionModal';
+import { AudioPickerModal } from './AudioPickerModal';
+import { useLinkAudioToStory } from '@/hooks/use-audio-library';
 import { RevisionRequestBanner } from '@/components/ui/revision-request-banner';
 import { ReviewStatusBanner } from '@/components/ui/review-status-banner';
 import { StageBadge } from '@/components/ui/stage-badge';
@@ -82,13 +84,17 @@ interface Story {
   };
   audioClips?: Array<{
     id: string;
-    filename: string;
-    originalName: string;
-    url: string;
-    duration?: number | null;
-    fileSize: number;
-    mimeType: string;
-    description?: string | null;
+    audioClip: {
+      id: string;
+      filename: string;
+      originalName: string;
+      url: string;
+      duration?: number | null;
+      fileSize?: number | null;
+      mimeType: string;
+      title?: string | null;
+      tags?: string[];
+    };
     createdAt: string;
   }>;
 }
@@ -121,6 +127,8 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
   const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
+  const [showAudioPicker, setShowAudioPicker] = useState(false);
+  const linkAudioMutation = useLinkAudioToStory(storyId);
 
   const {
     register,
@@ -618,7 +626,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                   <Heading level={3}>Audio Clips</Heading>
                 </div>
                 <Badge color="zinc">
-                  {story.audioClips?.filter((clip) => !removedAudioIds.includes(clip.id)).length || 0} clips
+                  {story.audioClips?.filter((sac) => !removedAudioIds.includes(sac.audioClip.id)).length || 0} clips
                 </Badge>
               </div>
 
@@ -630,18 +638,19 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {story.audioClips.filter((clip) => !removedAudioIds.includes(clip.id)).map((clip) => (
-                    <div key={clip.id} className="relative group">
+                  {story.audioClips.filter((sac) => !removedAudioIds.includes(sac.audioClip.id)).map((sac) => (
+                    <div key={sac.id} className="relative group">
                       <CustomAudioPlayer
                         clip={{
-                          ...clip,
-                          url: clip.url,
-                          originalName: clip.originalName || clip.filename,
-                          duration: clip.duration ?? null
+                          id: sac.audioClip.id,
+                          url: sac.audioClip.url,
+                          originalName: sac.audioClip.title || sac.audioClip.originalName || sac.audioClip.filename,
+                          duration: sac.audioClip.duration ?? null,
+                          mimeType: sac.audioClip.mimeType,
                         }}
-                        isPlaying={playingAudioId === clip.id}
-                        currentTime={audioProgress[clip.id] || 0}
-                        duration={audioDuration[clip.id] || 0}
+                        isPlaying={playingAudioId === sac.audioClip.id}
+                        currentTime={audioProgress[sac.audioClip.id] || 0}
+                        duration={audioDuration[sac.audioClip.id] || 0}
                         onPlay={handleAudioPlay}
                         onStop={handleAudioStop}
                         onRestart={handleAudioRestart}
@@ -658,7 +667,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                       <button
                         type="button"
                         className="absolute top-2 right-2 p-1.5 rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setRemovedAudioIds(ids => [...ids, clip.id])}
+                        onClick={() => setRemovedAudioIds(ids => [...ids, sac.audioClip.id])}
                         title="Remove audio clip"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -668,9 +677,19 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                 </div>
               )}
 
-              {/* Upload new audio files */}
+              {/* Add audio options */}
               <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700">
-                <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Add New Audio</Text>
+                <div className="flex items-center gap-3 mb-3">
+                  <Button
+                    type="button"
+                    color="white"
+                    onClick={() => setShowAudioPicker(true)}
+                  >
+                    <FolderOpenIcon className="h-4 w-4 mr-1.5" />
+                    Browse Library
+                  </Button>
+                  <Text className="text-sm text-zinc-400">or upload new audio below</Text>
+                </div>
                 <FileUpload
                   onFilesChange={setNewAudioFiles}
                   maxFiles={5}
@@ -678,6 +697,28 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                 />
               </div>
             </Card>
+
+            {/* Audio Picker Modal */}
+            <AudioPickerModal
+              isOpen={showAudioPicker}
+              onClose={() => setShowAudioPicker(false)}
+              onConfirm={async (clipIds) => {
+                try {
+                  await linkAudioMutation.mutateAsync(clipIds);
+                  // Refresh story data
+                  const response = await fetch(`/api/newsroom/stories/${storyId}`);
+                  if (response.ok) {
+                    const data = await response.json();
+                    setStory(data);
+                  }
+                  toast.success(`Linked ${clipIds.length} audio clip${clipIds.length !== 1 ? 's' : ''}`);
+                } catch {
+                  toast.error('Failed to link audio clips');
+                }
+              }}
+              excludeClipIds={story.audioClips?.map(sac => sac.audioClip.id) || []}
+              isLoading={linkAudioMutation.isPending}
+            />
 
             {/* Form Actions - Fixed at bottom of form area */}
             <div className="flex items-center justify-between pt-4">

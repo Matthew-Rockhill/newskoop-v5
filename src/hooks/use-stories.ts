@@ -60,13 +60,18 @@ export interface Story {
   }>;
   audioClips: Array<{
     id: string;
-    filename: string;
-    originalName: string;
-    url: string;
-    duration?: number;
-    fileSize?: number;
-    mimeType: string;
-    description?: string;
+    audioClip: {
+      id: string;
+      filename: string;
+      originalName: string;
+      url: string;
+      duration?: number;
+      fileSize?: number;
+      mimeType: string;
+      title?: string;
+      description?: string;
+      tags?: string[];
+    };
     createdAt: string;
   }>;
   comments?: Array<{

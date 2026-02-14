@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
-import { deleteAudioFile } from '@/lib/r2-storage';
 
 // Helper function to check if user can edit story
 async function canEditStory(userId: string, userRole: string | null, storyId: string) {
@@ -33,19 +32,17 @@ async function canEditStory(userId: string, userRole: string | null, storyId: st
   return false;
 }
 
-// POST /api/newsroom/stories/[id]/audio - Add audio file to story
+// POST /api/newsroom/stories/[id]/audio - Upload new audio or link existing clips
 const addAudioClip = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id: storyId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
-    // Check permissions
     const canEdit = await canEditStory(user.id, user.staffRole, storyId);
     if (!canEdit) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // Verify story exists
     const story = await prisma.story.findUnique({
       where: { id: storyId },
       select: { id: true },
@@ -55,25 +52,82 @@ const addAudioClip = createHandler(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
-    // Handle FormData for file upload
+    const contentType = req.headers.get('content-type') || '';
+
+    // Mode 1: Link existing clips (JSON body with audioClipIds)
+    if (contentType.includes('application/json')) {
+      const body = await req.json();
+      const { audioClipIds } = body;
+
+      if (!audioClipIds || !Array.isArray(audioClipIds) || audioClipIds.length === 0) {
+        return NextResponse.json({ error: 'audioClipIds array is required' }, { status: 400 });
+      }
+
+      // Verify all clips exist
+      const clips = await prisma.audioClip.findMany({
+        where: { id: { in: audioClipIds } },
+        select: { id: true },
+      });
+
+      if (clips.length !== audioClipIds.length) {
+        return NextResponse.json({ error: 'Some audio clips not found' }, { status: 404 });
+      }
+
+      // Create links, skipping duplicates
+      const links = await Promise.all(
+        audioClipIds.map(async (clipId: string) => {
+          try {
+            return await prisma.storyAudioClip.create({
+              data: {
+                storyId,
+                audioClipId: clipId,
+                addedBy: user.id,
+              },
+              include: {
+                audioClip: {
+                  select: {
+                    id: true,
+                    filename: true,
+                    originalName: true,
+                    url: true,
+                    duration: true,
+                    fileSize: true,
+                    mimeType: true,
+                    title: true,
+                    tags: true,
+                  },
+                },
+              },
+            });
+          } catch {
+            // Skip duplicates (unique constraint violation)
+            return null;
+          }
+        })
+      );
+
+      return NextResponse.json({
+        linked: links.filter(Boolean),
+      }, { status: 201 });
+    }
+
+    // Mode 2: Upload new file (FormData)
     const formData = await req.formData();
     const audioFile = formData.get('audioFile') as File;
-    const description = (formData.get('description') as string) || '';
+    const title = (formData.get('title') as string) || null;
 
     if (!audioFile) {
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
     }
 
-    // Validate audio file
     const validation = validateAudioFile(audioFile);
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    // Upload file
     const uploadedFile = await saveUploadedFile(audioFile);
 
-    // Create audio clip record
+    // Create AudioClip in library with sourceStoryId, then link to story
     const audioClip = await prisma.audioClip.create({
       data: {
         filename: uploadedFile.filename,
@@ -82,8 +136,26 @@ const addAudioClip = createHandler(
         fileSize: uploadedFile.size,
         mimeType: uploadedFile.mimeType,
         duration: uploadedFile.duration,
-        storyId,
         uploadedBy: user.id,
+        sourceStoryId: storyId,
+        title,
+        stories: {
+          create: {
+            storyId,
+            addedBy: user.id,
+          },
+        },
+      },
+      select: {
+        id: true,
+        filename: true,
+        originalName: true,
+        url: true,
+        duration: true,
+        fileSize: true,
+        mimeType: true,
+        title: true,
+        createdAt: true,
       },
     });
 
@@ -92,13 +164,12 @@ const addAudioClip = createHandler(
   [withErrorHandling, withAuth, withAudit('audio.create')]
 );
 
-// DELETE /api/newsroom/stories/[id]/audio - Remove audio file from story
+// DELETE /api/newsroom/stories/[id]/audio - Unlink audio clip from story
 const removeAudioClip = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id: storyId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
-    // Check permissions
     const canEdit = await canEditStory(user.id, user.staffRole, storyId);
     if (!canEdit) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -111,37 +182,28 @@ const removeAudioClip = createHandler(
       return NextResponse.json({ error: 'Audio clip ID is required' }, { status: 400 });
     }
 
-    // Find the audio clip
-    const audioClip = await prisma.audioClip.findUnique({
-      where: { id: audioClipId },
-      select: { id: true, url: true, storyId: true },
+    // Find and delete the link
+    const link = await prisma.storyAudioClip.findUnique({
+      where: {
+        storyId_audioClipId: {
+          storyId,
+          audioClipId,
+        },
+      },
     });
 
-    if (!audioClip) {
-      return NextResponse.json({ error: 'Audio clip not found' }, { status: 404 });
+    if (!link) {
+      return NextResponse.json({ error: 'Audio clip is not linked to this story' }, { status: 404 });
     }
 
-    // Verify the clip belongs to this story
-    if (audioClip.storyId !== storyId) {
-      return NextResponse.json({ error: 'Audio clip does not belong to this story' }, { status: 400 });
-    }
-
-    // Delete from storage
-    try {
-      await deleteAudioFile(audioClip.url);
-    } catch (error) {
-      console.error('Failed to delete file from storage:', error);
-      // Continue with database deletion even if storage deletion fails
-    }
-
-    // Delete from database
-    await prisma.audioClip.delete({
-      where: { id: audioClipId },
+    // Unlink only - do NOT delete the AudioClip itself
+    await prisma.storyAudioClip.delete({
+      where: { id: link.id },
     });
 
-    return NextResponse.json({ message: 'Audio clip deleted successfully' });
+    return NextResponse.json({ message: 'Audio clip unlinked from story' });
   },
-  [withErrorHandling, withAuth, withAudit('audio.delete')]
+  [withErrorHandling, withAuth, withAudit('audio.unlink')]
 );
 
 export { addAudioClip as POST, removeAudioClip as DELETE };

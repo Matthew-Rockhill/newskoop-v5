@@ -95,8 +95,13 @@ export async function GET(req: NextRequest) {
                   audioClips: {
                     select: {
                       id: true,
-                      url: true,
-                      duration: true,
+                      audioClip: {
+                        select: {
+                          id: true,
+                          url: true,
+                          duration: true,
+                        },
+                      },
                     },
                     take: 1,
                   },

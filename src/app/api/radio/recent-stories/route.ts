@@ -118,7 +118,12 @@ export async function GET(req: NextRequest) {
         audioClips: {
           select: {
             id: true,
-            duration: true,
+            audioClip: {
+              select: {
+                id: true,
+                duration: true,
+              },
+            },
           },
         },
         tags: {
@@ -139,7 +144,7 @@ export async function GET(req: NextRequest) {
         title: story.title,
         content: story.content,
         publishedAt: story.publishedAt,
-        audioClips: story.audioClips,
+        audioClips: story.audioClips.map((sac: any) => sac.audioClip),
         tags: story.tags.map(t => t.tag),
       })),
       category: {

@@ -175,6 +175,7 @@ model User {
   reviewedStories    Story[]     @relation("ReviewedStories")
   publishedStories   Story[]     @relation("PublishedStories")
   uploadedAudioClips AudioClip[]
+  addedAudioClips    StoryAudioClip[] @relation("AudioClipAdder")
   comments           Comment[]
   resolvedComments   Comment[]   @relation("ResolvedComments")
 
@@ -323,8 +324,9 @@ model Story {
   // Classifications (Language, Religion, Locality)
   classifications StoryClassification[]
 
-  // Audio
-  audioClips AudioClip[]
+  // Audio (via join table for library sharing)
+  audioClips      StoryAudioClip[]
+  sourceAudioClips AudioClip[] @relation("AudioClipSource")
 
   // Comments
   comments Comment[]
@@ -555,7 +557,7 @@ model MenuItem {
 }
 
 model AudioClip {
-  id           String @id @default(cuid())
+  id           String   @id @default(cuid())
   filename     String
   originalName String
   url          String
@@ -563,10 +565,19 @@ model AudioClip {
   fileSize     Int?
   mimeType     String
 
-  // Support both stories and episodes
-  storyId   String?
-  story     Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  // Library metadata
+  title       String?
+  description String?
+  tags        String[] @default([])
 
+  // Provenance tracking - which story this clip was originally uploaded for
+  sourceStoryId String?
+  sourceStory   Story?  @relation("AudioClipSource", fields: [sourceStoryId], references: [id], onDelete: SetNull)
+
+  // Stories linked via join table
+  stories StoryAudioClip[]
+
+  // Episodes still use direct FK
   episodeId String?
   episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
@@ -576,8 +587,23 @@ model AudioClip {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([storyId])
+  @@index([sourceStoryId])
   @@index([episodeId])
+}
+
+model StoryAudioClip {
+  id          String    @id @default(cuid())
+  storyId     String
+  story       Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  audioClipId String
+  audioClip   AudioClip @relation(fields: [audioClipId], references: [id], onDelete: Cascade)
+  addedBy     String
+  adder       User      @relation("AudioClipAdder", fields: [addedBy], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@unique([storyId, audioClipId])
+  @@index([storyId])
+  @@index([audioClipId])
 }
 
 model Comment {

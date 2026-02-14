@@ -1,11 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createHandler, withAuth, withErrorHandling, withValidation, withAudit } from '@/lib/api-handler';
+import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { storyUpdateSchema } from '@/lib/validations';
-import { deleteAudioFile } from '@/lib/r2-storage';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 import { generateSlug, generateUniqueStorySlug } from '@/lib/slug-utils';
 import { publishStoryEvent, createEvent } from '@/lib/ably';
+
+// Reusable audioClips include through join table
+const audioClipsInclude = {
+  select: {
+    id: true,
+    audioClip: {
+      select: {
+        id: true,
+        filename: true,
+        originalName: true,
+        url: true,
+        duration: true,
+        fileSize: true,
+        mimeType: true,
+        title: true,
+        tags: true,
+      },
+    },
+    createdAt: true,
+  },
+} as const;
 
 // Helper function to check permissions
 function hasStoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -188,18 +208,7 @@ const getStory = createHandler(
             },
           },
         },
-        audioClips: {
-          select: {
-            id: true,
-            filename: true,
-            originalName: true,
-            url: true,
-            duration: true,
-            fileSize: true,
-            mimeType: true,
-            createdAt: true,
-          },
-        },
+        audioClips: audioClipsInclude,
         comments: {
           include: {
             author: {
@@ -406,32 +415,12 @@ const updateStory = createHandler(
       return NextResponse.json({ error: 'Category is required to approve or publish a story.' }, { status: 400 });
     }
 
-    // Handle audio clip deletions
+    // Handle audio clip unlinking (unlink from story, don't delete from library)
     if (data.removedAudioIds && data.removedAudioIds.length > 0) {
-      // Fetch audio clips to get their URLs
-      const audioClips = await prisma.audioClip.findMany({
+      await prisma.storyAudioClip.deleteMany({
         where: {
-          id: { in: data.removedAudioIds },
-          storyId: id // Verify they belong to this story
-        },
-        select: { id: true, url: true },
-      });
-
-      // Delete files from storage
-      for (const audioClip of audioClips) {
-        try {
-          await deleteAudioFile(audioClip.url);
-        } catch (error) {
-          console.error(`Failed to delete audio file ${audioClip.url}:`, error);
-          // Continue with deletion even if some files fail
-        }
-      }
-
-      // Delete audio clip records from database
-      await prisma.audioClip.deleteMany({
-        where: {
-          id: { in: data.removedAudioIds },
-          storyId: id // Verify they belong to this story
+          storyId: id,
+          audioClipId: { in: data.removedAudioIds },
         },
       });
     }
@@ -516,11 +505,22 @@ const updateStory = createHandler(
       };
     }
 
-    // Add new audio clips if any were uploaded
+    // Create new audio clips in library and link to story
     if (uploadedAudioFiles.length > 0) {
-      updateData.audioClips = {
-        create: uploadedAudioFiles
-      };
+      for (const audioFileData of uploadedAudioFiles) {
+        await prisma.audioClip.create({
+          data: {
+            ...audioFileData,
+            sourceStoryId: id,
+            stories: {
+              create: {
+                storyId: id,
+                addedBy: user.id,
+              },
+            },
+          },
+        });
+      }
     }
 
     const story = await prisma.story.update({
@@ -590,18 +590,7 @@ const updateStory = createHandler(
             },
           },
         },
-        audioClips: {
-          select: {
-            id: true,
-            filename: true,
-            originalName: true,
-            url: true,
-            duration: true,
-            fileSize: true,
-            mimeType: true,
-            createdAt: true,
-          },
-        },
+        audioClips: audioClipsInclude,
       },
     });
 
@@ -627,19 +616,13 @@ const deleteStory = createHandler(
     const { id } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
-    // Check if story exists and get its stage, authorId, and audio clips
+    // Check if story exists and get its stage, authorId
     const story = await prisma.story.findUnique({
       where: { id },
       select: {
         status: true,
         stage: true,
         authorId: true,
-        audioClips: {
-          select: {
-            id: true,
-            url: true,
-          },
-        },
       },
     });
 
@@ -653,16 +636,8 @@ const deleteStory = createHandler(
       return NextResponse.json({ error: 'Insufficient permissions to delete this story' }, { status: 403 });
     }
 
-    // Delete audio files from storage before deleting story
-    for (const audioClip of story.audioClips) {
-      try {
-        await deleteAudioFile(audioClip.url);
-      } catch (error) {
-        console.error(`Failed to delete audio file ${audioClip.url}:`, error);
-        // Continue with deletion even if some files fail
-      }
-    }
-
+    // StoryAudioClip links cascade-delete automatically
+    // Audio clips stay in library for other stories to use
     await prisma.story.delete({
       where: { id },
     });
