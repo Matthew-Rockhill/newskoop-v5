@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
@@ -147,11 +147,6 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [showSubEditorModal, setShowSubEditorModal] = useState(false);
   const [fieldInteractions, setFieldInteractions] = useState<Record<string, boolean>>({});
-  
-  // Audio state
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
   
   // Modal states
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -450,36 +445,6 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
     }
   };
 
-  // Audio handlers
-  const handleAudioPlay = (audioId: string) => {
-    // Stop any currently playing audio
-    if (playingAudioId && playingAudioId !== audioId) {
-      setPlayingAudioId(null);
-    }
-    setPlayingAudioId(playingAudioId === audioId ? null : audioId);
-  };
-
-  const handleAudioStop = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-  };
-
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioTimeUpdate = useCallback((audioId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
-  }, []);
-
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
-  };
-
   // Classification handlers
   const handleCategoryConfirm = (categoryId: string) => {
     setValue('categoryId', categoryId);
@@ -735,20 +700,7 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
                     <CustomAudioPlayer
                       key={clip.id}
                       clip={clip}
-                      isPlaying={playingAudioId === clip.id}
-                      currentTime={audioProgress[clip.id] || 0}
-                      duration={audioDuration[clip.id] || 0}
-                      onPlay={handleAudioPlay}
-                      onStop={handleAudioStop}
-                      onRestart={handleAudioRestart}
-                      onSeek={handleAudioSeek}
-                      onTimeUpdate={handleAudioTimeUpdate}
-                      onLoadedMetadata={handleAudioLoadedMetadata}
-                      onEnded={() => setPlayingAudioId(null)}
-                      onError={() => {
-                        toast.error('Failed to play audio file');
-                        setPlayingAudioId(null);
-                      }}
+                      onError={() => toast.error('Failed to play audio file')}
                     />
                   ))}
                 </div>

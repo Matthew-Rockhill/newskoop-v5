@@ -29,11 +29,6 @@ export async function GET(
       },
       include: {
         category: true,
-        tags: {
-          include: {
-            tag: true,
-          },
-        },
         classifications: {
           include: {
             classification: true,
@@ -121,7 +116,6 @@ export async function GET(
     // Flatten tags and classifications
     const show = {
       ...showRaw,
-      tags: showRaw.tags.map(st => st.tag),
       classifications: showRaw.classifications.map(sc => sc.classification),
       subShows: showRaw.subShows.map(sub => ({
         ...sub,

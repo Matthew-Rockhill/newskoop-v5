@@ -11,7 +11,7 @@ import { publishShowEvent, createEvent } from '@/lib/ably';
 const showSearchSchema = z.object({
   query: z.string().optional(),
   isPublished: z.boolean().optional(),
-  tagIds: z.array(z.string()).optional(),
+  classificationIds: z.array(z.string()).optional(),
   parentId: z.string().optional(),
   topLevelOnly: z.boolean().optional(),
   page: z.number().int().min(1).optional(),
@@ -22,7 +22,7 @@ const showSearchSchema = z.object({
 const showSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  tagIds: z.array(z.string()).optional(),
+  classificationIds: z.array(z.string()).optional(),
   isPublished: z.boolean(),
   coverImage: z.string().optional(),
   parentId: z.string().nullable().optional(),
@@ -46,13 +46,13 @@ const getShows = createHandler(
       perPage: searchParams.perPage ? Number(searchParams.perPage) : undefined,
       isPublished: searchParams.isPublished === 'true' ? true : searchParams.isPublished === 'false' ? false : undefined,
       topLevelOnly: searchParams.topLevelOnly === 'true' ? true : undefined,
-      tagIds: searchParams.tagIds ? searchParams.tagIds.split(',') : undefined,
+      classificationIds: searchParams.classificationIds ? searchParams.classificationIds.split(',') : undefined,
     });
 
     // Apply defaults using ?? operator
     const query = validated.query;
     const isPublished = validated.isPublished;
-    const tagIds = validated.tagIds;
+    const classificationIds = validated.classificationIds;
     const parentId = validated.parentId;
     const topLevelOnly = validated.topLevelOnly;
     const page = validated.page ?? 1;
@@ -68,17 +68,17 @@ const getShows = createHandler(
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
           { description: { contains: query, mode: 'insensitive' } },
-          { tags: {
+          { classifications: {
             some: {
-              tag: { name: { contains: query, mode: 'insensitive' } }
+              classification: { name: { contains: query, mode: 'insensitive' } }
             }
           }},
         ],
       }),
-      ...(tagIds && tagIds.length > 0 && {
-        tags: {
+      ...(classificationIds && classificationIds.length > 0 && {
+        classifications: {
           some: {
-            tagId: { in: tagIds }
+            classificationId: { in: classificationIds }
           }
         }
       }),
@@ -92,9 +92,9 @@ const getShows = createHandler(
       where,
       include: {
         category: true,
-        tags: {
+        classifications: {
           include: {
-            tag: true,
+            classification: true,
           },
         },
         createdBy: {
@@ -184,19 +184,19 @@ const createShow = createHandler(
         isPublished: data.isPublished,
         createdById: user.id,
         ...(data.parentId !== undefined && { parentId: data.parentId }),
-        ...(data.tagIds && data.tagIds.length > 0 && {
-          tags: {
-            create: data.tagIds.map(tagId => ({
-              tag: { connect: { id: tagId } },
+        ...(data.classificationIds && data.classificationIds.length > 0 && {
+          classifications: {
+            create: data.classificationIds.map(classificationId => ({
+              classification: { connect: { id: classificationId } },
             })),
           },
         }),
       },
       include: {
         category: true,
-        tags: {
+        classifications: {
           include: {
-            tag: true,
+            classification: true,
           },
         },
         createdBy: {

@@ -19,7 +19,7 @@ import { Show, CreateShowData, UpdateShowData, useParentShows } from '@/hooks/us
 const showSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  tagIds: z.array(z.string()).optional(),
+  classificationIds: z.array(z.string()).optional(),
   isPublished: z.boolean(),
   parentId: z.string().nullable().optional(),
 });
@@ -49,13 +49,13 @@ export function ShowForm({ show, defaultParentId, onSubmit, onCancel, isSubmitti
     defaultValues: {
       title: show?.title ?? '',
       description: show?.description ?? '',
-      tagIds: show?.tags?.map(t => t.tag.id) ?? [],
+      classificationIds: show?.classifications?.map(c => c.classification.id) ?? [],
       isPublished: show?.isPublished ?? false,
       parentId: show?.parentId ?? defaultParentId ?? null,
     },
   });
 
-  const selectedTagIds = watch('tagIds') ?? [];
+  const selectedClassificationIds = watch('classificationIds') ?? [];
   const isPublished = watch('isPublished');
   const selectedParentId = watch('parentId');
 
@@ -111,8 +111,8 @@ export function ShowForm({ show, defaultParentId, onSubmit, onCancel, isSubmitti
             </Description>
             <MultiCombobox
               options={classificationsData?.classifications ?? []}
-              value={selectedTagIds}
-              onChange={(classificationIds) => setValue('tagIds', classificationIds)}
+              value={selectedClassificationIds}
+              onChange={(ids) => setValue('classificationIds', ids)}
               displayValue={(classification) => classification?.name}
               placeholder="Search languages..."
               aria-label="Languages"
@@ -123,7 +123,7 @@ export function ShowForm({ show, defaultParentId, onSubmit, onCancel, isSubmitti
                 </MultiComboboxOption>
               )}
             </MultiCombobox>
-            <ErrorMessage>{errors.tagIds?.message}</ErrorMessage>
+            <ErrorMessage>{errors.classificationIds?.message}</ErrorMessage>
           </Field>
 
           <SwitchField>

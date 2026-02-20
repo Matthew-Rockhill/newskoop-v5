@@ -547,6 +547,39 @@ const createStory = createHandler(
         console.log('🎵 Added audio clips:', uploadedAudioFiles.length);
       }
 
+      // Link library clips if provided
+      const libraryClipIdsRaw = storyData.libraryClipIds;
+      if (libraryClipIdsRaw) {
+        try {
+          const libraryClipIds: string[] = typeof libraryClipIdsRaw === 'string'
+            ? JSON.parse(libraryClipIdsRaw)
+            : libraryClipIdsRaw;
+
+          if (Array.isArray(libraryClipIds) && libraryClipIds.length > 0) {
+            // Verify clips exist
+            const existingClips = await prisma.audioClip.findMany({
+              where: { id: { in: libraryClipIds } },
+              select: { id: true },
+            });
+            const validIds = existingClips.map(c => c.id);
+
+            if (validIds.length > 0) {
+              await prisma.storyAudioClip.createMany({
+                data: validIds.map(audioClipId => ({
+                  storyId: story.id,
+                  audioClipId,
+                  addedBy: user.id,
+                })),
+                skipDuplicates: true,
+              });
+              console.log(`🎵 Linked ${validIds.length} library clips to story`);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Failed to link library clips:', error);
+        }
+      }
+
       // Link audio clips from original story if this is a translation
       if (storyData.isTranslation && storyData.originalStoryId && uploadedAudioFiles.length === 0) {
         console.log('🔄 Linking audio clips from original story...');

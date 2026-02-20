@@ -26,14 +26,16 @@ import {
   useDeleteEpisode,
   useUploadEpisodeAudio,
   useDeleteEpisodeAudio,
+  useLinkAudioToEpisode,
   usePublishEpisode,
   useUnpublishEpisode
 } from '@/hooks/use-episodes';
+import { AudioPickerModal } from '@/components/newsroom/AudioPickerModal';
 import { canManageShows, canPublishEpisode } from '@/lib/permissions';
 import { ArrowLeftIcon, TrashIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
-import { useCallback } from 'react';
+import { formatDuration, formatFileSize } from '@/lib/format-utils';
 
 // AudioFile type from FileUpload component
 interface AudioFile {
@@ -65,17 +67,14 @@ export default function EpisodeDetailPage({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
-
-  // Audio playback state
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
+  const [showAudioPicker, setShowAudioPicker] = useState(false);
 
   const { data: episode, isLoading } = useEpisode(showId, episodeId);
   const updateEpisode = useUpdateEpisode();
   const deleteEpisode = useDeleteEpisode();
   const uploadAudio = useUploadEpisodeAudio();
   const deleteAudio = useDeleteEpisodeAudio();
+  const linkAudio = useLinkAudioToEpisode(showId, episodeId);
   const publishEpisode = usePublishEpisode();
   const unpublishEpisode = useUnpublishEpisode();
 
@@ -132,6 +131,15 @@ export default function EpisodeDetailPage({
     }
   };
 
+  const handleLibraryLink = async (clipIds: string[]) => {
+    try {
+      await linkAudio.mutateAsync(clipIds);
+      toast.success(`${clipIds.length} audio clip${clipIds.length !== 1 ? 's' : ''} attached from library`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to link audio clips');
+    }
+  };
+
   const handleAudioDelete = async (audioClipId: string) => {
     if (!confirm('Are you sure you want to delete this audio file?')) return;
 
@@ -174,36 +182,6 @@ export default function EpisodeDetailPage({
     }
   };
 
-  // Audio player handlers
-  const handleAudioPlay = (audioId: string) => {
-    // Stop any currently playing audio
-    if (playingAudioId && playingAudioId !== audioId) {
-      setPlayingAudioId(null);
-    }
-    setPlayingAudioId(playingAudioId === audioId ? null : audioId);
-  };
-
-  const handleAudioStop = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-  };
-
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioTimeUpdate = useCallback((audioId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
-  }, []);
-
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
-  };
-
   if (isLoading) {
     return (
       <Container>
@@ -230,19 +208,6 @@ export default function EpisodeDetailPage({
       case 'ARCHIVED': return 'zinc';
       default: return 'yellow';
     }
-  };
-
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return 'N/A';
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(2)} MB`;
   };
 
   return (
@@ -359,7 +324,7 @@ export default function EpisodeDetailPage({
           </div>
 
           {canManage && (
-            <div className="mb-6">
+            <div className="mb-6 space-y-4">
               <FileUpload
                 onFilesChange={handleAudioUpload}
                 acceptedTypes={['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4']}
@@ -367,6 +332,19 @@ export default function EpisodeDetailPage({
                 maxFileSize={50}
                 existingCount={episode.audioClips?.length || 0}
               />
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-zinc-200" />
+                <span className="text-sm text-zinc-400">or</span>
+                <div className="flex-1 border-t border-zinc-200" />
+              </div>
+              <Button
+                type="button"
+                color="white"
+                onClick={() => setShowAudioPicker(true)}
+              >
+                <MusicalNoteIcon className="w-5 h-5" />
+                Browse Audio Library
+              </Button>
             </div>
           )}
 
@@ -376,20 +354,7 @@ export default function EpisodeDetailPage({
                 <div key={clip.id} className="space-y-2">
                   <CustomAudioPlayer
                     clip={{ ...clip, duration: clip.duration ?? null }}
-                    isPlaying={playingAudioId === clip.id}
-                    currentTime={audioProgress[clip.id] || 0}
-                    duration={audioDuration[clip.id] || 0}
-                    onPlay={handleAudioPlay}
-                    onStop={handleAudioStop}
-                    onRestart={handleAudioRestart}
-                    onSeek={handleAudioSeek}
-                    onTimeUpdate={handleAudioTimeUpdate}
-                    onLoadedMetadata={handleAudioLoadedMetadata}
-                    onEnded={() => setPlayingAudioId(null)}
-                    onError={() => {
-                      toast.error('Failed to play audio file');
-                      setPlayingAudioId(null);
-                    }}
+                    onError={() => toast.error('Failed to play audio file')}
                   />
                   <div className="flex items-center justify-between text-sm text-zinc-500 px-2">
                     <div className="flex items-center gap-4">
@@ -497,6 +462,15 @@ export default function EpisodeDetailPage({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Audio Library Picker Modal */}
+      <AudioPickerModal
+        isOpen={showAudioPicker}
+        onClose={() => setShowAudioPicker(false)}
+        onConfirm={handleLibraryLink}
+        excludeClipIds={episode?.audioClips?.map(c => c.id) || []}
+        isLoading={linkAudio.isPending}
+      />
     </Container>
   );
 }

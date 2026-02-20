@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useForm, Controller } from 'react-hook-form';
@@ -53,9 +53,6 @@ export default function TranslatePage() {
   // Audio clip state
   const [removedAudioIds, setRemovedAudioIds] = useState<string[]>([]);
   const [newAudioFiles, setNewAudioFiles] = useState<AudioFile[]>([]);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
   const [showAudioPicker, setShowAudioPicker] = useState(false);
   const linkAudioMutation = useLinkAudioToStory(storyId);
 
@@ -114,32 +111,6 @@ export default function TranslatePage() {
     setValue('content', content);
     if (content !== '') trigger('content');
   }, [content, setValue, trigger]);
-
-  // Audio handlers
-  const handleAudioPlay = (audioId: string) => {
-    setPlayingAudioId(playingAudioId === audioId ? null : audioId);
-  };
-
-  const handleAudioStop = () => {
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-    setPlayingAudioId(audioId);
-  };
-
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioTimeUpdate = useCallback((audioId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
-  }, []);
-
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
-  };
 
   const handleRemoveAudioClip = (audioId: string) => {
     setRemovedAudioIds(prev => [...prev, audioId]);
@@ -407,16 +378,6 @@ export default function TranslatePage() {
                                         duration: clip.duration ?? null,
                                         mimeType: clip.mimeType,
                                       }}
-                                      isPlaying={playingAudioId === clip.id}
-                                      currentTime={audioProgress[clip.id] || 0}
-                                      duration={audioDuration[clip.id] || 0}
-                                      onPlay={handleAudioPlay}
-                                      onStop={handleAudioStop}
-                                      onRestart={handleAudioRestart}
-                                      onSeek={handleAudioSeek}
-                                      onTimeUpdate={handleAudioTimeUpdate}
-                                      onLoadedMetadata={handleAudioLoadedMetadata}
-                                      onEnded={() => setPlayingAudioId(null)}
                                       onError={() => toast.error('Failed to play audio file')}
                                     />
                                     <Button
@@ -562,16 +523,6 @@ export default function TranslatePage() {
                                 duration: clip.duration ?? null,
                                 mimeType: clip.mimeType,
                               }}
-                              isPlaying={playingAudioId === `original-${clip.id}`}
-                              currentTime={audioProgress[`original-${clip.id}`] || 0}
-                              duration={audioDuration[`original-${clip.id}`] || 0}
-                              onPlay={(id) => handleAudioPlay(`original-${id}`)}
-                              onStop={handleAudioStop}
-                              onRestart={(id) => handleAudioRestart(`original-${id}`)}
-                              onSeek={(id, time) => handleAudioSeek(`original-${id}`, time)}
-                              onTimeUpdate={(id, time) => handleAudioTimeUpdate(`original-${id}`, time)}
-                              onLoadedMetadata={(id, duration) => handleAudioLoadedMetadata(`original-${id}`, duration)}
-                              onEnded={() => setPlayingAudioId(null)}
                               onError={() => toast.error('Failed to play audio file')}
                             />
                           );

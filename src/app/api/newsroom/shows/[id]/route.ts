@@ -10,7 +10,7 @@ const showUpdateSchema = z.object({
   slug: z.string().min(1).optional(),
   description: z.string().optional(),
   categoryId: z.string().nullable().optional(),
-  tagIds: z.array(z.string()).optional(),
+  classificationIds: z.array(z.string()).optional(),
   isPublished: z.boolean().optional(),
   coverImage: z.string().nullable().optional(),
   parentId: z.string().nullable().optional(),
@@ -30,9 +30,9 @@ const getShow = createHandler(
       where: { id: id },
       include: {
         category: true,
-        tags: {
+        classifications: {
           include: {
-            tag: true,
+            classification: true,
           },
         },
         createdBy: {
@@ -140,20 +140,20 @@ const updateShow = createHandler(
         ...(data.isPublished !== undefined && { isPublished: data.isPublished }),
         ...(data.coverImage !== undefined && { coverImage: data.coverImage }),
         ...(data.parentId !== undefined && { parentId: data.parentId }),
-        ...(data.tagIds !== undefined && {
-          tags: {
+        ...(data.classificationIds !== undefined && {
+          classifications: {
             deleteMany: {},
-            create: data.tagIds.map(tagId => ({
-              tag: { connect: { id: tagId } },
+            create: data.classificationIds.map(classificationId => ({
+              classification: { connect: { id: classificationId } },
             })),
           },
         }),
       },
       include: {
         category: true,
-        tags: {
+        classifications: {
           include: {
-            tag: true,
+            classification: true,
           },
         },
         createdBy: {

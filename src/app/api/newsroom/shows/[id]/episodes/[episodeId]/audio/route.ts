@@ -8,7 +8,25 @@ import { del } from '@vercel/blob';
 // Maximum audio clips allowed per episode
 const MAX_AUDIO_CLIPS_PER_EPISODE = 5;
 
-// POST /api/newsroom/shows/[id]/episodes/[episodeId]/audio - Upload audio file
+// Helper to fetch and return the full episode after audio changes
+async function getFullEpisode(episodeId: string) {
+  return prisma.episode.findUnique({
+    where: { id: episodeId },
+    include: {
+      audioClips: true,
+      show: true,
+      publisher: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+  });
+}
+
+// POST /api/newsroom/shows/[id]/episodes/[episodeId]/audio - Upload audio file or link library clips
 const uploadAudio = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id, episodeId } = await params;
@@ -35,6 +53,57 @@ const uploadAudio = createHandler(
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
+    const contentType = req.headers.get('content-type') || '';
+
+    // JSON body: link existing library clips to episode
+    if (contentType.includes('application/json')) {
+      const body = await req.json();
+      const { audioClipIds } = body;
+
+      if (!Array.isArray(audioClipIds) || audioClipIds.length === 0) {
+        return NextResponse.json({ error: 'audioClipIds array is required' }, { status: 400 });
+      }
+
+      const existingClipCount = episode._count.audioClips;
+      const remainingSlots = MAX_AUDIO_CLIPS_PER_EPISODE - existingClipCount;
+
+      if (remainingSlots <= 0) {
+        return NextResponse.json({
+          error: `Maximum ${MAX_AUDIO_CLIPS_PER_EPISODE} audio clips allowed per episode`
+        }, { status: 400 });
+      }
+
+      if (audioClipIds.length > remainingSlots) {
+        return NextResponse.json({
+          error: `Can only add ${remainingSlots} more audio clip${remainingSlots === 1 ? '' : 's'}. Episode already has ${existingClipCount} clip${existingClipCount === 1 ? '' : 's'}.`
+        }, { status: 400 });
+      }
+
+      // Verify all clips exist and are not already attached to another episode
+      const clips = await prisma.audioClip.findMany({
+        where: { id: { in: audioClipIds } },
+        select: { id: true, episodeId: true },
+      });
+
+      const validClipIds = clips
+        .filter(c => c.episodeId === null || c.episodeId === episodeId)
+        .map(c => c.id);
+
+      if (validClipIds.length === 0) {
+        return NextResponse.json({ error: 'No valid audio clips to link' }, { status: 400 });
+      }
+
+      // Update each clip to belong to this episode
+      await prisma.audioClip.updateMany({
+        where: { id: { in: validClipIds }, episodeId: null },
+        data: { episodeId },
+      });
+
+      const updatedEpisode = await getFullEpisode(episodeId);
+      return NextResponse.json({ episode: updatedEpisode, linked: validClipIds.length });
+    }
+
+    // Multipart: existing file upload flow
     const formData = await req.formData();
     const files = formData.getAll('files') as File[];
 
@@ -98,20 +167,7 @@ const uploadAudio = createHandler(
     }
 
     // Fetch the complete updated episode with all audio clips
-    const updatedEpisode = await prisma.episode.findUnique({
-      where: { id: episodeId },
-      include: {
-        audioClips: true,
-        show: true,
-        publisher: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-    });
+    const updatedEpisode = await getFullEpisode(episodeId);
 
     return NextResponse.json({ episode: updatedEpisode, audioClips });
   },

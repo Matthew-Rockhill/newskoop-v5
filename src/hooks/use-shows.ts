@@ -26,13 +26,12 @@ export interface Show {
     slug: string;
   };
   subShows?: Show[];
-  tags: Array<{
-    tag: {
+  classifications: Array<{
+    classification: {
       id: string;
       name: string;
       slug: string;
-      color?: string;
-      category: string;
+      type: string;
     };
   }>;
   createdBy: {
@@ -84,7 +83,7 @@ export interface Episode {
 export interface ShowFilters {
   query?: string;
   isPublished?: boolean;
-  tagIds?: string[];
+  classificationIds?: string[];
   parentId?: string | null;
   topLevelOnly?: boolean;
   page?: number;
@@ -94,7 +93,7 @@ export interface ShowFilters {
 export interface CreateShowData {
   title: string;
   description?: string;
-  tagIds?: string[];
+  classificationIds?: string[];
   isPublished?: boolean;
   parentId?: string | null;
 }
@@ -102,7 +101,7 @@ export interface CreateShowData {
 export interface UpdateShowData {
   title?: string;
   description?: string;
-  tagIds?: string[];
+  classificationIds?: string[];
   isPublished?: boolean;
   coverImage?: string | null;
   parentId?: string | null;

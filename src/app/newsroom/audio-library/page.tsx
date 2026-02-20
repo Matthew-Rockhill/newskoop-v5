@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Input, InputGroup } from '@/components/ui/input';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
+import { formatDuration, formatFileSize } from '@/lib/format-utils';
 import { Pagination } from '@/components/ui/pagination';
 import { FileUpload } from '@/components/ui/file-upload';
 import { AudioClipEditModal } from '@/components/newsroom/AudioClipEditModal';
@@ -115,19 +116,6 @@ export default function AudioLibraryPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to delete');
     }
   }, [deletingClip, deleteMutation]);
-
-  const formatDuration = (seconds: number | null | undefined) => {
-    if (!seconds) return '--:--';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const formatFileSize = (bytes: number | null | undefined) => {
-    if (!bytes) return '';
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

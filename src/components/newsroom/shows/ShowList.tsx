@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { KeyboardEvent } from 'react';
+import { Fragment, KeyboardEvent } from 'react';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Show } from '@/hooks/use-shows';
@@ -50,9 +50,8 @@ export function ShowList({ shows, onEdit, onDelete, canEdit = true, canDelete = 
       </TableHead>
       <TableBody>
         {shows.map((show) => (
-          <>
+          <Fragment key={show.id}>
             <TableRow
-              key={show.id}
               tabIndex={0}
               className="hover:bg-zinc-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-kelly-green"
               onClick={() => router.push(`/newsroom/shows/${show.id}`)}
@@ -161,7 +160,7 @@ export function ShowList({ shows, onEdit, onDelete, canEdit = true, canDelete = 
                 </TableCell>
               </TableRow>
             ))}
-          </>
+          </Fragment>
         ))}
       </TableBody>
     </Table>

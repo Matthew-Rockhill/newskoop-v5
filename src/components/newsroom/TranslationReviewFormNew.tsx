@@ -100,11 +100,6 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [showReviewerModal, setShowReviewerModal] = useState(false);
   
-  // Audio player state
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
-
   // Fetch translation data
   const { data: translationData, isLoading: translationLoading, error: translationError } = useQuery({
     queryKey: ['translation', translationId],
@@ -260,32 +255,6 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
       setIsSubmitting(false);
       setShowRevisionModal(false);
     }
-  };
-
-  // Audio player handlers
-  const handleAudioPlay = (clipId: string) => {
-    setPlayingAudioId(clipId);
-  };
-
-  const handleAudioStop = () => {
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (clipId: string) => {
-    setAudioProgress(prev => ({ ...prev, [clipId]: 0 }));
-    setPlayingAudioId(clipId);
-  };
-
-  const handleAudioSeek = (clipId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [clipId]: time }));
-  };
-
-  const handleAudioTimeUpdate = (clipId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [clipId]: currentTime }));
-  };
-
-  const handleAudioLoadedMetadata = (clipId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [clipId]: duration }));
   };
 
   const formatDate = (dateString: string) => {
@@ -525,20 +494,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                       <CustomAudioPlayer
                         key={clip.id}
                         clip={clip}
-                        isPlaying={playingAudioId === clip.id}
-                        currentTime={audioProgress[clip.id] || 0}
-                        duration={audioDuration[clip.id] || 0}
-                        onPlay={handleAudioPlay}
-                        onStop={handleAudioStop}
-                        onRestart={handleAudioRestart}
-                        onSeek={handleAudioSeek}
-                        onTimeUpdate={handleAudioTimeUpdate}
-                        onLoadedMetadata={handleAudioLoadedMetadata}
-                        onEnded={() => setPlayingAudioId(null)}
-                        onError={() => {
-                          toast.error('Failed to play audio file');
-                          setPlayingAudioId(null);
-                        }}
+                        onError={() => toast.error('Failed to play audio file')}
                       />
                     ))}
                   </div>
@@ -628,20 +584,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                         <CustomAudioPlayer
                           key={clip.id}
                           clip={clip}
-                          isPlaying={playingAudioId === clip.id}
-                          currentTime={audioProgress[clip.id] || 0}
-                          duration={audioDuration[clip.id] || 0}
-                          onPlay={handleAudioPlay}
-                          onStop={handleAudioStop}
-                          onRestart={handleAudioRestart}
-                          onSeek={handleAudioSeek}
-                          onTimeUpdate={handleAudioTimeUpdate}
-                          onLoadedMetadata={handleAudioLoadedMetadata}
-                          onEnded={() => setPlayingAudioId(null)}
-                          onError={() => {
-                            toast.error('Failed to play audio file');
-                            setPlayingAudioId(null);
-                          }}
+                          onError={() => toast.error('Failed to play audio file')}
                         />
                       ))}
                     </div>

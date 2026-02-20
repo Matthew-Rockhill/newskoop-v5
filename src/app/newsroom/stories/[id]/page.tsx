@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -144,9 +144,6 @@ export default function StoryDetailPage() {
   const storyId = params.id as string;
   
   const [isDeleting, setIsDeleting] = useState(false);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showTranslationModal, setShowTranslationModal] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -489,35 +486,6 @@ export default function StoryDetailPage() {
     } finally {
       setIsDeleting(false);
     }
-  };
-
-  const handleAudioPlay = (audioId: string) => {
-    // Stop any currently playing audio
-    if (playingAudioId && playingAudioId !== audioId) {
-      setPlayingAudioId(null);
-    }
-    setPlayingAudioId(playingAudioId === audioId ? null : audioId);
-  };
-
-  const handleAudioStop = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-  };
-
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioTimeUpdate = useCallback((audioId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
-  }, []);
-
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
   };
 
   // Toggle bulletin flag handler
@@ -1074,20 +1042,7 @@ export default function StoryDetailPage() {
                         <CustomAudioPlayer
                           key={clip.id}
                           clip={clip}
-                          isPlaying={playingAudioId === clip.id}
-                          currentTime={audioProgress[clip.id] || 0}
-                          duration={audioDuration[clip.id] || 0}
-                          onPlay={handleAudioPlay}
-                          onStop={handleAudioStop}
-                          onRestart={handleAudioRestart}
-                          onSeek={handleAudioSeek}
-                          onTimeUpdate={handleAudioTimeUpdate}
-                          onLoadedMetadata={handleAudioLoadedMetadata}
-                          onEnded={() => setPlayingAudioId(null)}
-                          onError={() => {
-                            toast.error('Failed to play audio file');
-                            setPlayingAudioId(null);
-                          }}
+                          onError={() => toast.error('Failed to play audio file')}
                           compact
                         />
                       );

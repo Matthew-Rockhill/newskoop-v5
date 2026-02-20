@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { Container } from '@/components/ui/container';
@@ -29,9 +30,6 @@ export default function StoryDetailPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
   const storyId = params.id as string;
 
   // Fetch story details
@@ -113,32 +111,6 @@ export default function StoryDetailPage() {
       }
     }
   });
-
-  // Audio handlers
-  const handleAudioPlay = (audioId: string) => {
-    setPlayingAudioId(audioId);
-  };
-
-  const handleAudioStop = () => {
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-    setPlayingAudioId(audioId);
-  };
-
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioTimeUpdate = (audioId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
-  };
-
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
-  };
 
   // Utility functions
   const handlePrint = () => {
@@ -441,22 +413,17 @@ Downloaded from NewsKoop Radio Station Zone
               
               <div className="space-y-4">
                 {story.audioClips.map((clip: any) => (
-                  <Card key={clip.id} className="p-4 bg-zinc-50">
-                    <CustomAudioPlayer
-                      clip={clip}
-                      isPlaying={playingAudioId === clip.id}
-                      currentTime={audioProgress[clip.id] || 0}
-                      duration={audioDuration[clip.id] || 0}
-                      onPlay={handleAudioPlay}
-                      onStop={handleAudioStop}
-                      onRestart={handleAudioRestart}
-                      onSeek={handleAudioSeek}
-                      onTimeUpdate={handleAudioTimeUpdate}
-                      onLoadedMetadata={handleAudioLoadedMetadata}
-                      onEnded={() => setPlayingAudioId(null)}
-                      onError={() => setPlayingAudioId(null)}
-                    />
-                  </Card>
+                  <CustomAudioPlayer
+                    key={clip.id}
+                    clip={{
+                      id: clip.id,
+                      url: clip.url,
+                      originalName: clip.title || clip.originalName || clip.filename,
+                      duration: clip.duration ?? null,
+                      mimeType: clip.mimeType,
+                    }}
+                    onError={() => toast.error('Failed to play audio file')}
+                  />
                 ))}
               </div>
             </div>

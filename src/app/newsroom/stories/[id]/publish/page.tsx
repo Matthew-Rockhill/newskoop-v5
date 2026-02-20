@@ -59,10 +59,6 @@ export default function PublishStoryPage() {
   const storyId = params.id as string;
   const { data: story, isLoading, error } = useStory(storyId);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
-
   // Check if story can be published
   const { data: publishStatus } = useQuery({
     queryKey: ['publishStatus', storyId],
@@ -193,32 +189,6 @@ export default function PublishStoryPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Audio handlers
-  const handleAudioPlay = (audioId: string) => {
-    setPlayingAudioId(audioId);
-  };
-
-  const handleAudioStop = () => {
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-    setPlayingAudioId(audioId);
-  };
-
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioTimeUpdate = (audioId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
-  };
-
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
   };
 
   const formatDate = (dateString: string) => {
@@ -419,21 +389,14 @@ export default function PublishStoryPage() {
                       return (
                         <CustomAudioPlayer
                           key={clip.id}
-                          clip={clip}
-                          isPlaying={playingAudioId === clip.id}
-                          currentTime={audioProgress[clip.id] || 0}
-                          duration={audioDuration[clip.id] || 0}
-                          onPlay={handleAudioPlay}
-                          onStop={handleAudioStop}
-                          onRestart={handleAudioRestart}
-                          onSeek={handleAudioSeek}
-                          onTimeUpdate={handleAudioTimeUpdate}
-                          onLoadedMetadata={handleAudioLoadedMetadata}
-                          onEnded={() => setPlayingAudioId(null)}
-                          onError={() => {
-                            toast.error('Failed to play audio file');
-                            setPlayingAudioId(null);
+                          clip={{
+                            id: clip.id,
+                            url: clip.url,
+                            originalName: clip.title || clip.originalName || clip.filename,
+                            duration: clip.duration ?? null,
+                            mimeType: clip.mimeType,
                           }}
+                          onError={() => toast.error('Failed to play audio file')}
                         />
                       );
                     })}

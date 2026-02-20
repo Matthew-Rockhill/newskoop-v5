@@ -119,11 +119,6 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         category: true,
-        tags: {
-          include: {
-            tag: true,
-          },
-        },
         classifications: {
           include: {
             classification: true,
@@ -164,7 +159,6 @@ export async function GET(req: NextRequest) {
     // Flatten tags and classifications for easier client-side use
     const transformedShows = shows.map(show => ({
       ...show,
-      tags: show.tags.map(st => st.tag),
       classifications: show.classifications.map(sc => sc.classification),
       subShows: show.subShows.map(sub => ({
         ...sub,

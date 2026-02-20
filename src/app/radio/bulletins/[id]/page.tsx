@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { Container } from '@/components/ui/container';
@@ -79,8 +80,6 @@ export default function BulletinDetailPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const bulletinId = params.id as string;
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-
   const { data, isLoading, error } = useQuery({
     queryKey: ['radio-bulletin', bulletinId],
     queryFn: async () => {
@@ -353,9 +352,7 @@ Downloaded from NewsKoop Radio Station Zone
                           key={clip.id}
                           clip={clip}
                           compact
-                          onPlay={(id) => setPlayingAudioId(id)}
-                          onEnded={() => setPlayingAudioId(null)}
-                          onError={() => setPlayingAudioId(null)}
+                          onError={() => toast.error('Failed to play audio file')}
                         />
                       ))}
                     </div>

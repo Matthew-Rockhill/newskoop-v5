@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { Container } from '@/components/ui/container';
 import { Heading } from '@/components/ui/heading';
@@ -16,6 +17,7 @@ import {
   ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
+import { formatDuration, formatFileSize } from '@/lib/format-utils';
 
 // AudioClip type aligned with Prisma schema
 interface AudioClip {
@@ -89,10 +91,8 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
   const { id } = use(params);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
 
-  // Audio player state
+  // Audio player state (playlist tracking)
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [currentClipIndex, setCurrentClipIndex] = useState<number>(0);
 
@@ -133,13 +133,6 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
     ?.filter(c => c.type === 'LANGUAGE')
     .map(c => c.name) || [];
 
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'Unknown';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not published';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -154,26 +147,6 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
     setPlayingAudioId(audioId);
     setCurrentEpisodeId(episodeId);
     setCurrentClipIndex(clipIndex);
-  };
-
-  const handleAudioStop = () => {
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-  };
-
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioTimeUpdate = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
   };
 
   const handleAudioEnded = (episode: Episode, clipIndex: number) => {
@@ -426,11 +399,12 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                                   {(isCurrentClip || (!playingAudioId && index === 0) || (!currentEpisodeId && index === 0)) && (
                                     <CustomAudioPlayer
                                       clip={clip}
+                                      autoPlay={isCurrentClip && !!playingAudioId}
                                       onPlay={() => handleAudioPlay(clip.id, episode.id, index)}
                                       onEnded={() => handleAudioEnded(episode, index)}
                                       onError={() => {
                                         setPlayingAudioId(null);
-                                        console.error('Error playing audio clip:', clip.id);
+                                        toast.error('Failed to play audio clip');
                                       }}
                                     />
                                   )}
@@ -446,7 +420,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                                           </div>
                                         )}
                                         {clip.fileSize && (
-                                          <span>{(clip.fileSize / 1024 / 1024).toFixed(1)} MB</span>
+                                          <span>{formatFileSize(clip.fileSize)}</span>
                                         )}
                                       </div>
                                     </div>

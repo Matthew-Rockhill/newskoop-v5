@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,8 +32,6 @@ interface StoryCardProps {
 }
 
 export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-
   // Get language classifications
   const languageClassifications = story.classifications?.filter((c) => c.type === 'LANGUAGE') || [];
   const hasSelectedLanguage = selectedLanguage ? languageClassifications.some((c) => c.name === selectedLanguage) : true;
@@ -51,15 +49,6 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
     day: 'numeric',
     year: 'numeric',
   }) : 'No date';
-
-  // Audio handlers
-  const handleAudioPlay = (audioId: string) => {
-    setPlayingAudioId(audioId);
-  };
-
-  const handleAudioStop = () => {
-    setPlayingAudioId(null);
-  };
 
   return (
     <Card className="p-6 h-full flex flex-col hover:shadow-lg transition-shadow bg-white group">
@@ -135,18 +124,8 @@ export function StoryCard({ story, selectedLanguage }: StoryCardProps) {
               <CustomAudioPlayer
                 key={clip.id}
                 clip={clip}
-                isPlaying={playingAudioId === clip.id}
-                currentTime={0}
-                duration={clip.duration || 0}
-                onPlay={handleAudioPlay}
-                onStop={handleAudioStop}
-                onRestart={(audioId) => handleAudioPlay(audioId)}
-                onSeek={() => {}}
-                onTimeUpdate={() => {}}
-                onLoadedMetadata={() => {}}
-                onEnded={() => setPlayingAudioId(null)}
-                onError={() => setPlayingAudioId(null)}
-                compact={true}
+                compact
+                onError={() => toast.error('Failed to play audio file')}
               />
             ))}
             {story.audioClips.length > 1 && (

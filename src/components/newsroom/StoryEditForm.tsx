@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -124,9 +124,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   const [showReviewerModal, setShowReviewerModal] = useState(false);
   const [removedAudioIds, setRemovedAudioIds] = useState<string[]>([]);
   const [newAudioFiles, setNewAudioFiles] = useState<AudioFile[]>([]);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
-  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
   const [showAudioPicker, setShowAudioPicker] = useState(false);
   const linkAudioMutation = useLinkAudioToStory(storyId);
 
@@ -414,35 +411,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
     return actions;
   };
 
-  const handleAudioPlay = (audioId: string) => {
-    // Stop any currently playing audio
-    if (playingAudioId && playingAudioId !== audioId) {
-      setPlayingAudioId(null);
-    }
-    setPlayingAudioId(playingAudioId === audioId ? null : audioId);
-  };
-
-  const handleAudioStop = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-    setPlayingAudioId(null);
-  };
-
-  const handleAudioRestart = (audioId: string) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: 0 }));
-  };
-
-  const handleAudioSeek = (audioId: string, time: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: time }));
-  };
-
-  const handleAudioTimeUpdate = useCallback((audioId: string, currentTime: number) => {
-    setAudioProgress(prev => ({ ...prev, [audioId]: currentTime }));
-  }, []);
-
-  const handleAudioLoadedMetadata = (audioId: string, duration: number) => {
-    setAudioDuration(prev => ({ ...prev, [audioId]: duration }));
-  };
-
   if (isLoading) {
     return (
       <Container>
@@ -648,20 +616,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                           duration: sac.audioClip.duration ?? null,
                           mimeType: sac.audioClip.mimeType,
                         }}
-                        isPlaying={playingAudioId === sac.audioClip.id}
-                        currentTime={audioProgress[sac.audioClip.id] || 0}
-                        duration={audioDuration[sac.audioClip.id] || 0}
-                        onPlay={handleAudioPlay}
-                        onStop={handleAudioStop}
-                        onRestart={handleAudioRestart}
-                        onSeek={handleAudioSeek}
-                        onTimeUpdate={handleAudioTimeUpdate}
-                        onLoadedMetadata={handleAudioLoadedMetadata}
-                        onEnded={() => setPlayingAudioId(null)}
-                        onError={() => {
-                          toast.error('Failed to play audio file');
-                          setPlayingAudioId(null);
-                        }}
+                        onError={() => toast.error('Failed to play audio file')}
                         compact
                       />
                       <button

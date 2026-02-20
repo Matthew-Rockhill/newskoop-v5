@@ -18,7 +18,12 @@ import { Heading } from '@/components/ui/heading';
 import { Divider } from '@/components/ui/divider';
 import { FileUpload } from '@/components/ui/file-upload';
 import { StageTransitionModal } from '@/components/ui/stage-transition-modal';
+import { AudioPickerModal } from '@/components/newsroom/AudioPickerModal';
+import { Badge } from '@/components/ui/badge';
+import { Text } from '@/components/ui/text';
 import { StaffRole } from '@prisma/client';
+import { type AudioClip } from '@/hooks/use-audio-library';
+import { MusicalNoteIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 // Dynamically import RichTextEditor to reduce initial bundle size
 const RichTextEditor = dynamic(
@@ -54,6 +59,8 @@ export function StoryCreateForm() {
   const [showReviewerModal, setShowReviewerModal] = useState(false);
   const [submitAction, setSubmitAction] = useState<'draft' | 'review'>('draft');
   const [pendingFormData, setPendingFormData] = useState<StoryCreateFormData | null>(null);
+  const [showAudioPicker, setShowAudioPicker] = useState(false);
+  const [libraryClips, setLibraryClips] = useState<AudioClip[]>([]);
 
   // Fetch users for assignment
   const { data: usersData } = useQuery({
@@ -119,6 +126,11 @@ export function StoryCreateForm() {
         formData.append(`audioFile_${index}`, audioFile.file);
       });
       formData.append('audioFilesCount', String(audioFiles.length));
+
+      // Add library clip IDs
+      if (libraryClips.length > 0) {
+        formData.append('libraryClipIds', JSON.stringify(libraryClips.map(c => c.id)));
+      }
 
       const response = await fetch('/api/newsroom/stories', {
         method: 'POST',
@@ -230,12 +242,71 @@ export function StoryCreateForm() {
             <p className="text-sm text-zinc-600 mb-4">
               Upload any audio clips that go with your story (interviews, sound bites, etc.)
             </p>
-            
+
             <FileUpload
               onFilesChange={setAudioFiles}
               maxFiles={5}
               maxFileSize={100}
             />
+
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex-1 border-t border-zinc-200" />
+              <span className="text-sm text-zinc-400">or</span>
+              <div className="flex-1 border-t border-zinc-200" />
+            </div>
+
+            <div className="mt-4">
+              <Button
+                type="button"
+                color="white"
+                onClick={() => setShowAudioPicker(true)}
+              >
+                <MusicalNoteIcon className="w-5 h-5" />
+                Browse Audio Library
+              </Button>
+            </div>
+
+            {libraryClips.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <Text className="text-sm font-medium text-zinc-700">
+                  Selected from library ({libraryClips.length})
+                </Text>
+                {libraryClips.map((clip) => (
+                  <div
+                    key={clip.id}
+                    className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-200"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <MusicalNoteIcon className="w-5 h-5 text-zinc-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <Text className="text-sm font-medium truncate">
+                          {clip.title || clip.originalName}
+                        </Text>
+                        <div className="flex items-center gap-2">
+                          {clip.duration && (
+                            <Badge color="zinc" className="text-xs">
+                              {Math.floor(clip.duration / 60)}:{(clip.duration % 60).toString().padStart(2, '0')}
+                            </Badge>
+                          )}
+                          {clip.sourceStory && (
+                            <Text className="text-xs text-zinc-400 truncate">
+                              from: {clip.sourceStory.title}
+                            </Text>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      color="white"
+                      onClick={() => setLibraryClips(prev => prev.filter(c => c.id !== clip.id))}
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           <Divider />
@@ -275,6 +346,26 @@ export function StoryCreateForm() {
           </div>
         </form>
       </div>
+
+      {/* Audio Library Picker Modal */}
+      <AudioPickerModal
+        isOpen={showAudioPicker}
+        onClose={() => setShowAudioPicker(false)}
+        onConfirm={async (clipIds) => {
+          const newIds = clipIds.filter(id => !libraryClips.some(c => c.id === id));
+          const fetched = await Promise.all(
+            newIds.map(async (id) => {
+              try {
+                const res = await fetch(`/api/newsroom/audio-library/${id}`);
+                if (res.ok) return await res.json();
+              } catch { /* ignore */ }
+              return { id, filename: '', originalName: 'Audio Clip', url: '', mimeType: '', tags: [], createdAt: '' } as AudioClip;
+            })
+          );
+          setLibraryClips(prev => [...prev, ...fetched]);
+        }}
+        excludeClipIds={libraryClips.map(c => c.id)}
+      />
 
       {/* Reviewer Selection Modal with Checklist */}
       <StageTransitionModal

@@ -167,6 +167,34 @@ export function useUploadEpisodeAudio() {
   });
 }
 
+// Link existing library clips to an episode
+export function useLinkAudioToEpisode(showId: string, episodeId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (audioClipIds: string[]) => {
+      const response = await fetch(`/api/newsroom/shows/${showId}/episodes/${episodeId}/audio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioClipIds }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to link audio clips');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.episode) {
+        queryClient.setQueryData(['episodes', showId, episodeId], data.episode);
+      }
+      queryClient.invalidateQueries({ queryKey: ['episodes', showId, episodeId] });
+    },
+  });
+}
+
 // Delete episode audio
 export function useDeleteEpisodeAudio() {
   const queryClient = useQueryClient();

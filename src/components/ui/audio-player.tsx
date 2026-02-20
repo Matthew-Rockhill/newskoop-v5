@@ -7,6 +7,7 @@ import {
   PauseIcon,
 } from '@heroicons/react/24/solid';
 import { AudioClip as PrismaAudioClip } from '@prisma/client';
+import { formatDuration } from '@/lib/format-utils';
 
 type AudioClip = Pick<PrismaAudioClip, 'id' | 'url' | 'originalName' | 'duration' | 'mimeType'>;
 
@@ -17,21 +18,17 @@ interface LocalAudioFile {
   name: string;
 }
 
+// Module-level coordinator: when any player starts, others auto-pause
+const audioCoordinator = typeof window !== 'undefined' ? new EventTarget() : null;
+
 interface CustomAudioPlayerProps {
   clip?: AudioClip; // From database
   localFile?: LocalAudioFile; // Local file before upload
   onPlay?: (audioId: string) => void;
-  onStop?: (audioId: string) => void;
-  onRestart?: (audioId: string) => void;
-  onSeek?: (audioId: string, time: number) => void;
-  onTimeUpdate?: (audioId: string, currentTime: number) => void;
-  onLoadedMetadata?: (audioId: string, duration: number) => void;
   onEnded?: (audioId: string) => void;
   onError?: (audioId: string) => void;
-  isPlaying?: boolean;
-  currentTime?: number;
-  duration?: number;
   compact?: boolean;
+  autoPlay?: boolean;
 }
 
 export function CustomAudioPlayer({
@@ -41,6 +38,7 @@ export function CustomAudioPlayer({
   onEnded,
   onError,
   compact = false,
+  autoPlay = false,
 }: CustomAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -60,7 +58,7 @@ export function CustomAudioPlayer({
         URL.revokeObjectURL(url);
       };
     }
-  }, [localFile]);
+  }, [localFile?.file]);
 
   // Determine audio source and display name
   const audioUrl = clip?.url || objectUrl || '';
@@ -74,12 +72,23 @@ export function CustomAudioPlayer({
     }
   }, [audioUrl, clip?.mimeType]);
 
-  const formatTime = (seconds: number) => {
-    if (!isFinite(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Listen for coordination events — pause when another player starts
+  useEffect(() => {
+    if (!audioCoordinator) return;
+
+    const handleOtherPlay = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail !== audioId && audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    };
+
+    audioCoordinator.addEventListener('audio-play', handleOtherPlay);
+    return () => {
+      audioCoordinator.removeEventListener('audio-play', handleOtherPlay);
+    };
+  }, [audioId]);
 
   const handlePlayPause = useCallback(async () => {
     if (!audioRef.current) return;
@@ -89,6 +98,10 @@ export function CustomAudioPlayer({
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
+        // Notify other players to stop
+        audioCoordinator?.dispatchEvent(
+          new CustomEvent('audio-play', { detail: audioId })
+        );
         await audioRef.current.play();
         setIsPlaying(true);
         onPlay?.(audioId);
@@ -136,7 +149,26 @@ export function CustomAudioPlayer({
     setIsDragging(false);
   }, []);
 
-  // Sync audio element with external playing state
+  // Auto-play when prop is set (e.g. playlist auto-advance)
+  useEffect(() => {
+    if (autoPlay && audioRef.current && audioUrl) {
+      const startPlayback = async () => {
+        try {
+          audioCoordinator?.dispatchEvent(
+            new CustomEvent('audio-play', { detail: audioId })
+          );
+          await audioRef.current!.play();
+          setIsPlaying(true);
+          onPlay?.(audioId);
+        } catch {
+          // Browser may block autoplay
+        }
+      };
+      startPlayback();
+    }
+  }, [autoPlay, audioUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync audio element with internal state
   useEffect(() => {
     if (!audioRef.current) return;
 
@@ -175,6 +207,7 @@ export function CustomAudioPlayer({
         {/* Hidden audio element */}
         <audio ref={audioRef} preload="metadata">
           <source src={audioUrl} type={clip?.mimeType || localFile?.file.type || 'audio/mpeg'} />
+          Your browser does not support the audio element.
         </audio>
 
         {/* File name - above controls */}
@@ -187,7 +220,7 @@ export function CustomAudioPlayer({
           {/* Play/Pause Button - Smaller */}
           <button
             onClick={handlePlayPause}
-            className="flex-shrink-0 w-8 h-8 rounded-full bg-kelly-green hover:bg-green-600 text-white flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-kelly-green/30"
+            className="flex-shrink-0 w-8 h-8 rounded-full bg-kelly-green hover:bg-green-600 text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kelly-green/50"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
@@ -199,11 +232,13 @@ export function CustomAudioPlayer({
 
           {/* Progress Bar - Inline */}
           <div className="flex-1 flex items-center gap-2">
-            <div className="relative flex-1 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-              <div
-                className="absolute top-0 left-0 h-full bg-kelly-green transition-all"
-                style={{ width: `${progress}%` }}
-              />
+            <div className="relative flex-1 h-1.5 rounded-full has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-kelly-green has-[:focus-visible]:ring-offset-2">
+              <div className="absolute inset-0 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-kelly-green transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
               <input
                 type="range"
                 min="0"
@@ -214,7 +249,9 @@ export function CustomAudioPlayer({
                 onMouseUp={handleSeekEnd}
                 onTouchStart={handleSeekStart}
                 onTouchEnd={handleSeekEnd}
-                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                onKeyDown={handleSeekStart}
+                onKeyUp={handleSeekEnd}
+                className="absolute inset-0 w-full opacity-0 cursor-pointer"
                 aria-label="Seek"
               />
             </div>
@@ -222,7 +259,7 @@ export function CustomAudioPlayer({
 
           {/* Time - Compact */}
           <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums w-10 text-right">
-            {formatTime(currentTime)}
+            {formatDuration(currentTime)}
           </span>
         </div>
       </div>
@@ -247,7 +284,7 @@ export function CustomAudioPlayer({
           </div>
         </div>
         <div className="text-sm text-zinc-500 dark:text-zinc-400">
-          {formatTime(duration)}
+          {formatDuration(duration)}
         </div>
       </div>
 
@@ -256,7 +293,7 @@ export function CustomAudioPlayer({
         {/* Play/Pause Button */}
         <button
           onClick={handlePlayPause}
-          className="flex-shrink-0 w-16 h-16 rounded-full bg-kelly-green hover:bg-green-600 text-white flex items-center justify-center transition-colors focus:outline-none focus:ring-4 focus:ring-kelly-green/30"
+          className="flex-shrink-0 w-16 h-16 rounded-full bg-kelly-green hover:bg-green-600 text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-kelly-green/50"
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
           {isPlaying ? (
@@ -269,12 +306,14 @@ export function CustomAudioPlayer({
         {/* Progress Section */}
         <div className="flex-1 flex flex-col gap-1">
           {/* Progress Bar */}
-          <div className="relative h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden group">
+          <div className="relative h-2 rounded-full has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-kelly-green has-[:focus-visible]:ring-offset-2">
             {/* Progress Fill */}
-            <div
-              className="absolute top-0 left-0 h-full bg-kelly-green transition-all"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="absolute inset-0 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-kelly-green transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
 
             {/* Seek Input */}
             <input
@@ -287,15 +326,17 @@ export function CustomAudioPlayer({
               onMouseUp={handleSeekEnd}
               onTouchStart={handleSeekStart}
               onTouchEnd={handleSeekEnd}
-              className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+              onKeyDown={handleSeekStart}
+              onKeyUp={handleSeekEnd}
+              className="absolute inset-0 w-full opacity-0 cursor-pointer"
               aria-label="Seek"
             />
           </div>
 
           {/* Time Display */}
           <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration - currentTime)}</span>
+            <span>{formatDuration(currentTime)}</span>
+            <span>{formatDuration(duration - currentTime)}</span>
           </div>
         </div>
       </div>
