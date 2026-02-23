@@ -20,7 +20,7 @@ npm run lint               # Run ESLint
 ```bash
 npx prisma generate        # Generate Prisma client
 npx prisma migrate dev     # Run migrations in development
-npx prisma migrate deploy  # Deploy migrations (staging/production)
+npx prisma migrate deploy  # Deploy migrations (production)
 npm run seed               # Seed database with development data
 npm run seed:production    # Seed production users
 ```
@@ -141,12 +141,6 @@ The project uses environment-specific configurations (see `ENVIRONMENT_SETUP.md`
 - `EMAIL_MODE=console` (logs to terminal)
 - `NEXTAUTH_URL=http://localhost:3000`
 
-**Staging** (Vercel):
-- Staging Neon database branch
-- `EMAIL_MODE=resend-restricted` (only @newskoop.com emails)
-- `NEXTAUTH_URL=https://staging.newskoop.vercel.app`
-- Deployed from `staging` branch
-
 **Production** (Vercel):
 - Production Neon database
 - `EMAIL_MODE=resend` (full email)
@@ -157,7 +151,6 @@ The project uses environment-specific configurations (see `ENVIRONMENT_SETUP.md`
 
 Email handling (`src/lib/email.ts`, `src/lib/email-config.ts`):
 - Console mode for development (logs to terminal)
-- Restricted mode for staging (filters non-@newskoop.com addresses)
 - Full mode for production
 - All emails logged to `EmailLog` table
 - Magic links for user onboarding
@@ -222,8 +215,6 @@ Use helpers from `src/lib/email.ts` which automatically handle environment-speci
 ## Deployment Workflow
 
 1. Feature development on feature branches → creates Vercel preview
-2. Merge to `staging` branch → deploys to staging environment
-3. Test on staging with restricted email mode
-4. Merge to `main` branch → deploys to production
+2. Merge to `main` branch → deploys to production
 
 Migrations are automatically run via `vercel-build` script (see `vercel.json`).
