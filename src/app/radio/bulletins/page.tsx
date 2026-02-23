@@ -5,8 +5,11 @@ import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Container } from '@/components/ui/container';
+import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataList, type DataListColumn } from '@/components/ui/data-list';
 import { PageHeader } from '@/components/ui/page-header';
 import { MegaphoneIcon } from '@heroicons/react/24/outline';
@@ -47,10 +50,20 @@ interface Bulletin {
   bulletinStories: BulletinStory[];
 }
 
+interface Schedule {
+  id: string;
+  title: string;
+  time: string;
+  language: string;
+  languageDisplay: string;
+  scheduleType: string;
+}
+
 export default function BulletinsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
 
   // Fetch user profile to get default language preference
   const { data: profileData } = useQuery({
@@ -72,13 +85,31 @@ export default function BulletinsPage() {
     }
   }, [profileData?.user?.defaultLanguagePreference]);
 
-  // Fetch bulletins from the correct API
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['radio-bulletins', currentPage, selectedLanguage],
+  // Fetch bulletin schedules for tabs
+  const { data: schedulesData } = useQuery({
+    queryKey: ['radio-bulletin-schedules'],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/radio/bulletins?language=${selectedLanguage}&page=${currentPage}&perPage=20`
-      );
+      const response = await fetch('/api/radio/bulletin-schedules');
+      if (!response.ok) throw new Error('Failed to fetch schedules');
+      return response.json();
+    },
+    enabled: !!session,
+  });
+
+  const schedules: Schedule[] = schedulesData?.schedules || [];
+
+  // Fetch bulletins
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['radio-bulletins', currentPage, selectedLanguage, selectedSchedule],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        language: selectedLanguage,
+        page: String(currentPage),
+        perPage: '20',
+      });
+      if (selectedSchedule) params.set('scheduleId', selectedSchedule);
+
+      const response = await fetch(`/api/radio/bulletins?${params}`);
       if (!response.ok) throw new Error('Failed to fetch bulletins');
       return response.json();
     },
@@ -88,6 +119,11 @@ export default function BulletinsPage() {
   const bulletins: Bulletin[] = data?.bulletins || [];
   const pagination = data?.pagination;
   const station = data?.station;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedLanguage, selectedSchedule]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -115,13 +151,13 @@ export default function BulletinsPage() {
               )}
               {bulletin.author && (
                 <>
-                  <span>·</span>
+                  <span>&middot;</span>
                   <span>{bulletin.author.firstName} {bulletin.author.lastName}</span>
                 </>
               )}
               {bulletin.schedule && (
                 <>
-                  <span>·</span>
+                  <span>&middot;</span>
                   <span>{bulletin.schedule.title}</span>
                 </>
               )}
@@ -156,7 +192,7 @@ export default function BulletinsPage() {
               </div>
               <div className="text-sm text-zinc-500">
                 {bulletin.publishedAt && formatDate(bulletin.publishedAt)}
-                {bulletin.schedule && ` · ${bulletin.schedule.title}`}
+                {bulletin.schedule && ` \u00b7 ${bulletin.schedule.title}`}
               </div>
             </div>
           </div>
@@ -178,35 +214,70 @@ export default function BulletinsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
       <Container className="pt-24 pb-8">
+        {/* Page Header with language filter */}
         <div className="mb-8">
           <PageHeader
             title="News Bulletins"
             description="Browse published news bulletins"
+            actions={
+              station?.allowedLanguages && station.allowedLanguages.length > 1 ? (
+                <div className="flex items-center gap-2">
+                  <Text className="text-sm text-zinc-600">Language:</Text>
+                  <div className="flex gap-1">
+                    {station.allowedLanguages.map((lang: string) => (
+                      <button
+                        key={lang}
+                        onClick={() => setSelectedLanguage(lang)}
+                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                          selectedLanguage === lang
+                            ? 'bg-kelly-green text-white border-kelly-green'
+                            : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
+                        }`}
+                      >
+                        {lang === 'English' ? 'EN' :
+                         lang === 'Afrikaans' ? 'AF' :
+                         lang === 'Xhosa' ? 'XH' : lang}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : undefined
+            }
           />
         </div>
 
-        {/* Language Filter */}
-        {station?.allowedLanguages && station.allowedLanguages.length > 1 && (
-          <div
-            role="group"
-            aria-label="Filter bulletins by language"
-            className="mb-6 flex flex-wrap gap-2"
-          >
-            <Text className="text-sm text-zinc-600 self-center mr-2">Language:</Text>
-            {station.allowedLanguages.map((lang: string) => (
+        {/* Schedule Tabs */}
+        {schedules.length > 0 && (
+          <div className="mb-6 overflow-x-auto">
+            <div className="flex gap-2 pb-2" role="tablist" aria-label="Filter by schedule">
               <button
-                key={lang}
-                onClick={() => setSelectedLanguage(lang)}
-                aria-pressed={selectedLanguage === lang}
-                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
-                  selectedLanguage === lang
-                    ? 'bg-kelly-green text-white'
-                    : 'bg-white text-zinc-600 border border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
+                role="tab"
+                aria-selected={!selectedSchedule}
+                onClick={() => setSelectedSchedule(null)}
+                className={`px-4 py-2 text-sm font-medium rounded-full border whitespace-nowrap transition-colors ${
+                  !selectedSchedule
+                    ? 'bg-kelly-green text-white border-kelly-green'
+                    : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
                 }`}
               >
-                {lang}
+                All
               </button>
-            ))}
+              {schedules.map(schedule => (
+                <button
+                  key={schedule.id}
+                  role="tab"
+                  aria-selected={selectedSchedule === schedule.id}
+                  onClick={() => setSelectedSchedule(schedule.id)}
+                  className={`px-4 py-2 text-sm font-medium rounded-full border whitespace-nowrap transition-colors ${
+                    selectedSchedule === schedule.id
+                      ? 'bg-kelly-green text-white border-kelly-green'
+                      : 'bg-white text-zinc-600 border-zinc-300 hover:border-kelly-green hover:text-kelly-green'
+                  }`}
+                >
+                  {schedule.time} {schedule.title}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -227,7 +298,9 @@ export default function BulletinsPage() {
           emptyState={{
             icon: MegaphoneIcon,
             title: "No bulletins available",
-            description: selectedLanguage !== 'English'
+            description: selectedSchedule
+              ? `No bulletins available for this schedule${selectedLanguage !== 'English' ? ` in ${selectedLanguage}` : ''}. Try a different schedule or language.`
+              : selectedLanguage !== 'English'
               ? `No bulletins available in ${selectedLanguage}. Try selecting a different language.`
               : 'Check back later for new bulletins.',
           }}

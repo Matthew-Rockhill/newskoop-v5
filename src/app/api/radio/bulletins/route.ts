@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
     const perPage = parseInt(url.searchParams.get('perPage') || '20');
     const skip = (page - 1) * perPage;
     const language = url.searchParams.get('language');
+    const scheduleId = url.searchParams.get('scheduleId');
 
     // Map display language names to StoryLanguage enum values
     const languageMap: Record<string, string> = {
@@ -55,10 +56,15 @@ export async function GET(req: NextRequest) {
       languageFilter = allowedLanguages.map(l => languageMap[l] || l.toUpperCase());
     }
 
-    const where = {
+    const where: any = {
       status: 'PUBLISHED' as const,
       language: { in: languageFilter as any },
     };
+
+    // Filter by schedule if specified
+    if (scheduleId) {
+      where.scheduleId = scheduleId;
+    }
 
     const [bulletins, total] = await Promise.all([
       prisma.bulletin.findMany({
