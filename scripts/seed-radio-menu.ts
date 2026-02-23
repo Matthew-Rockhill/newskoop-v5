@@ -18,7 +18,7 @@ const customLinkItems = [
 async function main() {
   console.log('Seeding radio menu items...\n');
 
-  // --- CATEGORY items ---
+  // --- CATEGORY items + their subcategory children ---
   for (const item of categoryItems) {
     const category = await prisma.category.findUnique({
       where: { slug: item.categorySlug },
@@ -41,12 +41,15 @@ async function main() {
       });
     }
 
+    let parentMenuItemId: string;
+
     if (existing) {
       // Update sortOrder to ensure correct ordering
       await prisma.menuItem.update({
         where: { id: existing.id },
         data: { sortOrder: item.sortOrder },
       });
+      parentMenuItemId = existing.id;
       console.log(`"${category.name}" already exists (id: ${existing.id}). Updated sortOrder to ${item.sortOrder}.`);
     } else {
       const created = await prisma.menuItem.create({
@@ -59,7 +62,51 @@ async function main() {
           isVisible: true,
         },
       });
+      parentMenuItemId = created.id;
       console.log(`Created "${category.name}" menu item (id: ${created.id}, sortOrder: ${item.sortOrder}).`);
+    }
+
+    // --- Seed child menu items for subcategories ---
+    const subcategories = await prisma.category.findMany({
+      where: { parentId: category.id },
+      orderBy: { name: 'asc' },
+    });
+
+    for (let i = 0; i < subcategories.length; i++) {
+      const sub = subcategories[i];
+
+      // Check if a child menu item already exists for this subcategory
+      let existingChild = await prisma.menuItem.findFirst({
+        where: { categoryId: sub.id, parentId: parentMenuItemId },
+      });
+
+      // Also check by label + parentId
+      if (!existingChild) {
+        existingChild = await prisma.menuItem.findFirst({
+          where: { label: sub.name, parentId: parentMenuItemId },
+        });
+      }
+
+      if (existingChild) {
+        await prisma.menuItem.update({
+          where: { id: existingChild.id },
+          data: { sortOrder: i + 1 },
+        });
+        console.log(`  Sub: "${sub.name}" already exists. Updated sortOrder to ${i + 1}.`);
+      } else {
+        const createdChild = await prisma.menuItem.create({
+          data: {
+            label: sub.name,
+            labelAfrikaans: sub.nameAfrikaans,
+            type: 'CATEGORY',
+            categoryId: sub.id,
+            parentId: parentMenuItemId,
+            sortOrder: i + 1,
+            isVisible: true,
+          },
+        });
+        console.log(`  Created sub-menu: "${sub.name}" (id: ${createdChild.id}, parent: ${category.name}).`);
+      }
     }
   }
 
@@ -113,15 +160,17 @@ async function main() {
 
   // --- Summary ---
   const allItems = await prisma.menuItem.findMany({
-    where: { parentId: null, isVisible: true },
-    orderBy: { sortOrder: 'asc' },
-    select: { id: true, label: true, type: true, sortOrder: true, url: true, categoryId: true },
+    where: { isVisible: true },
+    orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+    select: { id: true, label: true, type: true, sortOrder: true, url: true, categoryId: true, parentId: true },
   });
 
   console.log('\nFinal radio menu:');
   for (const mi of allItems) {
     const target = mi.type === 'CUSTOM_LINK' ? mi.url : `category:${mi.categoryId}`;
-    console.log(`  ${mi.sortOrder}. ${mi.label} (${mi.type}) -> ${target}`);
+    const indent = mi.parentId ? '    ' : '  ';
+    const prefix = mi.parentId ? '└─ ' : '';
+    console.log(`${indent}${prefix}${mi.sortOrder}. ${mi.label} (${mi.type}) -> ${target}`);
   }
 
   console.log('\nRadio menu seeding completed!');

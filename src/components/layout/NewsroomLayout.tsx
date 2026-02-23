@@ -77,13 +77,15 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
     const dashboardHref = role === 'EDITOR' ? '/newsroom/editorial-dashboard' : '/newsroom'
     groups.push({
       label: 'Overview',
-      items: [{ name: 'Dashboard', href: dashboardHref, icon: HomeIcon }]
+      items: [
+        { name: 'Dashboard', href: dashboardHref, icon: HomeIcon },
+        { name: 'Diary', href: '/newsroom/diary', icon: CalendarDaysIcon },
+      ]
     })
 
     // Content group
     const contentItems: NavigationItem[] = []
     contentItems.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
-    contentItems.push({ name: 'Diary', href: '/newsroom/diary', icon: CalendarDaysIcon })
     contentItems.push({ name: 'Audio Library', href: '/newsroom/audio-library', icon: MusicalNoteIcon })
 
     if (role && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(role)) {
