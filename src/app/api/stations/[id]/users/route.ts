@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions, generatePassword } from '@/lib/auth';
+import { createAndSendMagicLink } from '@/lib/magic-link';
 import bcrypt from 'bcryptjs';
 
 // POST /api/stations/[id]/users - Add new users to station
@@ -8,6 +11,25 @@ export async function POST(
   { params }: { params: Promise<Record<string, string>> }
 ) {
   try {
+    // Authentication check
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Authorization check - only ADMIN and SUPERADMIN can add station users
+    const userRole = session.user.staffRole;
+    if (!userRole || !['ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions. Only admins can add station users.' },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const data = await request.json();
     const { users } = data;
@@ -32,7 +54,7 @@ export async function POST(
     }
 
     // Check for duplicate emails
-    const emails = users.map(user => user.email);
+    const emails = users.map((user: { email: string }) => user.email);
     const existingUsers = await prisma.user.findMany({
       where: { email: { in: emails } }
     });
@@ -44,11 +66,14 @@ export async function POST(
       );
     }
 
-    // Create users
+    // Create users with temporary passwords and send magic links
     const createdUsers = [];
+    const emailResults = [];
+
     for (const userData of users) {
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
-      
+      const tempPassword = generatePassword();
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
       const user = await prisma.user.create({
         data: {
           firstName: userData.firstName,
@@ -59,22 +84,38 @@ export async function POST(
           userType: 'RADIO',
           isPrimaryContact: false,
           radioStationId: id,
-          isActive: station.isActive, // Match station's active status
+          isActive: station.isActive,
+          mustChangePassword: true,
         },
       });
-      
+
       createdUsers.push(user);
+
+      // Send magic link email
+      const emailResult = await createAndSendMagicLink({
+        userId: user.id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        isPrimary: false,
+      });
+
+      emailResults.push({
+        email: user.email,
+        sent: emailResult.sent,
+        error: emailResult.error,
+      });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       users: createdUsers.map(user => ({
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
         mobileNumber: user.mobileNumber,
-      }))
+      })),
+      emailResults,
     });
   } catch (error) {
     console.error('Error adding users:', error);
@@ -116,7 +157,7 @@ export async function DELETE(
 
     // Check if any of the users to be deleted is the primary contact
     const primaryContact = await prisma.user.findFirst({
-      where: { 
+      where: {
         radioStationId: id,
         isPrimaryContact: true,
         id: { in: userIds }
@@ -132,7 +173,7 @@ export async function DELETE(
 
     // Verify all users belong to this station
     const usersToDelete = await prisma.user.findMany({
-      where: { 
+      where: {
         id: { in: userIds },
         radioStationId: id
       }
@@ -147,14 +188,14 @@ export async function DELETE(
 
     // Delete users
     await prisma.user.deleteMany({
-      where: { 
+      where: {
         id: { in: userIds },
         radioStationId: id
       }
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: `${userIds.length} user(s) removed successfully`,
       deletedUserIds: userIds
     });
@@ -165,4 +206,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

@@ -228,14 +228,14 @@ export async function sendMagicLink({ email, token, name, isPrimary }: SendMagic
   const magicLink = generateMagicLink(token);
   
   const subject = isPrimary 
-    ? 'Welcome to NewsKoop - Set Up Your Primary Account'
-    : 'Welcome to NewsKoop - Set Up Your Account';
+    ? 'Welcome to Newskoop - Set Up Your Primary Account'
+    : 'Welcome to Newskoop - Set Up Your Account';
     
   const html = `
       <div>
-        <h1>Welcome to NewsKoop${isPrimary ? ' as Primary Contact' : ''}!</h1>
+        <h1>Welcome to Newskoop${isPrimary ? ' as Primary Contact' : ''}!</h1>
         <p>Hello ${name},</p>
-        <p>You have been ${isPrimary ? 'registered as the primary contact' : 'added as a user'} for your radio station on NewsKoop.</p>
+        <p>You have been ${isPrimary ? 'registered as the primary contact' : 'added as a user'} for your radio station on Newskoop.</p>
         <p>To get started, please click the link below to set up your password:</p>
         <p>
           <a href="${magicLink}" style="
@@ -250,9 +250,9 @@ export async function sendMagicLink({ email, token, name, isPrimary }: SendMagic
             Set Up Your Account
           </a>
         </p>
-        <p>This link will expire in 24 hours.</p>
+        <p>This link will expire in 7 days.</p>
         <p>If you did not request this, please ignore this email.</p>
-        <p>Best regards,<br>The NewsKoop Team</p>
+        <p>Best regards,<br>The Newskoop Team</p>
       </div>
     `;
   

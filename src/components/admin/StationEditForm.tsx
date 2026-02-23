@@ -17,7 +17,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import toast from 'react-hot-toast';
-import { TrashIcon, PlusIcon } from 'lucide-react';
+import { TrashIcon, PlusIcon, InfoIcon } from 'lucide-react';
 
 // Province enum matching Prisma schema
 const provinces = [
@@ -56,7 +56,6 @@ const stationEditSchema = z.object({
     lastName: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email address'),
     mobileNumber: z.string().optional(),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
   }))
 });
 
@@ -254,7 +253,6 @@ export default function StationEditForm({ station }: StationEditFormProps) {
       lastName: '',
       email: '',
       mobileNumber: '',
-      password: '',
     });
   };
 
@@ -632,19 +630,6 @@ export default function StationEditForm({ station }: StationEditFormProps) {
                         {...register(`newUsers.${index}.mobileNumber`)}
                       />
                     </Field>
-
-                    <Field className="sm:col-span-2">
-                      <Label htmlFor={`newUsers.${index}.password`}>Password *</Label>
-                      <Input
-                        id={`newUsers.${index}.password`}
-                        type="password"
-                        {...register(`newUsers.${index}.password`)}
-                        invalid={!!errors.newUsers?.[index]?.password}
-                      />
-                      {errors.newUsers?.[index]?.password && (
-                        <ErrorMessage>{errors.newUsers[index]?.password?.message}</ErrorMessage>
-                      )}
-                    </Field>
                   </div>
                 </FieldGroup>
               </div>
@@ -658,6 +643,20 @@ export default function StationEditForm({ station }: StationEditFormProps) {
               <PlusIcon className="h-4 w-4 mr-2" />
               Add New User
             </Button>
+
+            {fields.length > 0 && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong className="text-zinc-900">Account Setup</strong>
+                    <p className="text-sm mt-1 text-zinc-700">
+                      Each new user will receive a magic link email to set up their account and create a password. No need to enter a password here.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Fieldset>
 
