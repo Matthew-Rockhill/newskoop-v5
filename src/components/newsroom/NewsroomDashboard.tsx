@@ -9,7 +9,7 @@ import { Text } from '@/components/ui/text';
 import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
 import { RealtimeStatus } from '@/components/ui/RealtimeStatus';
-import { useStories } from '@/hooks/use-stories';
+import { useDashboardStories } from '@/hooks/use-dashboard-stories';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
@@ -72,76 +72,8 @@ export function NewsroomDashboard() {
   const [activeTaskFilter, setActiveTaskFilter] = useState<TaskFilter>('all');
   const [activeWorkFilter, setActiveWorkFilter] = useState<WorkFilter>('all');
 
-  // Fetch stories for the user (stage-based workflow)
-  const { data: draftStoriesData } = useStories({
-    authorId: userId,
-    stage: 'DRAFT',
-    page: 1,
-    perPage: 20
-  });
-
-  const { data: needsReviewStoriesData } = useStories({
-    authorId: userId,
-    stage: 'NEEDS_JOURNALIST_REVIEW',
-    page: 1,
-    perPage: 20
-  });
-
-  const { data: needsApprovalStoriesData } = useStories({
-    authorId: userId,
-    stage: 'NEEDS_SUB_EDITOR_APPROVAL',
-    page: 1,
-    perPage: 20
-  });
-
-  const { data: approvedStoriesData } = useStories({
-    authorId: userId,
-    stage: 'APPROVED',
-    page: 1,
-    perPage: 20
-  });
-
-  const { data: publishedStoriesData } = useStories({
-    authorId: userId,
-    stage: 'PUBLISHED',
-    page: 1,
-    perPage: 20
-  });
-
-  // Journalist-specific: stories assigned for review
-  const { data: reviewStoriesData } = useStories({
-    assignedReviewerId: userId,
-    stage: 'NEEDS_JOURNALIST_REVIEW',
-    page: 1,
-    perPage: 20
-  });
-
-  // Sub-editor specific: stories pending approval (assigned to this user)
-  const { data: pendingApprovalStoriesData } = useStories({
-    assignedApproverId: userId,
-    stage: 'NEEDS_SUB_EDITOR_APPROVAL',
-    page: 1,
-    perPage: 20
-  });
-
-  // Sub-editor specific: translated stories ready for publishing (assigned to this user)
-  const { data: approvedForPublishingStoriesData } = useStories({
-    assignedApproverId: userId,
-    stage: 'TRANSLATED',
-    page: 1,
-    perPage: 20
-  });
-
-  // All staff: assigned translation tasks
-  const { data: translationTasksData } = useQuery({
-    queryKey: ['translationTasks', userId],
-    queryFn: async () => {
-      const response = await fetch(`/api/newsroom/stories?authorId=${userId}&isTranslation=true&stage=DRAFT&perPage=20`);
-      if (!response.ok) throw new Error('Failed to fetch translation tasks');
-      return response.json();
-    },
-    enabled: !!userId,
-  });
+  // Single fetch for all dashboard story buckets
+  const { data: dashboardData } = useDashboardStories(userId);
 
   // SUB_EDITOR+: Follow-up diary
   const isSubEditorPlus = ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole || '');
@@ -175,15 +107,15 @@ export function NewsroomDashboard() {
   const followUpsGrouped = followUpsData?.grouped;
   const followUpsTotal = followUpsData?.total || 0;
 
-  const draftStories = draftStoriesData?.stories || [];
-  const needsReviewStories = needsReviewStoriesData?.stories || [];
-  const needsApprovalStories = needsApprovalStoriesData?.stories || [];
-  const approvedStories = approvedStoriesData?.stories || [];
-  const publishedStories = publishedStoriesData?.stories || [];
-  const reviewStories = reviewStoriesData?.stories || [];
-  const pendingApprovalStories = pendingApprovalStoriesData?.stories || [];
-  const approvedForPublishingStories = approvedForPublishingStoriesData?.stories || [];
-  const translationTasks = translationTasksData?.stories || [];
+  const draftStories = dashboardData?.myWork.drafts || [];
+  const needsReviewStories = dashboardData?.myWork.needsReview || [];
+  const needsApprovalStories = dashboardData?.myWork.needsApproval || [];
+  const approvedStories = dashboardData?.myWork.approved || [];
+  const publishedStories = dashboardData?.myWork.published || [];
+  const reviewStories = dashboardData?.tasks.review || [];
+  const pendingApprovalStories = dashboardData?.tasks.approval || [];
+  const approvedForPublishingStories = dashboardData?.tasks.publishing || [];
+  const translationTasks = dashboardData?.tasks.translation || [];
 
   // Check if user has any work to show in "My Work" section
   const hasMyWork = draftStories.length > 0 || needsReviewStories.length > 0 || needsApprovalStories.length > 0 || approvedStories.length > 0 || publishedStories.length > 0;
