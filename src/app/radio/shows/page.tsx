@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Container } from '@/components/ui/container';
@@ -67,7 +68,10 @@ interface Episode {
 
 export default function ShowsPage() {
   const { data: session } = useSession();
-  const [selectedShow, setSelectedShow] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const [selectedShow, setSelectedShow] = useState<string | null>(
+    searchParams.get('showId')
+  );
   const [selectedSubShow, setSelectedSubShow] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 

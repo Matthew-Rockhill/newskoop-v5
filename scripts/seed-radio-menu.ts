@@ -18,7 +18,7 @@ const customLinkItems = [
 async function main() {
   console.log('Seeding radio menu items...\n');
 
-  // --- CATEGORY items + their subcategory children ---
+  // --- CATEGORY items (no subcategory children — stories use tags, not child categories) ---
   for (const item of categoryItems) {
     const category = await prisma.category.findUnique({
       where: { slug: item.categorySlug },
@@ -41,15 +41,11 @@ async function main() {
       });
     }
 
-    let parentMenuItemId: string;
-
     if (existing) {
-      // Update sortOrder to ensure correct ordering
       await prisma.menuItem.update({
         where: { id: existing.id },
         data: { sortOrder: item.sortOrder },
       });
-      parentMenuItemId = existing.id;
       console.log(`"${category.name}" already exists (id: ${existing.id}). Updated sortOrder to ${item.sortOrder}.`);
     } else {
       const created = await prisma.menuItem.create({
@@ -62,51 +58,7 @@ async function main() {
           isVisible: true,
         },
       });
-      parentMenuItemId = created.id;
       console.log(`Created "${category.name}" menu item (id: ${created.id}, sortOrder: ${item.sortOrder}).`);
-    }
-
-    // --- Seed child menu items for subcategories ---
-    const subcategories = await prisma.category.findMany({
-      where: { parentId: category.id },
-      orderBy: { name: 'asc' },
-    });
-
-    for (let i = 0; i < subcategories.length; i++) {
-      const sub = subcategories[i];
-
-      // Check if a child menu item already exists for this subcategory
-      let existingChild = await prisma.menuItem.findFirst({
-        where: { categoryId: sub.id, parentId: parentMenuItemId },
-      });
-
-      // Also check by label + parentId
-      if (!existingChild) {
-        existingChild = await prisma.menuItem.findFirst({
-          where: { label: sub.name, parentId: parentMenuItemId },
-        });
-      }
-
-      if (existingChild) {
-        await prisma.menuItem.update({
-          where: { id: existingChild.id },
-          data: { sortOrder: i + 1 },
-        });
-        console.log(`  Sub: "${sub.name}" already exists. Updated sortOrder to ${i + 1}.`);
-      } else {
-        const createdChild = await prisma.menuItem.create({
-          data: {
-            label: sub.name,
-            labelAfrikaans: sub.nameAfrikaans,
-            type: 'CATEGORY',
-            categoryId: sub.id,
-            parentId: parentMenuItemId,
-            sortOrder: i + 1,
-            isVisible: true,
-          },
-        });
-        console.log(`  Created sub-menu: "${sub.name}" (id: ${createdChild.id}, parent: ${category.name}).`);
-      }
     }
   }
 
@@ -132,7 +84,6 @@ async function main() {
     }
 
     if (existing) {
-      // Update label, labelAfrikaans, and sortOrder (renames "Shows" -> "Speciality" if needed)
       await prisma.menuItem.update({
         where: { id: existing.id },
         data: {
@@ -158,7 +109,7 @@ async function main() {
     }
   }
 
-  // --- Bulletin schedule children under News Bulletins ---
+  // --- Bulletin schedule children (deduplicated by time, language handled by page filter) ---
   console.log('\nSeeding bulletin schedule menu children...');
 
   const bulletinsMenuItem = await prisma.menuItem.findFirst({
@@ -166,50 +117,91 @@ async function main() {
   });
 
   if (bulletinsMenuItem) {
+    // Clean up any stale schedule children first
+    await prisma.menuItem.deleteMany({
+      where: { parentId: bulletinsMenuItem.id },
+    });
+
     const schedules = await prisma.bulletinSchedule.findMany({
       where: { isActive: true },
       orderBy: { time: 'asc' },
     });
 
-    for (let i = 0; i < schedules.length; i++) {
-      const schedule = schedules[i];
+    // Deduplicate by time — pick one schedule per time slot
+    const seenTimes = new Map<string, typeof schedules[0]>();
+    for (const schedule of schedules) {
+      if (!seenTimes.has(schedule.time)) {
+        seenTimes.set(schedule.time, schedule);
+      }
+    }
+
+    const uniqueSchedules = Array.from(seenTimes.values());
+
+    for (let i = 0; i < uniqueSchedules.length; i++) {
+      const schedule = uniqueSchedules[i];
+      // Strip language from title for display (e.g. "8:00 English News" -> just use time)
+      const label = `${schedule.time} - ${schedule.title.replace(/\b(English|Afrikaans|Xhosa|Zulu)\b\s*/i, '').trim()}`;
       const childUrl = `/radio/bulletins?scheduleId=${schedule.id}`;
 
-      // Check if child already exists by url
-      let existingChild = await prisma.menuItem.findFirst({
-        where: { url: childUrl, parentId: bulletinsMenuItem.id },
+      await prisma.menuItem.create({
+        data: {
+          label,
+          type: 'CUSTOM_LINK',
+          url: childUrl,
+          openInNewTab: false,
+          parentId: bulletinsMenuItem.id,
+          sortOrder: i + 1,
+          isVisible: true,
+        },
       });
-
-      // Also check by label
-      if (!existingChild) {
-        existingChild = await prisma.menuItem.findFirst({
-          where: { label: schedule.title, parentId: bulletinsMenuItem.id },
-        });
-      }
-
-      if (existingChild) {
-        await prisma.menuItem.update({
-          where: { id: existingChild.id },
-          data: { sortOrder: i + 1, url: childUrl, label: schedule.title },
-        });
-        console.log(`  Schedule: "${schedule.title}" already exists. Updated sortOrder to ${i + 1}.`);
-      } else {
-        const createdChild = await prisma.menuItem.create({
-          data: {
-            label: schedule.title,
-            type: 'CUSTOM_LINK',
-            url: childUrl,
-            openInNewTab: false,
-            parentId: bulletinsMenuItem.id,
-            sortOrder: i + 1,
-            isVisible: true,
-          },
-        });
-        console.log(`  Created schedule menu: "${schedule.title}" (id: ${createdChild.id}).`);
-      }
+      console.log(`  Created schedule menu: "${label}"`);
     }
   } else {
     console.log('  WARNING: "News Bulletins" menu item not found. Skipping schedule children.');
+  }
+
+  // --- Show children under Speciality ---
+  console.log('\nSeeding show menu children under Speciality...');
+
+  const specialityMenuItem = await prisma.menuItem.findFirst({
+    where: { url: '/radio/shows', parentId: null },
+  });
+
+  if (specialityMenuItem) {
+    // Clean up any stale show children first
+    await prisma.menuItem.deleteMany({
+      where: { parentId: specialityMenuItem.id },
+    });
+
+    // Get all top-level published shows
+    const shows = await prisma.show.findMany({
+      where: {
+        isActive: true,
+        isPublished: true,
+        parentId: null,
+      },
+      orderBy: { title: 'asc' },
+    });
+
+    for (let i = 0; i < shows.length; i++) {
+      const show = shows[i];
+      const childUrl = `/radio/shows?showId=${show.id}`;
+
+      await prisma.menuItem.create({
+        data: {
+          label: show.title,
+          type: 'CUSTOM_LINK',
+          url: childUrl,
+          openInNewTab: false,
+          parentId: specialityMenuItem.id,
+          sortOrder: i + 1,
+          isVisible: true,
+        },
+      });
+      console.log(`  Created show menu: "${show.title}"`);
+    }
+  } else {
+    console.log('  WARNING: "Speciality" menu item not found. Skipping show children.');
   }
 
   // --- Summary ---
