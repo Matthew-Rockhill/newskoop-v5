@@ -766,7 +766,6 @@ model BulletinSchedule {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([time, language, scheduleType])
   @@index([scheduleType, isActive])
 }
 

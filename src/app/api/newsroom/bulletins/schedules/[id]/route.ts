@@ -42,33 +42,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
     }
 
-    // If changing time, language, or type, check for conflicts
-    if (validatedData.time || validatedData.language || validatedData.scheduleType) {
-      const checkData = {
-        time: validatedData.time || existing.time,
-        language: validatedData.language || existing.language,
-        scheduleType: validatedData.scheduleType || existing.scheduleType,
-      };
-
-      const conflict = await prisma.bulletinSchedule.findFirst({
-        where: {
-          AND: [
-            { id: { not: id } },
-            { time: checkData.time },
-            { language: checkData.language },
-            { scheduleType: checkData.scheduleType },
-          ],
-        },
-      });
-
-      if (conflict) {
-        return NextResponse.json(
-          { error: 'A schedule already exists for this time, language, and schedule type' },
-          { status: 400 }
-        );
-      }
-    }
-
     const schedule = await prisma.bulletinSchedule.update({
       where: { id },
       data: validatedData,

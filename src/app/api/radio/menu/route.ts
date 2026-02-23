@@ -126,14 +126,14 @@ async function injectDynamicChildren(
       : Promise.resolve([]),
   ]);
 
-  // Inject bulletin schedule children
+  // Inject all bulletin schedule children (client-side navbar handles time windowing)
   if (bulletinsItem) {
     bulletinsItem.children = schedules.map((schedule, i) => {
-      const label = `${schedule.time} - ${schedule.title.replace(/\b(English|Afrikaans|Xhosa|Zulu)\b\s*/i, '').trim()}`;
+      const langAbbrev = LANG_ABBREV[schedule.language] || schedule.language;
       return virtualMenuItem({
-        label,
+        label: schedule.title,
         url: `/radio/bulletins?scheduleId=${schedule.id}`,
-        icon: LANG_ABBREV[schedule.language] || null,
+        icon: `${langAbbrev}|${schedule.time}`,
         sortOrder: i + 1,
         parentId: bulletinsItem.id,
       });

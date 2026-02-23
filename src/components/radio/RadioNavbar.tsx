@@ -20,6 +20,53 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 
+// Language badge color mapping (matches LANGUAGE_COLORS in color-system.ts)
+const LANG_BADGE_COLORS: Record<string, string> = {
+  EN: 'bg-blue-100 text-blue-700',
+  AF: 'bg-green-100 text-green-700',
+  XH: 'bg-purple-100 text-purple-700',
+  ZU: 'bg-amber-100 text-amber-700',
+};
+
+// Parse compound icon field: "EN|06:00" → { lang: "EN", time: "06:00" }
+function parseIcon(icon: string | null): { lang: string | null; time: string | null } {
+  if (!icon) return { lang: null, time: null };
+  if (icon.includes('|')) {
+    const [lang, time] = icon.split('|');
+    return { lang, time };
+  }
+  return { lang: icon, time: null };
+}
+
+// Window bulletin children to show: 1 previous + current/next + 2 more upcoming
+// Uses the user's local time. Items must have icon in "LANG|HH:MM" format.
+function windowBulletinChildren(children: MenuItem[]): MenuItem[] {
+  // Check if these are bulletin items (have time in icon)
+  const hasTimeIcons = children.some(c => c.icon?.includes('|'));
+  if (!hasTimeIcons) return children;
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Find the first child at or after current time
+  let nextIdx = children.findIndex(c => {
+    const { time } = parseIcon(c.icon);
+    if (!time) return false;
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m >= currentMinutes;
+  });
+
+  if (nextIdx === -1) {
+    // All in the past — show the last 4 (most recent ones)
+    return children.slice(-4);
+  }
+
+  // 1 previous + current/next + 2 more
+  const startIdx = Math.max(0, nextIdx - 1);
+  const endIdx = Math.min(children.length, nextIdx + 3);
+  return children.slice(startIdx, endIdx);
+}
+
 // Small component to show latest episode for a show in the dropdown
 function LatestEpisodePreview({ showId }: { showId: string }) {
   const { data, isLoading } = useQuery({
@@ -390,7 +437,7 @@ export function RadioNavbar() {
                     </Link>
 
                     <div className="absolute left-0 pt-2 hidden group-hover:block">
-                      <div className="w-56 bg-white rounded-lg shadow-lg border border-zinc-200 py-2">
+                      <div className="w-72 bg-white rounded-lg shadow-lg border border-zinc-200 py-2">
                         <Link
                           href={itemUrl}
                           className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green font-medium"
@@ -398,20 +445,26 @@ export function RadioNavbar() {
                           All {getMenuLabel(item)}
                         </Link>
                         <div className="border-t border-zinc-100 my-1"></div>
-                        {item.children!.map((child) => {
+                        {windowBulletinChildren(item.children!).map((child) => {
                           if (child.type === 'DIVIDER') {
                             return <div key={child.id} className="border-t border-zinc-100 my-1"></div>;
                           }
                           const childUrl = getMenuUrl(child);
                           const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
-                          const langBadge = child.icon;
+                          const { lang, time } = parseIcon(child.icon);
+                          const badgeColorClass = lang ? (LANG_BADGE_COLORS[lang] || 'bg-zinc-100 text-zinc-500') : '';
 
                           const childContent = (
-                            <span className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-2">
+                              {time && (
+                                <span className="flex-shrink-0 text-xs font-bold text-zinc-900 w-11">
+                                  {time}
+                                </span>
+                              )}
                               <span className="truncate">{getMenuLabel(child)}</span>
-                              {langBadge && (
-                                <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">
-                                  {langBadge}
+                              {lang && (
+                                <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${badgeColorClass}`}>
+                                  {lang}
                                 </span>
                               )}
                             </span>
@@ -724,21 +777,27 @@ export function RadioNavbar() {
                       </Link>
                       {/* Child items */}
                       <div className="pl-4 space-y-1">
-                        {item.children!.map((child) => {
+                        {windowBulletinChildren(item.children!).map((child) => {
                           if (child.type === 'DIVIDER') {
                             return <div key={child.id} className="border-t border-zinc-100 my-1 mx-4"></div>;
                           }
                           const childUrl = getMenuUrl(child);
                           const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
                           const hasGrandchildren = child.children && child.children.length > 0;
-                          const mobileLangBadge = child.icon;
+                          const { lang: mobileLang, time: mobileTime } = parseIcon(child.icon);
+                          const mobileBadgeColor = mobileLang ? (LANG_BADGE_COLORS[mobileLang] || 'bg-zinc-100 text-zinc-500') : '';
 
                           const mobileChildContent = (
-                            <span className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-2">
+                              {mobileTime && (
+                                <span className="flex-shrink-0 text-xs font-bold text-zinc-900 w-11">
+                                  {mobileTime}
+                                </span>
+                              )}
                               <span className="truncate">{getMenuLabel(child)}</span>
-                              {mobileLangBadge && (
-                                <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">
-                                  {mobileLangBadge}
+                              {mobileLang && (
+                                <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${mobileBadgeColor}`}>
+                                  {mobileLang}
                                 </span>
                               )}
                             </span>

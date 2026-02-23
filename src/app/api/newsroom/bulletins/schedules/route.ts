@@ -88,22 +88,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = createScheduleSchema.parse(body);
 
-    // Check if schedule with same time, language, and type already exists
-    const existing = await prisma.bulletinSchedule.findFirst({
-      where: {
-        time: validatedData.time,
-        language: validatedData.language,
-        scheduleType: validatedData.scheduleType,
-      },
-    });
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'A schedule already exists for this time, language, and schedule type' },
-        { status: 400 }
-      );
-    }
-
     const schedule = await prisma.bulletinSchedule.create({
       data: {
         ...validatedData,
