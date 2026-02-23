@@ -12,6 +12,7 @@ import {
   ArrowRightOnRectangleIcon,
   NewspaperIcon,
   MegaphoneIcon,
+  BookOpenIcon,
   SpeakerWaveIcon,
   ChevronDownIcon,
   ArrowLeftIcon,
@@ -122,6 +123,7 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
     if (role && ['SUPERADMIN', 'ADMIN', 'EDITOR'].includes(role)) {
       settingsItems.push({ name: 'Menu', href: '/newsroom/menu', icon: Bars3BottomLeftIcon })
       settingsItems.push({ name: 'Announcements', href: '/newsroom/announcements', icon: MegaphoneIcon })
+      settingsItems.push({ name: 'System Docs', href: '/system-docs', icon: BookOpenIcon })
     }
 
     if (settingsItems.length > 0) {
