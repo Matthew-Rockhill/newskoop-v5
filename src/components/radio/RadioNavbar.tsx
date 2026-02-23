@@ -20,6 +20,62 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 
+// Small component to show latest episode for a show in the dropdown
+function LatestEpisodePreview({ showId }: { showId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['menu-latest-episode', showId],
+    queryFn: async () => {
+      const response = await fetch(`/api/radio/shows/${showId}/episodes?perPage=1`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // cache for 5 minutes
+  });
+
+  const episode = data?.episodes?.[0];
+
+  if (isLoading) {
+    return (
+      <div className="px-4 py-3">
+        <div className="h-3 w-24 bg-zinc-200 rounded animate-pulse mb-2"></div>
+        <div className="h-3 w-36 bg-zinc-100 rounded animate-pulse"></div>
+      </div>
+    );
+  }
+
+  if (!episode) {
+    return (
+      <div className="px-4 py-4 text-center">
+        <p className="text-xs text-zinc-400">No episodes yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/radio/shows?showId=${showId}`}
+      className="block px-4 py-3 hover:bg-kelly-green/5 transition-colors group/ep"
+    >
+      <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1">Latest Episode</p>
+      <p className="text-sm font-medium text-zinc-900 group-hover/ep:text-kelly-green line-clamp-2">
+        {episode.title}
+      </p>
+      {episode.description && (
+        <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{episode.description}</p>
+      )}
+      <div className="flex items-center gap-2 mt-2 text-xs text-zinc-400">
+        <span>Ep {episode.episodeNumber}</span>
+        {episode.publishedAt && (
+          <>
+            <span>&middot;</span>
+            <span>{new Date(episode.publishedAt).toLocaleDateString()}</span>
+          </>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 interface MenuItem {
   id: string;
   label: string;
@@ -225,8 +281,11 @@ export function RadioNavbar() {
                 const hasGrandchildren = item.children!.some(c => c.children && c.children.length > 0);
 
                 if (hasGrandchildren) {
-                  // Two-column dropdown: left = children, right = grandchildren of hovered child
-                  const activeChild = item.children!.find(c => c.id === hoveredShowId && c.children && c.children.length > 0);
+                  // Two-column dropdown: left = children, right = sub-shows or latest episode
+                  const activeChild = item.children!.find(c => c.id === hoveredShowId);
+                  const activeHasGrandchildren = activeChild?.children && activeChild.children.length > 0;
+                  // Extract showId from CUSTOM_LINK url like /radio/shows?showId=XXX
+                  const activeShowId = activeChild?.url?.match(/showId=([^&]+)/)?.[1] || null;
 
                   return (
                     <div
@@ -270,7 +329,7 @@ export function RadioNavbar() {
                                       ? 'bg-kelly-green/5 text-kelly-green font-medium'
                                       : 'text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green'
                                   }`}
-                                  onMouseEnter={() => setHoveredShowId(childHasGrandchildren ? child.id : null)}
+                                  onMouseEnter={() => setHoveredShowId(child.id)}
                                 >
                                   {getMenuLabel(child)}
                                   {childHasGrandchildren && (
@@ -281,9 +340,9 @@ export function RadioNavbar() {
                             })}
                           </div>
 
-                          {/* Right column - Sub-shows of hovered show */}
-                          <div className="w-48 py-2">
-                            {activeChild ? (
+                          {/* Right column - Sub-shows or latest episode */}
+                          <div className="w-52 py-2">
+                            {activeChild && activeHasGrandchildren ? (
                               <>
                                 <Link
                                   href={getMenuUrl(activeChild)}
@@ -305,9 +364,11 @@ export function RadioNavbar() {
                                   );
                                 })}
                               </>
+                            ) : activeChild && activeShowId ? (
+                              <LatestEpisodePreview showId={activeShowId} />
                             ) : (
                               <div className="px-4 py-6 text-center">
-                                <p className="text-xs text-zinc-400">Hover a show to see sub-shows</p>
+                                <p className="text-xs text-zinc-400">Hover a show to see more</p>
                               </div>
                             )}
                           </div>
