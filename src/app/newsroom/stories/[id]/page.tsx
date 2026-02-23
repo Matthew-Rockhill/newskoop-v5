@@ -789,6 +789,13 @@ export default function StoryDetailPage() {
     session?.user?.staffRole &&
     ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole);
 
+  const showSkipTranslation = !story.isTranslation &&
+    story.stage === 'APPROVED' &&
+    (!story.translations || story.translations.length === 0) &&
+    (!translationsData?.stories || translationsData.stories.length === 0) &&
+    session?.user?.staffRole &&
+    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole);
+
   const showReviewForPublishing = story.status === 'READY_TO_PUBLISH' &&
     session?.user?.staffRole &&
     ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(session.user.staffRole);
@@ -807,12 +814,14 @@ export default function StoryDetailPage() {
         showRevisionButton={showRevisionButton}
         showMarkReadyToPublish={showMarkReadyToPublish}
         showCreateTranslation={showCreateTranslation}
+        showSkipTranslation={showSkipTranslation}
         showReviewForPublishing={showReviewForPublishing}
         isTranslating={isTranslating}
         onStageTransition={() => setShowStageTransitionModal(true)}
         onRevisionRequest={() => setShowRevisionModal(true)}
         onMarkReadyToPublish={handleMarkReadyToPublish}
         onCreateTranslation={handleSendForTranslation}
+        onSkipTranslation={handleMarkReadyToPublish}
         onReviewForPublishing={() => router.push(`/newsroom/stories/${storyId}/publish`)}
       />
 

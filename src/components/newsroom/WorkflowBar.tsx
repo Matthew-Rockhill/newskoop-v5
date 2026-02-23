@@ -7,6 +7,7 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   GlobeAltIcon,
+  ForwardIcon,
 } from '@heroicons/react/24/outline';
 import { StoryStage, StaffRole } from '@prisma/client';
 import clsx from 'clsx';
@@ -31,12 +32,14 @@ interface WorkflowBarProps {
   showRevisionButton: boolean;
   showMarkReadyToPublish?: boolean;
   showCreateTranslation?: boolean;
+  showSkipTranslation?: boolean;
   showReviewForPublishing?: boolean;
   isTranslating?: boolean;
   onStageTransition: () => void;
   onRevisionRequest: () => void;
   onMarkReadyToPublish?: () => void;
   onCreateTranslation?: () => void;
+  onSkipTranslation?: () => void;
   onReviewForPublishing?: () => void;
 }
 
@@ -122,12 +125,14 @@ export function WorkflowBar({
   showRevisionButton,
   showMarkReadyToPublish,
   showCreateTranslation,
+  showSkipTranslation,
   showReviewForPublishing,
   isTranslating,
   onStageTransition,
   onRevisionRequest,
   onMarkReadyToPublish,
   onCreateTranslation,
+  onSkipTranslation,
   onReviewForPublishing,
 }: WorkflowBarProps) {
   const router = useRouter();
@@ -190,6 +195,17 @@ export function WorkflowBar({
             >
               <GlobeAltIcon className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{isTranslating ? 'Creating...' : 'Translate'}</span>
+            </Button>
+          )}
+
+          {/* Skip Translation */}
+          {showSkipTranslation && onSkipTranslation && (
+            <Button
+              color="white"
+              onClick={onSkipTranslation}
+            >
+              <ForwardIcon className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Skip Translation</span>
             </Button>
           )}
 
