@@ -19,7 +19,6 @@ import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
-import { ShowsHierarchicalMenu } from './CategoryMegaMenuShows';
 
 interface MenuItem {
   id: string;
@@ -221,29 +220,6 @@ export function RadioNavbar() {
                   );
                 }
 
-                // Speciality/Shows mega menu
-                const isSpeciality = item.url === '/radio/shows';
-                if (isSpeciality) {
-                  return (
-                    <div key={item.id} className="relative group">
-                      <Link
-                        href={itemUrl}
-                        className="px-4 py-2 rounded-lg text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium flex items-center gap-1"
-                      >
-                        {getMenuLabel(item)}
-                        <ChevronDownIcon className="h-4 w-4" />
-                      </Link>
-
-                      {/* Mega Menu - Pure CSS hover */}
-                      <div className="absolute right-0 pt-2 hidden group-hover:block">
-                        <div className="w-[32rem] bg-white rounded-lg shadow-xl border border-zinc-200 p-6">
-                          <ShowsHierarchicalMenu onClose={() => {}} />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
                 // Dropdown for items with children
                 return (
                   <div key={item.id} className="relative group">
@@ -271,24 +247,40 @@ export function RadioNavbar() {
                           }
                           const childUrl = getMenuUrl(child);
                           const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
-                          return isChildExternal ? (
-                            <a
-                              key={child.id}
-                              href={childUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
-                            >
-                              {getMenuLabel(child)}
-                            </a>
-                          ) : (
-                            <Link
-                              key={child.id}
-                              href={childUrl}
-                              className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
-                            >
-                              {getMenuLabel(child)}
-                            </Link>
+                          const hasGrandchildren = child.children && child.children.length > 0;
+
+                          return (
+                            <div key={child.id}>
+                              {isChildExternal ? (
+                                <a
+                                  href={childUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
+                                >
+                                  {getMenuLabel(child)}
+                                </a>
+                              ) : (
+                                <Link
+                                  href={childUrl}
+                                  className={`block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green ${hasGrandchildren ? 'font-medium' : ''}`}
+                                >
+                                  {getMenuLabel(child)}
+                                </Link>
+                              )}
+                              {hasGrandchildren && child.children!.map((grandchild) => {
+                                const grandchildUrl = getMenuUrl(grandchild);
+                                return (
+                                  <Link
+                                    key={grandchild.id}
+                                    href={grandchildUrl}
+                                    className="block pl-8 pr-4 py-1.5 text-xs text-zinc-500 hover:bg-kelly-green/5 hover:text-kelly-green"
+                                  >
+                                    {getMenuLabel(grandchild)}
+                                  </Link>
+                                );
+                              })}
+                            </div>
                           );
                         })}
                       </div>
@@ -582,26 +574,46 @@ export function RadioNavbar() {
                           }
                           const childUrl = getMenuUrl(child);
                           const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
-                          return isChildExternal ? (
-                            <a
-                              key={child.id}
-                              href={childUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block px-4 py-2 text-sm text-zinc-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
-                              onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                              {getMenuLabel(child)}
-                            </a>
-                          ) : (
-                            <Link
-                              key={child.id}
-                              href={childUrl}
-                              className="block px-4 py-2 text-sm text-zinc-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
-                              onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                              {getMenuLabel(child)}
-                            </Link>
+                          const hasGrandchildren = child.children && child.children.length > 0;
+                          return (
+                            <div key={child.id}>
+                              {isChildExternal ? (
+                                <a
+                                  href={childUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block px-4 py-2 text-sm text-zinc-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                  {getMenuLabel(child)}
+                                </a>
+                              ) : (
+                                <Link
+                                  href={childUrl}
+                                  className={`block px-4 py-2 text-sm text-zinc-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg ${hasGrandchildren ? 'font-medium' : ''}`}
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                  {getMenuLabel(child)}
+                                </Link>
+                              )}
+                              {hasGrandchildren && (
+                                <div className="pl-4 space-y-1">
+                                  {child.children!.map((grandchild) => {
+                                    const grandchildUrl = getMenuUrl(grandchild);
+                                    return (
+                                      <Link
+                                        key={grandchild.id}
+                                        href={grandchildUrl}
+                                        className="block px-4 py-1.5 text-xs text-zinc-500 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                      >
+                                        {getMenuLabel(grandchild)}
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           );
                         })}
                       </div>

@@ -204,7 +204,19 @@ async function main() {
   });
 
   if (specialityMenuItem) {
-    // Clean up stale children
+    // Clean up stale children and grandchildren
+    const existingShowItems = await prisma.menuItem.findMany({
+      where: { parentId: specialityMenuItem.id },
+      select: { id: true },
+    });
+    const showItemIds = existingShowItems.map(i => i.id);
+    if (showItemIds.length > 0) {
+      // Delete grandchildren (sub-show items) first
+      await prisma.menuItem.deleteMany({
+        where: { parentId: { in: showItemIds } },
+      });
+    }
+    // Delete children (show items)
     await prisma.menuItem.deleteMany({
       where: { parentId: specialityMenuItem.id },
     });
@@ -215,6 +227,12 @@ async function main() {
         isPublished: true,
         parentId: null,
       },
+      include: {
+        subShows: {
+          where: { isActive: true, isPublished: true },
+          orderBy: { title: 'asc' },
+        },
+      },
       orderBy: { title: 'asc' },
     });
 
@@ -222,7 +240,7 @@ async function main() {
       const show = shows[i];
       const childUrl = `/radio/shows?showId=${show.id}`;
 
-      await prisma.menuItem.create({
+      const showMenuItem = await prisma.menuItem.create({
         data: {
           label: show.title,
           type: 'CUSTOM_LINK',
@@ -234,6 +252,27 @@ async function main() {
         },
       });
       console.log(`  Created show menu: "${show.title}"`);
+
+      // Create sub-show children
+      if (show.subShows && show.subShows.length > 0) {
+        for (let j = 0; j < show.subShows.length; j++) {
+          const subShow = show.subShows[j];
+          const subUrl = `/radio/shows?showId=${subShow.id}`;
+
+          await prisma.menuItem.create({
+            data: {
+              label: subShow.title,
+              type: 'CUSTOM_LINK',
+              url: subUrl,
+              openInNewTab: false,
+              parentId: showMenuItem.id,
+              sortOrder: j + 1,
+              isVisible: true,
+            },
+          });
+          console.log(`    Created sub-show menu: "${subShow.title}"`);
+        }
+      }
     }
   } else {
     console.log('  WARNING: "Speciality" menu item not found. Skipping show children.');
