@@ -160,22 +160,20 @@ async function main() {
 
     const schedules = await prisma.bulletinSchedule.findMany({
       where: { isActive: true },
-      orderBy: { time: 'asc' },
+      orderBy: [{ time: 'asc' }, { language: 'asc' }],
     });
 
-    // Deduplicate by time — one menu item per time slot (language handled by page filter)
-    const seenTimes = new Map<string, typeof schedules[0]>();
-    for (const schedule of schedules) {
-      if (!seenTimes.has(schedule.time)) {
-        seenTimes.set(schedule.time, schedule);
-      }
-    }
+    // Language abbreviation map for badge display
+    const langAbbrev: Record<string, string> = {
+      ENGLISH: 'EN',
+      AFRIKAANS: 'AF',
+      XHOSA: 'XH',
+      ZULU: 'ZU',
+    };
 
-    const uniqueSchedules = Array.from(seenTimes.values());
-
-    for (let i = 0; i < uniqueSchedules.length; i++) {
-      const schedule = uniqueSchedules[i];
-      // Strip language from title for display
+    for (let i = 0; i < schedules.length; i++) {
+      const schedule = schedules[i];
+      // Strip language from title for display (badge will show language)
       const label = `${schedule.time} - ${schedule.title.replace(/\b(English|Afrikaans|Xhosa|Zulu)\b\s*/i, '').trim()}`;
       const childUrl = `/radio/bulletins?scheduleId=${schedule.id}`;
 
@@ -188,9 +186,10 @@ async function main() {
           parentId: bulletinsMenuItem.id,
           sortOrder: i + 1,
           isVisible: true,
+          icon: langAbbrev[schedule.language] || null,
         },
       });
-      console.log(`  Created schedule menu: "${label}"`);
+      console.log(`  Created schedule menu: "${label}" [${langAbbrev[schedule.language] || schedule.language}]`);
     }
   } else {
     console.log('  WARNING: "News Bulletins" menu item not found. Skipping schedule children.');

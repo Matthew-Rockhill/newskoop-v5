@@ -404,6 +404,18 @@ export function RadioNavbar() {
                           }
                           const childUrl = getMenuUrl(child);
                           const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
+                          const langBadge = child.icon;
+
+                          const childContent = (
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="truncate">{getMenuLabel(child)}</span>
+                              {langBadge && (
+                                <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">
+                                  {langBadge}
+                                </span>
+                              )}
+                            </span>
+                          );
 
                           return (
                             <div key={child.id}>
@@ -414,14 +426,14 @@ export function RadioNavbar() {
                                   rel="noopener noreferrer"
                                   className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
                                 >
-                                  {getMenuLabel(child)}
+                                  {childContent}
                                 </a>
                               ) : (
                                 <Link
                                   href={childUrl}
                                   className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
                                 >
-                                  {getMenuLabel(child)}
+                                  {childContent}
                                 </Link>
                               )}
                             </div>
@@ -719,6 +731,19 @@ export function RadioNavbar() {
                           const childUrl = getMenuUrl(child);
                           const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
                           const hasGrandchildren = child.children && child.children.length > 0;
+                          const mobileLangBadge = child.icon;
+
+                          const mobileChildContent = (
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="truncate">{getMenuLabel(child)}</span>
+                              {mobileLangBadge && (
+                                <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">
+                                  {mobileLangBadge}
+                                </span>
+                              )}
+                            </span>
+                          );
+
                           return (
                             <div key={child.id}>
                               {isChildExternal ? (
@@ -729,7 +754,7 @@ export function RadioNavbar() {
                                   className="block px-4 py-2 text-sm text-zinc-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg"
                                   onClick={() => setIsMobileMenuOpen(false)}
                                 >
-                                  {getMenuLabel(child)}
+                                  {mobileChildContent}
                                 </a>
                               ) : (
                                 <Link
@@ -737,7 +762,7 @@ export function RadioNavbar() {
                                   className={`block px-4 py-2 text-sm text-zinc-600 hover:text-kelly-green hover:bg-kelly-green/5 rounded-lg ${hasGrandchildren ? 'font-medium' : ''}`}
                                   onClick={() => setIsMobileMenuOpen(false)}
                                 >
-                                  {getMenuLabel(child)}
+                                  {mobileChildContent}
                                 </Link>
                               )}
                               {hasGrandchildren && (
