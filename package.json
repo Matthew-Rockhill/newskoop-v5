@@ -65,7 +65,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4.1.10",
+    "@tailwindcss/postcss": "^4.2.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/lodash": "^4.17.24",
     "@types/lodash.debounce": "^4.0.9",
