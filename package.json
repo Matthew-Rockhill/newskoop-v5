@@ -12,7 +12,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma migrate resolve --rolled-back 20260223_fix_show_classification_fkeys && prisma migrate deploy && next build",
+    "vercel-build": "prisma generate && prisma migrate resolve --applied 20260223_fix_show_classification_fkeys && prisma migrate deploy && next build",
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "seed:production": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/seed-production-users.ts",
     "test": "vitest run",
