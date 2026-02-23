@@ -79,7 +79,7 @@
     "pg": "^8.18.0",
     "postcss": "^8.5.6",
     "prisma": "^6.10.1",
-    "tailwindcss": "^4.1.10",
+    "tailwindcss": "^4.2.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5",
