@@ -118,7 +118,7 @@ export function ShowsHierarchicalMenu({ onClose }: { onClose: () => void }) {
               <div className="space-y-2">
                 {/* Link to parent show */}
                 <Link
-                  href={`/radio/shows/${selectedShow.id}`}
+                  href={`/radio/shows?showId=${selectedShow.id}`}
                   onClick={onClose}
                   className="block p-3 border border-kelly-green/30 rounded-lg bg-kelly-green/5 hover:bg-kelly-green/10 transition-all group"
                 >
@@ -132,7 +132,7 @@ export function ShowsHierarchicalMenu({ onClose }: { onClose: () => void }) {
                 {selectedShow.subShows.map((sub) => (
                   <Link
                     key={sub.id}
-                    href={`/radio/shows/${sub.id}`}
+                    href={`/radio/shows?showId=${sub.id}`}
                     onClick={onClose}
                     className="block p-3 border border-zinc-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
                   >
@@ -156,7 +156,7 @@ export function ShowsHierarchicalMenu({ onClose }: { onClose: () => void }) {
               // Show details and link for shows without sub-shows
               <div className="space-y-3">
                 <Link
-                  href={`/radio/shows/${selectedShow.id}`}
+                  href={`/radio/shows?showId=${selectedShow.id}`}
                   onClick={onClose}
                   className="block p-4 border border-zinc-200 rounded-lg hover:border-kelly-green hover:bg-kelly-green/5 transition-all group"
                 >

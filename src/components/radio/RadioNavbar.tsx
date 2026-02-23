@@ -19,7 +19,7 @@ import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
-import { CategoryMegaMenu } from './CategoryMegaMenu';
+import { ShowsHierarchicalMenu } from './CategoryMegaMenuShows';
 
 interface MenuItem {
   id: string;
@@ -218,6 +218,29 @@ export function RadioNavbar() {
                     >
                       {getMenuLabel(item)}
                     </Link>
+                  );
+                }
+
+                // Speciality/Shows mega menu
+                const isSpeciality = item.url === '/radio/shows';
+                if (isSpeciality) {
+                  return (
+                    <div key={item.id} className="relative group">
+                      <Link
+                        href={itemUrl}
+                        className="px-4 py-2 rounded-lg text-zinc-700 hover:text-kelly-green hover:bg-kelly-green/5 transition-colors font-medium flex items-center gap-1"
+                      >
+                        {getMenuLabel(item)}
+                        <ChevronDownIcon className="h-4 w-4" />
+                      </Link>
+
+                      {/* Mega Menu - Pure CSS hover */}
+                      <div className="absolute right-0 pt-2 hidden group-hover:block">
+                        <div className="w-[32rem] bg-white rounded-lg shadow-xl border border-zinc-200 p-6">
+                          <ShowsHierarchicalMenu onClose={() => {}} />
+                        </div>
+                      </div>
+                    </div>
                   );
                 }
 
