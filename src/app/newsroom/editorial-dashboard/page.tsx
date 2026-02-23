@@ -13,6 +13,7 @@ import { QueueDetail } from '@/components/newsroom/editorial-dashboard/QueueDeta
 import { TeamWorkload } from '@/components/newsroom/editorial-dashboard/TeamWorkload';
 import { TimeSensitiveContent } from '@/components/newsroom/editorial-dashboard/TimeSensitiveContent';
 import { ReassignModal } from '@/components/newsroom/editorial-dashboard/ReassignModal';
+import { DiaryWidget } from '@/components/newsroom/diary/DiaryWidget';
 import { RealtimeStatus } from '@/components/ui/RealtimeStatus';
 import { useAbly } from '@/components/providers/AblyProvider';
 import {
@@ -260,6 +261,11 @@ export default function EditorialDashboardPage() {
           isLoading={isLoading}
           onViewStory={handleViewStory}
         />
+      </div>
+
+      {/* Newsroom Diary */}
+      <div className="mb-8">
+        <DiaryWidget />
       </div>
 
       {/* Reassignment Modal */}

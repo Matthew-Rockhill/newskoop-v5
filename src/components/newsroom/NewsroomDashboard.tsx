@@ -23,6 +23,7 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { ReassignButton } from '@/components/newsroom/ReassignButton';
+import { DiaryWidget } from '@/components/newsroom/diary/DiaryWidget';
 import { useState, KeyboardEvent } from 'react';
 
 // Helper for keyboard navigation on clickable elements
@@ -952,6 +953,9 @@ export function NewsroomDashboard() {
             )}
           </div>
         )}
+
+        {/* NEWSROOM DIARY - All staff */}
+        <DiaryWidget />
 
         {/* MY WORK SECTION - Stories authored by the user */}
         <div>
