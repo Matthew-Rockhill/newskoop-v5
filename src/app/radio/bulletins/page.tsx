@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Container } from '@/components/ui/container';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
@@ -62,8 +62,11 @@ interface Schedule {
 export default function BulletinsPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<string | null>(
+    searchParams.get('scheduleId')
+  );
 
   // Fetch user profile to get default language preference
   const { data: profileData } = useQuery({

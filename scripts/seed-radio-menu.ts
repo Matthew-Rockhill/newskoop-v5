@@ -158,6 +158,60 @@ async function main() {
     }
   }
 
+  // --- Bulletin schedule children under News Bulletins ---
+  console.log('\nSeeding bulletin schedule menu children...');
+
+  const bulletinsMenuItem = await prisma.menuItem.findFirst({
+    where: { url: '/radio/bulletins', parentId: null },
+  });
+
+  if (bulletinsMenuItem) {
+    const schedules = await prisma.bulletinSchedule.findMany({
+      where: { isActive: true },
+      orderBy: { time: 'asc' },
+    });
+
+    for (let i = 0; i < schedules.length; i++) {
+      const schedule = schedules[i];
+      const childUrl = `/radio/bulletins?scheduleId=${schedule.id}`;
+
+      // Check if child already exists by url
+      let existingChild = await prisma.menuItem.findFirst({
+        where: { url: childUrl, parentId: bulletinsMenuItem.id },
+      });
+
+      // Also check by label
+      if (!existingChild) {
+        existingChild = await prisma.menuItem.findFirst({
+          where: { label: schedule.title, parentId: bulletinsMenuItem.id },
+        });
+      }
+
+      if (existingChild) {
+        await prisma.menuItem.update({
+          where: { id: existingChild.id },
+          data: { sortOrder: i + 1, url: childUrl, label: schedule.title },
+        });
+        console.log(`  Schedule: "${schedule.title}" already exists. Updated sortOrder to ${i + 1}.`);
+      } else {
+        const createdChild = await prisma.menuItem.create({
+          data: {
+            label: schedule.title,
+            type: 'CUSTOM_LINK',
+            url: childUrl,
+            openInNewTab: false,
+            parentId: bulletinsMenuItem.id,
+            sortOrder: i + 1,
+            isVisible: true,
+          },
+        });
+        console.log(`  Created schedule menu: "${schedule.title}" (id: ${createdChild.id}).`);
+      }
+    }
+  } else {
+    console.log('  WARNING: "News Bulletins" menu item not found. Skipping schedule children.');
+  }
+
   // --- Summary ---
   const allItems = await prisma.menuItem.findMany({
     where: { isVisible: true },
