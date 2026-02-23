@@ -12,13 +12,14 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && npx tsx scripts/seed-radio-menu.ts && next build",
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "seed:production": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/seed-production-users.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:json": "vitest run --reporter=json --outputFile=./test-results.json",
-    "migrate:shows": "npx tsx prisma/migrate-shows.ts"
+    "migrate:shows": "npx tsx prisma/migrate-shows.ts",
+    "seed:menu": "npx tsx scripts/seed-radio-menu.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",
