@@ -2,14 +2,14 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// CATEGORY items — label & labelAfrikaans pulled from the Category record
+// Top-level CATEGORY items — label & labelAfrikaans pulled from the Category record
 const categoryItems = [
   { categorySlug: 'news-stories', sortOrder: 1 },
   { categorySlug: 'sports', sortOrder: 3 },
   { categorySlug: 'finance', sortOrder: 4 },
 ];
 
-// CUSTOM_LINK items — hardcoded labels
+// Top-level CUSTOM_LINK items — hardcoded labels
 const customLinkItems = [
   { label: 'News Bulletins', labelAfrikaans: 'Nuusbulletins', url: '/radio/bulletins', sortOrder: 2 },
   { label: 'Speciality', labelAfrikaans: 'Spesialiteit', url: '/radio/shows', sortOrder: 5 },
@@ -18,7 +18,17 @@ const customLinkItems = [
 async function main() {
   console.log('Seeding radio menu items...\n');
 
-  // --- CATEGORY items (no subcategory children — stories use tags, not child categories) ---
+  // --- Step 1: Clean up any orphaned/stale menu items ---
+  // Delete children whose parents no longer exist
+  const allItems = await prisma.menuItem.findMany({ select: { id: true, parentId: true } });
+  const allIds = new Set(allItems.map(i => i.id));
+  const orphanIds = allItems.filter(i => i.parentId && !allIds.has(i.parentId)).map(i => i.id);
+  if (orphanIds.length > 0) {
+    await prisma.menuItem.deleteMany({ where: { id: { in: orphanIds } } });
+    console.log(`Cleaned up ${orphanIds.length} orphaned menu items.`);
+  }
+
+  // --- Step 2: Upsert top-level CATEGORY items + seed their subcategory children ---
   for (const item of categoryItems) {
     const category = await prisma.category.findUnique({
       where: { slug: item.categorySlug },
@@ -29,26 +39,25 @@ async function main() {
       continue;
     }
 
-    // Check if a menu item already exists for this category
-    let existing = await prisma.menuItem.findFirst({
+    // Find or create the top-level menu item
+    let menuItem = await prisma.menuItem.findFirst({
       where: { categoryId: category.id, parentId: null },
     });
 
-    // Also check by label match
-    if (!existing) {
-      existing = await prisma.menuItem.findFirst({
+    if (!menuItem) {
+      menuItem = await prisma.menuItem.findFirst({
         where: { label: category.name, parentId: null },
       });
     }
 
-    if (existing) {
+    if (menuItem) {
       await prisma.menuItem.update({
-        where: { id: existing.id },
-        data: { sortOrder: item.sortOrder },
+        where: { id: menuItem.id },
+        data: { sortOrder: item.sortOrder, categoryId: category.id },
       });
-      console.log(`"${category.name}" already exists (id: ${existing.id}). Updated sortOrder to ${item.sortOrder}.`);
+      console.log(`"${category.name}" already exists (id: ${menuItem.id}). Updated sortOrder to ${item.sortOrder}.`);
     } else {
-      const created = await prisma.menuItem.create({
+      menuItem = await prisma.menuItem.create({
         data: {
           label: category.name,
           labelAfrikaans: category.nameAfrikaans,
@@ -58,18 +67,43 @@ async function main() {
           isVisible: true,
         },
       });
-      console.log(`Created "${category.name}" menu item (id: ${created.id}, sortOrder: ${item.sortOrder}).`);
+      console.log(`Created "${category.name}" menu item (id: ${menuItem.id}, sortOrder: ${item.sortOrder}).`);
+    }
+
+    // --- Seed subcategory children under this category ---
+    // Delete existing children first to avoid stale items
+    await prisma.menuItem.deleteMany({
+      where: { parentId: menuItem.id },
+    });
+
+    const childCategories = await prisma.category.findMany({
+      where: { parentId: category.id },
+      orderBy: { name: 'asc' },
+    });
+
+    for (let i = 0; i < childCategories.length; i++) {
+      const child = childCategories[i];
+      await prisma.menuItem.create({
+        data: {
+          label: child.name,
+          labelAfrikaans: child.nameAfrikaans,
+          type: 'CATEGORY',
+          categoryId: child.id,
+          parentId: menuItem.id,
+          sortOrder: i + 1,
+          isVisible: true,
+        },
+      });
+      console.log(`  Created subcategory menu: "${child.name}"`);
     }
   }
 
-  // --- CUSTOM_LINK items ---
+  // --- Step 3: Upsert top-level CUSTOM_LINK items ---
   for (const item of customLinkItems) {
-    // Check by url match first
     let existing = await prisma.menuItem.findFirst({
       where: { url: item.url, parentId: null },
     });
 
-    // Check by label match
     if (!existing) {
       existing = await prisma.menuItem.findFirst({
         where: { label: item.label, parentId: null },
@@ -90,11 +124,13 @@ async function main() {
           label: item.label,
           labelAfrikaans: item.labelAfrikaans,
           sortOrder: item.sortOrder,
+          type: 'CUSTOM_LINK',
+          url: item.url,
         },
       });
       console.log(`"${existing.label}" already exists (id: ${existing.id}). Updated to label="${item.label}", sortOrder=${item.sortOrder}.`);
     } else {
-      const created = await prisma.menuItem.create({
+      await prisma.menuItem.create({
         data: {
           label: item.label,
           labelAfrikaans: item.labelAfrikaans,
@@ -105,11 +141,11 @@ async function main() {
           isVisible: true,
         },
       });
-      console.log(`Created "${item.label}" menu item (id: ${created.id}, sortOrder: ${item.sortOrder}).`);
+      console.log(`Created "${item.label}" menu item (sortOrder: ${item.sortOrder}).`);
     }
   }
 
-  // --- Bulletin schedule children (deduplicated by time, language handled by page filter) ---
+  // --- Step 4: Bulletin schedule children under News Bulletins ---
   console.log('\nSeeding bulletin schedule menu children...');
 
   const bulletinsMenuItem = await prisma.menuItem.findFirst({
@@ -117,7 +153,7 @@ async function main() {
   });
 
   if (bulletinsMenuItem) {
-    // Clean up any stale schedule children first
+    // Clean up stale children
     await prisma.menuItem.deleteMany({
       where: { parentId: bulletinsMenuItem.id },
     });
@@ -127,7 +163,7 @@ async function main() {
       orderBy: { time: 'asc' },
     });
 
-    // Deduplicate by time — pick one schedule per time slot
+    // Deduplicate by time — one menu item per time slot (language handled by page filter)
     const seenTimes = new Map<string, typeof schedules[0]>();
     for (const schedule of schedules) {
       if (!seenTimes.has(schedule.time)) {
@@ -139,7 +175,7 @@ async function main() {
 
     for (let i = 0; i < uniqueSchedules.length; i++) {
       const schedule = uniqueSchedules[i];
-      // Strip language from title for display (e.g. "8:00 English News" -> just use time)
+      // Strip language from title for display
       const label = `${schedule.time} - ${schedule.title.replace(/\b(English|Afrikaans|Xhosa|Zulu)\b\s*/i, '').trim()}`;
       const childUrl = `/radio/bulletins?scheduleId=${schedule.id}`;
 
@@ -160,7 +196,7 @@ async function main() {
     console.log('  WARNING: "News Bulletins" menu item not found. Skipping schedule children.');
   }
 
-  // --- Show children under Speciality ---
+  // --- Step 5: Show children under Speciality ---
   console.log('\nSeeding show menu children under Speciality...');
 
   const specialityMenuItem = await prisma.menuItem.findFirst({
@@ -168,12 +204,11 @@ async function main() {
   });
 
   if (specialityMenuItem) {
-    // Clean up any stale show children first
+    // Clean up stale children
     await prisma.menuItem.deleteMany({
       where: { parentId: specialityMenuItem.id },
     });
 
-    // Get all top-level published shows
     const shows = await prisma.show.findMany({
       where: {
         isActive: true,
@@ -205,15 +240,25 @@ async function main() {
   }
 
   // --- Summary ---
-  const allItems = await prisma.menuItem.findMany({
+  const finalItems = await prisma.menuItem.findMany({
     where: { isVisible: true },
     orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
-    select: { id: true, label: true, type: true, sortOrder: true, url: true, categoryId: true, parentId: true },
+    include: {
+      category: { select: { slug: true, parent: { select: { slug: true } } } },
+    },
   });
 
   console.log('\nFinal radio menu:');
-  for (const mi of allItems) {
-    const target = mi.type === 'CUSTOM_LINK' ? mi.url : `category:${mi.categoryId}`;
+  for (const mi of finalItems) {
+    let target: string;
+    if (mi.type === 'CUSTOM_LINK') {
+      target = mi.url || '#';
+    } else if (mi.category) {
+      const parentSlug = mi.category.parent?.slug;
+      target = parentSlug ? `/radio/${parentSlug}/${mi.category.slug}` : `/radio/${mi.category.slug}`;
+    } else {
+      target = '#';
+    }
     const indent = mi.parentId ? '    ' : '  ';
     const prefix = mi.parentId ? '└─ ' : '';
     console.log(`${indent}${prefix}${mi.sortOrder}. ${mi.label} (${mi.type}) -> ${target}`);
