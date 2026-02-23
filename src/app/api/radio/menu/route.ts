@@ -3,6 +3,20 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling } from '@/lib/api-handler';
 import { MenuItemType } from '@prisma/client';
 
+const LANG_ABBREV: Record<string, string> = {
+  ENGLISH: 'EN',
+  AFRIKAANS: 'AF',
+  XHOSA: 'XH',
+  ZULU: 'ZU',
+};
+
+const LANGUAGE_NAME_MAP: Record<string, string> = {
+  'English': 'ENGLISH',
+  'Afrikaans': 'AFRIKAANS',
+  'Xhosa': 'XHOSA',
+  'Zulu': 'ZULU',
+};
+
 // Build nested menu tree from flat list
 function buildMenuTree(items: Array<{
   id: string;
@@ -47,20 +61,125 @@ function buildMenuTree(items: Array<{
   return roots.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
+// Create a virtual menu item (not persisted in DB)
+function virtualMenuItem(overrides: {
+  label: string;
+  url: string;
+  icon?: string | null;
+  sortOrder: number;
+  parentId: string;
+  children?: ReturnType<typeof buildMenuTree>;
+}) {
+  return {
+    id: `virtual-${overrides.parentId}-${overrides.sortOrder}`,
+    label: overrides.label,
+    labelAfrikaans: null,
+    type: 'CUSTOM_LINK' as MenuItemType,
+    categoryId: null,
+    category: null,
+    url: overrides.url,
+    openInNewTab: false,
+    parentId: overrides.parentId,
+    sortOrder: overrides.sortOrder,
+    isVisible: true,
+    icon: overrides.icon ?? null,
+    children: overrides.children ?? [],
+  };
+}
+
+// Dynamically inject children for News Bulletins and Speciality
+async function injectDynamicChildren(
+  menuTree: ReturnType<typeof buildMenuTree>,
+  allowedLanguageEnums: string[]
+) {
+  const bulletinsItem = menuTree.find(item => item.url === '/radio/bulletins');
+  const specialityItem = menuTree.find(item => item.url === '/radio/shows');
+
+  // Run both queries in parallel
+  const [schedules, shows] = await Promise.all([
+    bulletinsItem
+      ? prisma.bulletinSchedule.findMany({
+          where: {
+            isActive: true,
+            ...(allowedLanguageEnums.length > 0
+              ? { language: { in: allowedLanguageEnums as any } }
+              : {}),
+          },
+          orderBy: [{ time: 'asc' }, { language: 'asc' }],
+        })
+      : Promise.resolve([]),
+    specialityItem
+      ? prisma.show.findMany({
+          where: {
+            isActive: true,
+            isPublished: true,
+            parentId: null,
+          },
+          include: {
+            subShows: {
+              where: { isActive: true, isPublished: true },
+              orderBy: { title: 'asc' },
+            },
+          },
+          orderBy: { title: 'asc' },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  // Inject bulletin schedule children
+  if (bulletinsItem) {
+    bulletinsItem.children = schedules.map((schedule, i) => {
+      const label = `${schedule.time} - ${schedule.title.replace(/\b(English|Afrikaans|Xhosa|Zulu)\b\s*/i, '').trim()}`;
+      return virtualMenuItem({
+        label,
+        url: `/radio/bulletins?scheduleId=${schedule.id}`,
+        icon: LANG_ABBREV[schedule.language] || null,
+        sortOrder: i + 1,
+        parentId: bulletinsItem.id,
+      });
+    });
+  }
+
+  // Inject show children (with sub-show grandchildren)
+  if (specialityItem) {
+    specialityItem.children = shows.map((show, i) => {
+      const subShowChildren = (show.subShows ?? []).map((sub, j) =>
+        virtualMenuItem({
+          label: sub.title,
+          url: `/radio/shows?showId=${sub.id}`,
+          sortOrder: j + 1,
+          parentId: `virtual-${specialityItem.id}-${i + 1}`,
+        })
+      );
+      return virtualMenuItem({
+        label: show.title,
+        url: `/radio/shows?showId=${show.id}`,
+        sortOrder: i + 1,
+        parentId: specialityItem.id,
+        children: subShowChildren,
+      });
+    });
+  }
+}
+
 // GET /api/radio/menu - Get menu for radio navbar
 const getRadioMenu = createHandler(
   async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; userType: string; radioStationId?: string } }).user;
 
-    // Get station for filtering blocked categories
+    // Get station for filtering blocked categories and language filtering
     let blockedCategories: string[] = [];
+    let allowedLanguageEnums: string[] = [];
 
     if (user.userType === 'RADIO' && user.radioStationId) {
       const station = await prisma.station.findUnique({
         where: { id: user.radioStationId },
-        select: { blockedCategories: true },
+        select: { blockedCategories: true, allowedLanguages: true },
       });
       blockedCategories = station?.blockedCategories || [];
+      allowedLanguageEnums = (station?.allowedLanguages || []).map(
+        l => LANGUAGE_NAME_MAP[l] || l.toUpperCase()
+      );
     }
 
     // Fetch visible menu items
@@ -100,6 +219,9 @@ const getRadioMenu = createHandler(
 
     // Build nested tree structure
     const menuTree = buildMenuTree(menuItems);
+
+    // Dynamically inject children for News Bulletins and Speciality
+    await injectDynamicChildren(menuTree, allowedLanguageEnums);
 
     const response = NextResponse.json({ menu: menuTree });
     // Cache for 5 minutes
