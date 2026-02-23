@@ -249,6 +249,44 @@ export function RadioNavbar() {
                           const isChildExternal = child.type === 'CUSTOM_LINK' && child.openInNewTab;
                           const hasGrandchildren = child.children && child.children.length > 0;
 
+                          if (hasGrandchildren) {
+                            // Flyout sub-menu to the right on hover
+                            return (
+                              <div key={child.id} className="relative group/sub">
+                                <Link
+                                  href={childUrl}
+                                  className="flex items-center justify-between px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green font-medium"
+                                >
+                                  {getMenuLabel(child)}
+                                  <ChevronDownIcon className="h-3 w-3 -rotate-90" />
+                                </Link>
+                                <div className="absolute left-full top-0 pl-1 hidden group-hover/sub:block">
+                                  <div className="w-48 bg-white rounded-lg shadow-lg border border-zinc-200 py-2">
+                                    <Link
+                                      href={childUrl}
+                                      className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green font-medium"
+                                    >
+                                      All {getMenuLabel(child)}
+                                    </Link>
+                                    <div className="border-t border-zinc-100 my-1"></div>
+                                    {child.children!.map((grandchild) => {
+                                      const grandchildUrl = getMenuUrl(grandchild);
+                                      return (
+                                        <Link
+                                          key={grandchild.id}
+                                          href={grandchildUrl}
+                                          className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
+                                        >
+                                          {getMenuLabel(grandchild)}
+                                        </Link>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           return (
                             <div key={child.id}>
                               {isChildExternal ? (
@@ -263,23 +301,11 @@ export function RadioNavbar() {
                               ) : (
                                 <Link
                                   href={childUrl}
-                                  className={`block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green ${hasGrandchildren ? 'font-medium' : ''}`}
+                                  className="block px-4 py-2 text-sm text-zinc-700 hover:bg-kelly-green/5 hover:text-kelly-green"
                                 >
                                   {getMenuLabel(child)}
                                 </Link>
                               )}
-                              {hasGrandchildren && child.children!.map((grandchild) => {
-                                const grandchildUrl = getMenuUrl(grandchild);
-                                return (
-                                  <Link
-                                    key={grandchild.id}
-                                    href={grandchildUrl}
-                                    className="block pl-8 pr-4 py-1.5 text-xs text-zinc-500 hover:bg-kelly-green/5 hover:text-kelly-green"
-                                  >
-                                    {getMenuLabel(grandchild)}
-                                  </Link>
-                                );
-                              })}
                             </div>
                           );
                         })}
