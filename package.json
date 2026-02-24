@@ -18,6 +18,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:json": "vitest run --reporter=json --outputFile=./test-results.json",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:all": "vitest run && vitest run --config vitest.integration.config.ts",
     "migrate:shows": "npx tsx prisma/migrate-shows.ts",
     "seed:menu": "npx tsx scripts/seed-radio-menu.ts"
   },

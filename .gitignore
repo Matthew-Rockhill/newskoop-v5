@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+test-results.json
+test-results-integration.json
 
 # next.js
 /.next/

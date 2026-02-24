@@ -374,7 +374,7 @@ export default function SuperAdminDashboard() {
               <div>
                 <Heading level={3}>Function Tests</Heading>
                 <Text className="text-sm text-zinc-500">
-                  Unit test verification
+                  Unit &amp; integration test verification
                 </Text>
               </div>
             </div>
@@ -463,6 +463,9 @@ export default function SuperAdminDashboard() {
                           >
                             {module}
                           </span>
+                          {module.includes('(Integration)') && (
+                            <Badge color="violet">DB</Badge>
+                          )}
                           <Badge
                             color={moduleFailed ? 'red' : 'green'}
                           >

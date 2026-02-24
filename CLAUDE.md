@@ -25,6 +25,15 @@ npm run seed               # Seed database with development data
 npm run seed:production    # Seed production users
 ```
 
+### Testing
+```bash
+npm test                   # Run unit tests (143 tests, fast, no DB required)
+npm run test:watch         # Run unit tests in watch mode
+npm run test:integration   # Run integration tests (requires dev database)
+npm run test:all           # Run both unit + integration tests
+npm run test:json          # Unit tests with JSON output (used by SUPERADMIN panel)
+```
+
 ### Deployment
 ```bash
 npm run vercel-build       # Vercel build command (runs migrations + build)
@@ -180,6 +189,35 @@ Configured in `tsconfig.json`:
 - `src/components/radio/` - Radio station interface components
 - `src/components/shared/` - Shared components across modules
 - `src/components/layout/` - Layout components (headers, navigation)
+
+### Testing Architecture
+
+**Framework**: Vitest with separate configs for unit and integration tests.
+
+**Unit Tests** (`src/lib/__tests__/*.test.ts`):
+- Pure logic tests — permissions, validations, slug generation, email config, language utils
+- No database required, fast (~1s total)
+- Run via `npm test`
+- Config: `vitest.config.ts`
+
+**Integration Tests** (`src/lib/__tests__/integration/*.test.ts`):
+- Prisma-level tests against the real dev database
+- Verify modules work together: station content filtering queries, editorial stage transitions with DB records, translation auto-advancement and publish cascade
+- All test entities prefixed with `__test__` and use `@test.newskoop.internal` emails
+- Each file uses a unique suffix (`sf`, `ef`, `tc`) to avoid collisions
+- Cleanup runs in both `beforeAll` (clearing leftovers) and `afterAll`
+- Run via `npm run test:integration`
+- Config: `vitest.integration.config.ts` (30s timeout)
+
+**Test Helpers** (`src/lib/__tests__/integration/test-helpers.ts`):
+- `createTestUser(role, suffix)` — creates a staff user
+- `createTestCategory(name, suffix)` — creates a category
+- `createTestClassification(name, type, suffix)` — creates a language/religion/locality classification
+- `createTestStory(opts)` — creates a story with classifications via join table
+- `createTestStation(opts)` — creates a station with content filters
+- `cleanupTestData(suffix)` — deletes all test entities in FK-safe order
+
+**SUPERADMIN Panel**: The function tests UI at `/admin/super` runs unit tests via `POST /api/admin/super/function-tests` and displays results grouped by module.
 
 ### Key Features
 

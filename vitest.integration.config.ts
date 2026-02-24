@@ -5,14 +5,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/lib/__tests__/**/*.test.ts'],
-    exclude: ['node_modules', '.next', 'src/lib/__tests__/integration/**'],
+    include: ['src/lib/__tests__/integration/**/*.test.ts'],
+    testTimeout: 30000, // DB tests need more time
     reporters: ['default', 'json'],
     outputFile: {
-      json: './test-results.json',
-    },
-    coverage: {
-      reporter: ['text', 'json'],
+      json: './test-results-integration.json',
     },
   },
   resolve: {

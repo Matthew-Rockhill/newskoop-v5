@@ -244,6 +244,9 @@ export async function GET() {
         { name: 'URL Slug Generation', description: 'Headline to URL-safe slug conversion' },
         { name: 'Email System Configuration', description: 'Environment-based email filtering and modes' },
         { name: 'Language Support', description: 'Multi-language formatting for South African languages' },
+        { name: 'Station Content Filtering (Integration)', description: 'Verifies station filtering queries against real database' },
+        { name: 'Editorial Flow (Integration)', description: 'End-to-end story stage transitions with DB validation' },
+        { name: 'Translation Cascade (Integration)', description: 'Translation auto-advancement and publish cascade' },
       ],
     });
   } catch (error) {

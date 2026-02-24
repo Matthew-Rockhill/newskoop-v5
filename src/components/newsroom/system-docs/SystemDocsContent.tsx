@@ -352,7 +352,9 @@ function AdminSection() {
           <Text>
             Available only to SUPERADMIN users. Includes system health checks (database connectivity,
             storage, email service), active user monitoring, audit warning detection, and function tests
-            for verifying core system operations.
+            for verifying core system operations. The function tests panel runs both unit tests
+            (permissions, validations, slug generation) and integration tests (station content
+            filtering, editorial stage transitions, translation cascade) with results grouped by module.
           </Text>
         </div>
       </div>
@@ -676,6 +678,7 @@ function ApiSection() {
               ['GET', '/api/admin/super/system-health', 'System health checks (SUPERADMIN)'],
               ['GET', '/api/admin/super/active-users', 'Active user monitoring (SUPERADMIN)'],
               ['GET', '/api/admin/super/audit-warnings', 'Audit warning detection (SUPERADMIN)'],
+              ['GET', '/api/admin/super/function-tests', 'List available test modules (SUPERADMIN)'],
               ['POST', '/api/admin/super/function-tests', 'Run function tests (SUPERADMIN)'],
             ].map(([method, endpoint, desc]) => (
               <TableRow key={endpoint}>
