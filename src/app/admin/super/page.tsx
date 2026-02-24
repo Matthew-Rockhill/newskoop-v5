@@ -26,9 +26,10 @@ import {
   UsersIcon,
   ExclamationTriangleIcon,
   CogIcon,
-  BeakerIcon,
+  ShieldCheckIcon,
   CheckCircleIcon,
   XCircleIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 
 interface SystemHealthResponse {
@@ -70,29 +71,26 @@ interface AuditWarningsResponse {
   }[];
 }
 
-interface TestResult {
-  module: string;
-  testName: string;
-  status: 'passed' | 'failed';
-  duration: number;
-  error?: string;
+interface HealthCheck {
+  name: string;
+  category: string;
+  status: 'pass' | 'warn' | 'fail';
+  message: string;
+  latencyMs?: number;
 }
 
-interface FunctionTestsResponse {
-  totalTests: number;
-  passed: number;
-  failed: number;
-  duration: number;
+interface HealthCheckResponse {
+  checks: HealthCheck[];
+  summary: { total: number; passed: number; warnings: number; failed: number };
   timestamp: string;
-  results: TestResult[];
   error?: string;
 }
 
 export default function SuperAdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [testResults, setTestResults] = useState<FunctionTestsResponse | null>(null);
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [healthResults, setHealthResults] = useState<HealthCheckResponse | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // Redirect non-SUPERADMIN users
   useEffect(() => {
@@ -102,49 +100,49 @@ export default function SuperAdminDashboard() {
     }
   }, [session, status, router]);
 
-  // Mutation for running tests
-  const runTestsMutation = useMutation({
-    mutationFn: async (): Promise<FunctionTestsResponse> => {
+  // Mutation for running health checks
+  const runChecksMutation = useMutation({
+    mutationFn: async (): Promise<HealthCheckResponse> => {
       const res = await fetch('/api/admin/super/function-tests', {
         method: 'POST',
       });
       if (!res.ok && res.status !== 500) {
-        throw new Error('Failed to run tests');
+        throw new Error('Failed to run health checks');
       }
       return res.json();
     },
     onSuccess: (data) => {
-      setTestResults(data);
-      // Expand all modules that have failing tests
-      const modulesWithFailures = new Set(
-        data.results
-          .filter((r) => r.status === 'failed')
-          .map((r) => r.module)
+      setHealthResults(data);
+      // Expand categories that have issues
+      const categoriesWithIssues = new Set(
+        data.checks
+          .filter((c) => c.status !== 'pass')
+          .map((c) => c.category)
       );
-      setExpandedModules(modulesWithFailures);
+      setExpandedCategories(categoriesWithIssues);
     },
   });
 
-  // Group test results by module
-  const groupedResults = testResults?.results.reduce(
-    (acc, result) => {
-      if (!acc[result.module]) {
-        acc[result.module] = [];
+  // Group health checks by category
+  const groupedChecks = healthResults?.checks.reduce(
+    (acc, check) => {
+      if (!acc[check.category]) {
+        acc[check.category] = [];
       }
-      acc[result.module].push(result);
+      acc[check.category].push(check);
       return acc;
     },
-    {} as Record<string, TestResult[]>
+    {} as Record<string, HealthCheck[]>
   );
 
-  // Toggle module expansion
-  const toggleModule = (module: string) => {
-    setExpandedModules((prev) => {
+  // Toggle category expansion
+  const toggleCategory = (category: string) => {
+    setExpandedCategories((prev) => {
       const next = new Set(prev);
-      if (next.has(module)) {
-        next.delete(module);
+      if (next.has(category)) {
+        next.delete(category);
       } else {
-        next.add(module);
+        next.add(category);
       }
       return next;
     });
@@ -363,113 +361,114 @@ export default function SuperAdminDashboard() {
         </Card>
       </div>
 
-      {/* Function Tests */}
+      {/* Health Checks */}
       <div className="mt-8">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-zinc-100 rounded-lg">
-                <BeakerIcon className="h-5 w-5 text-zinc-600" />
+                <ShieldCheckIcon className="h-5 w-5 text-zinc-600" />
               </div>
               <div>
-                <Heading level={3}>Function Tests</Heading>
+                <Heading level={3}>Health Checks</Heading>
                 <Text className="text-sm text-zinc-500">
-                  Unit &amp; integration test verification
+                  Production service status
                 </Text>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {testResults && (
+              {healthResults && (
                 <Badge
                   color={
-                    testResults.failed === 0
-                      ? 'green'
-                      : testResults.failed < testResults.totalTests
+                    healthResults.summary.failed > 0
+                      ? 'red'
+                      : healthResults.summary.warnings > 0
                         ? 'amber'
-                        : 'red'
+                        : 'green'
                   }
                 >
-                  {testResults.failed === 0
-                    ? 'ALL PASSING'
-                    : `${testResults.failed} FAILING`}
+                  {healthResults.summary.failed === 0 && healthResults.summary.warnings === 0
+                    ? 'ALL HEALTHY'
+                    : `${healthResults.summary.failed + healthResults.summary.warnings} ISSUE${healthResults.summary.failed + healthResults.summary.warnings === 1 ? '' : 'S'}`}
                 </Badge>
               )}
               <Button
-                onClick={() => runTestsMutation.mutate()}
-                disabled={runTestsMutation.isPending}
+                onClick={() => runChecksMutation.mutate()}
+                disabled={runChecksMutation.isPending}
                 color="secondary"
               >
-                {runTestsMutation.isPending ? 'Running...' : 'Run Tests'}
+                {runChecksMutation.isPending ? 'Checking...' : 'Run Checks'}
               </Button>
             </div>
           </div>
 
-          {runTestsMutation.isPending ? (
+          {runChecksMutation.isPending ? (
             <div className="flex items-center justify-center py-8">
               <div className="flex items-center gap-3">
                 <div className="animate-spin h-5 w-5 border-2 border-zinc-300 border-t-zinc-600 rounded-full" />
-                <Text className="text-zinc-500">Running tests...</Text>
+                <Text className="text-zinc-500">Running health checks...</Text>
               </div>
             </div>
-          ) : testResults ? (
+          ) : healthResults ? (
             <div className="space-y-4">
               {/* Summary */}
               <div className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg">
                 <Text className="text-sm text-zinc-600">
                   <span className="font-semibold">
-                    {testResults.passed}/{testResults.totalTests}
+                    {healthResults.summary.passed}/{healthResults.summary.total}
                   </span>{' '}
-                  tests passing
+                  checks passing
                 </Text>
-                <Text className="text-sm text-zinc-400">|</Text>
-                <Text className="text-sm text-zinc-600">
-                  {testResults.duration.toFixed(0)}ms total
-                </Text>
-                {testResults.timestamp && (
+                {healthResults.summary.warnings > 0 && (
+                  <>
+                    <Text className="text-sm text-zinc-400">|</Text>
+                    <Text className="text-sm text-amber-600">
+                      {healthResults.summary.warnings} warning{healthResults.summary.warnings === 1 ? '' : 's'}
+                    </Text>
+                  </>
+                )}
+                {healthResults.timestamp && (
                   <>
                     <Text className="text-sm text-zinc-400">|</Text>
                     <Text className="text-sm text-zinc-500">
-                      {new Date(testResults.timestamp).toLocaleTimeString()}
+                      {new Date(healthResults.timestamp).toLocaleTimeString()}
                     </Text>
                   </>
                 )}
               </div>
 
-              {/* Test Results by Module */}
-              {groupedResults &&
-                Object.entries(groupedResults).map(([module, tests]) => {
-                  const modulePassCount = tests.filter(
-                    (t) => t.status === 'passed'
-                  ).length;
-                  const moduleFailed = tests.some((t) => t.status === 'failed');
-                  const isExpanded = expandedModules.has(module);
+              {/* Health Checks by Category */}
+              {groupedChecks &&
+                Object.entries(groupedChecks).map(([category, checks]) => {
+                  const hasIssues = checks.some((c) => c.status !== 'pass');
+                  const hasFail = checks.some((c) => c.status === 'fail');
+                  const isExpanded = expandedCategories.has(category);
 
                   return (
                     <div
-                      key={module}
+                      key={category}
                       className="border border-zinc-200 rounded-lg overflow-hidden"
                     >
                       <button
-                        onClick={() => toggleModule(module)}
+                        onClick={() => toggleCategory(category)}
                         className="w-full flex items-center justify-between p-3 bg-zinc-50 hover:bg-zinc-100 transition-colors text-left"
                       >
                         <div className="flex items-center gap-2">
                           <span
                             className={`text-sm font-medium ${
-                              moduleFailed
+                              hasFail
                                 ? 'text-red-600'
-                                : 'text-zinc-900'
+                                : hasIssues
+                                  ? 'text-amber-600'
+                                  : 'text-zinc-900'
                             }`}
                           >
-                            {module}
+                            {category}
                           </span>
-                          {module.includes('(Integration)') && (
-                            <Badge color="violet">DB</Badge>
-                          )}
                           <Badge
-                            color={moduleFailed ? 'red' : 'green'}
+                            color={hasFail ? 'red' : hasIssues ? 'amber' : 'green'}
                           >
-                            {modulePassCount}/{tests.length}
+                            {checks.filter((c) => c.status === 'pass').length}/{checks.length}
                           </Badge>
                         </div>
                         <svg
@@ -491,35 +490,39 @@ export default function SuperAdminDashboard() {
 
                       {isExpanded && (
                         <div className="divide-y divide-zinc-100">
-                          {tests.map((test, idx) => (
+                          {checks.map((check, idx) => (
                             <div
                               key={idx}
                               className="flex items-start gap-2 p-3"
                             >
-                              {test.status === 'passed' ? (
+                              {check.status === 'pass' ? (
                                 <CheckCircleIcon className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                              ) : check.status === 'warn' ? (
+                                <ExclamationCircleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
                               ) : (
                                 <XCircleIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                               )}
                               <div className="flex-1 min-w-0">
                                 <Text
-                                  className={`text-sm ${
-                                    test.status === 'failed'
+                                  className={`text-sm font-medium ${
+                                    check.status === 'fail'
                                       ? 'text-red-600'
-                                      : 'text-zinc-700'
+                                      : check.status === 'warn'
+                                        ? 'text-amber-600'
+                                        : 'text-zinc-700'
                                   }`}
                                 >
-                                  {test.testName}
+                                  {check.name}
                                 </Text>
-                                {test.error && (
-                                  <Text className="text-xs text-red-500 mt-1 font-mono bg-red-50 p-2 rounded">
-                                    {test.error}
-                                  </Text>
-                                )}
+                                <Text className="text-xs text-zinc-500 mt-0.5">
+                                  {check.message}
+                                </Text>
                               </div>
-                              <Text className="text-xs text-zinc-400 flex-shrink-0">
-                                {test.duration.toFixed(0)}ms
-                              </Text>
+                              {check.latencyMs !== undefined && (
+                                <Text className="text-xs text-zinc-400 flex-shrink-0">
+                                  {check.latencyMs}ms
+                                </Text>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -528,10 +531,10 @@ export default function SuperAdminDashboard() {
                   );
                 })}
 
-              {testResults.error && (
+              {healthResults.error && (
                 <div className="p-3 bg-red-50 rounded-lg">
                   <Text className="text-sm text-red-600">
-                    Error: {testResults.error}
+                    Error: {healthResults.error}
                   </Text>
                 </div>
               )}
@@ -539,7 +542,7 @@ export default function SuperAdminDashboard() {
           ) : (
             <div className="text-center py-8">
               <Text className="text-zinc-500">
-                Click &quot;Run Tests&quot; to verify system functions
+                Click &quot;Run Checks&quot; to verify production services
               </Text>
             </div>
           )}
