@@ -1,12 +1,11 @@
 /**
- * Editorial Flow — Integration Tests
+ * Editorial Flow — Integration Tests (Real API)
  *
- * Verifies that stage transition rules from permissions.ts work correctly
- * against real database story records, including the approval-gate
- * validations (category, language classification, religion classification).
+ * Hits the actual POST /api/newsroom/stories/[id]/stage endpoint with real
+ * session cookies to verify stage transitions, permission checks, and
+ * approval-gate validations work end-to-end through the full stack.
  */
 
-import { prisma } from '@/lib/prisma';
 import {
   StoryStage,
   StoryStatus,
@@ -15,24 +14,24 @@ import {
   StaffRole,
 } from '@prisma/client';
 import {
-  canUpdateStoryStage,
-  canApproveStoryStage,
-} from '@/lib/permissions';
-import {
   createTestUser,
   createTestCategory,
   createTestClassification,
   createTestStory,
+  createSessionCookie,
+  apiFetch,
   cleanupTestData,
 } from './test-helpers';
 
 const SUFFIX = 'ef'; // editorial-flow
 
 // Shared references
-let internId: string;
-let journalistId: string;
-let subEditorId: string;
-let editorId: string;
+let intern: { id: string; email: string; firstName: string; lastName: string; userType: string; staffRole: string | null };
+let journalist: typeof intern;
+let subEditor: typeof intern;
+let internCookie: string;
+let journalistCookie: string;
+let subEditorCookie: string;
 let categoryId: string;
 let langClassId: string;
 let relClassId: string;
@@ -44,15 +43,17 @@ let relClassId: string;
 beforeAll(async () => {
   await cleanupTestData(SUFFIX);
 
-  const intern = await createTestUser('INTERN', SUFFIX);
-  const journalist = await createTestUser('JOURNALIST', SUFFIX);
-  const subEditor = await createTestUser('SUB_EDITOR', SUFFIX);
-  const editor = await createTestUser('EDITOR', SUFFIX);
+  const internUser = await createTestUser('INTERN', SUFFIX);
+  const journalistUser = await createTestUser('JOURNALIST', SUFFIX);
+  const subEditorUser = await createTestUser('SUB_EDITOR', SUFFIX);
 
-  internId = intern.id;
-  journalistId = journalist.id;
-  subEditorId = subEditor.id;
-  editorId = editor.id;
+  intern = { ...internUser, staffRole: internUser.staffRole };
+  journalist = { ...journalistUser, staffRole: journalistUser.staffRole };
+  subEditor = { ...subEditorUser, staffRole: subEditorUser.staffRole };
+
+  internCookie = await createSessionCookie(intern);
+  journalistCookie = await createSessionCookie(journalist);
+  subEditorCookie = await createSessionCookie(subEditor);
 
   const cat = await createTestCategory('general', SUFFIX);
   categoryId = cat.id;
@@ -79,233 +80,225 @@ afterAll(async () => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Editorial Flow (Integration)', () => {
-  // ------ Stage transitions with real DB records ------
-
-  it('intern story: DRAFT -> NEEDS_JOURNALIST_REVIEW', async () => {
+describe('Editorial Flow (API Integration)', () => {
+  it('intern submits story for journalist review', async () => {
     const story = await createTestStory({
       suffix: SUFFIX,
-      label: 'intern_draft',
-      authorId: internId,
+      label: 'intern_submit',
+      authorId: intern.id,
       authorRole: StaffRole.INTERN,
       stage: StoryStage.DRAFT,
     });
 
-    // Permission check
-    expect(canUpdateStoryStage('INTERN', 'DRAFT', 'NEEDS_JOURNALIST_REVIEW')).toBe(true);
-
-    // Persist transition
-    const updated = await prisma.story.update({
-      where: { id: story.id },
-      data: { stage: StoryStage.NEEDS_JOURNALIST_REVIEW },
+    const res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, internCookie, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'submit_for_review',
+        assignedUserId: journalist.id,
+      }),
     });
 
-    expect(updated.stage).toBe('NEEDS_JOURNALIST_REVIEW');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.story.stage).toBe('NEEDS_JOURNALIST_REVIEW');
   });
 
-  it('intern cannot skip to NEEDS_SUB_EDITOR_APPROVAL', () => {
-    expect(canUpdateStoryStage('INTERN', 'DRAFT', 'NEEDS_SUB_EDITOR_APPROVAL')).toBe(false);
-  });
-
-  it('journalist story: DRAFT -> NEEDS_SUB_EDITOR_APPROVAL directly', async () => {
+  it('journalist sends intern story for approval', async () => {
     const story = await createTestStory({
       suffix: SUFFIX,
-      label: 'journalist_draft',
-      authorId: journalistId,
-      authorRole: StaffRole.JOURNALIST,
-      stage: StoryStage.DRAFT,
+      label: 'journalist_approve',
+      authorId: intern.id,
+      authorRole: StaffRole.INTERN,
+      stage: StoryStage.NEEDS_JOURNALIST_REVIEW,
     });
 
-    expect(canUpdateStoryStage('JOURNALIST', 'DRAFT', 'NEEDS_SUB_EDITOR_APPROVAL')).toBe(true);
-
-    const updated = await prisma.story.update({
-      where: { id: story.id },
-      data: { stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL },
+    const res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, journalistCookie, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'send_for_approval',
+        assignedUserId: subEditor.id,
+      }),
     });
 
-    expect(updated.stage).toBe('NEEDS_SUB_EDITOR_APPROVAL');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.story.stage).toBe('NEEDS_SUB_EDITOR_APPROVAL');
   });
 
-  // ------ Approval gate validations ------
-
-  it('approval requires category', async () => {
-    // Story without category
+  it('approval rejected without category', async () => {
     const story = await createTestStory({
       suffix: SUFFIX,
       label: 'no_category',
-      authorId: journalistId,
+      authorId: journalist.id,
       authorRole: StaffRole.JOURNALIST,
       stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL,
       classificationIds: [langClassId, relClassId],
       // categoryId intentionally omitted
     });
 
-    const dbStory = await prisma.story.findUnique({
-      where: { id: story.id },
-      select: { categoryId: true },
+    const res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'approve_story' }),
     });
 
-    expect(dbStory?.categoryId).toBeNull();
-    // The route handler checks !story.categoryId before allowing approval
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/category/i);
   });
 
-  it('approval requires language classification', async () => {
-    // Story with category + religion but NO language
+  it('approval rejected without language classification', async () => {
     const story = await createTestStory({
       suffix: SUFFIX,
       label: 'no_lang',
-      authorId: journalistId,
+      authorId: journalist.id,
       authorRole: StaffRole.JOURNALIST,
       stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL,
       categoryId: categoryId,
       classificationIds: [relClassId], // only religion
     });
 
-    const classifications = await prisma.storyClassification.findMany({
-      where: { storyId: story.id },
-      include: { classification: { select: { type: true } } },
+    const res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'approve_story' }),
     });
 
-    const hasLanguage = classifications.some(
-      (sc) => sc.classification.type === ClassificationType.LANGUAGE
-    );
-    expect(hasLanguage).toBe(false);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/language/i);
   });
 
-  it('approval requires religion classification', async () => {
+  it('approval rejected without religion classification', async () => {
     const story = await createTestStory({
       suffix: SUFFIX,
       label: 'no_rel',
-      authorId: journalistId,
+      authorId: journalist.id,
       authorRole: StaffRole.JOURNALIST,
       stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL,
       categoryId: categoryId,
       classificationIds: [langClassId], // only language
     });
 
-    const classifications = await prisma.storyClassification.findMany({
-      where: { storyId: story.id },
-      include: { classification: { select: { type: true } } },
+    const res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'approve_story' }),
     });
 
-    const hasReligion = classifications.some(
-      (sc) => sc.classification.type === ClassificationType.RELIGION
-    );
-    expect(hasReligion).toBe(false);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/religion/i);
   });
 
   it('approval succeeds with all requirements met', async () => {
     const story = await createTestStory({
       suffix: SUFFIX,
       label: 'full_approve',
-      authorId: journalistId,
+      authorId: journalist.id,
       authorRole: StaffRole.JOURNALIST,
       stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL,
       categoryId: categoryId,
       classificationIds: [langClassId, relClassId],
     });
 
-    // Verify all gate conditions
-    const dbStory = await prisma.story.findUnique({
-      where: { id: story.id },
-      include: {
-        classifications: {
-          include: { classification: { select: { type: true } } },
-        },
-      },
+    const res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'approve_story' }),
     });
 
-    expect(dbStory?.categoryId).toBeTruthy();
-    expect(
-      dbStory?.classifications.some(
-        (sc) => sc.classification.type === ClassificationType.LANGUAGE
-      )
-    ).toBe(true);
-    expect(
-      dbStory?.classifications.some(
-        (sc) => sc.classification.type === ClassificationType.RELIGION
-      )
-    ).toBe(true);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.story.stage).toBe('APPROVED');
+  });
 
-    // Perform the transition
-    const updated = await prisma.story.update({
-      where: { id: story.id },
-      data: { stage: StoryStage.APPROVED },
+  it('intern cannot approve story (403)', async () => {
+    const story = await createTestStory({
+      suffix: SUFFIX,
+      label: 'intern_cant_approve',
+      authorId: journalist.id,
+      authorRole: StaffRole.JOURNALIST,
+      stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL,
+      categoryId: categoryId,
+      classificationIds: [langClassId, relClassId],
     });
 
-    expect(updated.stage).toBe('APPROVED');
+    const res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, internCookie, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'approve_story' }),
+    });
+
+    expect(res.status).toBe(403);
   });
 
-  // ------ Role checks ------
-
-  it('sub-editor can approve, intern cannot', () => {
-    expect(canApproveStoryStage('SUB_EDITOR')).toBe(true);
-    expect(canApproveStoryStage('EDITOR')).toBe(true);
-    expect(canApproveStoryStage('INTERN')).toBe(false);
-    expect(canApproveStoryStage('JOURNALIST')).toBe(false);
-  });
-
-  // ------ Full pipeline ------
-
-  it('full pipeline: DRAFT -> PUBLISHED', async () => {
+  it('full pipeline: DRAFT → PUBLISHED', async () => {
+    // Create a story authored by an intern with all required fields
     const story = await createTestStory({
       suffix: SUFFIX,
       label: 'full_pipeline',
-      authorId: internId,
+      authorId: intern.id,
       authorRole: StaffRole.INTERN,
       stage: StoryStage.DRAFT,
       categoryId: categoryId,
       classificationIds: [langClassId, relClassId],
     });
 
-    // DRAFT -> NEEDS_JOURNALIST_REVIEW
-    expect(canUpdateStoryStage('INTERN', 'DRAFT', 'NEEDS_JOURNALIST_REVIEW')).toBe(true);
-    let updated = await prisma.story.update({
-      where: { id: story.id },
-      data: { stage: StoryStage.NEEDS_JOURNALIST_REVIEW, assignedReviewerId: journalistId },
+    // 1. DRAFT → NEEDS_JOURNALIST_REVIEW (intern submits)
+    let res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, internCookie, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'submit_for_review',
+        assignedUserId: journalist.id,
+      }),
     });
-    expect(updated.stage).toBe('NEEDS_JOURNALIST_REVIEW');
+    expect(res.status).toBe(200);
+    let body = await res.json();
+    expect(body.story.stage).toBe('NEEDS_JOURNALIST_REVIEW');
 
-    // NEEDS_JOURNALIST_REVIEW -> NEEDS_SUB_EDITOR_APPROVAL
-    expect(
-      canUpdateStoryStage('JOURNALIST', 'NEEDS_JOURNALIST_REVIEW', 'NEEDS_SUB_EDITOR_APPROVAL')
-    ).toBe(true);
-    updated = await prisma.story.update({
-      where: { id: story.id },
-      data: { stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL, assignedApproverId: subEditorId },
+    // 2. NEEDS_JOURNALIST_REVIEW → NEEDS_SUB_EDITOR_APPROVAL (journalist approves)
+    res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, journalistCookie, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'send_for_approval',
+        assignedUserId: subEditor.id,
+      }),
     });
-    expect(updated.stage).toBe('NEEDS_SUB_EDITOR_APPROVAL');
+    expect(res.status).toBe(200);
+    body = await res.json();
+    expect(body.story.stage).toBe('NEEDS_SUB_EDITOR_APPROVAL');
 
-    // NEEDS_SUB_EDITOR_APPROVAL -> APPROVED
-    expect(
-      canUpdateStoryStage('SUB_EDITOR', 'NEEDS_SUB_EDITOR_APPROVAL', 'APPROVED')
-    ).toBe(true);
-    updated = await prisma.story.update({
-      where: { id: story.id },
-      data: { stage: StoryStage.APPROVED },
+    // 3. NEEDS_SUB_EDITOR_APPROVAL → APPROVED (sub-editor approves)
+    res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'approve_story' }),
     });
-    expect(updated.stage).toBe('APPROVED');
+    expect(res.status).toBe(200);
+    body = await res.json();
+    expect(body.story.stage).toBe('APPROVED');
 
-    // APPROVED -> TRANSLATED
-    expect(canUpdateStoryStage('SUB_EDITOR', 'APPROVED', 'TRANSLATED')).toBe(true);
-    updated = await prisma.story.update({
-      where: { id: story.id },
-      data: { stage: StoryStage.TRANSLATED },
+    // 4. APPROVED → TRANSLATED (sub-editor marks as translated)
+    res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'mark_as_translated' }),
     });
-    expect(updated.stage).toBe('TRANSLATED');
+    expect(res.status).toBe(200);
+    body = await res.json();
+    expect(body.story.stage).toBe('TRANSLATED');
 
-    // TRANSLATED -> PUBLISHED
-    expect(canUpdateStoryStage('SUB_EDITOR', 'TRANSLATED', 'PUBLISHED')).toBe(true);
-    updated = await prisma.story.update({
-      where: { id: story.id },
-      data: {
-        stage: StoryStage.PUBLISHED,
-        status: StoryStatus.PUBLISHED,
-        publishedAt: new Date(),
-      },
+    // 5. TRANSLATED → PUBLISHED (sub-editor publishes)
+    res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'publish_story' }),
     });
-    expect(updated.stage).toBe('PUBLISHED');
-    expect(updated.status).toBe('PUBLISHED');
-    expect(updated.publishedAt).not.toBeNull();
+    expect(res.status).toBe(200);
+    body = await res.json();
+    expect(body.story.stage).toBe('PUBLISHED');
+    expect(body.story.status).toBe('PUBLISHED');
+  });
+
+  it('returns 401 without authentication', async () => {
+    const res = await fetch('http://localhost:3099/api/newsroom/stories/fake-id/stage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'approve_story' }),
+    });
+    expect(res.status).toBe(401);
   });
 });

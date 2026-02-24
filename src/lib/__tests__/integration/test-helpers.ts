@@ -2,11 +2,12 @@
  * Integration Test Helpers
  *
  * Shared setup/cleanup utilities for integration tests that run against
- * the real development database. All entities use identifiable prefixes
- * (__test__) and unique suffixes to avoid collisions.
+ * the real development database via real HTTP endpoints. All entities
+ * use identifiable prefixes (__test__) and unique suffixes to avoid collisions.
  */
 
 import { prisma } from '@/lib/prisma';
+import { encode } from 'next-auth/jwt';
 import {
   StaffRole,
   UserType,
@@ -15,6 +16,12 @@ import {
   StoryLanguage,
   ClassificationType,
 } from '@prisma/client';
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+export const BASE_URL = 'http://localhost:3099';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -26,6 +33,54 @@ function testEmail(suffix: string, label: string) {
 
 function testSlug(suffix: string, label: string) {
   return `__test__${suffix}_${label}_${Date.now()}`;
+}
+
+// ---------------------------------------------------------------------------
+// Session Cookie (JWE via next-auth/jwt encode)
+// ---------------------------------------------------------------------------
+
+export async function createSessionCookie(user: {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  userType: string;
+  staffRole?: string | null;
+  radioStationId?: string | null;
+}) {
+  const token = await encode({
+    token: {
+      sub: user.id,
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      userType: user.userType,
+      staffRole: user.staffRole ?? null,
+      radioStationId: user.radioStationId ?? null,
+    },
+    secret: process.env.NEXTAUTH_SECRET!,
+  });
+  return `next-auth.session-token=${token}`;
+}
+
+// ---------------------------------------------------------------------------
+// API Fetch wrapper
+// ---------------------------------------------------------------------------
+
+export async function apiFetch(
+  path: string,
+  cookie: string,
+  opts: RequestInit = {}
+) {
+  return fetch(`${BASE_URL}${path}`, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookie,
+      ...opts.headers,
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -45,6 +100,28 @@ export async function createTestUser(
       password: '__test__hashed_password',
       userType: UserType.STAFF,
       staffRole: role,
+      isActive: true,
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Radio User (attached to a station)
+// ---------------------------------------------------------------------------
+
+export async function createTestRadioUser(
+  suffix: string,
+  stationId: string,
+  label: string = 'radio'
+) {
+  return prisma.user.create({
+    data: {
+      email: testEmail(suffix, label),
+      firstName: '__test__',
+      lastName: `RADIO_${suffix}`,
+      password: '__test__hashed_password',
+      userType: UserType.RADIO,
+      radioStationId: stationId,
       isActive: true,
     },
   });
@@ -177,10 +254,6 @@ export async function createTestStation(opts: CreateTestStationOptions) {
  * Runs deletes in dependency order so FK constraints are respected.
  */
 export async function cleanupTestData(suffix: string) {
-  const emailPattern = `%__test_${suffix}_%@test.newskoop.internal`;
-  const namePattern = `__test__${suffix}_%`;
-  const slugPattern = `__test__${suffix}_%`;
-
   // 1. StoryClassification join records (depends on Story + Classification)
   //    Delete for stories whose slug matches the test pattern
   const testStories = await prisma.story.findMany({
@@ -246,12 +319,7 @@ export async function cleanupTestData(suffix: string) {
     },
   });
 
-  // 6. Stations
-  await prisma.station.deleteMany({
-    where: { name: { startsWith: `__test__${suffix}_` } },
-  });
-
-  // 7. Users (audit logs first)
+  // 6. Users (audit logs first, then users — must come before stations for FK)
   const testUsers = await prisma.user.findMany({
     where: { email: { startsWith: `__test_${suffix}_` } },
     select: { id: true },
@@ -266,4 +334,9 @@ export async function cleanupTestData(suffix: string) {
       where: { id: { in: userIds } },
     });
   }
+
+  // 7. Stations (after users that reference them)
+  await prisma.station.deleteMany({
+    where: { name: { startsWith: `__test__${suffix}_` } },
+  });
 }

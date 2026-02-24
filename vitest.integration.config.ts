@@ -6,7 +6,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/lib/__tests__/integration/**/*.test.ts'],
-    testTimeout: 30000, // DB tests need more time
+    globalSetup: ['src/lib/__tests__/integration/global-setup.ts'],
+    testTimeout: 60000, // HTTP calls + server startup need more time
     reporters: ['default', 'json'],
     outputFile: {
       json: './test-results-integration.json',

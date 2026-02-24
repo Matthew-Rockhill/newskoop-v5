@@ -1,12 +1,12 @@
 /**
- * Translation Cascade — Integration Tests
+ * Translation Cascade — Integration Tests (Real API)
  *
- * Verifies the translation auto-advancement logic (all translations
- * approved -> parent moves to TRANSLATED) and the publish cascade
- * (parent published -> translations cascade-published).
+ * Hits the actual POST /api/newsroom/stories/[id]/stage endpoint to verify:
+ * 1. Approving one translation doesn't auto-advance the parent
+ * 2. Approving ALL translations auto-advances the parent to TRANSLATED
+ * 3. Publishing the parent cascades PUBLISHED to all translations
  *
- * Replicates the transaction logic from
- *   /api/newsroom/stories/[id]/stage/route.ts  (lines 329-436)
+ * Uses real HTTP calls through the full stack.
  */
 
 import { prisma } from '@/lib/prisma';
@@ -22,12 +22,15 @@ import {
   createTestCategory,
   createTestClassification,
   createTestStory,
+  createSessionCookie,
+  apiFetch,
   cleanupTestData,
 } from './test-helpers';
 
 const SUFFIX = 'tc'; // translation-cascade
 
 // Shared references
+let subEditorCookie: string;
 let authorId: string;
 let categoryId: string;
 let langClassId: string;
@@ -42,6 +45,9 @@ beforeAll(async () => {
 
   const author = await createTestUser('JOURNALIST', SUFFIX, 'author');
   authorId = author.id;
+
+  const subEditor = await createTestUser('SUB_EDITOR', SUFFIX);
+  subEditorCookie = await createSessionCookie(subEditor);
 
   const cat = await createTestCategory('general', SUFFIX);
   categoryId = cat.id;
@@ -68,7 +74,7 @@ afterAll(async () => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Translation Cascade (Integration)', () => {
+describe('Translation Cascade (API Integration)', () => {
   let parentStoryId: string;
   let translationAId: string;
   let translationBId: string;
@@ -87,13 +93,14 @@ describe('Translation Cascade (Integration)', () => {
     });
     parentStoryId = parent.id;
 
-    // Create two translations in DRAFT stage (simulating "in progress")
+    // Create two translation stories at NEEDS_SUB_EDITOR_APPROVAL
+    // (so we can use approve_story action which triggers the cascade logic)
     const transA = await createTestStory({
       suffix: SUFFIX,
       label: 'trans_afr',
       authorId,
       authorRole: StaffRole.JOURNALIST,
-      stage: StoryStage.DRAFT,
+      stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL,
       language: StoryLanguage.AFRIKAANS,
       isTranslation: true,
       originalStoryId: parentStoryId,
@@ -107,7 +114,7 @@ describe('Translation Cascade (Integration)', () => {
       label: 'trans_xhosa',
       authorId,
       authorRole: StaffRole.JOURNALIST,
-      stage: StoryStage.DRAFT,
+      stage: StoryStage.NEEDS_SUB_EDITOR_APPROVAL,
       language: StoryLanguage.XHOSA,
       isTranslation: true,
       originalStoryId: parentStoryId,
@@ -117,26 +124,23 @@ describe('Translation Cascade (Integration)', () => {
     translationBId = transB.id;
   });
 
-  it('parent stays at APPROVED when translations are incomplete', async () => {
-    // Approve only translation A (move to TRANSLATED — what approve_story does for translations)
-    await prisma.story.update({
-      where: { id: translationAId },
-      data: { stage: StoryStage.TRANSLATED },
-    });
-
-    // Translation B is still DRAFT — check auto-advancement logic
-    const allTranslations = await prisma.story.findMany({
-      where: { originalStoryId: parentStoryId, isTranslation: true },
-      select: { stage: true },
-    });
-
-    const allComplete = allTranslations.every((t) =>
-      ['APPROVED', 'TRANSLATED', 'PUBLISHED'].includes(t.stage!)
+  it('approving one translation does NOT auto-advance parent', async () => {
+    // Approve translation A via the API
+    const res = await apiFetch(
+      `/api/newsroom/stories/${translationAId}/stage`,
+      subEditorCookie,
+      {
+        method: 'POST',
+        body: JSON.stringify({ action: 'approve_story' }),
+      }
     );
 
-    expect(allComplete).toBe(false);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    // Translation approval sets stage to TRANSLATED (not APPROVED) for translations
+    expect(body.story.stage).toBe('TRANSLATED');
 
-    // Parent should remain at APPROVED
+    // Parent should still be at APPROVED (translation B is still pending)
     const parent = await prisma.story.findUnique({
       where: { id: parentStoryId },
       select: { stage: true },
@@ -144,84 +148,47 @@ describe('Translation Cascade (Integration)', () => {
     expect(parent?.stage).toBe('APPROVED');
   });
 
-  it('parent auto-advances to TRANSLATED when all translations approved', async () => {
-    // Now approve translation B too
-    await prisma.story.update({
-      where: { id: translationBId },
-      data: { stage: StoryStage.TRANSLATED },
-    });
-
-    // Replicate auto-advancement check (route.ts lines 381-434)
-    const allTranslations = await prisma.story.findMany({
-      where: { originalStoryId: parentStoryId, isTranslation: true },
-      select: { id: true, stage: true },
-    });
-
-    const allComplete = allTranslations.every((t) =>
-      ['APPROVED', 'TRANSLATED', 'PUBLISHED'].includes(t.stage!)
+  it('approving ALL translations auto-advances parent to TRANSLATED', async () => {
+    // Approve translation B via the API
+    const res = await apiFetch(
+      `/api/newsroom/stories/${translationBId}/stage`,
+      subEditorCookie,
+      {
+        method: 'POST',
+        body: JSON.stringify({ action: 'approve_story' }),
+      }
     );
-    expect(allComplete).toBe(true);
 
-    // Auto-advance parent
-    const originalStory = await prisma.story.findUnique({
-      where: { id: parentStoryId },
-      select: { id: true, stage: true },
-    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.story.stage).toBe('TRANSLATED');
 
-    if (originalStory && originalStory.stage === 'APPROVED') {
-      await prisma.story.update({
-        where: { id: parentStoryId },
-        data: { stage: StoryStage.TRANSLATED },
-      });
-    }
-
-    const updatedParent = await prisma.story.findUnique({
+    // Now ALL translations are approved — parent should auto-advance to TRANSLATED
+    const parent = await prisma.story.findUnique({
       where: { id: parentStoryId },
       select: { stage: true },
     });
-    expect(updatedParent?.stage).toBe('TRANSLATED');
+    expect(parent?.stage).toBe('TRANSLATED');
   });
 
-  it('parent at TRANSLATED can be published', async () => {
-    const updated = await prisma.story.update({
-      where: { id: parentStoryId },
-      data: {
-        stage: StoryStage.PUBLISHED,
-        status: StoryStatus.PUBLISHED,
-        publishedAt: new Date(),
-      },
-    });
+  it('publishing parent cascades to all translations', async () => {
+    // Parent is now at TRANSLATED stage — publish it
+    const res = await apiFetch(
+      `/api/newsroom/stories/${parentStoryId}/stage`,
+      subEditorCookie,
+      {
+        method: 'POST',
+        body: JSON.stringify({ action: 'publish_story' }),
+      }
+    );
 
-    expect(updated.stage).toBe('PUBLISHED');
-    expect(updated.status).toBe('PUBLISHED');
-    expect(updated.publishedAt).not.toBeNull();
-  });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.story.stage).toBe('PUBLISHED');
+    expect(body.story.status).toBe('PUBLISHED');
 
-  it('publishing parent cascades to translations', async () => {
-    // Replicate cascade logic (route.ts lines 330-374)
+    // Verify all translations were cascade-published
     const translations = await prisma.story.findMany({
-      where: {
-        originalStoryId: parentStoryId,
-        isTranslation: true,
-      },
-      select: { id: true },
-    });
-
-    expect(translations.length).toBeGreaterThan(0);
-
-    await prisma.story.updateMany({
-      where: {
-        id: { in: translations.map((t) => t.id) },
-      },
-      data: {
-        stage: 'PUBLISHED',
-        status: 'PUBLISHED',
-        publishedAt: new Date(),
-      },
-    });
-
-    // Verify all translations are now PUBLISHED
-    const updatedTranslations = await prisma.story.findMany({
       where: {
         originalStoryId: parentStoryId,
         isTranslation: true,
@@ -229,86 +196,11 @@ describe('Translation Cascade (Integration)', () => {
       select: { id: true, stage: true, status: true, publishedAt: true },
     });
 
-    for (const t of updatedTranslations) {
+    expect(translations.length).toBe(2);
+    for (const t of translations) {
       expect(t.stage).toBe('PUBLISHED');
       expect(t.status).toBe('PUBLISHED');
       expect(t.publishedAt).not.toBeNull();
-    }
-  });
-
-  it('translations at DRAFT are not accidentally cascade-published', async () => {
-    // Create a fresh parent + one completed translation + one DRAFT translation
-    const parent2 = await createTestStory({
-      suffix: SUFFIX,
-      label: 'parent2',
-      authorId,
-      authorRole: StaffRole.JOURNALIST,
-      stage: StoryStage.TRANSLATED,
-      status: StoryStatus.APPROVED,
-      categoryId,
-      classificationIds: [langClassId, relClassId],
-    });
-
-    const completeTrans = await createTestStory({
-      suffix: SUFFIX,
-      label: 'trans2_done',
-      authorId,
-      stage: StoryStage.TRANSLATED,
-      language: StoryLanguage.AFRIKAANS,
-      isTranslation: true,
-      originalStoryId: parent2.id,
-      categoryId,
-      classificationIds: [langClassId, relClassId],
-    });
-
-    const draftTrans = await createTestStory({
-      suffix: SUFFIX,
-      label: 'trans2_draft',
-      authorId,
-      stage: StoryStage.DRAFT,
-      language: StoryLanguage.XHOSA,
-      isTranslation: true,
-      originalStoryId: parent2.id,
-      categoryId,
-    });
-
-    // Publish parent
-    await prisma.story.update({
-      where: { id: parent2.id },
-      data: {
-        stage: StoryStage.PUBLISHED,
-        status: StoryStatus.PUBLISHED,
-        publishedAt: new Date(),
-      },
-    });
-
-    // The actual route handler cascades ALL translations regardless of stage.
-    // This test documents current behavior: cascade publishes every linked
-    // translation. If the business rule changes to only cascade approved
-    // translations, this test should be updated.
-    const allTrans = await prisma.story.findMany({
-      where: { originalStoryId: parent2.id, isTranslation: true },
-      select: { id: true, stage: true },
-    });
-
-    // Run the same cascade as the route handler
-    await prisma.story.updateMany({
-      where: { id: { in: allTrans.map((t) => t.id) } },
-      data: {
-        stage: 'PUBLISHED',
-        status: 'PUBLISHED',
-        publishedAt: new Date(),
-      },
-    });
-
-    // Both translations are now published (documenting current behavior)
-    const afterCascade = await prisma.story.findMany({
-      where: { originalStoryId: parent2.id, isTranslation: true },
-      select: { id: true, stage: true },
-    });
-
-    for (const t of afterCascade) {
-      expect(t.stage).toBe('PUBLISHED');
     }
   });
 });

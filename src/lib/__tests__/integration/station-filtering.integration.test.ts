@@ -1,33 +1,33 @@
 /**
- * Station Content Filtering — Integration Tests
+ * Station Content Filtering — Integration Tests (Real API)
  *
- * Verifies that the Prisma query logic used by /api/radio/stories correctly
- * filters PUBLISHED stories by language classifications, religion
- * classifications, and blocked categories.
+ * Hits the actual GET /api/radio/stories endpoint with real session cookies
+ * to verify that station-based content filtering works end-to-end:
+ * auth → middleware → route handler → Prisma → response.
  *
- * Uses the real dev database; all test entities are prefixed with __test__
- * and cleaned up in afterAll.
+ * All stations and radio users are pre-created in beforeAll for speed.
  */
 
-import { prisma } from '@/lib/prisma';
-import { ClassificationType, StoryStage, StoryStatus, StoryLanguage } from '@prisma/client';
+import { ClassificationType, StoryStage, StoryStatus } from '@prisma/client';
 import {
   createTestUser,
   createTestCategory,
   createTestClassification,
   createTestStory,
+  createTestStation,
+  createTestRadioUser,
+  createSessionCookie,
+  apiFetch,
   cleanupTestData,
 } from './test-helpers';
 
 const SUFFIX = 'sf'; // station-filtering
 
 // Shared references populated in beforeAll
-let authorId: string;
-let englishId: string;
-let xhosaId: string;
-let christianId: string;
-let muslimId: string;
-let newsCatId: string;
+let englishName: string;
+let xhosaName: string;
+let christianName: string;
+let muslimName: string;
 let sportsCatId: string;
 let storyA: { id: string }; // English + Christian + news
 let storyB: { id: string }; // Xhosa  + Christian + news
@@ -35,65 +35,18 @@ let storyC: { id: string }; // English + Muslim   + sports
 let storyD: { id: string }; // Xhosa  + Muslim   + sports
 let draftStory: { id: string }; // DRAFT (not published)
 
-// ---------------------------------------------------------------------------
-// Replicates the filtering query from /api/radio/stories (route.ts)
-// ---------------------------------------------------------------------------
+// Pre-built cookies for each test scenario
+let cookieAllAccess: string;
+let cookieEngOnly: string;
+let cookieChrOnly: string;
+let cookieEngChr: string;
+let cookieNoSports: string;
+let cookieAfrikaans: string;
 
-async function queryStoriesForStation(opts: {
-  allowedLanguageNames: string[];
-  allowedReligionNames: string[];
-  blockedCategoryIds: string[];
-}) {
-  // Step 1: Resolve classification IDs (mirrors route.ts lines 102-123)
-  const [languageClassifications, religionClassifications] = await Promise.all([
-    prisma.classification.findMany({
-      where: {
-        type: ClassificationType.LANGUAGE,
-        isActive: true,
-        name: { in: opts.allowedLanguageNames },
-      },
-      select: { id: true },
-    }),
-    prisma.classification.findMany({
-      where: {
-        type: ClassificationType.RELIGION,
-        isActive: true,
-        name: { in: opts.allowedReligionNames },
-      },
-      select: { id: true },
-    }),
-  ]);
-
-  const langIds = languageClassifications.map((c) => c.id);
-  const relIds = religionClassifications.map((c) => c.id);
-
-  // Step 2: Build where clause (mirrors route.ts lines 127-202)
-  const sharedWhere = {
-    stage: 'PUBLISHED' as const,
-    categoryId: {
-      notIn: opts.blockedCategoryIds,
-    },
-    AND: [
-      {
-        classifications: {
-          some: { classificationId: { in: langIds } },
-        },
-      },
-      {
-        classifications: {
-          some: { classificationId: { in: relIds } },
-        },
-      },
-    ],
-  };
-
-  const stories = await prisma.story.findMany({
-    where: sharedWhere,
-    select: { id: true, title: true },
-    orderBy: { publishedAt: 'desc' },
-  });
-
-  return stories;
+// Helper: extract test story IDs from an API response
+function filterTestStoryIds(stories: Array<{ id: string }>) {
+  const testIds = [storyA.id, storyB.id, storyC.id, storyD.id, draftStory.id];
+  return stories.filter((s) => testIds.includes(s.id)).map((s) => s.id);
 }
 
 // ---------------------------------------------------------------------------
@@ -101,83 +54,86 @@ async function queryStoriesForStation(opts: {
 // ---------------------------------------------------------------------------
 
 beforeAll(async () => {
-  // Cleanup any leftover data from previous aborted run
   await cleanupTestData(SUFFIX);
 
   // Create shared fixtures
   const author = await createTestUser('JOURNALIST', SUFFIX, 'author');
-  authorId = author.id;
 
   const english = await createTestClassification('English', ClassificationType.LANGUAGE, SUFFIX);
   const xhosa = await createTestClassification('Xhosa', ClassificationType.LANGUAGE, SUFFIX);
   const christian = await createTestClassification('Christian', ClassificationType.RELIGION, SUFFIX);
   const muslim = await createTestClassification('Muslim', ClassificationType.RELIGION, SUFFIX);
 
-  englishId = english.id;
-  xhosaId = xhosa.id;
-  christianId = christian.id;
-  muslimId = muslim.id;
+  englishName = english.name;
+  xhosaName = xhosa.name;
+  christianName = christian.name;
+  muslimName = muslim.name;
 
   const newsCat = await createTestCategory('news', SUFFIX);
   const sportsCat = await createTestCategory('sports', SUFFIX);
-  newsCatId = newsCat.id;
   sportsCatId = sportsCat.id;
 
-  // Create 4 PUBLISHED stories with different classification combos
-  storyA = await createTestStory({
-    suffix: SUFFIX,
-    label: 'storyA',
-    authorId,
-    stage: StoryStage.PUBLISHED,
-    status: StoryStatus.PUBLISHED,
-    categoryId: newsCatId,
-    classificationIds: [englishId, christianId],
-    publishedAt: new Date('2026-01-01'),
-  });
+  // Create stories + stations + users in parallel where possible
+  [storyA, storyB, storyC, storyD, draftStory] = await Promise.all([
+    createTestStory({
+      suffix: SUFFIX, label: 'storyA', authorId: author.id,
+      stage: StoryStage.PUBLISHED, status: StoryStatus.PUBLISHED,
+      categoryId: newsCat.id, classificationIds: [english.id, christian.id],
+      publishedAt: new Date('2026-01-01'),
+    }),
+    createTestStory({
+      suffix: SUFFIX, label: 'storyB', authorId: author.id,
+      stage: StoryStage.PUBLISHED, status: StoryStatus.PUBLISHED,
+      categoryId: newsCat.id, classificationIds: [xhosa.id, christian.id],
+      publishedAt: new Date('2026-01-02'),
+    }),
+    createTestStory({
+      suffix: SUFFIX, label: 'storyC', authorId: author.id,
+      stage: StoryStage.PUBLISHED, status: StoryStatus.PUBLISHED,
+      categoryId: sportsCat.id, classificationIds: [english.id, muslim.id],
+      publishedAt: new Date('2026-01-03'),
+    }),
+    createTestStory({
+      suffix: SUFFIX, label: 'storyD', authorId: author.id,
+      stage: StoryStage.PUBLISHED, status: StoryStatus.PUBLISHED,
+      categoryId: sportsCat.id, classificationIds: [xhosa.id, muslim.id],
+      publishedAt: new Date('2026-01-04'),
+    }),
+    createTestStory({
+      suffix: SUFFIX, label: 'draft', authorId: author.id,
+      stage: StoryStage.DRAFT, status: StoryStatus.DRAFT,
+      categoryId: newsCat.id, classificationIds: [english.id, christian.id],
+    }),
+  ]);
 
-  storyB = await createTestStory({
-    suffix: SUFFIX,
-    label: 'storyB',
-    authorId,
-    stage: StoryStage.PUBLISHED,
-    status: StoryStatus.PUBLISHED,
-    categoryId: newsCatId,
-    classificationIds: [xhosaId, christianId],
-    publishedAt: new Date('2026-01-02'),
-  });
+  // Pre-create all 6 station/user/cookie combos in parallel
+  async function makeStationCookie(
+    label: string,
+    langs: string[],
+    rels: string[],
+    blocked: string[] = []
+  ) {
+    const station = await createTestStation({
+      suffix: SUFFIX, label,
+      allowedLanguages: langs, allowedReligions: rels, blockedCategories: blocked,
+    });
+    const user = await createTestRadioUser(SUFFIX, station.id, `radio_${label}`);
+    return createSessionCookie({
+      id: user.id, email: user.email,
+      firstName: user.firstName, lastName: user.lastName,
+      userType: user.userType, radioStationId: station.id,
+    });
+  }
 
-  storyC = await createTestStory({
-    suffix: SUFFIX,
-    label: 'storyC',
-    authorId,
-    stage: StoryStage.PUBLISHED,
-    status: StoryStatus.PUBLISHED,
-    categoryId: sportsCatId,
-    classificationIds: [englishId, muslimId],
-    publishedAt: new Date('2026-01-03'),
-  });
-
-  storyD = await createTestStory({
-    suffix: SUFFIX,
-    label: 'storyD',
-    authorId,
-    stage: StoryStage.PUBLISHED,
-    status: StoryStatus.PUBLISHED,
-    categoryId: sportsCatId,
-    classificationIds: [xhosaId, muslimId],
-    publishedAt: new Date('2026-01-04'),
-  });
-
-  // Also create a DRAFT story to verify it is excluded
-  draftStory = await createTestStory({
-    suffix: SUFFIX,
-    label: 'draft',
-    authorId,
-    stage: StoryStage.DRAFT,
-    status: StoryStatus.DRAFT,
-    categoryId: newsCatId,
-    classificationIds: [englishId, christianId],
-  });
+  [cookieAllAccess, cookieEngOnly, cookieChrOnly, cookieEngChr, cookieNoSports, cookieAfrikaans] =
+    await Promise.all([
+      makeStationCookie('all_access', [englishName, xhosaName], [christianName, muslimName]),
+      makeStationCookie('eng_only', [englishName], [christianName, muslimName]),
+      makeStationCookie('chr_only', [englishName, xhosaName], [christianName]),
+      makeStationCookie('eng_chr', [englishName], [christianName]),
+      makeStationCookie('no_sports', [englishName, xhosaName], [christianName, muslimName], [sportsCatId]),
+      makeStationCookie('afrikaans', [`__test__${SUFFIX}_Afrikaans`], [christianName, muslimName]),
+    ]);
 }, 30000);
 
 afterAll(async () => {
@@ -188,15 +144,14 @@ afterAll(async () => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Station Content Filtering (Integration)', () => {
-  it('returns only PUBLISHED stories', async () => {
-    const results = await queryStoriesForStation({
-      allowedLanguageNames: [`__test__${SUFFIX}_English`, `__test__${SUFFIX}_Xhosa`],
-      allowedReligionNames: [`__test__${SUFFIX}_Christian`, `__test__${SUFFIX}_Muslim`],
-      blockedCategoryIds: [],
-    });
+describe('Station Content Filtering (API Integration)', () => {
+  it('returns only PUBLISHED stories matching station filters', async () => {
+    const res = await apiFetch('/api/radio/stories?perPage=100', cookieAllAccess);
+    expect(res.status).toBe(200);
 
-    const ids = results.map((r) => r.id);
+    const body = await res.json();
+    const ids = filterTestStoryIds(body.stories);
+
     expect(ids).toContain(storyA.id);
     expect(ids).toContain(storyB.id);
     expect(ids).toContain(storyC.id);
@@ -205,13 +160,12 @@ describe('Station Content Filtering (Integration)', () => {
   });
 
   it('filters by language — English only', async () => {
-    const results = await queryStoriesForStation({
-      allowedLanguageNames: [`__test__${SUFFIX}_English`],
-      allowedReligionNames: [`__test__${SUFFIX}_Christian`, `__test__${SUFFIX}_Muslim`],
-      blockedCategoryIds: [],
-    });
+    const res = await apiFetch('/api/radio/stories?perPage=100', cookieEngOnly);
+    expect(res.status).toBe(200);
 
-    const ids = results.map((r) => r.id);
+    const body = await res.json();
+    const ids = filterTestStoryIds(body.stories);
+
     expect(ids).toContain(storyA.id);
     expect(ids).toContain(storyC.id);
     expect(ids).not.toContain(storyB.id);
@@ -219,13 +173,12 @@ describe('Station Content Filtering (Integration)', () => {
   });
 
   it('filters by religion — Christian only', async () => {
-    const results = await queryStoriesForStation({
-      allowedLanguageNames: [`__test__${SUFFIX}_English`, `__test__${SUFFIX}_Xhosa`],
-      allowedReligionNames: [`__test__${SUFFIX}_Christian`],
-      blockedCategoryIds: [],
-    });
+    const res = await apiFetch('/api/radio/stories?perPage=100', cookieChrOnly);
+    expect(res.status).toBe(200);
 
-    const ids = results.map((r) => r.id);
+    const body = await res.json();
+    const ids = filterTestStoryIds(body.stories);
+
     expect(ids).toContain(storyA.id);
     expect(ids).toContain(storyB.id);
     expect(ids).not.toContain(storyC.id);
@@ -233,43 +186,42 @@ describe('Station Content Filtering (Integration)', () => {
   });
 
   it('requires BOTH language AND religion match', async () => {
-    const results = await queryStoriesForStation({
-      allowedLanguageNames: [`__test__${SUFFIX}_English`],
-      allowedReligionNames: [`__test__${SUFFIX}_Christian`],
-      blockedCategoryIds: [],
-    });
+    const res = await apiFetch('/api/radio/stories?perPage=100', cookieEngChr);
+    expect(res.status).toBe(200);
 
-    const ids = results.map((r) => r.id);
+    const body = await res.json();
+    const ids = filterTestStoryIds(body.stories);
+
     expect(ids).toContain(storyA.id);
-    expect(ids).not.toContain(storyB.id); // Xhosa
-    expect(ids).not.toContain(storyC.id); // Muslim
-    expect(ids).not.toContain(storyD.id); // Xhosa + Muslim
+    expect(ids).not.toContain(storyB.id);
+    expect(ids).not.toContain(storyC.id);
+    expect(ids).not.toContain(storyD.id);
   });
 
   it('excludes blocked categories', async () => {
-    const results = await queryStoriesForStation({
-      allowedLanguageNames: [`__test__${SUFFIX}_English`, `__test__${SUFFIX}_Xhosa`],
-      allowedReligionNames: [`__test__${SUFFIX}_Christian`, `__test__${SUFFIX}_Muslim`],
-      blockedCategoryIds: [sportsCatId],
-    });
+    const res = await apiFetch('/api/radio/stories?perPage=100', cookieNoSports);
+    expect(res.status).toBe(200);
 
-    const ids = results.map((r) => r.id);
+    const body = await res.json();
+    const ids = filterTestStoryIds(body.stories);
+
     expect(ids).toContain(storyA.id);
     expect(ids).toContain(storyB.id);
-    expect(ids).not.toContain(storyC.id); // sports
-    expect(ids).not.toContain(storyD.id); // sports
+    expect(ids).not.toContain(storyC.id);
+    expect(ids).not.toContain(storyD.id);
   });
 
-  it('handles empty classification matches — returns no stories', async () => {
-    const results = await queryStoriesForStation({
-      allowedLanguageNames: [`__test__${SUFFIX}_Afrikaans`], // no stories have this
-      allowedReligionNames: [`__test__${SUFFIX}_Christian`, `__test__${SUFFIX}_Muslim`],
-      blockedCategoryIds: [],
-    });
+  it('returns empty for unmatched classifications', async () => {
+    const res = await apiFetch('/api/radio/stories?perPage=100', cookieAfrikaans);
+    expect(res.status).toBe(200);
 
-    // No test stories should match (though other DB stories could — filter by our IDs)
-    const testIds = [storyA.id, storyB.id, storyC.id, storyD.id];
-    const matchedTestIds = results.filter((r) => testIds.includes(r.id));
-    expect(matchedTestIds).toHaveLength(0);
+    const body = await res.json();
+    const ids = filterTestStoryIds(body.stories);
+    expect(ids).toHaveLength(0);
+  });
+
+  it('returns 401 without authentication', async () => {
+    const res = await fetch('http://localhost:3099/api/radio/stories');
+    expect(res.status).toBe(401);
   });
 });
