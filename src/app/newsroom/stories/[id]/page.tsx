@@ -8,7 +8,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   PencilSquareIcon,
   TrashIcon,
-  EyeIcon,
   MusicalNoteIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
@@ -29,7 +28,6 @@ import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
-import { Field, Label, Description } from '@/components/ui/fieldset';
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
 import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
 
@@ -48,54 +46,16 @@ import { useTags, useCreateTag } from '@/hooks/use-tags';
 import { useClassifications } from '@/hooks/use-classifications';
 import { ClassificationType } from '@prisma/client';
 import {
-  canEditStory,
   canEditStoryByStage,
-  canDeleteStory,
   canDeleteStoryByStage,
-  getEditLockReason,
-  getStageLockReason,
-  canUpdateStoryStatus,
   canFlagStoryForBulletin,
   canRequestRevision,
 } from '@/lib/permissions';
-import { StaffRole, StoryStatus, StoryStage, AudioClip } from '@prisma/client';
+import { StaffRole, StoryStage, AudioClip } from '@prisma/client';
 import { StageBadge } from '@/components/ui/stage-badge';
 import { RevisionRequestBanner } from '@/components/ui/revision-request-banner';
 import { useQuery } from '@tanstack/react-query';
 
-// Status badge colors
-const statusColors = {
-  DRAFT: 'zinc',
-  IN_REVIEW: 'amber',
-  NEEDS_REVISION: 'red',
-  PENDING_APPROVAL: 'blue',
-  APPROVED: 'lime',
-  PENDING_TRANSLATION: 'purple',
-  READY_TO_PUBLISH: 'emerald',
-  PUBLISHED: 'emerald',
-  ARCHIVED: 'zinc',
-} as const;
-
-
-// Helper: should show submit for review button (interns only)
-function canShowSubmitForReviewButton(userRole: StaffRole | null, status: string, authorId: string, userId: string | null) {
-  if (!userRole || !userId) return false;
-  // Only interns can submit their own draft stories for review
-  return userRole === 'INTERN' && status === 'DRAFT' && authorId === userId;
-}
-
-// Helper: should show final review button
-function canShowFinalReviewButton(userRole: StaffRole | null, status: string, isOwnStory: boolean = false) {
-  if (!userRole) return false;
-  // Journalists reviewing intern stories (IN_REVIEW status)
-  if (userRole === 'JOURNALIST' && status === 'IN_REVIEW' && !isOwnStory) return true;
-  // Sub-editors and above reviewing PENDING_APPROVAL stories
-  if (
-    ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) &&
-    status === 'PENDING_APPROVAL'
-  ) return true;
-  return false;
-}
 
 // Helper: should show edit button (stage-based)
 function canShowEditButton(
@@ -148,7 +108,6 @@ export default function StoryDetailPage() {
   const [showTranslationModal, setShowTranslationModal] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [showStageTransitionModal, setShowStageTransitionModal] = useState(false);
-  const [stageTransitionAction, setStageTransitionAction] = useState<string | null>(null);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [isRequestingRevision, setIsRequestingRevision] = useState(false);
 
@@ -228,9 +187,6 @@ export default function StoryDetailPage() {
   // Mutations
   const deleteStoryMutation = useDeleteStory();
   const toggleBulletinFlagMutation = useToggleStoryBulletinFlag();
-
-  // Only compute this after story is defined
-  const canSendForTranslation = !!session?.user?.staffRole && !!story && canUpdateStoryStatus(session.user.staffRole, story.status, 'PENDING_TRANSLATION');
 
   // Determine next stage action based on current stage and user role
   const getNextStageAction = () => {
@@ -443,26 +399,6 @@ export default function StoryDetailPage() {
       toast.error(errorMessage);
     } finally {
       setIsRequestingRevision(false);
-    }
-  };
-
-  const handleSubmitForReview = async () => {
-    try {
-      const response = await fetch(`/api/newsroom/stories/${storyId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'IN_REVIEW' }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to submit story for review');
-      }
-
-      toast.success('Story submitted for review');
-      router.push('/newsroom/stories');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to submit for review';
-      toast.error(errorMessage);
     }
   };
 

@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     // Handle different user types
     let station = null;
     let allowedLanguages = ['English', 'Afrikaans', 'Xhosa']; // Default for STAFF users
-    let allowedReligions = ['Christian', 'Muslim', 'Neutral'];
+    let _allowedReligions = ['Christian', 'Muslim', 'Neutral'];
     let blockedCategories: string[] = [];
 
     if (session.user.userType === 'RADIO') {
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       }
 
       allowedLanguages = station.allowedLanguages;
-      allowedReligions = station.allowedReligions;
+      _allowedReligions = station.allowedReligions;
       blockedCategories = station.blockedCategories;
     } else if (session.user.userType === 'STAFF') {
       // STAFF users can access all content without restrictions

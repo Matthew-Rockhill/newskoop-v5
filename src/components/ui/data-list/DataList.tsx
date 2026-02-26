@@ -23,23 +23,6 @@ export function useDataListContext<T extends { id: string }>(): DataListContextV
   return context as DataListContextValue<T>
 }
 
-// Hook for responsive mobile detection
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-
-  // Check on mount and window resize
-  if (typeof window !== 'undefined') {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640)
-
-    // Use effect-like behavior with useState initialization
-    if (!isMobile && window.innerWidth < 640) {
-      setIsMobile(true)
-    }
-  }
-
-  return isMobile
-}
-
 export function DataList<T extends { id: string }>({
   items,
   isLoading = false,
@@ -48,7 +31,7 @@ export function DataList<T extends { id: string }>({
   columns,
   dense = false,
   striped = true,
-  sortable = false,
+  sortable: _sortable = false,
   sortKey,
   sortDirection,
   onSortChange,

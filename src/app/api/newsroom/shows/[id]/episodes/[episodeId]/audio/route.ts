@@ -177,7 +177,7 @@ const uploadAudio = createHandler(
 // DELETE /api/newsroom/shows/[id]/episodes/[episodeId]/audio - Delete audio file
 const deleteAudio = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
-    const { id, episodeId } = await params;
+    const { id: _id, episodeId } = await params;
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     if (!canManageShows(user.staffRole as any)) {

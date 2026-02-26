@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     // Handle different user types
     let station = null;
     let allowedLanguages = ['English', 'Afrikaans', 'Xhosa']; // Default for STAFF users
-    let hasContentAccess = true;
+    let _hasContentAccess = true;
 
     if (session.user.userType === 'RADIO') {
       // Radio users must have an associated station
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       }
 
       allowedLanguages = station.allowedLanguages;
-      hasContentAccess = station.hasContentAccess;
+      _hasContentAccess = station.hasContentAccess;
     } else if (session.user.userType === 'STAFF') {
       // STAFF users can access all content without station restrictions
       station = {
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         blockedCategories: [],
       };
       allowedLanguages = station.allowedLanguages;
-      hasContentAccess = station.hasContentAccess;
+      _hasContentAccess = station.hasContentAccess;
     } else {
       // Fallback for any unexpected user types
       return NextResponse.json(

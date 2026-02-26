@@ -363,7 +363,6 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                           <div className="space-y-3">
                             {episode.audioClips.map((clip, index) => {
                               const isCurrentClip = currentEpisodeId === episode.id && currentClipIndex === index;
-                              const isPlaying = playingAudioId === clip.id;
                               const isCompleted = currentEpisodeId === episode.id && currentClipIndex > index;
 
                               return (

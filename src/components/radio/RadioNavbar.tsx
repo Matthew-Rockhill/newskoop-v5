@@ -9,14 +9,11 @@ import {
   XMarkIcon,
   ChevronDownIcon,
   UserIcon,
-  Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   ArrowLeftIcon,
-  CogIcon,
   BellIcon,
 } from '@heroicons/react/24/outline';
 import { Container } from '@/components/ui/container';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 
@@ -234,15 +231,6 @@ export function RadioNavbar() {
       return item.labelAfrikaans;
     }
     return item.label;
-  };
-
-  // Helper to get the category name
-  const getCategoryName = (category: { name: string; nameAfrikaans: string | null } | null) => {
-    if (!category) return '';
-    if (userLanguage === 'Afrikaans' && category.nameAfrikaans) {
-      return category.nameAfrikaans;
-    }
-    return category.name;
   };
 
   // Helper to get the URL for a menu item

@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { ClassificationType } from '@prisma/client';
 
 // GET /api/radio/categories - Get categories available to the radio station
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     

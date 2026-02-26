@@ -104,7 +104,7 @@ export function AblyProvider({ children }: { children: ReactNode }) {
       setClient(null);
       setIsConnected(false);
     };
-  }, [isEnabled, status, session?.user?.id, queryClient]);
+  }, [isEnabled, status, session?.user, session?.user?.id, queryClient]);
 
   // Set up automatic cache invalidation subscriptions
   useEffect(() => {

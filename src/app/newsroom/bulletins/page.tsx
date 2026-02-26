@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -117,9 +117,9 @@ export default function BulletinsPage() {
   };
 
   // Check if user can edit a bulletin
-  const canEdit = (bulletin: Bulletin) => {
+  const canEdit = useCallback((bulletin: Bulletin) => {
     return bulletin.status === 'DRAFT' && bulletin.author.id === session?.user?.id;
-  };
+  }, [session?.user?.id]);
 
   // Define columns for the DataList
   const columns: DataListColumn<Bulletin>[] = useMemo(() => [
@@ -235,7 +235,7 @@ export default function BulletinsPage() {
       onAction: () => {},
       isHidden: (bulletin) => !canEdit(bulletin),
     },
-  ], [session?.user?.id]);
+  ], [canEdit]);
 
   return (
     <Container>

@@ -9,13 +9,11 @@ import {
   RadioIcon,
   HomeIcon,
   ArrowRightOnRectangleIcon,
-  CogIcon,
   MegaphoneIcon,
   SpeakerWaveIcon,
   ChevronDownIcon,
   ArrowLeftIcon,
   UserIcon,
-  NewspaperIcon,
   ChartBarIcon,
   ServerIcon,
 } from '@heroicons/react/24/outline'

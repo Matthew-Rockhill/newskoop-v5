@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -123,7 +123,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
     },
   });
 
-  const schedules = schedulesData?.schedules || [];
+  const schedules = useMemo(() => schedulesData?.schedules || [], [schedulesData?.schedules]);
 
   // Update selected schedule when schedule ID changes
   useEffect(() => {
@@ -148,7 +148,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
         setSelectedStories([]);
       }
     }
-  }, [selectedSchedule?.id]);
+  }, [selectedSchedule, selectedStories]);
 
   // Create bulletin mutation
   const createMutation = useMutation({

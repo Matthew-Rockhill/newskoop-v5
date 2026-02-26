@@ -6,7 +6,7 @@ import { Container } from '@/components/ui/container';
 import { StoryEditForm } from '@/components/newsroom/StoryEditForm';
 
 export default function EditStoryPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const params = useParams();
   const storyId = params.id as string;
 

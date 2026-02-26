@@ -23,7 +23,6 @@ export default function AdminDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  const isAdmin = session?.user?.staffRole && ['SUPERADMIN', 'ADMIN'].includes(session.user.staffRole);
   const isSuperAdmin = session?.user?.staffRole === 'SUPERADMIN';
 
   // Simple admin stats - no API calls for now

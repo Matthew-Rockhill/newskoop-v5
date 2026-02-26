@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useUsers, type UserWithStation } from '@/hooks/use-users';
 import { DataList, type DataListColumn, type RowAction } from '@/components/ui/data-list';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { Avatar } from '@/components/ui/avatar';
 import { UsersIcon, UserIcon, BuildingOfficeIcon, PencilIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';

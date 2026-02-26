@@ -99,7 +99,7 @@ export default function BulletinSchedulesPage() {
     if (window.confirm(`Are you sure you want to delete the schedule "${schedule.title}"?`)) {
       try {
         await deleteMutation.mutateAsync(schedule.id);
-      } catch (error) {
+      } catch (_error) {
         alert('Failed to delete schedule');
       }
     }

@@ -3,12 +3,11 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
-import { logAudit, logAuditTx } from '@/lib/audit';
+import { logAuditTx } from '@/lib/audit';
 import {
   canReviewStory,
   canApproveStoryStage,
   canSendForTranslation,
-  canRequestRevision,
 } from '@/lib/permissions';
 import { StoryStage, StaffRole, ClassificationType } from '@prisma/client';
 import { publishStoryEvent, publishDashboardEvent, createEvent } from '@/lib/ably';

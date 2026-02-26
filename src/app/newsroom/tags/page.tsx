@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   TagIcon,
@@ -26,15 +26,15 @@ export default function TagsPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading, error } = useTags();
-  const tags = data?.tags || [];
 
   // Filter tags based on search
   const filteredTags = useMemo(() => {
+    const tags = data?.tags || [];
     return tags.filter((tag: Tag) => {
       return tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (tag.nameAfrikaans && tag.nameAfrikaans.toLowerCase().includes(searchQuery.toLowerCase()));
     });
-  }, [tags, searchQuery]);
+  }, [data?.tags, searchQuery]);
 
   // Check if user can create tags
   const canCreateTag = () => {
@@ -43,10 +43,10 @@ export default function TagsPage() {
   };
 
   // Check if user can edit a specific tag
-  const canEditTag = (tag: Tag) => {
+  const canEditTag = useCallback((_tag: Tag) => {
     const userRole = session?.user?.staffRole as StaffRole | null;
     return hasTagPermission(userRole, 'update');
-  };
+  }, [session?.user?.staffRole]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -121,7 +121,7 @@ export default function TagsPage() {
         </div>
       ),
     },
-  ], [session?.user?.staffRole]);
+  ], [canEditTag]);
 
   // Define row actions
   const rowActions: RowAction<Tag>[] = useMemo(() => [
@@ -133,7 +133,7 @@ export default function TagsPage() {
       onAction: () => {},
       isHidden: (tag) => !canEditTag(tag),
     },
-  ], [session?.user?.staffRole]);
+  ], [canEditTag]);
 
   return (
     <Container>

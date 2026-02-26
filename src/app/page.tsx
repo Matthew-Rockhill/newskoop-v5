@@ -17,7 +17,6 @@ import {
   Headphones,
   CalendarDays,
   LayoutGrid,
-  Download,
   Play,
 } from 'lucide-react';
 import Image from 'next/image';

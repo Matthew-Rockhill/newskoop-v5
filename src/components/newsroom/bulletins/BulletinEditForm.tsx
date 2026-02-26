@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -129,7 +129,7 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
     },
   });
 
-  const schedules = schedulesData?.schedules || [];
+  const schedules = useMemo(() => schedulesData?.schedules || [], [schedulesData?.schedules]);
 
   // Update selected schedule when schedule ID changes or schedules load
   useEffect(() => {

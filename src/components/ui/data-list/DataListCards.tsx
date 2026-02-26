@@ -1,7 +1,5 @@
 'use client'
 
-import clsx from 'clsx'
-import { useDataListContext } from './DataList'
 import { DataListCard } from './DataListCard'
 import type { DataListColumn } from './types'
 

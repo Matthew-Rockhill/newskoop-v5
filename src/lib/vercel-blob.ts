@@ -111,7 +111,7 @@ export function validateAudioFile(file: File): { valid: boolean; error?: string 
  */
 export function getOptimizedAudioUrl(
   url: string,
-  options: {
+  _options: {
     quality?: 'auto' | 'auto:low' | 'auto:good' | 'auto:best';
     format?: 'mp3' | 'ogg' | 'wav' | 'auto';
   } = {}

@@ -26,7 +26,7 @@ interface QueueDetailProps {
 export function QueueDetail({
   title,
   stories,
-  type,
+  type: _type,
   isLoading,
   onReassign,
   onViewStory,

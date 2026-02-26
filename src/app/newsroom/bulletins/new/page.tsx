@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container } from '@/components/ui/container';
 import { Heading } from '@/components/ui/heading';

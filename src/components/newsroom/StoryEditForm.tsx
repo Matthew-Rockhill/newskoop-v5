@@ -245,10 +245,9 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
 
   const handleStatusAction = async (action: { label: string; status: string; color: string }) => {
     const userRole = session?.user?.staffRole;
-    const userId = session?.user?.id;
-    
+
     if (!userRole || !story) return;
-    
+
     // Handle different status transitions
     switch (action.status) {
       case 'IN_REVIEW':
@@ -336,13 +335,9 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   const getStatusActions = (currentStatus: StoryStatus) => {
     const actions: Array<{ label: string; status: string; color: "primary" | "secondary" | "white" | "red" }> = [];
     const userRole = session?.user?.staffRole;
-    const userId = session?.user?.id;
-    
+
     if (!userRole || !story) return actions;
-    
-    // Check if user is the author of this story
-    const isAuthor = story.authorId === userId;
-    
+
     // Get available transitions for the current user role and status
     const availableTransitions = getAvailableStatusTransitions(userRole, currentStatus);
 

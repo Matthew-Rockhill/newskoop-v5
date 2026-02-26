@@ -7,10 +7,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { 
+import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  PencilIcon,
   DocumentTextIcon,
   TagIcon,
   PlusIcon,
@@ -78,8 +77,8 @@ const subEditorReviewSchema = z.object({
   generalTagIds: z.array(z.string()).optional(),
 });
 
-type JournalistReviewData = z.infer<typeof journalistReviewSchema>;
-type SubEditorReviewData = z.infer<typeof subEditorReviewSchema>;
+type _JournalistReviewData = z.infer<typeof journalistReviewSchema>;
+type _SubEditorReviewData = z.infer<typeof subEditorReviewSchema>;
 type ReviewChecklistData = any; // Use flexible type to handle both schemas
 
 interface StoryReviewFormProps {
@@ -114,7 +113,7 @@ function canShowApproveButton(status: string) {
   return status === 'PENDING_APPROVAL';
 }
 // Helper: should show request revision button  
-function canShowRequestRevisionButton(userRole: string | null, status: string, isOwnStory: boolean = false) {
+function _canShowRequestRevisionButton(userRole: string | null, status: string, isOwnStory: boolean = false) {
   if (!userRole) return false;
   // Journalists can request revision when reviewing OTHER people's stories
   if (userRole === 'JOURNALIST' && status === 'IN_REVIEW' && !isOwnStory) return true;
@@ -126,7 +125,7 @@ function canShowRequestRevisionButton(userRole: string | null, status: string, i
   return false;
 }
 // Helper: should show edit button
-function canShowEditButton(status: string) {
+function _canShowEditButton(status: string) {
   // Only allow edit for DRAFT, IN_REVIEW, NEEDS_REVISION
   return ['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION'].includes(status);
 }
@@ -332,11 +331,11 @@ export function StoryReviewForm({ storyId }: StoryReviewFormProps) {
     }
   };
 
-  const handleRequestRevision = () => {
+  const _handleRequestRevision = () => {
     setShowRevisionModal(true);
   };
 
-  const handleEdit = () => {
+  const _handleEdit = () => {
     router.push(`/newsroom/stories/${storyId}/edit`);
   };
 

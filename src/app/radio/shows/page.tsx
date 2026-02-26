@@ -152,15 +152,6 @@ export default function ShowsPage() {
     setSelectedSubShow(null);
   }, [selectedShow]);
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
       <Container className="pt-24 pb-8">

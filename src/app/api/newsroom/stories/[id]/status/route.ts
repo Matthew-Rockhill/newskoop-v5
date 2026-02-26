@@ -7,7 +7,7 @@ import { canUpdateStoryStatus } from '@/lib/permissions';
 import { publishStoryEvent, publishDashboardEvent, createEvent } from '@/lib/ably';
 
 // Helper function to check workflow permissions
-function canUpdateStatus(userRole: string | null, currentStatus: StoryStatus, newStatus: StoryStatus, storyAuthorId?: string, currentUserId?: string) {
+function canUpdateStatus(userRole: string | null, currentStatus: StoryStatus, newStatus: StoryStatus, _storyAuthorId?: string, _currentUserId?: string) {
   if (!userRole) return false;
   return canUpdateStoryStatus(userRole as StaffRole, currentStatus, newStatus);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   LanguageIcon,
   MapPinIcon,
@@ -294,22 +294,22 @@ export default function ClassificationsPage() {
   const [selectedClassification, setSelectedClassification] = useState<Classification | null>(null);
 
   const { data, isLoading, error } = useClassifications(activeType);
-  const classifications = data?.classifications || [];
 
   // Filter classifications based on search
   const filteredClassifications = useMemo(() => {
+    const classifications = data?.classifications || [];
     return classifications.filter((c: Classification) => {
       const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.nameAfrikaans && c.nameAfrikaans.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesSearch;
     });
-  }, [classifications, searchQuery]);
+  }, [data?.classifications, searchQuery]);
 
   // Check if user can manage classifications (EDITOR+)
-  const canManage = () => {
+  const canManage = useCallback(() => {
     const userRole = session?.user?.staffRole;
     return userRole && ['SUPERADMIN', 'ADMIN', 'EDITOR'].includes(userRole);
-  };
+  }, [session?.user?.staffRole]);
 
   const handleCreate = () => {
     setSelectedClassification(null);
@@ -458,7 +458,7 @@ export default function ClassificationsPage() {
         </div>
       ),
     },
-  ], [activeType]);
+  ], [TypeIcon]);
 
   // Define row actions
   const rowActions: RowAction<Classification>[] = useMemo(() => [
@@ -478,7 +478,7 @@ export default function ClassificationsPage() {
       isHidden: () => !canManage(),
       isDisabled: (classification) => !canDelete(classification),
     },
-  ], [session?.user?.staffRole]);
+  ], [canManage]);
 
   return (
     <Container>

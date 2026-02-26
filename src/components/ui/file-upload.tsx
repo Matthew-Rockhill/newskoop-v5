@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from 'react';
 import { CloudArrowUpIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Button } from './button';
 import { CustomAudioPlayer } from './audio-player';
 import clsx from 'clsx';
 

@@ -15,7 +15,7 @@ const translationRequestSchema = z.object({
 // POST /api/newsroom/stories/[id]/create-translations - Create translations for a story
 const createTranslations = createHandler(
   async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const _user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
     const params = await context.params;
     const storyId = params.id;
 

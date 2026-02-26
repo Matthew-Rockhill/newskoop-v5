@@ -1,7 +1,7 @@
 'use client'
 
 import clsx from 'clsx'
-import { ChevronUpIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/20/solid'
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/20/solid'
 import { Checkbox } from '../checkbox'
 import { useDataListContext } from './DataList'
 import { DataListRow } from './DataListRow'
@@ -62,7 +62,7 @@ export function DataListTable<T extends { id: string }>({
                   )}
 
                   {/* Data columns */}
-                  {visibleColumns.map((column, index) => (
+                  {visibleColumns.map((column, _index) => (
                     <th
                       key={column.key}
                       scope="col"

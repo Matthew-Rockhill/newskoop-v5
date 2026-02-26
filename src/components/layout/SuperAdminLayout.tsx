@@ -6,15 +6,9 @@ import {
   Bars3Icon,
   UsersIcon,
   RadioIcon,
-  ChartBarIcon,
   XMarkIcon,
-  DocumentTextIcon,
-  FolderIcon,
-  TagIcon,
   HomeIcon,
   ArrowRightOnRectangleIcon,
-  CogIcon,
-  NewspaperIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'

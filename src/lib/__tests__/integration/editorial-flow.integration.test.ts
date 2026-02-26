@@ -8,8 +8,6 @@
 
 import {
   StoryStage,
-  StoryStatus,
-  StoryLanguage,
   ClassificationType,
   StaffRole,
 } from '@prisma/client';

@@ -5,7 +5,7 @@ import { storyCreateSchema, storySearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 import { generateSlug, generateUniqueStorySlug } from '@/lib/slug-utils';
-import { publishStoryEvent, publishDashboardEvent, createEvent } from '@/lib/ably';
+import { publishStoryEvent, createEvent } from '@/lib/ably';
 
 // Helper function to check permissions
 function hasStoryPermission(userRole: string | null, action: 'create' | 'read' | 'update' | 'delete') {
@@ -337,7 +337,7 @@ const createStory = createHandler(
 
     let storyData: Record<string, unknown> = {};
     const audioFiles: File[] = [];
-    const audioDescriptions: string[] = [];
+    const _audioDescriptions: string[] = [];
 
     // Support both JSON and FormData
     const contentType = req.headers.get('content-type') || '';
@@ -357,7 +357,7 @@ const createStory = createHandler(
           audioFiles.push(value as File);
         } else if (key.startsWith('audioDescription_')) {
           const index = parseInt(key.split('_')[1]);
-          audioDescriptions[index] = value as string;
+          _audioDescriptions[index] = value as string;
         } else if (key !== 'audioFilesCount') {
           if (key === 'tagIds') {
             storyData[key] = JSON.parse(value as string);

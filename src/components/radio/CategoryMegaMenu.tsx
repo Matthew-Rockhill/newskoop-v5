@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Text } from '@/components/ui/text';
 import { Heading } from '@/components/ui/heading';
@@ -16,8 +15,6 @@ import {
   ArrowRightIcon,
   MapPinIcon,
   GlobeAltIcon,
-  CurrencyDollarIcon,
-  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 
 interface CategoryMegaMenuProps {

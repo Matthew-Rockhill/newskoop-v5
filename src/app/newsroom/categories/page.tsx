@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   TagIcon,
@@ -41,7 +41,7 @@ export default function CategoriesPage() {
   };
 
   // Check if user can edit a specific category
-  const canEditCategory = (category: Category) => {
+  const canEditCategory = useCallback((category: Category) => {
     const userRole = session?.user?.staffRole;
     if (!userRole) return false;
 
@@ -54,7 +54,7 @@ export default function CategoriesPage() {
     }
 
     return false;
-  };
+  }, [session?.user?.staffRole]);
 
   // Define columns for the DataList
   const columns: DataListColumn<Category>[] = useMemo(() => [
@@ -159,7 +159,7 @@ export default function CategoriesPage() {
         </div>
       ),
     },
-  ], [session?.user?.staffRole]);
+  ], [canEditCategory]);
 
   // Define row actions
   const rowActions: RowAction<Category>[] = useMemo(() => [
@@ -171,7 +171,7 @@ export default function CategoriesPage() {
       onAction: () => {},
       isHidden: (category) => !canEditCategory(category),
     },
-  ], [session?.user?.staffRole]);
+  ], [canEditCategory]);
 
   return (
     <Container>

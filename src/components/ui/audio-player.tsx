@@ -106,7 +106,7 @@ export function CustomAudioPlayer({
         setIsPlaying(true);
         onPlay?.(audioId);
       }
-    } catch (error) {
+    } catch {
       // Handle the play() interruption gracefully (AbortError)
       // Other errors are handled by the error event listener
     }

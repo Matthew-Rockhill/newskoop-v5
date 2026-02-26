@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { ClassificationType } from '@prisma/client';
 
 // GET /api/radio/locality-tags - Get locality classifications (provinces)
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 

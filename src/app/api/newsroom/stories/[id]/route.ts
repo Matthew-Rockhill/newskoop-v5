@@ -457,7 +457,7 @@ const updateStory = createHandler(
     }
 
     // Extract tag IDs, classification IDs, and removedAudioIds from the data
-    const { tagIds, classificationIds, removedAudioIds, ...storyData } = data;
+    const { tagIds, classificationIds, removedAudioIds: _removedAudioIds, ...storyData } = data;
 
     // Generate new slug if title is being updated
     if (storyData.title) {

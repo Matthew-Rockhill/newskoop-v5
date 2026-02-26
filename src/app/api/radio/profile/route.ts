@@ -57,7 +57,7 @@ export async function GET() {
     }
 
     // Remove sensitive information
-    const { password, resetToken, resetTokenExpiresAt, ...safeUser } = user;
+    const { password: _password, resetToken: _resetToken, resetTokenExpiresAt: _resetTokenExpiresAt, ...safeUser } = user;
 
     return NextResponse.json({
       user: safeUser,
@@ -130,7 +130,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     // Remove sensitive information
-    const { password, resetToken, resetTokenExpiresAt, ...safeUser } = updatedUser;
+    const { password: _password2, resetToken: _resetToken2, resetTokenExpiresAt: _resetTokenExpiresAt2, ...safeUser } = updatedUser;
 
     return NextResponse.json({
       message: 'Profile updated successfully',

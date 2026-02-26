@@ -32,10 +32,6 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
     return () => window.removeEventListener('scroll', handleScroll);
   }, [transparent]);
 
-  const linkColor = transparent && !isScrolled
-    ? 'text-white hover:text-[#76BD43]'
-    : 'text-zinc-700 hover:text-[#76BD43]';
-
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${

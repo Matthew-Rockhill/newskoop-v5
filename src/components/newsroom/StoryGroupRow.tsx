@@ -2,7 +2,6 @@ import { useState, useEffect, KeyboardEvent, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
-  ChevronDownIcon,
   ChevronRightIcon,
   GlobeAltIcon,
   RocketLaunchIcon,
@@ -92,7 +91,7 @@ const languageMap: Record<string, string> = {
   NDEBELE: 'Ndebele',
 };
 
-export function StoryGroupRow({ story, index = 0 }: StoryGroupRowProps) {
+export function StoryGroupRow({ story, index: _index = 0 }: StoryGroupRowProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const [isExpanded, setIsExpanded] = useState(false);

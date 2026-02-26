@@ -20,7 +20,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
   Bars3BottomLeftIcon,
-  PlusIcon,
   PencilIcon,
   TrashIcon,
   XMarkIcon,

@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     // Update user's profile picture URL
     const profilePictureUrl = `/uploads/profiles/${filename}`;
     
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: { id: session.user.id },
       data: {
         profilePictureUrl,

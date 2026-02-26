@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -69,8 +69,8 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
   };
 
   // Debounced search to avoid too many API calls
-  const debouncedSearch = useCallback(
-    debounce((query: string) => {
+  const debouncedSearch = useMemo(
+    () => debounce((query: string) => {
       setSearchQuery(query);
       setPage(1);
     }, 300),

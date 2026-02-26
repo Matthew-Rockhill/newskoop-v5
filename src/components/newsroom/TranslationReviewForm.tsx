@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
@@ -9,13 +9,11 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateTranslationQueries, invalidateCommentQueries } from '@/lib/query-invalidation';
-import { 
+import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   PencilIcon,
   DocumentTextIcon,
-  EyeIcon,
-  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 import { Container } from '@/components/ui/container';
@@ -28,7 +26,6 @@ import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Checkbox, CheckboxGroup, CheckboxField } from '@/components/ui/checkbox';
-import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/ui/description-list';
 import { RevisionRequestModal } from './RevisionRequestModal';
 
 interface RevisionNote {
@@ -70,7 +67,7 @@ function canShowApproveButton(status: string) {
   return status === 'NEEDS_REVIEW';
 }
 
-function canShowRequestRevisionButton(userRole: string | null, status: string, isOwnTranslation: boolean = false) {
+function canShowRequestRevisionButton(userRole: string | null, status: string, _isOwnTranslation: boolean = false) {
   if (!userRole) return false;
   // Sub-editors and above can request revision on NEEDS_REVIEW translations
   return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole) && status === 'NEEDS_REVIEW';
@@ -168,7 +165,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
     setTimeout(() => trigger(field as any), 0);
   };
 
-  const handleApprove = async (data: ReviewChecklistData) => {
+  const handleApprove = async (_data: ReviewChecklistData) => {
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/newsroom/translations/${translationId}`, {
@@ -189,7 +186,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
       toast.success('Translation approved successfully');
       router.push(`/newsroom/translations/${translationId}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to approve translation');
     } finally {
       setIsSubmitting(false);
@@ -230,7 +227,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
       toast.success('Translation submitted for review successfully');
       router.push(`/newsroom/translations/${translationId}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to submit translation for review');
     } finally {
       setIsSubmitting(false);
@@ -279,7 +276,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
 
       toast.success('Revision requested successfully');
       router.push(`/newsroom/translations/${translationId}/work`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to request revision');
     } finally {
       setIsSubmitting(false);

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -25,7 +24,6 @@ interface EmailLogWithUser extends EmailLog {
 }
 
 export default function EmailsPage() {
-  const router = useRouter();
   const [emails, setEmails] = useState<EmailLogWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<EmailLogWithUser | null>(null);
@@ -35,13 +33,9 @@ export default function EmailsPage() {
   const [statusFilter, setStatusFilter] = useState<EmailStatus | 'ALL'>('ALL');
   const [typeFilter, setTypeFilter] = useState<EmailType | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
 
-  useEffect(() => {
-    fetchEmails();
-  }, [statusFilter, typeFilter, searchQuery, page]);
-
-  const fetchEmails = async () => {
+  const fetchEmails = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -60,12 +54,16 @@ export default function EmailsPage() {
       } else {
         toast.error('Failed to fetch emails');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to fetch emails');
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, typeFilter, searchQuery, page]);
+
+  useEffect(() => {
+    fetchEmails();
+  }, [fetchEmails]);
 
   const getStatusColor = (status: EmailStatus) => {
     switch (status) {

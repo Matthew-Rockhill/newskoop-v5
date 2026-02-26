@@ -17,7 +17,7 @@ const episodeUpdateSchema = z.object({
 const getEpisode = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id, episodeId } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const _user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
 
     const episode = await prisma.episode.findUnique({
       where: { id: episodeId },

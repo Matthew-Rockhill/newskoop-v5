@@ -258,7 +258,7 @@ describe('Stage-Based Story Workflow', () => {
 
   describe('Revision Requests', () => {
     const reviewerId = 'reviewer-123';
-    const approverId = 'approver-456';
+    const _approverId = 'approver-456';
     const otherId = 'other-789';
 
     it('Assigned reviewer can request revision', () => {

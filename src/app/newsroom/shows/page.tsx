@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -17,7 +16,6 @@ import { toast } from 'react-hot-toast';
 
 export default function ShowsPage() {
   const { data: session } = useSession();
-  const router = useRouter();
   const userRole = session?.user?.staffRole;
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);

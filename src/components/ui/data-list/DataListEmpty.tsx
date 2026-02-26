@@ -5,7 +5,6 @@ import { Heading } from '../heading'
 import { Text } from '../text'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import type { EmptyStateConfig } from './types'
-import { Link } from '../link'
 
 export function DataListEmpty({ icon: Icon, title, description, action }: EmptyStateConfig) {
   return (
