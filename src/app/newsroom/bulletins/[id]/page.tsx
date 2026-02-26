@@ -458,6 +458,7 @@ export default function BulletinViewPage() {
                                 mimeType: clip.mimeType || 'audio/mpeg',
                               }}
                               compact
+                              onError={() => toast.error('Failed to play audio file')}
                             />
                           ))}
                         </div>

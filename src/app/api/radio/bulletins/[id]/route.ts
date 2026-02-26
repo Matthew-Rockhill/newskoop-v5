@@ -105,6 +105,7 @@ export async function GET(
         story: {
           ...bs.story,
           audioUrl: bs.story.audioClips?.[0]?.audioClip?.url || null,
+          audioClips: bs.story.audioClips?.map((sac: any) => sac.audioClip) || [],
         },
       })),
     };

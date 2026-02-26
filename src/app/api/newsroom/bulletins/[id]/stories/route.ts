@@ -129,13 +129,13 @@ export async function PATCH(
                       select: {
                         id: true,
                         filename: true,
+                        originalName: true,
                         url: true,
                         duration: true,
                         mimeType: true,
                       },
                     },
                   },
-                  take: 1, // Get only the first audio clip
                 },
               },
             },

@@ -305,8 +305,14 @@ const getStories = createHandler(
       console.log('🔍 Stories returned:', stories.map(s => ({ id: s.id, title: s.title })));
     }
 
+    // Flatten audioClips from join-table format to flat AudioClip objects
+    const transformedStories = stories.map((story: any) => ({
+      ...story,
+      audioClips: story.audioClips?.map((sac: any) => sac.audioClip) || [],
+    }));
+
     return NextResponse.json({
-      stories,
+      stories: transformedStories,
       pagination: {
         total,
         page,

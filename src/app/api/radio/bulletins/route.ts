@@ -104,12 +104,13 @@ export async function GET(req: NextRequest) {
                       audioClip: {
                         select: {
                           id: true,
+                          originalName: true,
                           url: true,
                           duration: true,
+                          mimeType: true,
                         },
                       },
                     },
-                    take: 1,
                   },
                 },
               },
@@ -132,11 +133,19 @@ export async function GET(req: NextRequest) {
       'ZULU': 'Zulu',
     };
 
-    // Transform response
+    // Transform response - flatten audioClips from join-table format
     const transformed = bulletins.map((b: any) => ({
       ...b,
       languageDisplay: reverseLanguageMap[b.language] || b.language,
       storyCount: b.bulletinStories.length,
+      bulletinStories: b.bulletinStories.map((bs: any) => ({
+        ...bs,
+        story: {
+          ...bs.story,
+          audioUrl: bs.story.audioClips?.[0]?.audioClip?.url || null,
+          audioClips: bs.story.audioClips?.map((sac: any) => sac.audioClip) || [],
+        },
+      })),
     }));
 
     return NextResponse.json({
