@@ -250,6 +250,7 @@ export async function POST(
 
       case 'mark_as_translated':
         // Mark APPROVED story as TRANSLATED when translations are complete
+        // When used via "Skip Translation", this also publishes the story directly
         if (!['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
           return NextResponse.json(
             { error: 'Insufficient permissions to mark as translated' },
@@ -264,11 +265,31 @@ export async function POST(
           );
         }
 
-        newStage = 'TRANSLATED';
-        updateData = {
-          stage: newStage,
-        };
-        auditAction = 'MARK_AS_TRANSLATED';
+        // If story has no translations (skip translation flow), publish directly
+        {
+          const translationCount = await prisma.story.count({
+            where: { originalStoryId: story.id },
+          });
+
+          if (translationCount === 0) {
+            // Skip translation → publish directly
+            newStage = 'PUBLISHED';
+            updateData = {
+              stage: 'PUBLISHED' as StoryStage,
+              status: 'PUBLISHED',
+              publishedAt: new Date(),
+              publishedBy: session.user.id,
+            };
+            auditAction = 'PUBLISH_STORY';
+          } else {
+            // Has translations → normal mark as translated flow
+            newStage = 'TRANSLATED';
+            updateData = {
+              stage: newStage,
+            };
+            auditAction = 'MARK_AS_TRANSLATED';
+          }
+        }
         break;
 
       case 'publish_story':

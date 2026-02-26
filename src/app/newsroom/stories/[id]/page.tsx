@@ -765,7 +765,13 @@ export default function StoryDetailPage() {
         throw new Error(error.error || 'Failed to mark as ready to publish');
       }
 
-      toast.success('Story marked as ready to publish');
+      const result = await response.json();
+      const newStage = result.story?.stage || result.stage;
+      if (newStage === 'PUBLISHED') {
+        toast.success('Story published successfully');
+      } else {
+        toast.success('Story marked as ready to publish');
+      }
       await queryClient.invalidateQueries({ queryKey: ['story', storyId] });
       await queryClient.invalidateQueries({ queryKey: ['stories'] });
     } catch (error: unknown) {

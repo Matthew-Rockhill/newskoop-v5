@@ -67,7 +67,7 @@ export async function PATCH(
     const stories = await prisma.story.findMany({
       where: {
         id: { in: storyIds },
-        status: 'PUBLISHED',
+        stage: 'PUBLISHED',
       },
       select: { id: true },
     });
@@ -246,10 +246,10 @@ export async function POST(
     // Check if story exists and is published
     const story = await prisma.story.findUnique({
       where: { id: storyId },
-      select: { id: true, status: true },
+      select: { id: true, stage: true },
     });
 
-    if (!story || story.status !== 'PUBLISHED') {
+    if (!story || story.stage !== 'PUBLISHED') {
       return NextResponse.json({ error: 'Story not found or not published' }, { status: 400 });
     }
 
