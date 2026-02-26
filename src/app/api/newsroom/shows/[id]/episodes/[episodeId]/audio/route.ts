@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { canManageShows } from '@/lib/permissions';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
-import { del } from '@vercel/blob';
+import { deleteAudioFile } from '@/lib/r2-storage';
 
 // Maximum audio clips allowed per episode
 const MAX_AUDIO_CLIPS_PER_EPISODE = 5;
@@ -136,7 +136,7 @@ const uploadAudio = createHandler(
         return NextResponse.json({ error: validation.error }, { status: 400 });
       }
 
-      // Save file to Vercel Blob
+      // Save file to R2 storage
       const uploadedFile = await saveUploadedFile(file, 'newsroom/shows/audio');
 
       // Create audio clip record
@@ -203,11 +203,11 @@ const deleteAudio = createHandler(
       return NextResponse.json({ error: 'Audio clip does not belong to this episode' }, { status: 400 });
     }
 
-    // Delete from Vercel Blob
+    // Delete from R2 storage
     try {
-      await del(audioClip.url);
+      await deleteAudioFile(audioClip.url);
     } catch (error) {
-      console.error('Failed to delete audio file from blob:', error);
+      console.error('Failed to delete audio file from R2:', error);
     }
 
     // Delete database record
