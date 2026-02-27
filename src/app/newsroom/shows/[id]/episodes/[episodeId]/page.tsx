@@ -20,6 +20,7 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { FileUpload } from '@/components/ui/file-upload';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { Dialog, DialogTitle, DialogDescription, DialogBody, DialogActions } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   useEpisode,
   useUpdateEpisode,
@@ -68,6 +69,8 @@ export default function EpisodeDetailPage({
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [showAudioPicker, setShowAudioPicker] = useState(false);
+  const [deleteAudioId, setDeleteAudioId] = useState<string | null>(null);
+  const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
 
   const { data: episode, isLoading } = useEpisode(showId, episodeId);
   const updateEpisode = useUpdateEpisode();
@@ -140,12 +143,12 @@ export default function EpisodeDetailPage({
     }
   };
 
-  const handleAudioDelete = async (audioClipId: string) => {
-    if (!confirm('Are you sure you want to delete this audio file?')) return;
-
+  const handleAudioDeleteConfirm = async () => {
+    if (!deleteAudioId) return;
     try {
-      await deleteAudio.mutateAsync({ showId, episodeId, audioClipId });
+      await deleteAudio.mutateAsync({ showId, episodeId, audioClipId: deleteAudioId });
       toast.success('Audio file deleted successfully');
+      setDeleteAudioId(null);
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete audio file');
     }
@@ -171,12 +174,11 @@ export default function EpisodeDetailPage({
     }
   };
 
-  const handleUnpublish = async () => {
-    if (!confirm('Are you sure you want to unpublish this episode?')) return;
-
+  const handleUnpublishConfirm = async () => {
     try {
       await unpublishEpisode.mutateAsync({ showId, episodeId });
       toast.success('Episode unpublished successfully');
+      setShowUnpublishConfirm(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to unpublish episode');
     }
@@ -243,7 +245,7 @@ export default function EpisodeDetailPage({
                     {updateEpisode.isPending ? 'Saving...' : 'Save Changes'}
                   </Button>
                   {episode.status === 'PUBLISHED' && canPublish && (
-                    <Button color="red" onClick={handleUnpublish}>
+                    <Button color="red" onClick={() => setShowUnpublishConfirm(true)}>
                       Unpublish
                     </Button>
                   )}
@@ -366,7 +368,7 @@ export default function EpisodeDetailPage({
                     {canManage && (
                       <Button
                         color="red"
-                        onClick={() => handleAudioDelete(clip.id)}
+                        onClick={() => setDeleteAudioId(clip.id)}
                         disabled={deleteAudio.isPending}
                       >
                         <TrashIcon className="w-4 h-4" />
@@ -421,20 +423,15 @@ export default function EpisodeDetailPage({
       </div>
 
       {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
-        <DialogTitle>Delete Episode</DialogTitle>
-        <DialogDescription>
-          Are you sure you want to delete this episode? This action cannot be undone, and all audio files will also be deleted.
-        </DialogDescription>
-        <DialogActions>
-          <Button color="white" onClick={() => setIsDeleteModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button color="red" onClick={handleDelete} disabled={deleteEpisode.isPending}>
-            {deleteEpisode.isPending ? 'Deleting...' : 'Delete Episode'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Episode"
+        description="Are you sure you want to delete this episode? This action cannot be undone, and all audio files will also be deleted."
+        confirmLabel="Delete Episode"
+        isPending={deleteEpisode.isPending}
+      />
 
       {/* Publish Modal */}
       <Dialog open={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)}>
@@ -462,6 +459,28 @@ export default function EpisodeDetailPage({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Audio Confirmation */}
+      <ConfirmDialog
+        open={!!deleteAudioId}
+        onClose={() => setDeleteAudioId(null)}
+        onConfirm={handleAudioDeleteConfirm}
+        title="Delete Audio File"
+        description="Are you sure you want to delete this audio file?"
+        isPending={deleteAudio.isPending}
+      />
+
+      {/* Unpublish Confirmation */}
+      <ConfirmDialog
+        open={showUnpublishConfirm}
+        onClose={() => setShowUnpublishConfirm(false)}
+        onConfirm={handleUnpublishConfirm}
+        title="Unpublish Episode"
+        description="Are you sure you want to unpublish this episode?"
+        confirmLabel="Unpublish"
+        isPending={unpublishEpisode.isPending}
+        variant="warning"
+      />
 
       {/* Audio Library Picker Modal */}
       <AudioPickerModal

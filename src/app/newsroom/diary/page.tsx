@@ -27,6 +27,8 @@ import {
 } from '@/hooks/use-diary';
 import type { DiaryEntry } from '@/hooks/use-diary';
 import { DiaryEntryModal } from '@/components/newsroom/diary/DiaryEntryModal';
+import { SimplePagination } from '@/components/ui/pagination';
+import { CardSkeleton } from '@/components/ui/skeleton';
 
 export default function DiaryPage() {
   const [page, setPage] = useState(1);
@@ -192,14 +194,7 @@ export default function DiaryPage() {
 
         {/* Entry List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Card key={i} className="p-6 animate-pulse">
-                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
-                <div className="h-3 bg-zinc-200 rounded w-1/2"></div>
-              </Card>
-            ))}
-          </div>
+          <CardSkeleton />
         ) : error ? (
           <Card className="p-8 text-center">
             <Text className="text-red-600">Failed to load diary entries</Text>
@@ -329,18 +324,13 @@ export default function DiaryPage() {
             })}
 
             {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-8">
-                <Button outline disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                  Previous
-                </Button>
-                <Text>
-                  Page {page} of {pagination.totalPages}
-                </Text>
-                <Button outline disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>
-                  Next
-                </Button>
-              </div>
+            {pagination && (
+              <SimplePagination
+                page={page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+                className="mt-8"
+              />
             )}
           </div>
         )}

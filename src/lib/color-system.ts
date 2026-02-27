@@ -212,3 +212,57 @@ export function getClassificationTypeColor(type: string | null | undefined): Bad
   if (!type) return 'zinc';
   return CLASSIFICATION_TYPE_COLORS[type] || 'zinc';
 }
+
+/**
+ * Bulletin Status Colors
+ * For bulletin workflow status badges
+ */
+export const BULLETIN_STATUS_COLORS: Record<string, BadgeColor> = {
+  DRAFT: 'zinc',
+  IN_REVIEW: 'amber',
+  NEEDS_REVISION: 'red',
+  APPROVED: 'lime',
+  PUBLISHED: 'emerald',
+  ARCHIVED: 'zinc',
+} as const;
+
+/**
+ * Email Status Colors
+ * For email delivery status badges
+ */
+export const EMAIL_STATUS_COLORS: Record<string, BadgeColor> = {
+  SENT: 'green',
+  DELIVERED: 'green',
+  FAILED: 'red',
+  BOUNCED: 'red',
+  PENDING: 'yellow',
+} as const;
+
+/**
+ * Helper function to get bulletin status color with fallback
+ */
+export function getBulletinStatusColor(status: string | null | undefined): BadgeColor {
+  if (!status) return 'zinc';
+  return BULLETIN_STATUS_COLORS[status] || 'zinc';
+}
+
+/**
+ * Helper function to get email status color with fallback
+ */
+export function getEmailStatusColor(status: string | null | undefined): BadgeColor {
+  if (!status) return 'zinc';
+  return EMAIL_STATUS_COLORS[status] || 'zinc';
+}
+
+/**
+ * Helper function to get audit action color with fallback.
+ * Uses contains/startsWith logic for flexible matching.
+ */
+export function getAuditActionColor(action: string | null | undefined): BadgeColor {
+  if (!action) return 'zinc';
+  if (action.includes('failed')) return 'red';
+  if (action.startsWith('auth')) return 'blue';
+  if (action.includes('delete') || action.includes('deactivate')) return 'red';
+  if (action.includes('create') || action.includes('activate') || action.includes('publish')) return 'green';
+  return 'zinc';
+}

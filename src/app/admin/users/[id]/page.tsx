@@ -9,6 +9,7 @@ import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { UsersIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { formatDateLong } from '@/lib/format';
 import { UserActivityTab } from '@/components/admin/UserActivityTab';
 
 // Define User type locally
@@ -40,13 +41,7 @@ const formatUserRole = (userType: string, staffRole?: string | null) => {
   return 'Radio Station User';
 };
 
-const formatDate = (date: Date) => {
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(date));
-};
+const formatDate = formatDateLong;
 
 type Tab = 'details' | 'activity';
 

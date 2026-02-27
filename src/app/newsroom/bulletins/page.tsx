@@ -23,6 +23,8 @@ import {
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { Input, InputGroup } from '@/components/ui/input';
+import { formatDateTime } from '@/lib/format';
+import { getBulletinStatusColor } from '@/lib/color-system';
 
 interface Bulletin {
   id: string;
@@ -94,28 +96,6 @@ export default function BulletinsPage() {
   const bulletins: Bulletin[] = data?.bulletins || [];
   const pagination = data?.pagination;
 
-  const getStatusColor = (status: string): 'zinc' | 'amber' | 'red' | 'lime' | 'emerald' => {
-    switch (status) {
-      case 'DRAFT': return 'zinc';
-      case 'IN_REVIEW': return 'amber';
-      case 'NEEDS_REVISION': return 'red';
-      case 'APPROVED': return 'lime';
-      case 'PUBLISHED': return 'emerald';
-      case 'ARCHIVED': return 'zinc';
-      default: return 'zinc';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   // Check if user can edit a bulletin
   const canEdit = useCallback((bulletin: Bulletin) => {
     return bulletin.status === 'DRAFT' && bulletin.author.id === session?.user?.id;
@@ -162,12 +142,12 @@ export default function BulletinsPage() {
               ) : bulletin.scheduledFor ? (
                 <div className="flex items-center gap-1">
                   <CalendarDaysIcon className="h-3 w-3" />
-                  {formatDate(bulletin.scheduledFor)}
+                  {formatDateTime(bulletin.scheduledFor)}
                 </div>
               ) : null}
               <div className="flex items-center gap-1">
                 <ClockIcon className="h-3 w-3" />
-                {formatDate(bulletin.createdAt)}
+                {formatDateTime(bulletin.createdAt)}
               </div>
             </div>
           </div>
@@ -190,7 +170,7 @@ export default function BulletinsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-            <Badge color={getStatusColor(bulletin.status)}>
+            <Badge color={getBulletinStatusColor(bulletin.status)}>
               {bulletin.status.replace('_', ' ')}
             </Badge>
             <Badge color="blue" className="text-xs">
@@ -211,7 +191,7 @@ export default function BulletinsPage() {
       width: 'shrink',
       align: 'center',
       render: (bulletin) => (
-        <Badge color={getStatusColor(bulletin.status)}>
+        <Badge color={getBulletinStatusColor(bulletin.status)}>
           {bulletin.status.replace('_', ' ')}
         </Badge>
       ),

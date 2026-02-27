@@ -14,6 +14,7 @@ import { Field, FieldGroup, Fieldset, Label } from '@/components/ui/fieldset';
 import { Dialog } from '@/components/ui/dialog';
 import { EmailLog, EmailStatus, EmailType } from '@prisma/client';
 import toast from 'react-hot-toast';
+import { getEmailStatusColor } from '@/lib/color-system';
 
 interface EmailLogWithUser extends EmailLog {
   user?: {
@@ -64,21 +65,6 @@ export default function EmailsPage() {
   useEffect(() => {
     fetchEmails();
   }, [fetchEmails]);
-
-  const getStatusColor = (status: EmailStatus) => {
-    switch (status) {
-      case 'SENT':
-      case 'DELIVERED':
-        return 'green';
-      case 'FAILED':
-      case 'BOUNCED':
-        return 'red';
-      case 'PENDING':
-        return 'yellow';
-      default:
-        return 'zinc';
-    }
-  };
 
   const getTypeLabel = (type: EmailType) => {
     switch (type) {
@@ -213,7 +199,7 @@ export default function EmailsPage() {
                     <Badge color="blue">{getTypeLabel(email.type)}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge color={getStatusColor(email.status)}>
+                    <Badge color={getEmailStatusColor(email.status)}>
                       {email.status}
                     </Badge>
                   </TableCell>
@@ -264,7 +250,7 @@ export default function EmailsPage() {
               
               <div>
                 <Label>Status</Label>
-                <Badge color={getStatusColor(selectedEmail.status)}>
+                <Badge color={getEmailStatusColor(selectedEmail.status)}>
                   {selectedEmail.status}
                 </Badge>
               </div>

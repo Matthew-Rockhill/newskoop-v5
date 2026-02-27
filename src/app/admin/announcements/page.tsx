@@ -21,6 +21,11 @@ import {
   EyeIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
+import { formatDateTime } from '@/lib/format';
+import { getPriorityColor, getAudienceColor } from '@/lib/color-system';
+import { SimplePagination } from '@/components/ui/pagination';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { CardSkeleton } from '@/components/ui/skeleton';
 
 interface Announcement {
   id: string;
@@ -102,41 +107,16 @@ export default function AdminAnnouncementsPage() {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'HIGH': return 'red';
-      case 'MEDIUM': return 'amber';
-      default: return 'blue';
-    }
-  };
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
-  const getTargetAudienceColor = (audience: string) => {
-    switch (audience) {
-      case 'ALL': return 'purple';
-      case 'NEWSROOM': return 'blue';
-      case 'RADIO': return 'green';
-      default: return 'zinc';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const handleDelete = async (id: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete the announcement "${title}"?`)) {
-      try {
-        await deleteMutation.mutateAsync(id);
-      } catch (error) {
-        console.error('Error deleting announcement:', error);
-        alert('Failed to delete announcement');
-      }
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+      alert('Failed to delete announcement');
     }
   };
 
@@ -193,15 +173,7 @@ export default function AdminAnnouncementsPage() {
 
         {/* Announcements List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Card key={i} className="p-6 animate-pulse">
-                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
-                <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
-                <div className="h-20 bg-zinc-200 rounded"></div>
-              </Card>
-            ))}
-          </div>
+          <CardSkeleton count={5} lines={3} />
         ) : error ? (
           <Card className="p-8 text-center">
             <Text className="text-red-600">Failed to load announcements</Text>
@@ -236,7 +208,7 @@ export default function AdminAnnouncementsPage() {
                         <Badge color={getPriorityColor(announcement.priority)} className="text-xs">
                           {announcement.priority}
                         </Badge>
-                        <Badge color={getTargetAudienceColor(announcement.targetAudience)} className="text-xs">
+                        <Badge color={getAudienceColor(announcement.targetAudience)} className="text-xs">
                           {announcement.targetAudience}
                         </Badge>
                         {!announcement.isActive && (
@@ -259,9 +231,9 @@ export default function AdminAnnouncementsPage() {
                           <EyeIcon className="h-4 w-4" />
                           <span>{announcement._count.dismissals} views</span>
                         </div>
-                        <span>Created {formatDate(announcement.createdAt)}</span>
+                        <span>Created {formatDateTime(announcement.createdAt)}</span>
                         {announcement.expiresAt && (
-                          <span>Expires {formatDate(announcement.expiresAt)}</span>
+                          <span>Expires {formatDateTime(announcement.expiresAt)}</span>
                         )}
                       </div>
                     </div>
@@ -284,7 +256,7 @@ export default function AdminAnnouncementsPage() {
                     
                     <Button
                       outline
-                      onClick={() => handleDelete(announcement.id, announcement.title)}
+                      onClick={() => setDeleteTarget({ id: announcement.id, title: announcement.title })}
                       disabled={deleteMutation.isPending}
                     >
                       <TrashIcon className="h-4 w-4" />
@@ -295,30 +267,27 @@ export default function AdminAnnouncementsPage() {
             ))}
             
             {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-8">
-                <Button
-                  outline
-                  disabled={page <= 1}
-                  onClick={() => setPage(page - 1)}
-                >
-                  Previous
-                </Button>
-                <Text>
-                  Page {page} of {pagination.totalPages}
-                </Text>
-                <Button
-                  outline
-                  disabled={page >= pagination.totalPages}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Next
-                </Button>
-              </div>
+            {pagination && (
+              <SimplePagination
+                page={page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+                className="mt-8"
+              />
             )}
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Announcement"
+        description={`Are you sure you want to delete the announcement "${deleteTarget?.title}"?`}
+        confirmLabel="Delete"
+        isPending={deleteMutation.isPending}
+      />
     </Container>
   );
 }

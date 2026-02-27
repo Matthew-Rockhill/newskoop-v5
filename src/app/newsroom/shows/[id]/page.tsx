@@ -18,6 +18,7 @@ import { ShowForm } from '@/components/newsroom/shows/ShowForm';
 import { canManageShows } from '@/lib/permissions';
 import { PlusIcon, PencilIcon, TrashIcon, MusicalNoteIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
@@ -43,6 +44,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
 
   const [isCreateEpisodeModalOpen, setIsCreateEpisodeModalOpen] = useState(false);
   const [isCreateSubShowModalOpen, setIsCreateSubShowModalOpen] = useState(false);
+  const [deleteEpisodeId, setDeleteEpisodeId] = useState<string | null>(null);
 
   const { data: show, isLoading } = useShow(id);
   const { data: episodes } = useEpisodes(id);
@@ -72,12 +74,12 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
     }
   };
 
-  const handleDeleteEpisode = async (episodeId: string) => {
-    if (!confirm('Are you sure you want to delete this episode?')) return;
-
+  const handleDeleteEpisodeConfirm = async () => {
+    if (!deleteEpisodeId) return;
     try {
-      await deleteEpisode.mutateAsync({ showId: id, episodeId });
+      await deleteEpisode.mutateAsync({ showId: id, episodeId: deleteEpisodeId });
       toast.success('Episode deleted successfully');
+      setDeleteEpisodeId(null);
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete episode');
     }
@@ -317,7 +319,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
                   <TableCell className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                     {canManage && (
-                      <Button color="red" onClick={() => handleDeleteEpisode(episode.id)}>
+                      <Button color="red" onClick={() => setDeleteEpisodeId(episode.id)}>
                         <TrashIcon className="w-4 h-4" />
                       </Button>
                     )}
@@ -383,6 +385,16 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
           </form>
         </DialogBody>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteEpisodeId}
+        onClose={() => setDeleteEpisodeId(null)}
+        onConfirm={handleDeleteEpisodeConfirm}
+        title="Delete Episode"
+        description="Are you sure you want to delete this episode?"
+        confirmLabel="Delete Episode"
+        isPending={deleteEpisode.isPending}
+      />
     </Container>
   );
 }

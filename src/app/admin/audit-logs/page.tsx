@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Field, FieldGroup, Fieldset, Label } from '@/components/ui/fieldset';
-import { Text } from '@/components/ui/text';
+import { formatAuditAction } from '@/lib/format';
+import { getAuditActionColor } from '@/lib/color-system';
+import { SimplePagination } from '@/components/ui/pagination';
 
 interface AuditLogEntry {
   id: string;
@@ -54,41 +56,6 @@ const ACTION_CATEGORIES = [
   { value: 'content.update', label: 'Content Updated' },
   { value: 'content.publish', label: 'Content Published' },
 ];
-
-function formatAction(action: string): string {
-  const labels: Record<string, string> = {
-    'auth.login': 'Login',
-    'auth.login.failed': 'Failed Login',
-    'auth.logout': 'Logout',
-    'auth.password.reset.request': 'Password Reset Request',
-    'auth.password.reset': 'Password Reset',
-    'auth.password.change': 'Password Change',
-    'user.create': 'User Created',
-    'user.update': 'User Updated',
-    'user.delete': 'User Deleted',
-    'user.activate': 'User Activated',
-    'user.deactivate': 'User Deactivated',
-    'station.create': 'Station Created',
-    'station.update': 'Station Updated',
-    'station.delete': 'Station Deleted',
-    'station.activate': 'Station Activated',
-    'station.deactivate': 'Station Deactivated',
-    'content.create': 'Content Created',
-    'content.update': 'Content Updated',
-    'content.delete': 'Content Deleted',
-    'content.publish': 'Content Published',
-    'content.unpublish': 'Content Unpublished',
-  };
-  return labels[action] || action;
-}
-
-function getActionColor(action: string): 'blue' | 'green' | 'red' | 'yellow' | 'zinc' {
-  if (action.includes('failed')) return 'red';
-  if (action.startsWith('auth')) return 'blue';
-  if (action.includes('delete') || action.includes('deactivate')) return 'red';
-  if (action.includes('create') || action.includes('activate') || action.includes('publish')) return 'green';
-  return 'zinc';
-}
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -232,8 +199,8 @@ export default function AuditLogsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge color={getActionColor(log.action)}>
-                          {formatAction(log.action)}
+                        <Badge color={getAuditActionColor(log.action)}>
+                          {formatAuditAction(log.action)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-zinc-600">
@@ -270,29 +237,12 @@ export default function AuditLogsPage() {
         </div>
 
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <Text className="text-sm text-zinc-500">
-              Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
-            </Text>
-            <div className="flex gap-2">
-              <Button
-                color="white"
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-              >
-                Previous
-              </Button>
-              <Button
-                color="white"
-                disabled={page >= pagination.totalPages}
-                onClick={() => setPage(page + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
+        <SimplePagination
+          page={page}
+          totalPages={pagination.totalPages}
+          onPageChange={setPage}
+          totalLabel={`${pagination.total} total`}
+        />
       </div>
     </Container>
   );

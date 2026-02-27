@@ -10,6 +10,7 @@ import {
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { formatDateShort } from '@/lib/format';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -117,13 +118,7 @@ export default function AudioLibraryPage() {
     }
   }, [deletingClip, deleteMutation]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
+  const formatDate = formatDateShort;
 
   return (
     <Container>

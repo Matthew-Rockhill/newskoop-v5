@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataList, type DataListColumn, type RowAction } from '@/components/ui/data-list';
 import { getClassificationTypeColor } from '@/lib/color-system';
+import { formatDateShort } from '@/lib/format';
 
 import {
   useClassifications,
@@ -326,13 +327,7 @@ export default function ClassificationsPage() {
     setDeleteModalOpen(true);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
+  const formatDate = formatDateShort;
 
   const TypeIcon = getTypeIcon(activeType);
 

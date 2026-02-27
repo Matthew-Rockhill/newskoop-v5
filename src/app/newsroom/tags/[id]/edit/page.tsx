@@ -15,7 +15,7 @@ import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { Dialog, DialogTitle, DialogDescription, DialogActions } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { useTags, useUpdateTag, useDeleteTag, type Tag } from "@/hooks/use-tags";
 import { useSession } from "next-auth/react";
@@ -190,21 +190,14 @@ export default function EditTagPage() {
           </div>
         </form>
         {/* Delete Confirmation Modal */}
-        <Dialog open={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
-          <DialogTitle>Delete Tag</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete this tag? This action cannot be undone.
-          </DialogDescription>
-          <DialogActions>
-            <Button color="white" onClick={() => setShowDeleteModal(false)}>
-              Cancel
-            </Button>
-            <Button color="red" onClick={handleDelete} disabled={deleteTag.isPending} className="font-bold flex items-center gap-2">
-              <TrashIcon className="h-5 w-5" />
-              {deleteTag.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <ConfirmDialog
+          open={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDelete}
+          title="Delete Tag"
+          description="Are you sure you want to delete this tag? This action cannot be undone."
+          isPending={deleteTag.isPending}
+        />
       </div>
     </Container>
   );

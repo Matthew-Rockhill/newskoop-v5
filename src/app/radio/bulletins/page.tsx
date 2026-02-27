@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataList, type DataListColumn } from '@/components/ui/data-list';
 import { PageHeader } from '@/components/ui/page-header';
 import { MegaphoneIcon } from '@heroicons/react/24/outline';
+import { formatDateLong } from '@/lib/format';
 
 interface BulletinStory {
   id: string;
@@ -125,13 +126,7 @@ export default function BulletinsPage() {
     setCurrentPage(1);
   }, [selectedLanguage, selectedSchedule]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+  const formatDate = formatDateLong;
 
   const columns: DataListColumn<Bulletin>[] = useMemo(() => [
     {

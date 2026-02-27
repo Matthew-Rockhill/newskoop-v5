@@ -170,6 +170,51 @@ export function PaginationPage({
   )
 }
 
+/**
+ * Simple Previous / Page X of Y / Next pagination.
+ * Drop-in replacement for the 6+ identical inline pagination blocks.
+ */
+interface SimplePaginationProps {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  /** Additional info shown left of buttons, e.g. "(120 total)" */
+  totalLabel?: string;
+  className?: string;
+}
+
+export function SimplePagination({
+  page,
+  totalPages,
+  onPageChange,
+  totalLabel,
+  className,
+}: SimplePaginationProps) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className={clsx('flex justify-center items-center gap-4', className)}>
+      <Button
+        outline
+        disabled={page <= 1}
+        onClick={() => onPageChange(page - 1)}
+      >
+        Previous
+      </Button>
+      <span className="text-sm text-zinc-600 dark:text-zinc-400">
+        Page {page} of {totalPages}{totalLabel ? ` (${totalLabel})` : ''}
+      </span>
+      <Button
+        outline
+        disabled={page >= totalPages}
+        onClick={() => onPageChange(page + 1)}
+      >
+        Next
+      </Button>
+    </div>
+  );
+}
+
 export function PaginationGap({
   className,
   children = <>&hellip;</>,

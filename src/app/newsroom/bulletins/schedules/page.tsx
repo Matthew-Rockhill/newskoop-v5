@@ -19,6 +19,8 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { BulletinScheduleManager } from '@/components/newsroom/bulletins/BulletinScheduleManager';
+import { getLanguageColor } from '@/lib/color-system';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface BulletinSchedule {
   id: string;
@@ -90,27 +92,23 @@ export default function BulletinSchedulesPage() {
 
   const schedules: BulletinSchedule[] = schedulesData?.schedules || [];
 
-  const handleDelete = async (schedule: BulletinSchedule) => {
+  const [deleteTarget, setDeleteTarget] = useState<BulletinSchedule | null>(null);
+
+  const handleDeleteClick = (schedule: BulletinSchedule) => {
     if (schedule._count.bulletins > 0) {
       alert(`Cannot delete schedule "${schedule.title}" because it has ${schedule._count.bulletins} associated bulletins.`);
       return;
     }
-
-    if (window.confirm(`Are you sure you want to delete the schedule "${schedule.title}"?`)) {
-      try {
-        await deleteMutation.mutateAsync(schedule.id);
-      } catch (_error) {
-        alert('Failed to delete schedule');
-      }
-    }
+    setDeleteTarget(schedule);
   };
 
-  const getLanguageColor = (language: string) => {
-    switch (language) {
-      case 'ENGLISH': return 'blue';
-      case 'AFRIKAANS': return 'green';
-      case 'XHOSA': return 'purple';
-      default: return 'zinc';
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (_error) {
+      alert('Failed to delete schedule');
     }
   };
 
@@ -254,7 +252,7 @@ export default function BulletinSchedulesPage() {
                     </Button>
                     <Button
                       outline
-                      onClick={() => handleDelete(schedule)}
+                      onClick={() => handleDeleteClick(schedule)}
                       disabled={schedule._count.bulletins > 0}
                       className="flex items-center gap-1 text-red-600 hover:text-red-700 disabled:opacity-50"
                     >
@@ -285,6 +283,15 @@ export default function BulletinSchedulesPage() {
           }}
         />
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Schedule"
+        description={`Are you sure you want to delete the schedule "${deleteTarget?.title}"?`}
+        confirmLabel="Delete"
+        isPending={deleteMutation.isPending}
+      />
     </Container>
   );
 }

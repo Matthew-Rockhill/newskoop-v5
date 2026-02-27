@@ -29,6 +29,7 @@ import {
   ClockIcon,
   TagIcon,
 } from '@heroicons/react/24/outline';
+import { formatDateShort } from '@/lib/format';
 
 interface Story {
   id: string;
@@ -77,14 +78,6 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
   };
 
   const truncateContent = (content: string | null, maxLength: number = 100) => {
@@ -152,7 +145,7 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
           </span>
           <span className="flex items-center gap-1">
             <ClockIcon className="h-3 w-3" />
-            {formatDate(story.publishedAt)}
+            {formatDateShort(story.publishedAt)}
           </span>
           {story.tags.filter(t => t.category !== 'LANGUAGE').length > 0 && (
             <span className="flex items-center gap-1">

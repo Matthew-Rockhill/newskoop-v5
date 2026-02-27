@@ -5,6 +5,7 @@ import { Button } from './button';
 import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { formatDateTime } from '@/lib/format';
 
 interface Comment {
   id: string;
@@ -72,15 +73,7 @@ export function CommentList({ storyId, refreshKey = 0, onCommentAdded }: Comment
     }
   }, [onCommentAdded, fetchComments]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatDate = formatDateTime;
 
   const handleReply = async (commentId: string) => {
     if (!replyContent.trim()) {

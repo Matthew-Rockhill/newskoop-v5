@@ -11,6 +11,8 @@ import {
   ClockIcon,
   SpeakerWaveIcon,
 } from '@heroicons/react/24/outline';
+import { formatDateTimeFull } from '@/lib/format';
+import { getLanguageColor } from '@/lib/color-system';
 
 interface Story {
   id: string;
@@ -61,26 +63,6 @@ export function BulletinPreview({
   scheduleTitle,
   scheduleTime,
 }: BulletinPreviewProps) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long', 
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getLanguageColor = (lang: string) => {
-    switch (lang) {
-      case 'ENGLISH': return 'blue';
-      case 'AFRIKAANS': return 'green';
-      case 'XHOSA': return 'purple';
-      default: return 'zinc';
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Bulletin Header */}
@@ -116,7 +98,7 @@ export function BulletinPreview({
                 {scheduleTitle && <span>•</span>}
                 <span className="flex items-center gap-1">
                   <CalendarDaysIcon className="h-4 w-4" />
-                  {formatDate(scheduledFor)}
+                  {formatDateTimeFull(scheduledFor)}
                 </span>
               </>
             )}

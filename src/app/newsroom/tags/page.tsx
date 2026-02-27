@@ -9,6 +9,7 @@ import {
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { Input, InputGroup } from '@/components/ui/input';
+import { formatDateShort } from '@/lib/format';
 
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -48,13 +49,7 @@ export default function TagsPage() {
     return hasTagPermission(userRole, 'update');
   }, [session?.user?.staffRole]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
+  const formatDate = formatDateShort;
 
   // Define columns for the DataList
   const columns: DataListColumn<Tag>[] = useMemo(() => [

@@ -21,6 +21,10 @@ import {
   EyeSlashIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
+import { formatDateTime } from '@/lib/format';
+import { getPriorityColor, getAudienceColor } from '@/lib/color-system';
+import { SimplePagination } from '@/components/ui/pagination';
+import { CardSkeleton } from '@/components/ui/skeleton';
 
 interface Announcement {
   id: string;
@@ -89,33 +93,6 @@ export default function NewsroomAnnouncementsPage() {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'HIGH': return 'red';
-      case 'MEDIUM': return 'amber';
-      default: return 'blue';
-    }
-  };
-
-  const getTargetAudienceColor = (audience: string) => {
-    switch (audience) {
-      case 'ALL': return 'purple';
-      case 'NEWSROOM': return 'blue';
-      case 'RADIO': return 'green';
-      default: return 'zinc';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const handleDismiss = async (id: string) => {
     try {
       await dismissMutation.mutateAsync(id);
@@ -178,15 +155,7 @@ export default function NewsroomAnnouncementsPage() {
 
         {/* Announcements List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Card key={i} className="p-6 animate-pulse">
-                <div className="h-4 bg-zinc-200 rounded w-3/4 mb-3"></div>
-                <div className="h-3 bg-zinc-200 rounded w-1/2 mb-4"></div>
-                <div className="h-20 bg-zinc-200 rounded"></div>
-              </Card>
-            ))}
-          </div>
+          <CardSkeleton count={5} lines={3} />
         ) : error ? (
           <Card className="p-8 text-center">
             <Text className="text-red-600">Failed to load announcements</Text>
@@ -235,7 +204,7 @@ export default function NewsroomAnnouncementsPage() {
                         <Badge color={getPriorityColor(announcement.priority)}>
                           {announcement.priority}
                         </Badge>
-                        <Badge color={getTargetAudienceColor(announcement.targetAudience)}>
+                        <Badge color={getAudienceColor(announcement.targetAudience)}>
                           {announcement.targetAudience}
                         </Badge>
                         {announcement.isDismissed && (
@@ -257,9 +226,9 @@ export default function NewsroomAnnouncementsPage() {
                             {announcement.author.staffRole}
                           </Badge>
                         </div>
-                        <span>Created {formatDate(announcement.createdAt)}</span>
+                        <span>Created {formatDateTime(announcement.createdAt)}</span>
                         {announcement.expiresAt && (
-                          <span>Expires {formatDate(announcement.expiresAt)}</span>
+                          <span>Expires {formatDateTime(announcement.expiresAt)}</span>
                         )}
                       </div>
                     </div>
@@ -281,26 +250,13 @@ export default function NewsroomAnnouncementsPage() {
             ))}
             
             {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-8">
-                <Button
-                  outline
-                  disabled={page <= 1}
-                  onClick={() => setPage(page - 1)}
-                >
-                  Previous
-                </Button>
-                <Text>
-                  Page {page} of {pagination.totalPages}
-                </Text>
-                <Button
-                  outline
-                  disabled={page >= pagination.totalPages}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Next
-                </Button>
-              </div>
+            {pagination && (
+              <SimplePagination
+                page={page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+                className="mt-8"
+              />
             )}
           </div>
         )}

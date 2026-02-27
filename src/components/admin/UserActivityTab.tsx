@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Select } from '@/components/ui/select';
 import { ClockIcon } from '@heroicons/react/24/outline';
+import { formatAuditAction } from '@/lib/format';
+import { getAuditActionColor } from '@/lib/color-system';
+import { SimplePagination } from '@/components/ui/pagination';
 
 interface ActivityEntry {
   id: string;
@@ -45,39 +47,6 @@ const ACTION_CATEGORIES = [
   { value: 'user', label: 'User Management' },
   { value: 'station', label: 'Station Management' },
 ];
-
-function formatAction(action: string): string {
-  const labels: Record<string, string> = {
-    'auth.login': 'Login',
-    'auth.login.failed': 'Failed Login',
-    'auth.logout': 'Logout',
-    'auth.password.reset.request': 'Password Reset Requested',
-    'auth.password.reset': 'Password Reset',
-    'auth.password.change': 'Password Changed',
-    'user.create': 'Created User',
-    'user.update': 'Updated User',
-    'user.delete': 'Deleted User',
-    'user.activate': 'Activated User',
-    'user.deactivate': 'Deactivated User',
-    'station.create': 'Created Station',
-    'station.update': 'Updated Station',
-    'station.delete': 'Deleted Station',
-    'content.create': 'Created Content',
-    'content.update': 'Updated Content',
-    'content.delete': 'Deleted Content',
-    'content.publish': 'Published Content',
-    'content.unpublish': 'Unpublished Content',
-  };
-  return labels[action] || action;
-}
-
-function getActionColor(action: string): 'blue' | 'green' | 'red' | 'yellow' | 'zinc' {
-  if (action.includes('failed')) return 'red';
-  if (action.startsWith('auth')) return 'blue';
-  if (action.includes('delete') || action.includes('deactivate')) return 'red';
-  if (action.includes('create') || action.includes('activate') || action.includes('publish')) return 'green';
-  return 'zinc';
-}
 
 export function UserActivityTab({ userId }: UserActivityTabProps) {
   const [page, setPage] = useState(1);
@@ -135,8 +104,8 @@ export function UserActivityTab({ userId }: UserActivityTabProps) {
                   <ClockIcon className="h-4 w-4 text-zinc-400 mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge color={getActionColor(entry.action)}>
-                        {formatAction(entry.action)}
+                      <Badge color={getAuditActionColor(entry.action)}>
+                        {formatAuditAction(entry.action)}
                       </Badge>
                       {entry.entityType && (
                         <Text className="text-xs text-zinc-400">
@@ -166,28 +135,13 @@ export function UserActivityTab({ userId }: UserActivityTabProps) {
       )}
 
       {/* Pagination */}
-      {data?.pagination && data.pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between pt-3">
-          <Text className="text-sm text-zinc-500">
-            Page {data.pagination.page} of {data.pagination.totalPages}
-          </Text>
-          <div className="flex gap-2">
-            <Button
-              color="white"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              color="white"
-              disabled={page >= data.pagination.totalPages}
-              onClick={() => setPage(page + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+      {data?.pagination && (
+        <SimplePagination
+          page={page}
+          totalPages={data.pagination.totalPages}
+          onPageChange={setPage}
+          className="pt-3"
+        />
       )}
     </div>
   );

@@ -26,6 +26,7 @@ import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
+import { getTranslationStatusColor } from '@/lib/color-system';
 import { Avatar } from '@/components/ui/avatar';
 import { Checkbox, CheckboxGroup, CheckboxField } from '@/components/ui/checkbox';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
@@ -296,14 +297,6 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
     );
   }
 
-  const statusColors = {
-    PENDING: 'zinc',
-    IN_PROGRESS: 'blue',
-    NEEDS_REVIEW: 'amber',
-    APPROVED: 'green',
-    REJECTED: 'red',
-  } as const;
-
   return (
     <>
       <Container>
@@ -318,7 +311,7 @@ export function TranslationReviewForm({ translationId }: TranslationReviewFormPr
                   {
                     label: "Status",
                     value: (
-                      <Badge color={statusColors[translation.status as keyof typeof statusColors]}>
+                      <Badge color={getTranslationStatusColor(translation.status)}>
                         {translation.status.replace('_', ' ')}
                       </Badge>
                     )

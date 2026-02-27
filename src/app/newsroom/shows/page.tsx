@@ -6,7 +6,8 @@ import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogTitle, DialogDescription, DialogBody, DialogActions } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogDescription, DialogBody } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ShowList } from '@/components/newsroom/shows/ShowList';
 import { ShowForm } from '@/components/newsroom/shows/ShowForm';
 import { useShows, useCreateShow, useUpdateShow, useDeleteShow, Show, CreateShowData, UpdateShowData } from '@/hooks/use-shows';
@@ -144,20 +145,15 @@ export default function ShowsPage() {
       </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
-        <DialogTitle>Delete Show</DialogTitle>
-        <DialogDescription>
-          Are you sure you want to delete "{selectedShow?.title}"? This action cannot be undone, and all episodes will also be deleted.
-        </DialogDescription>
-        <DialogActions>
-          <Button color="white" onClick={() => setIsDeleteModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button color="red" onClick={handleDelete} disabled={deleteShow.isPending}>
-            {deleteShow.isPending ? 'Deleting...' : 'Delete Show'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Show"
+        description={`Are you sure you want to delete "${selectedShow?.title}"? This action cannot be undone, and all episodes will also be deleted.`}
+        confirmLabel="Delete Show"
+        isPending={deleteShow.isPending}
+      />
     </Container>
   );
 }

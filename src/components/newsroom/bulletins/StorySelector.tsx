@@ -19,6 +19,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import debounce from 'lodash.debounce';
+import { formatDateShort } from '@/lib/format';
+import { SimplePagination } from '@/components/ui/pagination';
 
 interface Story {
   id: string;
@@ -154,14 +156,6 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
     setTagFilter('');
     setFlaggedOnly(false);
     setPage(1);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
   };
 
   const getLanguageTag = (storyTags: Story['tags']) => {
@@ -314,7 +308,7 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
                       </span>
                       <span className="flex items-center gap-1">
                         <ClockIcon className="h-3 w-3" />
-                        {formatDate(story.publishedAt)}
+                        {formatDateShort(story.publishedAt)}
                       </span>
                       {story.tags.filter(t => t.category !== 'LANGUAGE').length > 0 && (
                         <span className="flex items-center gap-1">
@@ -352,28 +346,13 @@ export function StorySelector({ language, selectedStoryIds, onAddStory }: StoryS
       </div>
 
       {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-center gap-2 pt-4 border-t">
-          <Button
-            type="button"
-            outline
-            onClick={() => setPage(page - 1)}
-            disabled={page === 1}
-          >
-            Previous
-          </Button>
-          <span className="flex items-center px-3 text-sm">
-            Page {page} of {pagination.totalPages}
-          </span>
-          <Button
-            type="button"
-            outline
-            onClick={() => setPage(page + 1)}
-            disabled={page === pagination.totalPages}
-          >
-            Next
-          </Button>
-        </div>
+      {pagination && (
+        <SimplePagination
+          page={page}
+          totalPages={pagination.totalPages}
+          onPageChange={setPage}
+          className="pt-4 border-t"
+        />
       )}
     </div>
   );
