@@ -271,19 +271,11 @@ describe('Editorial Flow (API Integration)', () => {
     body = await res.json();
     expect(body.story.stage).toBe('APPROVED');
 
-    // 4. APPROVED → TRANSLATED (sub-editor marks as translated)
+    // 4. APPROVED → PUBLISHED (skip translation — story has no translations,
+    //    so mark_as_translated publishes directly)
     res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
       method: 'POST',
       body: JSON.stringify({ action: 'mark_as_translated' }),
-    });
-    expect(res.status).toBe(200);
-    body = await res.json();
-    expect(body.story.stage).toBe('TRANSLATED');
-
-    // 5. TRANSLATED → PUBLISHED (sub-editor publishes)
-    res = await apiFetch(`/api/newsroom/stories/${story.id}/stage`, subEditorCookie, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'publish_story' }),
     });
     expect(res.status).toBe(200);
     body = await res.json();
