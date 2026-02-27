@@ -9,6 +9,7 @@ import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { UsersIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { UserActivityTab } from '@/components/admin/UserActivityTab';
 
 // Define User type locally
 type User = {
@@ -47,6 +48,8 @@ const formatDate = (date: Date) => {
   }).format(new Date(date));
 };
 
+type Tab = 'details' | 'activity';
+
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -54,6 +57,7 @@ export default function UserDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('details');
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -157,6 +161,41 @@ export default function UserDetailPage() {
           }}
         />
 
+        {/* Tabs */}
+        <div className="border-b border-zinc-200">
+          <nav className="-mb-px flex gap-x-6">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'details'
+                  ? 'border-kelly-green text-kelly-green'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
+              }`}
+            >
+              Details
+            </button>
+            <button
+              onClick={() => setActiveTab('activity')}
+              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'activity'
+                  ? 'border-kelly-green text-kelly-green'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
+              }`}
+            >
+              Activity Log
+            </button>
+          </nav>
+        </div>
+
+        {activeTab === 'activity' ? (
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-base/7 font-semibold text-zinc-900 mb-4">User Activity</h3>
+              <UserActivityTab userId={user.id} />
+            </div>
+          </div>
+        ) : (
+        <>
         {/* User Information Section */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
@@ -245,6 +284,8 @@ export default function UserDetailPage() {
             </dl>
           </div>
         </div>
+        </>
+        )}
       </div>
     </Container>
   );

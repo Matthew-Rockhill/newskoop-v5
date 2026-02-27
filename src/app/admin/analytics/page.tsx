@@ -18,14 +18,37 @@ import {
   ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
+interface OverviewStats {
+  totalViews: number;
+  uniqueUsers: number;
+  activeStations: number;
+  avgViewsPerDay: number;
+}
+
+function computeChange(current: number, previous: number): { text: string; type: 'positive' | 'negative' | 'neutral' } {
+  if (previous === 0) {
+    return current > 0
+      ? { text: '+100%', type: 'positive' }
+      : { text: 'No change', type: 'neutral' };
+  }
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct > 0) return { text: `+${pct}%`, type: 'positive' };
+  if (pct < 0) return { text: `${pct}%`, type: 'negative' };
+  return { text: 'No change', type: 'neutral' };
+}
+
 export default function AnalyticsPage() {
-  const [dateRange, setDateRange] = useState('30'); // days
+  const [dateRange, setDateRange] = useState('30');
   const [isExporting, setIsExporting] = useState(false);
 
-  const startDate = startOfDay(subDays(new Date(), parseInt(dateRange)));
+  const days = parseInt(dateRange);
+  const startDate = startOfDay(subDays(new Date(), days));
   const endDate = endOfDay(new Date());
 
-  // Handle CSV export
+  // Previous period for comparison
+  const prevEndDate = startOfDay(subDays(new Date(), days));
+  const prevStartDate = startOfDay(subDays(new Date(), days * 2));
+
   const handleExport = async () => {
     try {
       setIsExporting(true);
@@ -37,7 +60,6 @@ export default function AnalyticsPage() {
         throw new Error('Export failed');
       }
 
-      // Get the CSV content
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -55,14 +77,26 @@ export default function AnalyticsPage() {
     }
   };
 
-  // Fetch overview stats
-  const { data: overview, isLoading: overviewLoading } = useQuery({
+  // Fetch current period overview
+  const { data: overview, isLoading: overviewLoading } = useQuery<OverviewStats>({
     queryKey: ['analytics-overview', startDate.toISOString(), endDate.toISOString()],
     queryFn: async () => {
       const response = await fetch(
         `/api/admin/analytics/overview?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
       );
       if (!response.ok) throw new Error('Failed to fetch overview');
+      return response.json();
+    },
+  });
+
+  // Fetch previous period for comparison
+  const { data: prevOverview } = useQuery<OverviewStats>({
+    queryKey: ['analytics-overview-prev', prevStartDate.toISOString(), prevEndDate.toISOString()],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/admin/analytics/overview?startDate=${prevStartDate.toISOString()}&endDate=${prevEndDate.toISOString()}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch previous overview');
       return response.json();
     },
   });
@@ -103,6 +137,20 @@ export default function AnalyticsPage() {
     },
   });
 
+  // Compute comparison deltas
+  const viewsChange = overview && prevOverview
+    ? computeChange(overview.totalViews, prevOverview.totalViews)
+    : null;
+  const usersChange = overview && prevOverview
+    ? computeChange(overview.uniqueUsers, prevOverview.uniqueUsers)
+    : null;
+  const stationsChange = overview && prevOverview
+    ? computeChange(overview.activeStations, prevOverview.activeStations)
+    : null;
+  const avgChange = overview && prevOverview
+    ? computeChange(Math.round(overview.avgViewsPerDay), Math.round(prevOverview.avgViewsPerDay))
+    : null;
+
   return (
     <Container>
       <div className="space-y-6">
@@ -111,7 +159,6 @@ export default function AnalyticsPage() {
           description="Track content views, station activity, and engagement metrics"
           actions={
             <div className="flex items-center gap-4">
-              {/* Date Range Selector */}
               <div className="flex gap-2">
                 <Button
                   color={dateRange === '7' ? 'primary' : 'white'}
@@ -133,7 +180,6 @@ export default function AnalyticsPage() {
                 </Button>
               </div>
 
-              {/* Export Button */}
               <Button
                 color="white"
                 onClick={handleExport}
@@ -147,7 +193,7 @@ export default function AnalyticsPage() {
           }
         />
 
-        {/* Overview Stats */}
+        {/* Overview Stats with Comparison */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
@@ -163,9 +209,17 @@ export default function AnalyticsPage() {
               <Heading level={2} className="text-3xl font-bold text-zinc-900">
                 {overview?.totalViews?.toLocaleString() || '0'}
               </Heading>
-              <Text className="text-sm text-zinc-500 mt-1">
-                Across all content types
-              </Text>
+              <div className="flex items-center gap-2 mt-1">
+                {viewsChange && (
+                  <span className={`text-xs font-medium ${
+                    viewsChange.type === 'positive' ? 'text-emerald-600' :
+                    viewsChange.type === 'negative' ? 'text-rose-600' : 'text-zinc-500'
+                  }`}>
+                    {viewsChange.text}
+                  </span>
+                )}
+                <Text className="text-sm text-zinc-500">vs previous {dateRange}d</Text>
+              </div>
             </>
           )}
         </Card>
@@ -184,9 +238,17 @@ export default function AnalyticsPage() {
               <Heading level={2} className="text-3xl font-bold text-zinc-900">
                 {overview?.uniqueUsers?.toLocaleString() || '0'}
               </Heading>
-              <Text className="text-sm text-zinc-500 mt-1">
-                Registered users viewing content
-              </Text>
+              <div className="flex items-center gap-2 mt-1">
+                {usersChange && (
+                  <span className={`text-xs font-medium ${
+                    usersChange.type === 'positive' ? 'text-emerald-600' :
+                    usersChange.type === 'negative' ? 'text-rose-600' : 'text-zinc-500'
+                  }`}>
+                    {usersChange.text}
+                  </span>
+                )}
+                <Text className="text-sm text-zinc-500">vs previous {dateRange}d</Text>
+              </div>
             </>
           )}
         </Card>
@@ -205,9 +267,17 @@ export default function AnalyticsPage() {
               <Heading level={2} className="text-3xl font-bold text-zinc-900">
                 {overview?.activeStations || '0'}
               </Heading>
-              <Text className="text-sm text-zinc-500 mt-1">
-                Stations accessing content
-              </Text>
+              <div className="flex items-center gap-2 mt-1">
+                {stationsChange && (
+                  <span className={`text-xs font-medium ${
+                    stationsChange.type === 'positive' ? 'text-emerald-600' :
+                    stationsChange.type === 'negative' ? 'text-rose-600' : 'text-zinc-500'
+                  }`}>
+                    {stationsChange.text}
+                  </span>
+                )}
+                <Text className="text-sm text-zinc-500">vs previous {dateRange}d</Text>
+              </div>
             </>
           )}
         </Card>
@@ -226,9 +296,17 @@ export default function AnalyticsPage() {
               <Heading level={2} className="text-3xl font-bold text-zinc-900">
                 {Math.round(overview?.avgViewsPerDay || 0).toLocaleString()}
               </Heading>
-              <Text className="text-sm text-zinc-500 mt-1">
-                Daily average for period
-              </Text>
+              <div className="flex items-center gap-2 mt-1">
+                {avgChange && (
+                  <span className={`text-xs font-medium ${
+                    avgChange.type === 'positive' ? 'text-emerald-600' :
+                    avgChange.type === 'negative' ? 'text-rose-600' : 'text-zinc-500'
+                  }`}>
+                    {avgChange.text}
+                  </span>
+                )}
+                <Text className="text-sm text-zinc-500">vs previous {dateRange}d</Text>
+              </div>
             </>
           )}
         </Card>

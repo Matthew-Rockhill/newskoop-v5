@@ -2,15 +2,25 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useUsers, type UserWithStation } from '@/hooks/use-users';
 import { DataList, type DataListColumn, type RowAction } from '@/components/ui/data-list';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { Avatar } from '@/components/ui/avatar';
+import { StatsCard } from '@/components/ui/stats-card';
 import { UsersIcon, UserIcon, BuildingOfficeIcon, PencilIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Input, InputGroup } from '@/components/ui/input';
+import { formatDistanceToNow } from 'date-fns';
 
 type UserFilter = 'all' | 'radio' | 'staff';
+
+interface UserSummary {
+  totalUsers: number;
+  activeIn7Days: number;
+  neverLoggedIn: number;
+  pendingPassword: number;
+}
 
 // Helper function for formatting user role
 function formatUserRole(user: UserWithStation) {
@@ -34,6 +44,15 @@ export function UserList() {
     perPage: 10,
   });
 
+  const { data: summary } = useQuery<UserSummary>({
+    queryKey: ['user-summary'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/users/summary');
+      if (!response.ok) throw new Error('Failed to fetch summary');
+      return response.json();
+    },
+  });
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setFilters((prev) => ({ ...prev, query, page: 1 }));
@@ -52,6 +71,30 @@ export function UserList() {
       return true;
     });
   }, [users, userTypeFilter]);
+
+  const summaryStats = summary
+    ? [
+        { name: 'Total Users', value: summary.totalUsers },
+        {
+          name: 'Active (7d)',
+          value: summary.activeIn7Days,
+          description: 'Logged in within 7 days',
+        },
+        {
+          name: 'Never Logged In',
+          value: summary.neverLoggedIn,
+          changeType: summary.neverLoggedIn > 0 ? 'negative' as const : undefined,
+          change: summary.neverLoggedIn > 0 ? 'Needs attention' : undefined,
+        },
+        {
+          name: 'Pending Password',
+          value: summary.pendingPassword,
+          description: 'Must change password',
+          changeType: summary.pendingPassword > 0 ? 'negative' as const : undefined,
+          change: summary.pendingPassword > 0 ? 'Needs setup' : undefined,
+        },
+      ]
+    : undefined;
 
   // Define columns for the DataList
   const columns: DataListColumn<UserWithStation>[] = useMemo(() => [
@@ -134,9 +177,22 @@ export function UserList() {
       ),
     },
     {
+      key: 'lastLogin',
+      header: 'Last Login',
+      priority: 2,
+      width: 'shrink',
+      render: (user) => (
+        <span className="text-sm text-zinc-500">
+          {user.lastLoginAt
+            ? formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true })
+            : 'Never'}
+        </span>
+      ),
+    },
+    {
       key: 'status',
       header: 'Status',
-      priority: 2,
+      priority: 3,
       width: 'shrink',
       align: 'center',
       render: (user) => (
@@ -167,6 +223,11 @@ export function UserList() {
           onClick: () => router.push('/admin/users/new')
         }}
       />
+
+      {/* Summary Stats */}
+      {summaryStats && (
+        <StatsCard stats={summaryStats} />
+      )}
 
       {/* Search and Filters - Same row on desktop */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

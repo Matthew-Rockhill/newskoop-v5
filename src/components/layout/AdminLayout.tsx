@@ -16,6 +16,7 @@ import {
   UserIcon,
   ChartBarIcon,
   ServerIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -39,6 +40,11 @@ interface NavigationItem {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
 }
 
+interface NavigationSection {
+  label: string
+  items: NavigationItem[]
+}
+
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
@@ -59,28 +65,45 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   // Check if user is SUPERADMIN
   const isSuperAdmin = session?.user?.staffRole === 'SUPERADMIN'
 
-  // Clean admin navigation for both ADMIN and SUPERADMIN
-  const getNavigation = (): NavigationItem[] => {
-    const navigation: NavigationItem[] = []
+  // Build sectioned navigation
+  const getNavigationSections = (): NavigationSection[] => {
+    const sections: NavigationSection[] = []
 
-    // System Status - SUPERADMIN only
+    // Overview
+    const overviewItems: NavigationItem[] = [
+      { name: 'Dashboard', href: '/admin', icon: HomeIcon },
+    ]
     if (isSuperAdmin) {
-      navigation.push({ name: 'System Status', href: '/admin/super', icon: ServerIcon })
+      overviewItems.push({ name: 'System Status', href: '/admin/super', icon: ServerIcon })
     }
+    sections.push({ label: 'Overview', items: overviewItems })
 
-    // Dashboard - always admin dashboard
-    navigation.push({ name: 'Dashboard', href: '/admin', icon: HomeIcon })
+    // Management
+    sections.push({
+      label: 'Management',
+      items: [
+        { name: 'Users', href: '/admin/users', icon: UsersIcon },
+        { name: 'Radio Stations', href: '/admin/stations', icon: RadioIcon },
+        { name: 'Announcements', href: '/admin/announcements', icon: MegaphoneIcon },
+      ],
+    })
 
-    // Core admin functions
-    navigation.push({ name: 'Users', href: '/admin/users', icon: UsersIcon })
-    navigation.push({ name: 'Radio Stations', href: '/admin/stations', icon: RadioIcon })
-    navigation.push({ name: 'Announcements', href: '/admin/announcements', icon: MegaphoneIcon })
-    navigation.push({ name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon })
+    // Insights
+    sections.push({
+      label: 'Insights',
+      items: [
+        { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },
+        { name: 'Audit Logs', href: '/admin/audit-logs', icon: ClipboardDocumentListIcon },
+      ],
+    })
 
-    return navigation
+    return sections
   }
 
-  const navigation = getNavigation()
+  const navigationSections = getNavigationSections()
+
+  // Flat list for mobile header page name lookup
+  const allNavItems = navigationSections.flatMap(s => s.items)
 
   const renderNavigationItem = (item: NavigationItem) => {
     const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
@@ -116,14 +139,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </div>
       <nav className="flex flex-1 flex-col justify-between">
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
-          <li>
-            <div className="text-xs font-semibold leading-6 text-zinc-400 uppercase tracking-wider mb-2">
-              System Administration
-            </div>
-            <ul role="list" className="-mx-2 space-y-1">
-              {navigation.map((item) => renderNavigationItem(item))}
-            </ul>
-          </li>
+          {navigationSections.map((section) => (
+            <li key={section.label}>
+              <div className="text-xs font-semibold leading-6 text-zinc-400 uppercase tracking-wider mb-2">
+                {section.label}
+              </div>
+              <ul role="list" className="-mx-2 space-y-1">
+                {section.items.map((item) => renderNavigationItem(item))}
+              </ul>
+            </li>
+          ))}
           <li>
             <div className="text-xs font-semibold leading-6 text-zinc-400 uppercase tracking-wider mb-2">
               Content Access
@@ -251,7 +276,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   // Get current page name for mobile header
   const getCurrentPageName = () => {
-    const found = navigation.find(item => 
+    const found = allNavItems.find(item =>
       pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
     )
     return found?.name || 'Dashboard'

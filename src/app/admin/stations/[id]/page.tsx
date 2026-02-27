@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { RadioIcon } from '@heroicons/react/24/outline';
+import { StationAnalyticsPanel } from '@/components/admin/StationAnalyticsPanel';
 
 // Define Station type locally
 type Station = {
@@ -208,6 +209,9 @@ export default function StationDetailPage() {
             })()}
           </div>
         </div>
+
+        {/* Usage Analytics */}
+        <StationAnalyticsPanel stationId={station.id} />
 
         {/* Associated Users Section */}
         <div className="bg-white shadow rounded-lg">

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useStations } from '@/hooks/use-stations';
 import type { Station } from '@prisma/client';
 import { DataList, type DataListColumn, type RowAction } from '@/components/ui/data-list';
@@ -10,6 +11,13 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Avatar } from '@/components/ui/avatar';
 import { RadioIcon, PencilIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Input, InputGroup } from '@/components/ui/input';
+import { differenceInDays } from 'date-fns';
+
+interface StationHealth {
+  lastViewAt: string | null;
+  views30d: number;
+  userCount: number;
+}
 
 // Helper function to format province names
 const formatProvince = (province: string) => {
@@ -18,6 +26,22 @@ const formatProvince = (province: string) => {
     .map(word => word.charAt(0) + word.slice(1).toLowerCase())
     .join(' ');
 };
+
+function getHealthBadge(health: StationHealth | undefined): { color: 'green' | 'yellow' | 'red' | 'zinc'; label: string } {
+  if (!health || !health.lastViewAt) {
+    return { color: 'red', label: 'No Activity' };
+  }
+
+  const daysSinceLastView = differenceInDays(new Date(), new Date(health.lastViewAt));
+
+  if (daysSinceLastView <= 7) {
+    return { color: 'green', label: 'Active' };
+  } else if (daysSinceLastView <= 30) {
+    return { color: 'yellow', label: 'Idle' };
+  } else {
+    return { color: 'red', label: 'Inactive' };
+  }
+}
 
 export function StationList() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +54,15 @@ export function StationList() {
     setFilters,
   } = useStations({
     perPage: 10,
+  });
+
+  const { data: healthMap } = useQuery<Record<string, StationHealth>>({
+    queryKey: ['station-health'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/stations/health');
+      if (!response.ok) throw new Error('Failed to fetch health');
+      return response.json();
+    },
   });
 
   const handleSearch = (query: string) => {
@@ -103,14 +136,40 @@ export function StationList() {
             <Badge color={station.isActive ? 'lime' : 'zinc'}>
               {station.isActive ? 'Active' : 'Inactive'}
             </Badge>
+            {healthMap && (
+              <Badge color={getHealthBadge(healthMap[station.id]).color}>
+                {getHealthBadge(healthMap[station.id]).label}
+              </Badge>
+            )}
           </div>
         </div>
       ),
     },
     {
+      key: 'health',
+      header: 'Health',
+      priority: 2,
+      width: 'shrink',
+      align: 'center',
+      render: (station) => {
+        const health = healthMap?.[station.id];
+        const badge = getHealthBadge(health);
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <Badge color={badge.color}>{badge.label}</Badge>
+            {health && (
+              <span className="text-xs text-zinc-400">
+                {health.userCount} {health.userCount === 1 ? 'user' : 'users'} • {health.views30d} views
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'status',
       header: 'Status',
-      priority: 2,
+      priority: 3,
       width: 'shrink',
       align: 'center',
       render: (station) => (
@@ -119,7 +178,7 @@ export function StationList() {
         </Badge>
       ),
     },
-  ], []);
+  ], [healthMap]);
 
   // Define row actions
   const rowActions: RowAction<Station>[] = useMemo(() => [
