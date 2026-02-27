@@ -9,6 +9,8 @@ export interface DiaryEntry {
   story: { id: string; title: string; status?: string } | null;
   createdById: string;
   createdBy: { id: string; firstName: string; lastName: string; staffRole?: string };
+  assignedToId: string | null;
+  assignedTo: { id: string; firstName: string; lastName: string; staffRole?: string } | null;
   isCompleted: boolean;
   completedAt: string | null;
   completedById: string | null;
@@ -51,6 +53,7 @@ interface DiaryListParams {
   from?: string;
   to?: string;
   includeCompleted?: boolean;
+  assigneeId?: string;
 }
 
 export interface CreateDiaryEntryData {
@@ -58,6 +61,7 @@ export interface CreateDiaryEntryData {
   dateTime: string;
   notes?: string;
   storyId?: string;
+  assignedToId?: string;
 }
 
 export interface UpdateDiaryEntryData {
@@ -65,6 +69,7 @@ export interface UpdateDiaryEntryData {
   dateTime?: string;
   notes?: string | null;
   storyId?: string | null;
+  assignedToId?: string | null;
 }
 
 // Fetch upcoming diary entries (for dashboard widget)
@@ -92,6 +97,7 @@ export function useDiaryEntries(params: DiaryListParams = {}) {
       if (params.from) searchParams.set('from', params.from);
       if (params.to) searchParams.set('to', params.to);
       if (params.includeCompleted) searchParams.set('includeCompleted', 'true');
+      if (params.assigneeId) searchParams.set('assigneeId', params.assigneeId);
 
       const response = await fetch(`/api/newsroom/diary?${searchParams}`);
       if (!response.ok) {

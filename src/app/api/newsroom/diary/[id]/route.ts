@@ -10,6 +10,7 @@ const updateDiaryEntrySchema = z.object({
   dateTime: z.string().optional(),
   notes: z.string().optional().nullable(),
   storyId: z.string().optional().nullable(),
+  assignedToId: z.string().optional().nullable(),
 });
 
 // GET /api/newsroom/diary/[id]
@@ -26,6 +27,9 @@ const getDiaryEntry = createHandler(
       where: { id },
       include: {
         createdBy: {
+          select: { id: true, firstName: true, lastName: true, staffRole: true },
+        },
+        assignedTo: {
           select: { id: true, firstName: true, lastName: true, staffRole: true },
         },
         story: {
@@ -58,10 +62,11 @@ const updateDiaryEntry = createHandler(
       return NextResponse.json({ error: 'Diary entry not found' }, { status: 404 });
     }
 
-    // Only creator or SUB_EDITOR+ can edit
+    // Only creator, assignee, or SUB_EDITOR+ can edit
     const isCreator = entry.createdById === user.id;
+    const isAssignee = entry.assignedToId === user.id;
     const isSubEditorPlus = user.staffRole && SUB_EDITOR_PLUS.includes(user.staffRole);
-    if (!isCreator && !isSubEditorPlus) {
+    if (!isCreator && !isAssignee && !isSubEditorPlus) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -75,6 +80,13 @@ const updateDiaryEntry = createHandler(
       }
     }
 
+    if (data.assignedToId) {
+      const assignee = await prisma.user.findUnique({ where: { id: data.assignedToId } });
+      if (!assignee || assignee.userType !== 'STAFF' || !assignee.isActive) {
+        return NextResponse.json({ error: 'Invalid assignee' }, { status: 400 });
+      }
+    }
+
     const updated = await prisma.diaryEntry.update({
       where: { id },
       data: {
@@ -82,9 +94,13 @@ const updateDiaryEntry = createHandler(
         ...(data.dateTime !== undefined && { dateTime: new Date(data.dateTime) }),
         ...(data.notes !== undefined && { notes: data.notes }),
         ...(data.storyId !== undefined && { storyId: data.storyId }),
+        ...(data.assignedToId !== undefined && { assignedToId: data.assignedToId }),
       },
       include: {
         createdBy: {
+          select: { id: true, firstName: true, lastName: true, staffRole: true },
+        },
+        assignedTo: {
           select: { id: true, firstName: true, lastName: true, staffRole: true },
         },
         story: {
@@ -126,6 +142,9 @@ const toggleDiaryEntry = createHandler(
         createdBy: {
           select: { id: true, firstName: true, lastName: true, staffRole: true },
         },
+        assignedTo: {
+          select: { id: true, firstName: true, lastName: true, staffRole: true },
+        },
         story: {
           select: { id: true, title: true, status: true },
         },
@@ -155,10 +174,11 @@ const deleteDiaryEntry = createHandler(
       return NextResponse.json({ error: 'Diary entry not found' }, { status: 404 });
     }
 
-    // Only creator or SUB_EDITOR+ can delete
+    // Only creator, assignee, or SUB_EDITOR+ can delete
     const isCreator = entry.createdById === user.id;
+    const isAssignee = entry.assignedToId === user.id;
     const isSubEditorPlus = user.staffRole && SUB_EDITOR_PLUS.includes(user.staffRole);
-    if (!isCreator && !isSubEditorPlus) {
+    if (!isCreator && !isAssignee && !isSubEditorPlus) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

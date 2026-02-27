@@ -319,7 +319,7 @@ export async function cleanupTestData(suffix: string) {
     },
   });
 
-  // 6. Users (audit logs first, then users — must come before stations for FK)
+  // 6. Users (audit logs + diary entries first, then users — must come before stations for FK)
   const testUsers = await prisma.user.findMany({
     where: { email: { startsWith: `__test_${suffix}_` } },
     select: { id: true },
@@ -327,6 +327,14 @@ export async function cleanupTestData(suffix: string) {
   const userIds = testUsers.map((u) => u.id);
 
   if (userIds.length > 0) {
+    await prisma.diaryEntry.deleteMany({
+      where: {
+        OR: [
+          { createdById: { in: userIds } },
+          { assignedToId: { in: userIds } },
+        ],
+      },
+    });
     await prisma.auditLog.deleteMany({
       where: { userId: { in: userIds } },
     });

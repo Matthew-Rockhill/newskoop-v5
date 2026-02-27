@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import {
   CalendarDaysIcon,
   PencilIcon,
@@ -30,10 +32,21 @@ export default function DiaryPage() {
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [assigneeFilter, setAssigneeFilter] = useState('');
   const [includeCompleted, setIncludeCompleted] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const { data: staffData } = useQuery<{ users: { id: string; firstName: string; lastName: string; staffRole: string }[] }>({
+    queryKey: ['staff-users-for-diary'],
+    queryFn: async () => {
+      const response = await fetch('/api/users?userType=STAFF&isActive=true&perPage=100');
+      if (!response.ok) throw new Error('Failed to fetch staff users');
+      return response.json();
+    },
+  });
+  const staffUsers = staffData?.users || [];
 
   const { data, isLoading, error } = useDiaryEntries({
     page,
@@ -41,6 +54,7 @@ export default function DiaryPage() {
     from: from || undefined,
     to: to || undefined,
     includeCompleted,
+    assigneeId: assigneeFilter || undefined,
   });
 
   const completeMutation = useCompleteDiaryEntry();
@@ -113,6 +127,23 @@ export default function DiaryPage() {
               }}
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Assigned To</label>
+            <Select
+              value={assigneeFilter}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                setAssigneeFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All</option>
+              {staffUsers.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.firstName} {user.lastName}
+                </option>
+              ))}
+            </Select>
+          </div>
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -128,12 +159,13 @@ export default function DiaryPage() {
               Show completed
             </label>
           </div>
-          {(from || to) && (
+          {(from || to || assigneeFilter) && (
             <Button
               outline
               onClick={() => {
                 setFrom('');
                 setTo('');
+                setAssigneeFilter('');
                 setPage(1);
               }}
             >
@@ -241,6 +273,14 @@ export default function DiaryPage() {
                         <span>
                           By {entry.createdBy.firstName} {entry.createdBy.lastName}
                         </span>
+                        {entry.assignedTo && (
+                          <>
+                            <span>·</span>
+                            <span className="text-indigo-600">
+                              Assigned to {entry.assignedTo.firstName} {entry.assignedTo.lastName}
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       {entry.notes && (

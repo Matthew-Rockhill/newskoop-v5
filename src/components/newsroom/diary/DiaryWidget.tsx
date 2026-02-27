@@ -78,6 +78,14 @@ export function DiaryWidget() {
                 <Text className="text-sm text-zinc-500 dark:text-zinc-400 truncate max-w-xs">{entry.notes}</Text>
               </>
             )}
+            {entry.assignedTo && (
+              <>
+                <span className="text-zinc-300 dark:text-zinc-600">·</span>
+                <Text className="text-sm text-indigo-600 dark:text-indigo-400">
+                  {entry.assignedTo.firstName} {entry.assignedTo.lastName}
+                </Text>
+              </>
+            )}
             {entry.story && (
               <>
                 <span className="text-zinc-300 dark:text-zinc-600">·</span>

@@ -202,7 +202,8 @@ model User {
   publishedEpisodes Episode[] @relation("PublishedEpisodes")
 
   // Diary relationships
-  createdDiaryEntries DiaryEntry[] @relation("CreatedDiaryEntries")
+  createdDiaryEntries  DiaryEntry[] @relation("CreatedDiaryEntries")
+  assignedDiaryEntries DiaryEntry[] @relation("AssignedDiaryEntries")
 
   // Analytics relationships
   contentViews ContentView[]
@@ -1017,6 +1018,8 @@ model DiaryEntry {
   story         Story?    @relation(fields: [storyId], references: [id], onDelete: SetNull)
   createdById   String
   createdBy     User      @relation("CreatedDiaryEntries", fields: [createdById], references: [id])
+  assignedToId  String?
+  assignedTo    User?     @relation("AssignedDiaryEntries", fields: [assignedToId], references: [id], onDelete: SetNull)
   isCompleted   Boolean   @default(false)
   completedAt   DateTime?
   completedById String?
@@ -1025,6 +1028,7 @@ model DiaryEntry {
 
   @@index([dateTime])
   @@index([createdById])
+  @@index([assignedToId])
   @@index([storyId])
   @@index([dateTime, isCompleted])
 }

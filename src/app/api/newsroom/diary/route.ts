@@ -8,6 +8,7 @@ const createDiaryEntrySchema = z.object({
   dateTime: z.string().min(1, 'Date/time is required'),
   notes: z.string().optional(),
   storyId: z.string().optional(),
+  assignedToId: z.string().optional(),
 });
 
 // GET /api/newsroom/diary - List diary entries with pagination
@@ -25,8 +26,13 @@ const listDiaryEntries = createHandler(
     const from = searchParams.get('from');
     const to = searchParams.get('to');
     const includeCompleted = searchParams.get('includeCompleted') === 'true';
+    const assigneeId = searchParams.get('assigneeId');
 
     const where: Record<string, unknown> = {};
+
+    if (assigneeId) {
+      where.assignedToId = assigneeId;
+    }
 
     if (!includeCompleted) {
       where.isCompleted = false;
@@ -47,6 +53,9 @@ const listDiaryEntries = createHandler(
         take: perPage,
         include: {
           createdBy: {
+            select: { id: true, firstName: true, lastName: true, staffRole: true },
+          },
+          assignedTo: {
             select: { id: true, firstName: true, lastName: true, staffRole: true },
           },
           story: {
@@ -121,16 +130,27 @@ const createDiaryEntry = createHandler(
       }
     }
 
+    if (data.assignedToId) {
+      const assignee = await prisma.user.findUnique({ where: { id: data.assignedToId } });
+      if (!assignee || assignee.userType !== 'STAFF' || !assignee.isActive) {
+        return NextResponse.json({ error: 'Invalid assignee' }, { status: 400 });
+      }
+    }
+
     const entry = await prisma.diaryEntry.create({
       data: {
         title: data.title,
         dateTime: new Date(data.dateTime),
         notes: data.notes || null,
         storyId: data.storyId || null,
+        assignedToId: data.assignedToId || null,
         createdById: user.id,
       },
       include: {
         createdBy: {
+          select: { id: true, firstName: true, lastName: true, staffRole: true },
+        },
+        assignedTo: {
           select: { id: true, firstName: true, lastName: true, staffRole: true },
         },
         story: {

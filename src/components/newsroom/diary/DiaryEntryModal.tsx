@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogTitle, DialogBody, DialogActions } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, Label } from '@/components/ui/fieldset';
 import { Text } from '@/components/ui/text';
+import { UserAssignmentSelect } from '@/components/ui/user-assignment-select';
+import type { UserOption } from '@/components/ui/user-assignment-select';
 import { useCreateDiaryEntry, useUpdateDiaryEntry } from '@/hooks/use-diary';
 import type { DiaryEntry } from '@/hooks/use-diary';
 import { useStories } from '@/hooks/use-stories';
@@ -25,6 +28,7 @@ export function DiaryEntryModal({ open, onClose, entry }: DiaryEntryModalProps) 
   const [dateTime, setDateTime] = useState('');
   const [notes, setNotes] = useState('');
   const [storyId, setStoryId] = useState<string | null>(null);
+  const [assignedToId, setAssignedToId] = useState('');
   const [storySearch, setStorySearch] = useState('');
   const [showStorySearch, setShowStorySearch] = useState(false);
   const [selectedStoryTitle, setSelectedStoryTitle] = useState('');
@@ -32,6 +36,16 @@ export function DiaryEntryModal({ open, onClose, entry }: DiaryEntryModalProps) 
 
   const createMutation = useCreateDiaryEntry();
   const updateMutation = useUpdateDiaryEntry();
+
+  const { data: staffData } = useQuery<{ users: UserOption[] }>({
+    queryKey: ['staff-users-for-diary'],
+    queryFn: async () => {
+      const response = await fetch('/api/users?userType=STAFF&isActive=true&perPage=100');
+      if (!response.ok) throw new Error('Failed to fetch staff users');
+      return response.json();
+    },
+  });
+  const staffUsers: UserOption[] = staffData?.users || [];
 
   const { data: storiesData } = useStories({
     query: storySearch,
@@ -51,12 +65,14 @@ export function DiaryEntryModal({ open, onClose, entry }: DiaryEntryModalProps) 
           String(dt.getMinutes()).padStart(2, '0');
         setDateTime(formatted);
         setNotes(entry.notes || '');
+        setAssignedToId(entry.assignedToId || '');
         setStoryId(entry.storyId);
         setSelectedStoryTitle(entry.story?.title || '');
       } else {
         setTitle('');
         setDateTime('');
         setNotes('');
+        setAssignedToId('');
         setStoryId(null);
         setStorySearch('');
         setSelectedStoryTitle('');
@@ -80,24 +96,25 @@ export function DiaryEntryModal({ open, onClose, entry }: DiaryEntryModalProps) 
     }
 
     try {
-      const payload = {
-        title: title.trim(),
-        dateTime: new Date(dateTime).toISOString(),
-        notes: notes.trim() || undefined,
-        storyId: storyId || undefined,
-      };
-
       if (isEditing && entry) {
         await updateMutation.mutateAsync({
           id: entry.id,
           data: {
-            ...payload,
+            title: title.trim(),
+            dateTime: new Date(dateTime).toISOString(),
             notes: notes.trim() || null,
             storyId: storyId,
+            assignedToId: assignedToId || null,
           },
         });
       } else {
-        await createMutation.mutateAsync(payload);
+        await createMutation.mutateAsync({
+          title: title.trim(),
+          dateTime: new Date(dateTime).toISOString(),
+          notes: notes.trim() || undefined,
+          storyId: storyId || undefined,
+          assignedToId: assignedToId || undefined,
+        });
       }
 
       onClose();
@@ -152,6 +169,14 @@ export function DiaryEntryModal({ open, onClose, entry }: DiaryEntryModalProps) 
                 rows={3}
               />
             </Field>
+
+            <UserAssignmentSelect
+              label="Assign To (optional)"
+              users={staffUsers}
+              value={assignedToId}
+              onChange={setAssignedToId}
+              placeholder="No one assigned"
+            />
 
             <Field>
               <Label>Link to Story (optional)</Label>

@@ -31,6 +31,9 @@ const getUpcomingDiaryEntries = createHandler(
         createdBy: {
           select: { id: true, firstName: true, lastName: true },
         },
+        assignedTo: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         story: {
           select: { id: true, title: true },
         },
