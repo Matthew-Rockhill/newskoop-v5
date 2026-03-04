@@ -12,11 +12,14 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
-    const urlSecret = new URL(req.url).searchParams.get('secret');
-    const expectedSecret = process.env.CRON_SECRET || 'dev-cron-secret';
+    const expectedSecret = process.env.CRON_SECRET;
 
-    const isAuthorized =
-      authHeader === `Bearer ${expectedSecret}` || urlSecret === expectedSecret;
+    if (!expectedSecret) {
+      console.error('CRON_SECRET environment variable is not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    const isAuthorized = authHeader === `Bearer ${expectedSecret}`;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

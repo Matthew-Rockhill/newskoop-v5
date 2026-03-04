@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -98,7 +99,7 @@ export default function NewsroomAnnouncementsPage() {
       await dismissMutation.mutateAsync(id);
     } catch (error) {
       console.error('Error dismissing announcement:', error);
-      alert('Failed to dismiss announcement');
+      toast.error('Failed to dismiss announcement');
     }
   };
 

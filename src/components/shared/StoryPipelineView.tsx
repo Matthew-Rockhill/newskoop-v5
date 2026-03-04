@@ -31,14 +31,17 @@ const stageStyles: Record<string, { bg: string; border: string; icon: string }> 
 
 export function StoryPipelineView() {
   // Fetch stories in all stages of the editorial process
-  const { data: draftData } = useStories({ status: 'DRAFT', page: 1, perPage: 1 });
-  const { data: inReviewData } = useStories({ status: 'IN_REVIEW', page: 1, perPage: 1 });
-  const { data: needsRevisionData } = useStories({ status: 'NEEDS_REVISION', page: 1, perPage: 1 });
-  const { data: pendingApprovalData } = useStories({ status: 'PENDING_APPROVAL', page: 1, perPage: 1 });
-  const { data: approvedData } = useStories({ status: 'APPROVED', page: 1, perPage: 1 });
-  const { data: pendingTranslationData } = useStories({ status: 'PENDING_TRANSLATION', page: 1, perPage: 1 });
-  const { data: readyToPublishData } = useStories({ status: 'READY_TO_PUBLISH', page: 1, perPage: 1 });
-  const { data: publishedData } = useStories({ status: 'PUBLISHED', page: 1, perPage: 1 });
+  const { data: draftData, isLoading: l1, error: e1 } = useStories({ status: 'DRAFT', page: 1, perPage: 1 });
+  const { data: inReviewData, isLoading: l2, error: e2 } = useStories({ status: 'IN_REVIEW', page: 1, perPage: 1 });
+  const { data: needsRevisionData, isLoading: l3, error: e3 } = useStories({ status: 'NEEDS_REVISION', page: 1, perPage: 1 });
+  const { data: pendingApprovalData, isLoading: l4, error: e4 } = useStories({ status: 'PENDING_APPROVAL', page: 1, perPage: 1 });
+  const { data: approvedData, isLoading: l5, error: e5 } = useStories({ status: 'APPROVED', page: 1, perPage: 1 });
+  const { data: pendingTranslationData, isLoading: l6, error: e6 } = useStories({ status: 'PENDING_TRANSLATION', page: 1, perPage: 1 });
+  const { data: readyToPublishData, isLoading: l7, error: e7 } = useStories({ status: 'READY_TO_PUBLISH', page: 1, perPage: 1 });
+  const { data: publishedData, isLoading: l8, error: e8 } = useStories({ status: 'PUBLISHED', page: 1, perPage: 1 });
+
+  const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8;
+  const hasError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8;
 
   const draftCount = draftData?.pagination?.total || 0;
   const inReviewCount = inReviewData?.pagination?.total || 0;
@@ -106,6 +109,16 @@ export function StoryPipelineView() {
     return new Date(story.publishedAt || story.updatedAt).toDateString() === today;
   }).length || 0;
 
+  if (hasError) {
+    return (
+      <Card className="p-6">
+        <div className="text-center py-4">
+          <Text className="text-red-600">Failed to load pipeline data. Please refresh.</Text>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6">
       <div className="mb-6">
@@ -115,6 +128,19 @@ export function StoryPipelineView() {
         </Text>
       </div>
 
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="border border-zinc-200 rounded-lg p-4 h-32 animate-pulse bg-zinc-50">
+              <div className="flex flex-col items-center space-y-2 justify-center h-full">
+                <div className="h-6 w-6 bg-zinc-200 rounded" />
+                <div className="h-3 w-16 bg-zinc-200 rounded" />
+                <div className="h-5 w-8 bg-zinc-200 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {pipelineStages.map((stage, index) => {
           const styles = stageStyles[stage.color] || stageStyles.zinc;
@@ -137,7 +163,7 @@ export function StoryPipelineView() {
 
               {/* Arrow to next stage */}
               {index < pipelineStages.length - 1 && (
-                <div className="absolute top-1/2 -right-2 transform -translate-y-1/2 hidden lg:block">
+                <div className="absolute top-1/2 -right-2 transform -translate-y-1/2 hidden md:block">
                   <ArrowRightIcon className="h-4 w-4 text-zinc-400" aria-hidden="true" />
                 </div>
               )}
@@ -145,6 +171,7 @@ export function StoryPipelineView() {
           );
         })}
       </div>
+      )}
 
       {/* Pipeline Summary */}
       <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">

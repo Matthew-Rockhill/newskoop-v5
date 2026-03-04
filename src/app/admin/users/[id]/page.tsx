@@ -158,8 +158,11 @@ export default function UserDetailPage() {
 
         {/* Tabs */}
         <div className="border-b border-zinc-200">
-          <nav className="-mb-px flex gap-x-6">
+          <nav className="-mb-px flex gap-x-6" role="tablist" aria-label="User detail tabs">
             <button
+              role="tab"
+              aria-selected={activeTab === 'details'}
+              aria-controls="panel-details"
               onClick={() => setActiveTab('details')}
               className={`py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'details'
@@ -170,6 +173,9 @@ export default function UserDetailPage() {
               Details
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'activity'}
+              aria-controls="panel-activity"
               onClick={() => setActiveTab('activity')}
               className={`py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'activity'
@@ -183,14 +189,14 @@ export default function UserDetailPage() {
         </div>
 
         {activeTab === 'activity' ? (
-          <div className="bg-white shadow rounded-lg">
+          <div id="panel-activity" role="tabpanel" className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <h3 className="text-base/7 font-semibold text-zinc-900 mb-4">User Activity</h3>
               <UserActivityTab userId={user.id} />
             </div>
           </div>
         ) : (
-        <>
+        <div id="panel-details" role="tabpanel">
         {/* User Information Section */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
@@ -279,7 +285,7 @@ export default function UserDetailPage() {
             </dl>
           </div>
         </div>
-        </>
+        </div>
         )}
       </div>
     </Container>

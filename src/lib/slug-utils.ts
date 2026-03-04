@@ -1,4 +1,18 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+/**
+ * Check if a Prisma error is a unique constraint violation on the slug field.
+ * Used to handle TOCTOU race conditions in slug generation.
+ */
+export function isSlugConflictError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002' &&
+    Array.isArray(error.meta?.target) &&
+    (error.meta.target as string[]).includes('slug')
+  );
+}
 
 /**
  * Generate a URL-safe slug from a title

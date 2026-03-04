@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -165,6 +166,11 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
   });
 
   const onSubmit = async (data: BulletinFormData) => {
+    if (selectedStories.length === 0) {
+      toast.error('Please select at least one story for the bulletin');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -324,7 +330,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                   {/* Step label - positioned below */}
                   <div className="mt-2">
                     <span
-                      className={`text-xs font-medium whitespace-nowrap ${
+                      className={`text-xs font-medium sm:whitespace-nowrap ${
                         isActive
                           ? 'text-kelly-green'
                           : isComplete

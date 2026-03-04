@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Container } from '@/components/ui/container';
 import { StoryEditForm } from '@/components/newsroom/StoryEditForm';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export default function EditStoryPage() {
   const { status } = useSession();
@@ -14,9 +15,7 @@ export default function EditStoryPage() {
   if (status === 'loading') {
     return (
       <Container>
-        <div className="text-center py-12">
-          <p>Loading...</p>
-        </div>
+        <LoadingSpinner />
       </Container>
     );
   }

@@ -15,7 +15,13 @@ const translationRequestSchema = z.object({
 // POST /api/newsroom/stories/[id]/create-translations - Create translations for a story
 const createTranslations = createHandler(
   async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
-    const _user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+
+    // Only SUB_EDITOR and above can create translations
+    if (!user.staffRole || !['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(user.staffRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions to create translations' }, { status: 403 });
+    }
+
     const params = await context.params;
     const storyId = params.id;
 
@@ -55,6 +61,28 @@ const createTranslations = createHandler(
       );
     }
 
+    // Pre-fetch all needed language classifications in a single query (fixes N+1)
+    const targetLanguageNames = translations.map(t =>
+      t.language.charAt(0) + t.language.slice(1).toLowerCase()
+    );
+    const languageClassifications = await prisma.classification.findMany({
+      where: {
+        type: ClassificationType.LANGUAGE,
+        name: { in: targetLanguageNames },
+      },
+    });
+    const langClassMap = new Map(languageClassifications.map(lc => [lc.name, lc]));
+
+    // Prepare shared data (same for all translations)
+    const tagConnections = originalStory.tags.map(st => ({
+      tag: { connect: { id: st.tagId } }
+    }));
+    const baseClassificationConnections = originalStory.classifications
+      .filter(sc => sc.classification.type !== ClassificationType.LANGUAGE)
+      .map(sc => ({
+        classification: { connect: { id: sc.classificationId } }
+      }));
+
     // Create translations
     const createdTranslations = [];
 
@@ -63,26 +91,10 @@ const createTranslations = createHandler(
       const baseSlug = `${generateSlug(originalStory.title)}-${translation.language.toLowerCase()}`;
       const slug = await generateUniqueStorySlug(baseSlug);
 
-      // Prepare tags - keep all non-language tags
-      const tagConnections = originalStory.tags.map(st => ({
-        tag: { connect: { id: st.tagId } }
-      }));
-
-      // Prepare classifications - replace ENGLISH language classification with target language
-      const classificationConnections = originalStory.classifications
-        .filter(sc => sc.classification.type !== ClassificationType.LANGUAGE) // Remove language classifications
-        .map(sc => ({
-          classification: { connect: { id: sc.classificationId } }
-        }));
-
-      // Add target language classification
-      const languageClassification = await prisma.classification.findFirst({
-        where: {
-          type: ClassificationType.LANGUAGE,
-          name: translation.language.charAt(0) + translation.language.slice(1).toLowerCase()
-        }
-      });
-
+      // Build classification connections with target language
+      const classificationConnections = [...baseClassificationConnections];
+      const langName = translation.language.charAt(0) + translation.language.slice(1).toLowerCase();
+      const languageClassification = langClassMap.get(langName);
       if (languageClassification) {
         classificationConnections.push({
           classification: { connect: { id: languageClassification.id } }

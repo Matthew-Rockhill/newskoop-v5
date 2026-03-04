@@ -596,6 +596,7 @@ model AudioClip {
 
   @@index([sourceStoryId])
   @@index([episodeId])
+  @@index([uploadedBy])
 }
 
 model StoryAudioClip {
@@ -639,6 +640,7 @@ model Comment {
 
   @@index([storyId])
   @@index([authorId])
+  @@index([parentId])
   @@index([type])
 }
 
@@ -661,6 +663,7 @@ model StoryGroup {
 
   @@index([publishTogether])
   @@index([scheduledPublishAt])
+  @@index([publishedAt])
 }
 
 // Email tracking model

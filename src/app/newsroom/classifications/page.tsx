@@ -87,15 +87,15 @@ function ClassificationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="classification-modal-title">
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
         <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-zinc-900">
+            <h2 id="classification-modal-title" className="text-lg font-semibold text-zinc-900">
               {isEditing ? 'Edit' : 'Add'} {getTypeName(type)}
             </h2>
-            <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600" aria-label="Close">
               <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
@@ -116,6 +116,9 @@ function ClassificationModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                minLength={2}
+                pattern=".*\S+.*"
+                title="Name must contain at least 2 characters and not be whitespace only"
                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-kelly-green focus:border-kelly-green"
                 placeholder={`Enter ${getTypeName(type).toLowerCase()} name`}
               />
@@ -207,11 +210,11 @@ function DeleteModal({
     classification._count.allowedByStations;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
         <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-          <h2 className="text-lg font-semibold text-zinc-900 mb-4">
+          <h2 id="delete-modal-title" className="text-lg font-semibold text-zinc-900 mb-4">
             Delete Classification
           </h2>
 

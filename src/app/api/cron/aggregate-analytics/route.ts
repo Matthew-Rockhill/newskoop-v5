@@ -22,13 +22,14 @@ export async function GET(req: NextRequest) {
     // Verify authorization
     // Vercel Cron sends this header automatically
     const authHeader = req.headers.get('authorization');
-    const urlSecret = new URL(req.url).searchParams.get('secret');
+    const expectedSecret = process.env.CRON_SECRET;
 
-    const expectedSecret = process.env.CRON_SECRET || 'dev-cron-secret';
+    if (!expectedSecret) {
+      console.error('CRON_SECRET environment variable is not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
 
-    // Check either Vercel Cron header or manual secret param
-    const isAuthorized =
-      authHeader === `Bearer ${expectedSecret}` || urlSecret === expectedSecret;
+    const isAuthorized = authHeader === `Bearer ${expectedSecret}`;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

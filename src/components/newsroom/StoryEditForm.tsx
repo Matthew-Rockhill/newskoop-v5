@@ -262,8 +262,9 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
       case 'PENDING_TRANSLATION':
       case 'READY_TO_PUBLISH':
       case 'PUBLISHED':
-        // These actions would require additional handling
-        toast(`${action.label} functionality not yet implemented`);
+        // Redirect to story detail page where these workflow actions are fully implemented
+        toast('Redirecting to story page for this action...');
+        router.push(`/newsroom/stories/${story.id}`);
         break;
       default:
         toast.error('Unknown action');
@@ -307,8 +308,6 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
         console.error('Status update failed:', errorData);
         throw new Error(errorData.error || 'Failed to submit for review');
       }
-
-      console.log('✅ Story status updated to IN_REVIEW successfully');
 
       // Invalidate dashboard queries so changes reflect immediately
       invalidateDashboardQueries(queryClient, storyId);
@@ -409,8 +408,9 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
   if (isLoading) {
     return (
       <Container>
-        <div className="text-center py-12">
-          <p>Loading story...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kelly-green" />
+          <span className="ml-3 text-zinc-500">Loading story...</span>
         </div>
       </Container>
     );

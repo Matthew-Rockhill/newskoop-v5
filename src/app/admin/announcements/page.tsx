@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
@@ -116,7 +117,7 @@ export default function AdminAnnouncementsPage() {
       setDeleteTarget(null);
     } catch (error) {
       console.error('Error deleting announcement:', error);
-      alert('Failed to delete announcement');
+      toast.error('Failed to delete announcement');
     }
   };
 
@@ -125,7 +126,7 @@ export default function AdminAnnouncementsPage() {
       await toggleActiveMutation.mutateAsync({ id, isActive });
     } catch (error) {
       console.error('Error updating announcement:', error);
-      alert('Failed to update announcement');
+      toast.error('Failed to update announcement');
     }
   };
 

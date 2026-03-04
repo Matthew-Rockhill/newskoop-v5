@@ -24,17 +24,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { ReassignButton } from '@/components/newsroom/ReassignButton';
 import { DiaryWidget } from '@/components/newsroom/diary/DiaryWidget';
-import { useState, KeyboardEvent } from 'react';
-
-// Helper for keyboard navigation on clickable elements
-function handleKeyboardNavigation(callback: () => void) {
-  return (e: KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      callback();
-    }
-  };
-}
+import Link from 'next/link';
+import { useState } from 'react';
 
 // Helper to format date/time for tasks - always shows actual date and time
 function formatTaskDate(dateString: string): string {
@@ -233,16 +224,9 @@ export function NewsroomDashboard() {
                       </Heading>
                       <div className="space-y-2">
                         {reviewStories.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                          >
+                          <Card key={story.id} className="p-4">
                             <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
+                              <Link href={`/newsroom/stories/${story.id}`} className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
                                 <div className="flex items-center gap-2">
                                   <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
@@ -258,7 +242,7 @@ export function NewsroomDashboard() {
                                     {formatTaskDate(story.updatedAt)}
                                   </Text>
                                 </div>
-                              </div>
+                              </Link>
                               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                                 {canReassign && (
                                   <ReassignButton
@@ -286,16 +270,9 @@ export function NewsroomDashboard() {
                       </Heading>
                       <div className="space-y-2">
                         {pendingApprovalStories.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                          >
+                          <Card key={story.id} className="p-4">
                             <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
+                              <Link href={`/newsroom/stories/${story.id}`} className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
                                 <div className="flex items-center gap-2">
                                   <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
@@ -311,7 +288,7 @@ export function NewsroomDashboard() {
                                     {formatTaskDate(story.updatedAt)}
                                   </Text>
                                 </div>
-                              </div>
+                              </Link>
                               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                                 {canReassign && (
                                   <ReassignButton
@@ -339,16 +316,9 @@ export function NewsroomDashboard() {
                       </Heading>
                       <div className="space-y-2">
                         {translationTasks.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}/translate`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}/translate`))}
-                          >
+                          <Card key={story.id} className="p-4">
                             <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
+                              <Link href={`/newsroom/stories/${story.id}/translate`} className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
                                 <div className="flex items-center gap-2">
                                   <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                                   {story._count?.audioClips > 0 && (
@@ -364,7 +334,7 @@ export function NewsroomDashboard() {
                                     {formatTaskDate(story.updatedAt)}
                                   </Text>
                                 </div>
-                              </div>
+                              </Link>
                               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                                 {canReassign && (
                                   <ReassignButton
@@ -393,14 +363,8 @@ export function NewsroomDashboard() {
                       </Heading>
                       <div className="space-y-2">
                         {approvedForPublishingStories.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                          >
+                          <Link key={story.id} href={`/newsroom/stories/${story.id}`} className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
+                          <Card className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -422,6 +386,7 @@ export function NewsroomDashboard() {
                               <Badge color="green">Publish</Badge>
                             </div>
                           </Card>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -446,15 +411,8 @@ export function NewsroomDashboard() {
                 <Card className="p-6">
                   <div className="space-y-2">
                     {reviewStories.map((story: any) => (
-                      <div
-                        key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                      >
-                        <div className="flex-1 min-w-0">
+                      <div key={story.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <Link href={`/newsroom/stories/${story.id}`} className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
                           <div className="flex items-center gap-2">
                             <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                             {story._count?.audioClips > 0 && (
@@ -470,7 +428,7 @@ export function NewsroomDashboard() {
                               {formatTaskDate(story.updatedAt)}
                             </Text>
                           </div>
-                        </div>
+                        </Link>
                         {canReassign && (
                           <div className="flex-shrink-0 ml-2">
                             <ReassignButton
@@ -504,15 +462,8 @@ export function NewsroomDashboard() {
                 <Card className="p-6">
                   <div className="space-y-2">
                     {pendingApprovalStories.map((story: any) => (
-                      <div
-                        key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                      >
-                        <div className="flex-1 min-w-0">
+                      <div key={story.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <Link href={`/newsroom/stories/${story.id}`} className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
                           <div className="flex items-center gap-2">
                             <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                             {story._count?.audioClips > 0 && (
@@ -528,7 +479,7 @@ export function NewsroomDashboard() {
                               {formatTaskDate(story.updatedAt)}
                             </Text>
                           </div>
-                        </div>
+                        </Link>
                         {canReassign && (
                           <div className="flex-shrink-0 ml-2">
                             <ReassignButton
@@ -562,15 +513,8 @@ export function NewsroomDashboard() {
                 <Card className="p-6">
                   <div className="space-y-2">
                     {translationTasks.map((story: any) => (
-                      <div
-                        key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                      >
-                        <div className="flex-1 min-w-0">
+                      <div key={story.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                        <Link href={`/newsroom/stories/${story.id}`} className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
                           <div className="flex items-center gap-2">
                             <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                             {story.language && (
@@ -589,7 +533,7 @@ export function NewsroomDashboard() {
                               {formatTaskDate(story.updatedAt)}
                             </Text>
                           </div>
-                        </div>
+                        </Link>
                         {canReassign && (
                           <div className="flex-shrink-0 ml-2">
                             <ReassignButton
@@ -624,13 +568,10 @@ export function NewsroomDashboard() {
                 <Card className="p-6">
                   <div className="space-y-2">
                     {approvedForPublishingStories.map((story: any) => (
-                      <div
+                      <Link
                         key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                        href={`/newsroom/stories/${story.id}`}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -649,7 +590,7 @@ export function NewsroomDashboard() {
                             </Text>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </Card>
@@ -692,12 +633,9 @@ export function NewsroomDashboard() {
                       {followUpsGrouped.overdue.map((story: any) => (
                         <Card key={story.id} className="p-4 border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
                           <div className="flex items-center justify-between">
-                            <div
-                              className="flex-1 min-w-0 cursor-pointer"
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                              onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                            <Link
+                              href={`/newsroom/stories/${story.id}`}
+                              className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                             >
                               <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                               <div className="flex items-center gap-2 mt-1">
@@ -715,7 +653,7 @@ export function NewsroomDashboard() {
                                   </>
                                 )}
                               </div>
-                            </div>
+                            </Link>
                             <Button
                               color="white"
                               className="flex-shrink-0 ml-3"
@@ -743,12 +681,9 @@ export function NewsroomDashboard() {
                       {followUpsGrouped.dueToday.map((story: any) => (
                         <Card key={story.id} className="p-4 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
                           <div className="flex items-center justify-between">
-                            <div
-                              className="flex-1 min-w-0 cursor-pointer"
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                              onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                            <Link
+                              href={`/newsroom/stories/${story.id}`}
+                              className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                             >
                               <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                               <div className="flex items-center gap-2 mt-1">
@@ -764,7 +699,7 @@ export function NewsroomDashboard() {
                                   </>
                                 )}
                               </div>
-                            </div>
+                            </Link>
                             <Button
                               color="white"
                               className="flex-shrink-0 ml-3"
@@ -792,12 +727,9 @@ export function NewsroomDashboard() {
                       {followUpsGrouped.dueSoon.map((story: any) => (
                         <Card key={story.id} className="p-4">
                           <div className="flex items-center justify-between">
-                            <div
-                              className="flex-1 min-w-0 cursor-pointer"
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                              onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                            <Link
+                              href={`/newsroom/stories/${story.id}`}
+                              className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                             >
                               <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                               <div className="flex items-center gap-2 mt-1">
@@ -815,7 +747,7 @@ export function NewsroomDashboard() {
                                   </>
                                 )}
                               </div>
-                            </div>
+                            </Link>
                             <Button
                               color="white"
                               className="flex-shrink-0 ml-3"
@@ -843,12 +775,9 @@ export function NewsroomDashboard() {
                       {followUpsGrouped.upcoming.map((story: any) => (
                         <Card key={story.id} className="p-4">
                           <div className="flex items-center justify-between">
-                            <div
-                              className="flex-1 min-w-0 cursor-pointer"
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                              onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                            <Link
+                              href={`/newsroom/stories/${story.id}`}
+                              className="flex-1 min-w-0 rounded-lg hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                             >
                               <Text className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{story.title}</Text>
                               <div className="flex items-center gap-2 mt-1">
@@ -866,7 +795,7 @@ export function NewsroomDashboard() {
                                   </>
                                 )}
                               </div>
-                            </div>
+                            </Link>
                             <Button
                               color="white"
                               className="flex-shrink-0 ml-3"
@@ -976,14 +905,8 @@ export function NewsroomDashboard() {
                       </Heading>
                       <div className="space-y-2">
                         {draftStories.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                          >
+                          <Link key={story.id} href={`/newsroom/stories/${story.id}`} className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
+                          <Card className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -1001,6 +924,7 @@ export function NewsroomDashboard() {
                               <Badge color="zinc">Draft</Badge>
                             </div>
                           </Card>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -1015,14 +939,8 @@ export function NewsroomDashboard() {
                       </Heading>
                       <div className="space-y-2">
                         {needsReviewStories.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                          >
+                          <Link key={story.id} href={`/newsroom/stories/${story.id}`} className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
+                          <Card className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -1044,16 +962,11 @@ export function NewsroomDashboard() {
                               <Badge color="amber">In Review</Badge>
                             </div>
                           </Card>
+                          </Link>
                         ))}
                         {needsApprovalStories.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                          >
+                          <Link key={story.id} href={`/newsroom/stories/${story.id}`} className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
+                          <Card className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -1075,6 +988,7 @@ export function NewsroomDashboard() {
                               <Badge color="blue">Pending Approval</Badge>
                             </div>
                           </Card>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -1089,14 +1003,8 @@ export function NewsroomDashboard() {
                       </Heading>
                       <div className="space-y-2">
                         {approvedStories.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                          >
+                          <Link key={story.id} href={`/newsroom/stories/${story.id}`} className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
+                          <Card className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -1114,6 +1022,7 @@ export function NewsroomDashboard() {
                               <Badge color="green">Approved</Badge>
                             </div>
                           </Card>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -1128,14 +1037,8 @@ export function NewsroomDashboard() {
                       </Heading>
                       <div className="space-y-2">
                         {publishedStories.map((story: any) => (
-                          <Card
-                            key={story.id}
-                            role="button"
-                            tabIndex={0}
-                            className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                            onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                            onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
-                          >
+                          <Link key={story.id} href={`/newsroom/stories/${story.id}`} className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2">
+                          <Card className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -1153,6 +1056,7 @@ export function NewsroomDashboard() {
                               <Badge color="blue">Published</Badge>
                             </div>
                           </Card>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -1177,13 +1081,10 @@ export function NewsroomDashboard() {
                 <Card className="p-6">
                   <div className="space-y-2">
                     {draftStories.map((story: any) => (
-                      <div
+                      <Link
                         key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                        href={`/newsroom/stories/${story.id}`}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -1198,7 +1099,7 @@ export function NewsroomDashboard() {
                             </Text>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </Card>
@@ -1221,13 +1122,10 @@ export function NewsroomDashboard() {
                 <Card className="p-6">
                   <div className="space-y-2">
                     {needsReviewStories.map((story: any) => (
-                      <div
+                      <Link
                         key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                        href={`/newsroom/stories/${story.id}`}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -1247,16 +1145,13 @@ export function NewsroomDashboard() {
                           </div>
                         </div>
                         <Badge color="amber">In Review</Badge>
-                      </div>
+                      </Link>
                     ))}
                     {needsApprovalStories.map((story: any) => (
-                      <div
+                      <Link
                         key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                        href={`/newsroom/stories/${story.id}`}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -1276,7 +1171,7 @@ export function NewsroomDashboard() {
                           </div>
                         </div>
                         <Badge color="blue">Pending Approval</Badge>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </Card>
@@ -1299,13 +1194,10 @@ export function NewsroomDashboard() {
                 <Card className="p-6">
                   <div className="space-y-2">
                     {approvedStories.map((story: any) => (
-                      <div
+                      <Link
                         key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                        href={`/newsroom/stories/${story.id}`}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -1320,7 +1212,7 @@ export function NewsroomDashboard() {
                             </Text>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </Card>
@@ -1343,13 +1235,10 @@ export function NewsroomDashboard() {
                 <Card className="p-6">
                   <div className="space-y-2">
                     {publishedStories.map((story: any) => (
-                      <div
+                      <Link
                         key={story.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
-                        onClick={() => router.push(`/newsroom/stories/${story.id}`)}
-                        onKeyDown={handleKeyboardNavigation(() => router.push(`/newsroom/stories/${story.id}`))}
+                        href={`/newsroom/stories/${story.id}`}
+                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-kelly-green focus:ring-offset-2"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -1364,7 +1253,7 @@ export function NewsroomDashboard() {
                             </Text>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </Card>

@@ -25,9 +25,15 @@ export async function GET(
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Only staff users with appropriate roles can view bulletins
+    const userRole = session.user.staffRole;
+    if (!userRole || !['EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'SUPERADMIN', 'ADMIN'].includes(userRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const bulletin = await prisma.bulletin.findUnique({

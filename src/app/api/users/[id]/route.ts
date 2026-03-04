@@ -6,7 +6,14 @@ import { userUpdateSchema } from '@/lib/validations';
 // GET /api/users/[id] - Get a single user
 const getUser = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const currentUser = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+
+    // Only ADMIN and SUPERADMIN can view user details (or the user themselves)
     const { id } = await params;
+    if (currentUser.id !== id && (!currentUser.staffRole || !['ADMIN', 'SUPERADMIN'].includes(currentUser.staffRole))) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id },
       include: { radioStation: true },
@@ -27,6 +34,11 @@ const getUser = createHandler(
 // PATCH /api/users/[id] - Update a user
 const updateUser = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const currentUser = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    if (!currentUser.staffRole || !['ADMIN', 'SUPERADMIN'].includes(currentUser.staffRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
     const { id } = await params;
     const data = (req as NextRequest & { validatedData: any }).validatedData;
 
@@ -87,6 +99,11 @@ const updateUser = createHandler(
 // DELETE /api/users/[id] - Delete a user
 const deleteUser = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
+    const currentUser = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    if (!currentUser.staffRole || !['ADMIN', 'SUPERADMIN'].includes(currentUser.staffRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
     const { id } = await params;
     try {
       await prisma.user.delete({

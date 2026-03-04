@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -204,9 +205,7 @@ export default function PublishStoryPage() {
   if (status === 'loading' || isLoading) {
     return (
       <Container>
-        <div className="text-center py-12">
-          <p>Loading...</p>
-        </div>
+        <LoadingSpinner />
       </Container>
     );
   }

@@ -49,7 +49,7 @@ export default function RadioDashboard() {
   }, [profileData?.user?.defaultLanguagePreference]);
 
   // Fetch recent stories
-  const { data: storiesData, isLoading } = useQuery({
+  const { data: storiesData, isLoading, error: storiesError } = useQuery({
     queryKey: ['radio-stories'],
     queryFn: async () => {
       const response = await fetch('/api/radio/stories?perPage=12');
@@ -60,7 +60,7 @@ export default function RadioDashboard() {
   });
 
   // Fetch bulletins from the correct API
-  const { data: bulletinsData, isLoading: bulletinsLoading } = useQuery({
+  const { data: bulletinsData, isLoading: bulletinsLoading, error: bulletinsError } = useQuery({
     queryKey: ['radio-bulletins-dashboard', selectedBulletinLanguage],
     queryFn: async () => {
       const response = await fetch(`/api/radio/bulletins?language=${selectedBulletinLanguage}&perPage=6`);
@@ -71,7 +71,7 @@ export default function RadioDashboard() {
   });
 
   // Fetch shows for the shows section
-  const { data: showsData, isLoading: showsLoading } = useQuery({
+  const { data: showsData, isLoading: showsLoading, error: showsError } = useQuery({
     queryKey: ['radio-shows-home'],
     queryFn: async () => {
       const response = await fetch(`/api/radio/shows?perPage=6`);
@@ -124,7 +124,7 @@ export default function RadioDashboard() {
 
         {/* Today's Bulletins */}
         <div className="mb-12">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <Heading level={2} className="text-2xl font-semibold text-zinc-900">
               Latest Bulletins
               <Badge color="blue" className="ml-3">
@@ -175,6 +175,16 @@ export default function RadioDashboard() {
                 </Card>
               ))}
             </div>
+          ) : bulletinsError ? (
+            <Card className="p-8 text-center bg-white">
+              <MegaphoneIcon className="h-12 w-12 text-red-300 mx-auto mb-3" />
+              <Heading level={3} className="text-red-600 mb-2">
+                Failed to load bulletins
+              </Heading>
+              <Text className="text-zinc-400">
+                Please try refreshing the page.
+              </Text>
+            </Card>
           ) : bulletins.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {bulletins.slice(0, 6).map((bulletin: any) => (
@@ -235,7 +245,7 @@ export default function RadioDashboard() {
 
         {/* Recent Stories */}
         <div className="mb-12">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <Heading level={2} className="text-2xl font-semibold text-zinc-900">
               Latest Stories
               <Badge color="blue" className="ml-3">
@@ -286,6 +296,16 @@ export default function RadioDashboard() {
                 </Card>
               ))}
             </div>
+          ) : storiesError ? (
+            <Card className="p-12 text-center bg-white">
+              <NewspaperIcon className="h-16 w-16 text-red-300 mx-auto mb-4" />
+              <Heading level={3} className="text-red-600 mb-2">
+                Failed to load stories
+              </Heading>
+              <Text className="text-zinc-400">
+                Please try refreshing the page.
+              </Text>
+            </Card>
           ) : filteredStories.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredStories.slice(0, 6).map((story: any) => (
@@ -311,7 +331,7 @@ export default function RadioDashboard() {
 
         {/* Latest Shows */}
         <div className="mb-12">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <Heading level={2} className="text-2xl font-semibold text-zinc-900">
               Latest Shows
               <Badge color="blue" className="ml-3">
@@ -366,6 +386,16 @@ export default function RadioDashboard() {
                 </Card>
               ))}
             </div>
+          ) : showsError ? (
+            <Card className="p-12 text-center bg-white">
+              <SpeakerWaveIcon className="h-16 w-16 text-red-300 mx-auto mb-4" />
+              <Heading level={3} className="text-red-600 mb-2">
+                Failed to load shows
+              </Heading>
+              <Text className="text-zinc-400">
+                Please try refreshing the page.
+              </Text>
+            </Card>
           ) : filteredShows.length > 0 ? (
             <div className="space-y-4">
               {filteredShows.slice(0, 6).map((show: any) => (

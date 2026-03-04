@@ -252,7 +252,8 @@ export function CustomAudioPlayer({
                 onKeyDown={handleSeekStart}
                 onKeyUp={handleSeekEnd}
                 className="absolute inset-0 w-full opacity-0 cursor-pointer"
-                aria-label="Seek"
+                aria-label={`Seek ${displayName}`}
+                aria-valuetext={`${formatDuration(currentTime)} of ${formatDuration(duration)}`}
               />
             </div>
           </div>

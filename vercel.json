@@ -21,7 +21,7 @@
     }
   },
   "github": {
-    "autoJobCancelation": false
+    "autoJobCancelation": true
   },
   "regions": ["cpt1"],
   "crons": [

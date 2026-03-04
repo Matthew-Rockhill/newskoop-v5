@@ -71,28 +71,6 @@ export async function GET(req: NextRequest) {
       });
     });
 
-    // Add some realistic activity patterns for demo purposes
-    // Peak hours: 8-10 AM, 1-3 PM, 6-8 PM
-    const peakHours = [8, 9, 13, 14, 18, 19];
-    const moderateHours = [7, 10, 11, 12, 15, 16, 17, 20];
-    
-    activityData.forEach((data, hour) => {
-      let multiplier = 1;
-      if (peakHours.includes(hour)) {
-        multiplier = 2.5;
-      } else if (moderateHours.includes(hour)) {
-        multiplier = 1.5;
-      } else if (hour >= 22 || hour <= 6) {
-        multiplier = 0.3; // Low activity during night
-      }
-
-      // Apply multiplier and add some randomness
-      const randomFactor = 0.7 + Math.random() * 0.6; // 0.7 to 1.3
-      data.staffUsers = Math.round(data.staffUsers * multiplier * randomFactor);
-      data.radioUsers = Math.round(data.radioUsers * multiplier * randomFactor);
-      data.total = data.staffUsers + data.radioUsers;
-    });
-
     return NextResponse.json({
       activityData,
       metadata: {

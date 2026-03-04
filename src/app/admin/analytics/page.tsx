@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Heading } from '@/components/ui/heading';
@@ -71,7 +72,7 @@ export default function AnalyticsPage() {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Export error:', error);
-      alert('Failed to export analytics data');
+      toast.error('Failed to export analytics data');
     } finally {
       setIsExporting(false);
     }

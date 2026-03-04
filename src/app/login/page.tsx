@@ -8,6 +8,7 @@ import { Link } from '@/components/ui/link'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import Logo from '@/components/shared/Logo'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import toast from 'react-hot-toast';
 
 function LoginForm() {
@@ -15,12 +16,12 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
   const [isLoading, setIsLoading] = useState(false);
-  
-  console.log('🔐 Login Form - Callback URL from search params:', callbackUrl);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
+    setLoginError(null);
 
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
@@ -35,22 +36,21 @@ function LoginForm() {
       });
 
       if (result?.error) {
+        setLoginError(result.error);
         toast.error(result.error);
       } else {
         toast.success('Successfully signed in!');
         
         // If there's a callback URL, use it
         if (callbackUrl) {
-          console.log('🔐 Login Success - Using callback URL:', callbackUrl);
           router.push(callbackUrl);
         } else {
-          console.log('🔐 Login Success - No callback URL, redirecting to /dashboard');
-          // Otherwise, redirect to a generic dashboard that will handle role-based routing
           router.push('/dashboard');
         }
         router.refresh();
       }
     } catch {
+      setLoginError('An error occurred during sign in');
       toast.error('An error occurred during sign in');
     } finally {
       setIsLoading(false);
@@ -70,6 +70,11 @@ function LoginForm() {
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
         <div className="bg-white px-6 py-12 shadow-sm sm:rounded-lg sm:px-12">
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {loginError && (
+              <div role="alert" aria-live="assertive" className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {loginError}
+              </div>
+            )}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-[#272727]">
                 Email address
@@ -131,7 +136,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<LoadingSpinner />}>
       <LoginForm />
     </Suspense>
   );

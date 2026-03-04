@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export default function DashboardRouter() {
   const { data: session, status } = useSession();
@@ -61,11 +62,6 @@ export default function DashboardRouter() {
 
   // Show loading state while determining where to redirect
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <h2 className="text-lg font-semibold text-zinc-900">Loading...</h2>
-        <p className="mt-2 text-sm text-zinc-600">Redirecting to your dashboard</p>
-      </div>
-    </div>
+    <LoadingSpinner label="Redirecting to your dashboard..." />
   );
 }

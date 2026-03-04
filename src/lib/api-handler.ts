@@ -36,7 +36,6 @@ export const withErrorHandling: ApiMiddleware = (handler) => {
 export const withAuth: ApiMiddleware = (handler) => {
   return async (req, context) => {
     const token = await getToken({ req });
-    console.log('🔐 Auth Token:', token ? 'Present' : 'Missing');
 
     if (!token) {
       return NextResponse.json(
@@ -59,8 +58,6 @@ export const withAuth: ApiMiddleware = (handler) => {
       },
     });
 
-    console.log('👤 User Data:', user ? `${user.email} (${user.staffRole || 'no staff role'})` : 'Not found');
-
     if (!user || !user.isActive) {
       return NextResponse.json(
         { error: 'User not found or inactive' },
@@ -78,12 +75,15 @@ export const withAuth: ApiMiddleware = (handler) => {
 export const withAudit = (action: string): ApiMiddleware => {
   return (handler) => {
     return async (req, context) => {
-      const token = await getToken({ req });
       const response = await handler(req, context);
-      
-      if (response.ok && token?.sub) {
+
+      // Read user from request (set by withAuth) to avoid duplicate JWT decode
+      const user = (req as NextRequest & { user?: { id: string } }).user;
+      const userId = user?.id;
+
+      if (response.ok && userId) {
         await logAudit({
-          userId: token.sub,
+          userId,
           action,
           ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
           userAgent: req.headers.get('user-agent') || 'unknown',

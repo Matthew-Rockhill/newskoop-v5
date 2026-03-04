@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { Container } from '@/components/ui/container';
@@ -96,7 +97,7 @@ export default function BulletinSchedulesPage() {
 
   const handleDeleteClick = (schedule: BulletinSchedule) => {
     if (schedule._count.bulletins > 0) {
-      alert(`Cannot delete schedule "${schedule.title}" because it has ${schedule._count.bulletins} associated bulletins.`);
+      toast.error(`Cannot delete schedule "${schedule.title}" because it has ${schedule._count.bulletins} associated bulletins.`);
       return;
     }
     setDeleteTarget(schedule);
@@ -108,7 +109,7 @@ export default function BulletinSchedulesPage() {
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
     } catch (_error) {
-      alert('Failed to delete schedule');
+      toast.error('Failed to delete schedule');
     }
   };
 

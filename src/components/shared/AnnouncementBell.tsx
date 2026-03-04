@@ -78,7 +78,9 @@ export default function AnnouncementBell() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
-        aria-label="Notifications"
+        aria-label={`Notifications${announcements.length > 0 ? `, ${announcements.length} unread` : ''}`}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
         <BellIcon className="h-6 w-6" />
         {announcements.length > 0 && (
@@ -89,7 +91,11 @@ export default function AnnouncementBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-zinc-200 z-50 overflow-hidden">
+        <div
+          role="dialog"
+          aria-label="Notifications"
+          className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-zinc-200 z-50 overflow-hidden"
+        >
           {/* Header */}
           <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
             <p className="text-sm font-semibold text-zinc-900">Notifications</p>
@@ -101,11 +107,12 @@ export default function AnnouncementBell() {
           </div>
 
           {/* Announcement List */}
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto" role="list" aria-live="polite">
             {announcements.length > 0 ? (
               announcements.map((announcement: any) => (
                 <div
                   key={announcement.id}
+                  role="listitem"
                   className="px-4 py-3 border-b border-zinc-50 hover:bg-zinc-50 transition-colors"
                 >
                   <div className="flex items-start gap-2">
@@ -136,7 +143,7 @@ export default function AnnouncementBell() {
                       }}
                       disabled={dismissMutation.isPending}
                       className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded transition-colors flex-shrink-0"
-                      title="Dismiss"
+                      aria-label={`Dismiss ${announcement.title}`}
                     >
                       <XMarkIcon className="h-4 w-4" />
                     </button>

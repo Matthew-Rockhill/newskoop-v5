@@ -28,6 +28,7 @@ import { Dialog } from '@headlessui/react';
 import { Select } from '@/components/ui/select';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface BulletinStory {
   id: string;
@@ -111,6 +112,7 @@ export default function BulletinViewPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showReviewerModal, setShowReviewerModal] = useState(false);
   const [selectedReviewerId, setSelectedReviewerId] = useState<string>('');
+  const [confirmAction, setConfirmAction] = useState<{ status: string; message: string; title: string; description: string; label: string; variant: 'danger' | 'warning' } | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['bulletin', bulletinId],
@@ -231,8 +233,9 @@ export default function BulletinViewPage() {
   if (isLoading) {
     return (
       <Container>
-        <div className="text-center py-12">
-          <p>Loading bulletin...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kelly-green" />
+          <span className="ml-3 text-zinc-500">Loading bulletin...</span>
         </div>
       </Container>
     );
@@ -256,7 +259,7 @@ export default function BulletinViewPage() {
       <PageHeader
         title={bulletin.title}
         description={
-          <div className="flex items-center gap-4 mt-1">
+          <div className="flex flex-wrap items-center gap-4 mt-1">
             <div className="flex items-center gap-2">
               <span className="text-sm text-zinc-500 dark:text-zinc-400">Status:</span>
               <Badge color={getStatusColor(bulletin.status)}>
@@ -345,7 +348,14 @@ export default function BulletinViewPage() {
             {canRequestRevision && (
               <Button
                 color="red"
-                onClick={() => handleStatusChange('NEEDS_REVISION', 'Revision requested')}
+                onClick={() => setConfirmAction({
+                  status: 'NEEDS_REVISION',
+                  message: 'Revision requested',
+                  title: 'Request Revision',
+                  description: `Are you sure you want to request revision for "${bulletin.title}"? The author will be notified to make changes.`,
+                  label: 'Request Revision',
+                  variant: 'warning',
+                })}
                 disabled={isUpdating}
               >
                 <ArrowPathIcon className="h-4 w-4 mr-2" />
@@ -369,7 +379,14 @@ export default function BulletinViewPage() {
             {canPublish && (
               <Button
                 color="primary"
-                onClick={() => handleStatusChange('PUBLISHED', 'Bulletin published!')}
+                onClick={() => setConfirmAction({
+                  status: 'PUBLISHED',
+                  message: 'Bulletin published!',
+                  title: 'Publish Bulletin',
+                  description: `Are you sure you want to publish "${bulletin.title}"? This will distribute the bulletin to radio stations.`,
+                  label: 'Publish',
+                  variant: 'warning',
+                })}
                 disabled={isUpdating}
               >
                 <MegaphoneIcon className="h-4 w-4 mr-2" />
@@ -381,7 +398,14 @@ export default function BulletinViewPage() {
             {canArchive && (
               <Button
                 color="secondary"
-                onClick={() => handleStatusChange('ARCHIVED', 'Bulletin archived')}
+                onClick={() => setConfirmAction({
+                  status: 'ARCHIVED',
+                  message: 'Bulletin archived',
+                  title: 'Archive Bulletin',
+                  description: `Are you sure you want to archive "${bulletin.title}"? It will no longer be visible to radio stations.`,
+                  label: 'Archive',
+                  variant: 'danger',
+                })}
                 disabled={isUpdating}
               >
                 <ArchiveBoxIcon className="h-4 w-4 mr-2" />
@@ -581,6 +605,23 @@ export default function BulletinViewPage() {
           )}
         </div>
       </div>
+
+      {/* Confirmation Dialog for status changes */}
+      <ConfirmDialog
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          if (confirmAction) {
+            await handleStatusChange(confirmAction.status, confirmAction.message);
+            setConfirmAction(null);
+          }
+        }}
+        title={confirmAction?.title || ''}
+        description={confirmAction?.description || ''}
+        confirmLabel={confirmAction?.label || 'Confirm'}
+        isPending={isUpdating}
+        variant={confirmAction?.variant || 'warning'}
+      />
 
       {/* Reviewer Selection Modal */}
       <Dialog

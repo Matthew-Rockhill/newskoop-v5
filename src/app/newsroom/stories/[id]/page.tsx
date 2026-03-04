@@ -652,8 +652,9 @@ export default function StoryDetailPage() {
   if (isLoading) {
     return (
       <Container>
-        <div className="text-center py-12">
-          <p>Loading story...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kelly-green" />
+          <span className="ml-3 text-zinc-500">Loading story...</span>
         </div>
       </Container>
     );

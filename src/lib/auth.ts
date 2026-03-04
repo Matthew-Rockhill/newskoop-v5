@@ -3,8 +3,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { randomBytes } from 'crypto';
-// @ts-ignore
+import { randomBytes, randomInt } from 'crypto';
 import jwt from 'jsonwebtoken';
 
 export const authOptions: NextAuthOptions = {
@@ -12,6 +11,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: {
     strategy: 'jwt',
+    maxAge: 24 * 60 * 60, // 24 hours
   },
   pages: {
     signIn: '/login',
@@ -122,21 +122,27 @@ export function generatePassword(length: number = 12): string {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
   let password = '';
   for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length));
+    password += charset.charAt(randomInt(0, charset.length));
   }
   return password;
 }
 
-const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || process.env.NEXTAUTH_SECRET || 'changeme';
+function getResetTokenSecret(): string {
+  const secret = process.env.RESET_TOKEN_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error('RESET_TOKEN_SECRET or NEXTAUTH_SECRET must be set');
+  }
+  return secret;
+}
 const RESET_TOKEN_EXPIRY = '7d'; // 7 days - matches database token expiry for new users
 
 export function generateResetToken(userId: string): string {
-  return jwt.sign({ userId }, RESET_TOKEN_SECRET, { expiresIn: RESET_TOKEN_EXPIRY });
+  return jwt.sign({ userId }, getResetTokenSecret(), { expiresIn: RESET_TOKEN_EXPIRY });
 }
 
 export function verifyResetToken(token: string): string | null {
   try {
-    const payload = jwt.verify(token, RESET_TOKEN_SECRET) as { userId: string };
+    const payload = jwt.verify(token, getResetTokenSecret()) as unknown as { userId: string };
     return payload.userId;
   } catch {
     return null;

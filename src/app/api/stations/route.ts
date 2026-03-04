@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Create station and users in a transaction (no side effects)
     const result = await prisma.$transaction(async (tx) => {
       // 1) Create the station
       const station = await tx.station.create({
@@ -107,55 +108,33 @@ export async function POST(request: Request) {
         }
       }
 
-      // 4) Send magic link emails to all users - inside transaction
-      const emailResults = [];
+      return { station, primaryUser, additionalUsers };
+    });
 
-      // Send to primary user
-      const primaryEmailResult = await createAndSendMagicLink({
-        userId: primaryUser.id,
-        email: primaryUser.email,
-        name: `${primaryUser.firstName} ${primaryUser.lastName}`,
-        isPrimary: true,
+    // 4) Send magic link emails AFTER transaction commits
+    const emailResults = [];
+    const allUsers = [
+      { user: result.primaryUser, isPrimary: true },
+      ...result.additionalUsers.map(u => ({ user: u, isPrimary: false })),
+    ];
+
+    for (const { user, isPrimary } of allUsers) {
+      const emailResult = await createAndSendMagicLink({
+        userId: user.id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        isPrimary,
       });
-
-      if (!primaryEmailResult.sent) {
-        throw new Error(`Failed to send magic link email to primary contact ${primaryUser.email}: ${primaryEmailResult.error}`);
-      }
 
       emailResults.push({
-        email: primaryUser.email,
-        sent: primaryEmailResult.sent,
-        error: primaryEmailResult.error,
+        email: user.email,
+        sent: emailResult.sent,
+        error: emailResult.error,
       });
-
-      // Send to additional users
-      for (const user of additionalUsers) {
-        const emailResult = await createAndSendMagicLink({
-          userId: user.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          isPrimary: false,
-        });
-
-        if (!emailResult.sent) {
-          throw new Error(`Failed to send magic link email to ${user.email}: ${emailResult.error}`);
-        }
-
-        emailResults.push({
-          email: user.email,
-          sent: emailResult.sent,
-          error: emailResult.error,
-        });
-      }
-
-      return { station, primaryUser, additionalUsers, emailResults };
-    });
+    }
 
     // 5) Revalidate the stations listing
     revalidatePath('/admin/stations');
-
-    console.log(`Station created: ${result.station.name}`);
-    console.log('Email results:', result.emailResults);
 
     return NextResponse.json({
       success: true,
@@ -163,7 +142,7 @@ export async function POST(request: Request) {
         stationId: result.station.id,
         stationName: result.station.name,
         userCount: result.additionalUsers.length + 1,
-        emailResults: result.emailResults,
+        emailResults,
       },
     });
   } catch (error) {
@@ -192,6 +171,18 @@ export async function POST(request: Request) {
 // GET /api/stations - List all stations
 export async function GET(request: Request) {
   try {
+    // Authentication check
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Only ADMIN and SUPERADMIN can list stations
+    const userRole = session.user.staffRole;
+    if (!userRole || !['ADMIN', 'SUPERADMIN'].includes(userRole)) {
+      return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const searchParamsObj = Object.fromEntries(searchParams);
     

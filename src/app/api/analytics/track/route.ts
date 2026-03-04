@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Parse request body
     const body = await req.json();
     const { contentType, contentId, language, category } = body;
@@ -40,8 +44,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get user/station info if available
-    let userId = session?.user?.id;
+    // Get user/station info
+    const userId = session.user.id;
     let stationId: string | undefined = undefined;
 
     if (session?.user?.userType === 'RADIO') {

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { put } from '@vercel/blob';
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,12 +15,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only allow radio users to access this endpoint
     if (session.user.userType !== 'RADIO') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Check if user is the primary contact for the station
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { radioStation: true },
@@ -47,46 +46,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: 'File must be a JPEG, PNG, WebP, or GIF image' }, { status: 400 });
     }
 
-    // Validate file size (2MB limit)
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json({ error: 'File size must be less than 2MB' }, { status: 400 });
     }
 
-    // Generate unique filename
+    // Upload to Vercel Blob
     const timestamp = Date.now();
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const filename = `station-logo-${user.radioStationId}-${timestamp}.${fileExtension}`;
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const pathname = `station-logos/station-logo-${user.radioStationId}-${timestamp}.${ext}`;
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'station-logos');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // Save file to public/uploads/station-logos
-    const filePath = join(uploadsDir, filename);
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    
-    await writeFile(filePath, buffer);
+    const blob = await put(pathname, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
     // Update station's logo URL
-    const logoUrl = `/uploads/station-logos/${filename}`;
-    
     const updatedStation = await prisma.station.update({
       where: { id: user.radioStationId },
       data: {
-        logoUrl,
+        logoUrl: blob.url,
         updatedAt: new Date(),
       },
     });
 
-    // Create audit log
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,
@@ -94,7 +80,7 @@ export async function POST(request: NextRequest) {
         entityType: 'STATION',
         entityId: user.radioStationId,
         metadata: {
-          filename,
+          filename: pathname,
           fileSize: file.size,
           fileType: file.type,
           previousLogoUrl: user.radioStation?.logoUrl,
@@ -104,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Station logo uploaded successfully',
-      logoUrl,
+      logoUrl: blob.url,
       station: updatedStation,
     });
   } catch (error) {

@@ -5,14 +5,14 @@ import { getToken } from 'next-auth/jwt';
 // Paths that don't require authentication
 const publicPaths = ['/', '/login', '/password-reset', '/auth/set-password', '/dashboard'];
 
-// Paths that require specific roles
-const roleBasedPaths: Record<string, string[]> = {
-  '/admin/super': ['SUPERADMIN'],
-  '/admin': ['SUPERADMIN', 'ADMIN'],
-  '/admin/users': ['SUPERADMIN', 'ADMIN'],
-  '/admin/stations': ['SUPERADMIN', 'ADMIN'],
-  '/newsroom': ['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN'],
-};
+// Paths that require specific roles — sorted most-specific-first
+const roleBasedPaths: [string, string[]][] = [
+  ['/admin/super', ['SUPERADMIN']],
+  ['/admin/users', ['SUPERADMIN', 'ADMIN']],
+  ['/admin/stations', ['SUPERADMIN', 'ADMIN']],
+  ['/admin', ['SUPERADMIN', 'ADMIN']],
+  ['/newsroom', ['SUPERADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN']],
+];
 
 // Paths for radio users (different user type)
 // const radioUserPaths = ['/radio'];
@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
   // Redirect to login if not authenticated
   if (!token) {
     const url = new URL('/login', request.url);
-    url.searchParams.set('callbackUrl', encodeURI(request.url));
+    url.searchParams.set('callbackUrl', request.url);
     return NextResponse.redirect(url);
   }
 
@@ -47,8 +47,8 @@ export async function middleware(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 403 });
     }
 
-    // Check specific path permissions
-    for (const [path, allowedRoles] of Object.entries(roleBasedPaths)) {
+    // Check specific path permissions (most-specific-first)
+    for (const [path, allowedRoles] of roleBasedPaths) {
       if (pathname.startsWith(path)) {
         if (!allowedRoles.includes(staffRole)) {
           return new NextResponse('Unauthorized', { status: 403 });

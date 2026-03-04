@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import Logo from '@/components/shared/Logo';
 import { Field, FieldGroup, Fieldset, Label, ErrorMessage } from '@/components/ui/fieldset';
 import toast from 'react-hot-toast';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 function SetPasswordContent() {
   const router = useRouter();
@@ -154,7 +155,7 @@ function SetPasswordContent() {
 
 export default function SetPasswordPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<LoadingSpinner />}>
       <SetPasswordContent />
     </Suspense>
   );

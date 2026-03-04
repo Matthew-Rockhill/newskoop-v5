@@ -4,7 +4,8 @@ import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api
 import { storyCreateSchema, storySearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
 import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
-import { generateSlug, generateUniqueStorySlug } from '@/lib/slug-utils';
+import { deleteAudioFile } from '@/lib/r2-storage';
+import { generateSlug, generateUniqueStorySlug, isSlugConflictError } from '@/lib/slug-utils';
 import { publishStoryEvent, createEvent } from '@/lib/ably';
 
 // Helper function to check permissions
@@ -109,18 +110,6 @@ const getStories = createHandler(
       ...(flaggedForBulletin !== undefined && { flaggedForBulletin }),
     };
 
-    // Debug logging
-    if (query) {
-      console.log('🔍 Search query:', query);
-      console.log('🔍 Where clause:', JSON.stringify(where, null, 2));
-    }
-
-    // Debug logging
-    if (query) {
-      console.log('Search query:', query);
-      console.log('Where clause:', JSON.stringify(where, null, 2));
-    }
-
     // Role-based filtering
     if (user.staffRole === 'INTERN') {
       // Interns can only see their own stories
@@ -152,11 +141,6 @@ const getStories = createHandler(
 
     // Get total count
     const total = await prisma.story.count({ where });
-
-    // Debug logging
-    if (query) {
-      console.log('🔍 Total stories found:', total);
-    }
 
     // Get paginated stories
     const stories = await prisma.story.findMany({
@@ -300,11 +284,6 @@ const getStories = createHandler(
       take: perPage,
     });
 
-    // Debug logging
-    if (query) {
-      console.log('🔍 Stories returned:', stories.map(s => ({ id: s.id, title: s.title })));
-    }
-
     // Flatten audioClips from join-table format to flat AudioClip objects
     const transformedStories = stories.map((story: any) => ({
       ...story,
@@ -327,9 +306,7 @@ const getStories = createHandler(
 // POST /api/newsroom/stories - Create a new story
 const createStory = createHandler(
   async (req: NextRequest) => {
-    console.log('🚀 Story creation started');
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
-    console.log('👤 User:', user);
 
     if (!hasStoryPermission(user.staffRole, 'create')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
@@ -337,27 +314,19 @@ const createStory = createHandler(
 
     let storyData: Record<string, unknown> = {};
     const audioFiles: File[] = [];
-    const _audioDescriptions: string[] = [];
 
     // Support both JSON and FormData
     const contentType = req.headers.get('content-type') || '';
-    console.log('📦 Content-Type:', contentType);
-    
+
     if (contentType.includes('application/json')) {
-      // Handle JSON body (no file uploads)
       storyData = await req.json();
-      console.log('📄 JSON data:', storyData);
     } else if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
-      // Handle FormData for file uploads
       const formData = await req.formData();
-      console.log('📋 FormData entries:');
       for (const [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
         if (key.startsWith('audioFile_')) {
           audioFiles.push(value as File);
         } else if (key.startsWith('audioDescription_')) {
-          const index = parseInt(key.split('_')[1]);
-          _audioDescriptions[index] = value as string;
+          // Audio descriptions collected but not currently used
         } else if (key !== 'audioFilesCount') {
           if (key === 'tagIds') {
             storyData[key] = JSON.parse(value as string);
@@ -366,18 +335,13 @@ const createStory = createHandler(
           }
         }
       }
-      console.log('🎵 Audio files:', audioFiles.length);
-      console.log('📝 Story data:', storyData);
     } else {
       return NextResponse.json({ error: 'Unsupported Content-Type' }, { status: 415 });
     }
     
     // Handle role-based validation
     let validatedData;
-    const reviewerId = storyData.reviewerId; // Extract reviewer ID if provided
-    
-    console.log('🔍 User role:', user.staffRole);
-    console.log('📋 Raw story data for validation:', storyData);
+    const reviewerId = storyData.reviewerId;
     
     try {
       if (user.staffRole === 'INTERN' || user.staffRole === 'JOURNALIST') {
@@ -388,39 +352,29 @@ const createStory = createHandler(
           // categoryId: not required
           tagIds: [],
         };
-        console.log('👶 Intern/Journalist form data:', storyFormData);
         validatedData = storyCreateSchema.parse(storyFormData);
       } else {
         validatedData = storyCreateSchema.parse(storyData);
       }
-      console.log('✅ Validation successful:', validatedData);
     } catch (error) {
-      console.error('❌ Validation failed:', error);
       throw error;
     }
     
     const { tagIds, ...cleanStoryData } = validatedData;
 
     // Process audio files
-    console.log('🎵 Processing audio files:', audioFiles.length);
     const uploadedAudioFiles = [];
-    
+
     try {
       for (let i = 0; i < audioFiles.length; i++) {
         const file = audioFiles[i];
-        console.log(`📁 Processing file ${i + 1}:`, file.name, file.size, file.type);
-        
-        // Validate audio file
+
         const validation = validateAudioFile(file);
         if (!validation.valid) {
-          console.error('❌ Validation failed for file:', file.name, validation.error);
           return NextResponse.json({ error: validation.error }, { status: 400 });
         }
-        
-        // Save file and get file info
-        console.log('☁️ Uploading file to Vercel Blob...');
+
         const uploadedFile = await saveUploadedFile(file);
-        console.log('✅ File uploaded successfully:', uploadedFile.url);
         
         uploadedAudioFiles.push({
           filename: uploadedFile.filename,
@@ -431,14 +385,11 @@ const createStory = createHandler(
           uploadedBy: user.id,
         });
       }
-      console.log('🎉 All audio files processed successfully');
     } catch (error) {
-      console.error('💥 Error processing audio files:', error);
       throw error;
     }
 
     // Prepare create data
-    console.log('🏗️ Preparing story data...');
     let baseSlug = generateSlug(validatedData.title);
 
     // For translations, append language code to ensure unique slug
@@ -447,22 +398,20 @@ const createStory = createHandler(
     }
 
     // Generate unique slug with optimized single-query approach
-    const slug = await generateUniqueStorySlug(baseSlug);
-    console.log('✅ Generated slug:', slug);
+    // Retry on slug conflict (TOCTOU race condition)
+    let slug = await generateUniqueStorySlug(baseSlug);
+    const MAX_SLUG_RETRIES = 3;
 
     const createData: Record<string, unknown> = {
       ...cleanStoryData,
       authorId: user.id,
       authorRole: user.staffRole, // Capture role at creation time
-      slug,
     };
-    console.log('📝 Base create data:', createData);
 
     // If reviewer is provided, set stage to NEEDS_JOURNALIST_REVIEW
     if (reviewerId) {
       createData.assignedReviewerId = reviewerId;
       createData.stage = 'NEEDS_JOURNALIST_REVIEW';
-      console.log('👥 Added reviewer and set stage to NEEDS_JOURNALIST_REVIEW:', reviewerId);
     } else {
       // No reviewer, story starts as DRAFT
       createData.stage = 'DRAFT';
@@ -474,18 +423,18 @@ const createStory = createHandler(
           tag: { connect: { id: tagId } }
         }))
       };
-      console.log('🏷️ Added tags:', tagIds);
     }
 
     // Audio clips are handled after story creation (need the story ID for join table)
 
-    // Create story with audio files
-    console.log('💾 Creating story in database...');
-    console.log('📊 Final create data:', JSON.stringify(createData, null, 2));
-    
     try {
-      const story = await prisma.story.create({
-        data: createData as any,
+      // Retry on slug unique constraint violation (TOCTOU race)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let story: any;
+      for (let attempt = 0; attempt <= MAX_SLUG_RETRIES; attempt++) {
+        try {
+          story = await prisma.story.create({
+            data: { ...createData, slug } as any,
         include: {
           author: {
             select: {
@@ -531,8 +480,19 @@ const createStory = createHandler(
           },
         },
       });
+          break; // Success — exit retry loop
+        } catch (slugError) {
+          if (isSlugConflictError(slugError) && attempt < MAX_SLUG_RETRIES) {
+            slug = await generateUniqueStorySlug(baseSlug);
+            continue;
+          }
+          throw slugError;
+        }
+      }
 
-      console.log('✅ Story created successfully:', story.id);
+      if (!story) {
+        throw new Error('Failed to create story after retries');
+      }
 
       // Handle audio clips after story creation (need story ID for join table)
       if (uploadedAudioFiles.length > 0) {
@@ -550,7 +510,6 @@ const createStory = createHandler(
             },
           });
         }
-        console.log('🎵 Added audio clips:', uploadedAudioFiles.length);
       }
 
       // Link library clips if provided
@@ -578,17 +537,16 @@ const createStory = createHandler(
                 })),
                 skipDuplicates: true,
               });
-              console.log(`🎵 Linked ${validIds.length} library clips to story`);
             }
           }
         } catch (error) {
-          console.error('❌ Failed to link library clips:', error);
+          console.error('Failed to link library clips:', error);
+          // Non-fatal: story was created but clips weren't linked
         }
       }
 
       // Link audio clips from original story if this is a translation
       if (storyData.isTranslation && storyData.originalStoryId && uploadedAudioFiles.length === 0) {
-        console.log('🔄 Linking audio clips from original story...');
         try {
           const originalAudioLinks = await prisma.storyAudioClip.findMany({
             where: { storyId: storyData.originalStoryId as string },
@@ -604,10 +562,9 @@ const createStory = createHandler(
               })),
               skipDuplicates: true,
             });
-            console.log(`✅ Linked ${originalAudioLinks.length} audio clips from original story`);
           }
         } catch (error) {
-          console.error('❌ Failed to link audio clips from original story:', error);
+          console.error('Failed to link audio clips from original story:', error);
         }
       }
 
@@ -620,7 +577,16 @@ const createStory = createHandler(
 
       return NextResponse.json(story, { status: 201 });
     } catch (error) {
-      console.error('💥 Database error creating story:', error);
+      // Clean up uploaded blob files if story creation fails
+      if (uploadedAudioFiles.length > 0) {
+        for (const audioFile of uploadedAudioFiles) {
+          try {
+            await deleteAudioFile(audioFile.url);
+          } catch {
+            // Best-effort cleanup — don't mask the original error
+          }
+        }
+      }
       throw error;
     }
   },

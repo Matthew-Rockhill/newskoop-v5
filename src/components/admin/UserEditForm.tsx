@@ -40,7 +40,7 @@ const userEditSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email address'),
-  mobileNumber: z.string().optional(),
+  mobileNumber: z.string().regex(/^(\+?\d[\d\s-]{7,15})?$/, 'Invalid phone number format').optional().or(z.literal('')),
   userType: z.enum(['STAFF', 'RADIO']),
   staffRole: z.enum(['SUPERADMIN', 'ADMIN', 'EDITOR', 'SUB_EDITOR', 'JOURNALIST', 'INTERN']).optional(),
   translationLanguage: z.union([

@@ -25,6 +25,9 @@ import { Pagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/empty-state';
 import { DataListLoading } from '@/components/ui/data-list';
 import { Input, InputGroup } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 import { useStories, type StoryFilters } from '@/hooks/use-stories';
 import { StoryStage } from '@prisma/client';
@@ -150,22 +153,16 @@ function StoriesPageContent() {
               const isActive = filters.stage === filter.value || (!filters.stage && filter.value === null);
 
               return (
-                <button
+                <Button
                   key={filter.label}
                   onClick={() => handleFilterChange('stage', filter.value || undefined)}
+                  color={isActive ? 'primary' : 'white'}
+                  className="transition-colors"
                   aria-pressed={isActive}
-                  className={`
-                    inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
-                    transition-colors duration-150
-                    ${isActive
-                      ? 'bg-kelly-green text-white'
-                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                    }
-                  `}
                 >
-                  {Icon && <Icon className="h-4 w-4" />}
+                  {Icon && <Icon className="h-4 w-4 mr-1" />}
                   {filter.label}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -241,7 +238,7 @@ function StoriesPageContent() {
 
 export default function StoriesPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<LoadingSpinner label="Loading stories..." />}>
       <StoriesPageContent />
     </Suspense>
   );

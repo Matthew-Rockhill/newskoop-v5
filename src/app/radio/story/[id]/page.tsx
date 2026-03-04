@@ -45,10 +45,6 @@ export default function StoryDetailPage() {
 
   const story = storyData?.story;
 
-  // Debug logging
-  console.log('Story Data:', storyData);
-  console.log('Story:', story);
-
   // Fetch translations for this story
   const { data: translationsData } = useQuery({
     queryKey: ['story-translations', storyId],
