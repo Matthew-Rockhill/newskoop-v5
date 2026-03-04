@@ -20,12 +20,8 @@ updates:
         update-types:
           - "minor"
     ignore:
-      # Major updates require manual review
-      - dependency-name: "next"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@tiptap/*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "zod"
+      # All major updates require manual review
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
