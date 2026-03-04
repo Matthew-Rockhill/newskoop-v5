@@ -274,34 +274,45 @@ export async function POST(
       select: { order: true },
     });
 
-    // Add the story
-    const bulletinStory = await prisma.bulletinStory.create({
-      data: {
-        bulletinId: id,
-        storyId: storyId,
-        order: (maxOrder?.order || 0) + 1,
-      },
-      include: {
-        story: {
-          include: {
-            author: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
+    // Add the story and auto-unflag it
+    const [bulletinStory] = await prisma.$transaction([
+      prisma.bulletinStory.create({
+        data: {
+          bulletinId: id,
+          storyId: storyId,
+          order: (maxOrder?.order || 0) + 1,
+        },
+        include: {
+          story: {
+            include: {
+              author: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
               },
-            },
-            category: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      }),
+      // Auto-unflag: clear the bulletin flag once the story is used
+      prisma.story.update({
+        where: { id: storyId },
+        data: {
+          flaggedForBulletin: false,
+          flaggedForBulletinAt: null,
+          flaggedForBulletinById: null,
+        },
+      }),
+    ]);
 
     return NextResponse.json({ bulletinStory });
   } catch (error) {

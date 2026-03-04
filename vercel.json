@@ -28,6 +28,10 @@
     {
       "path": "/api/cron/aggregate-analytics",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/reset-bulletin-flags",
+      "schedule": "0 0 * * *"
     }
   ]
 }
