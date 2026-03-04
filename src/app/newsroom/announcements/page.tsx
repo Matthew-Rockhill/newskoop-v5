@@ -63,7 +63,7 @@ export default function NewsroomAnnouncementsPage() {
   // Dismiss announcement mutation
   const dismissMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/radio/announcements/${id}/dismiss`, {
+      const response = await fetch(`/api/newsroom/announcements/${id}/dismiss`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to dismiss announcement');
