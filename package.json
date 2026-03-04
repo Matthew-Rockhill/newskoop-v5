@@ -42,7 +42,7 @@
     "@tiptap/react": "^2.27.2",
     "@tiptap/starter-kit": "^2.27.2",
     "@vercel/blob": "^2.3.0",
-    "ably": "^2.18.0",
+    "ably": "^2.19.0",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
