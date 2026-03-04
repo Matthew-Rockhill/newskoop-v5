@@ -25,6 +25,7 @@ import {
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '../shared/Logo'
+import AnnouncementBell from '../shared/AnnouncementBell'
 import { useSession, signOut } from 'next-auth/react'
 import { useQuery } from '@tanstack/react-query'
 import { Avatar } from '../ui/avatar'
@@ -164,8 +165,9 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
 
   const SidebarContent = () => (
     <>
-      <div className="flex h-16 shrink-0 items-center">
+      <div className="flex h-16 shrink-0 items-center justify-between">
         <Logo className="h-8 w-auto" variant="full" />
+        <AnnouncementBell />
       </div>
       <nav className="flex flex-1 flex-col justify-between">
         <ul role="list" className="flex flex-1 flex-col gap-y-5">
@@ -358,6 +360,7 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
             {getCurrentPageName()}
           </div>
           <div className="flex items-center gap-x-2">
+            <AnnouncementBell />
             {session?.user && (
               <Avatar
                 className="h-8 w-8"
