@@ -28,6 +28,7 @@ import {
   UserIcon,
   ClockIcon,
   TagIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 import { formatDateShort } from '@/lib/format';
 
@@ -56,15 +57,17 @@ interface StoryListProps {
   stories: Story[];
   onRemove: (storyId: string) => void;
   onReorder: (reorderedStories: Story[]) => void;
+  onEditStory?: (story: Story) => void;
 }
 
 interface SortableStoryProps {
   story: Story;
   index: number;
   onRemove: (storyId: string) => void;
+  onEditStory?: (story: Story) => void;
 }
 
-function SortableStory({ story, index, onRemove }: SortableStoryProps) {
+function SortableStory({ story, index, onRemove, onEditStory }: SortableStoryProps) {
   const {
     attributes,
     listeners,
@@ -156,20 +159,33 @@ function SortableStory({ story, index, onRemove }: SortableStoryProps) {
         </div>
       </div>
 
-      {/* Remove Button */}
-      <Button
-        type="button"
-        outline
-        onClick={() => onRemove(story.id)}
-        className="flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-      >
-        <TrashIcon className="h-4 w-4" />
-      </Button>
+      {/* Action Buttons */}
+      <div className="flex-shrink-0 flex flex-col gap-1">
+        {onEditStory && (
+          <Button
+            type="button"
+            outline
+            onClick={() => onEditStory(story)}
+            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-300"
+            title="Quick edit story"
+          >
+            <PencilSquareIcon className="h-4 w-4" />
+          </Button>
+        )}
+        <Button
+          type="button"
+          outline
+          onClick={() => onRemove(story.id)}
+          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+        >
+          <TrashIcon className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
 
-export function StoryList({ stories, onRemove, onReorder }: StoryListProps) {
+export function StoryList({ stories, onRemove, onReorder, onEditStory }: StoryListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -228,6 +244,7 @@ export function StoryList({ stories, onRemove, onReorder }: StoryListProps) {
                 story={story}
                 index={index}
                 onRemove={onRemove}
+                onEditStory={onEditStory}
               />
             ))}
           </SortableContext>

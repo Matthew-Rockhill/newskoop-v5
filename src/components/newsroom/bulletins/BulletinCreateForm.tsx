@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { StorySelector } from '@/components/newsroom/bulletins/StorySelector';
 import { StoryList } from '@/components/newsroom/bulletins/StoryList';
 import { BulletinPreview } from '@/components/newsroom/bulletins/BulletinPreview';
+import { StoryQuickEditModal } from '@/components/newsroom/bulletins/StoryQuickEditModal';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
@@ -26,6 +27,7 @@ import {
   EyeIcon,
   CheckIcon,
   SpeakerWaveIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 
 // Dynamically import RichTextEditor to reduce initial bundle size
@@ -91,6 +93,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
+  const [editingStory, setEditingStory] = useState<SelectedStory | null>(null);
 
   const {
     register,
@@ -224,6 +227,12 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
       order: index + 1,
     }));
     setSelectedStories(updatedStories);
+  };
+
+  const handleStorySaved = (storyId: string, updatedTitle: string, updatedContent: string) => {
+    setSelectedStories(prev =>
+      prev.map(s => s.id === storyId ? { ...s, title: updatedTitle, content: updatedContent } : s)
+    );
   };
 
   // Step validation logic
@@ -525,6 +534,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
               stories={selectedStories}
               onRemove={handleRemoveStory}
               onReorder={handleReorderStories}
+              onEditStory={setEditingStory}
             />
 
             {selectedStories.length === 0 && (
@@ -601,16 +611,26 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
               <div className="space-y-4">
                 {selectedStories.map((story, index) => (
                   <div key={story.id} className="border border-zinc-200 rounded-lg p-4 bg-white">
-                    {/* Story Badges */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <Badge color="zinc">Story {index + 1}</Badge>
-                      <Badge color="green">{story.category.name}</Badge>
-                      {story.audioClips && story.audioClips.length > 0 && (
-                        <Badge color="purple" className="flex items-center gap-1">
-                          <SpeakerWaveIcon className="h-3 w-3" />
-                          Audio
-                        </Badge>
-                      )}
+                    {/* Story Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Badge color="zinc">Story {index + 1}</Badge>
+                        <Badge color="green">{story.category.name}</Badge>
+                        {story.audioClips && story.audioClips.length > 0 && (
+                          <Badge color="purple" className="flex items-center gap-1">
+                            <SpeakerWaveIcon className="h-3 w-3" />
+                            Audio
+                          </Badge>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingStory(story)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                      >
+                        <PencilSquareIcon className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
                     </div>
 
                     {/* Story Content */}
@@ -747,6 +767,14 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
           <Text className="text-red-600">{errors.root.message}</Text>
         </Card>
       )}
+
+      {/* Quick Edit Modal */}
+      <StoryQuickEditModal
+        isOpen={!!editingStory}
+        onClose={() => setEditingStory(null)}
+        story={editingStory}
+        onSaved={handleStorySaved}
+      />
     </form>
   );
 }

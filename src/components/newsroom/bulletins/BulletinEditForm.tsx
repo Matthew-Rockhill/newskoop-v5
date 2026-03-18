@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { StorySelector } from '@/components/newsroom/bulletins/StorySelector';
 import { StoryList } from '@/components/newsroom/bulletins/StoryList';
 import { BulletinPreview } from '@/components/newsroom/bulletins/BulletinPreview';
+import { StoryQuickEditModal } from '@/components/newsroom/bulletins/StoryQuickEditModal';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 
@@ -74,6 +75,7 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
   const [activeTab, setActiveTab] = useState<'stories' | 'form' | 'preview'>('stories');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
+  const [editingStory, setEditingStory] = useState<SelectedStory | null>(null);
 
   const {
     register,
@@ -236,6 +238,12 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
     setSelectedStories(updatedStories);
   };
 
+  const handleStorySaved = (storyId: string, updatedTitle: string, updatedContent: string) => {
+    setSelectedStories(prev =>
+      prev.map(s => s.id === storyId ? { ...s, title: updatedTitle, content: updatedContent } : s)
+    );
+  };
+
   const tabs = [
     { id: 'stories' as const, label: '1. Select Stories', count: selectedStories.length },
     { id: 'form' as const, label: '2. Intro & Outro', count: null },
@@ -382,6 +390,7 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
                 stories={selectedStories}
                 onRemove={handleRemoveStory}
                 onReorder={handleReorderStories}
+                onEditStory={setEditingStory}
               />
 
               {selectedStories.length > 0 && watch('scheduleId') && watch('scheduledDate') && (
@@ -517,6 +526,14 @@ export function BulletinEditForm({ bulletin, onSuccess, onCancel }: BulletinEdit
           <Text className="text-red-600">{errors.root.message}</Text>
         </Card>
       )}
+
+      {/* Quick Edit Modal */}
+      <StoryQuickEditModal
+        isOpen={!!editingStory}
+        onClose={() => setEditingStory(null)}
+        story={editingStory}
+        onSaved={handleStorySaved}
+      />
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-3">
