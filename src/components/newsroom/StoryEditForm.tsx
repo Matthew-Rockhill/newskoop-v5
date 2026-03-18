@@ -643,7 +643,7 @@ export function StoryEditForm({ storyId }: StoryEditFormProps) {
                 <FileUpload
                   onFilesChange={setNewAudioFiles}
                   maxFiles={5}
-                  maxFileSize={50}
+                  maxFileSize={100}
                 />
               </div>
             </Card>

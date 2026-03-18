@@ -322,14 +322,20 @@ const createStory = createHandler(
       storyData = await req.json();
     } else if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
       const formData = await req.formData();
+      // Fields that are JSON-encoded when sent via FormData
+      const jsonFields = ['tagIds', 'classificationIds', 'libraryClipIds'];
       for (const [key, value] of formData.entries()) {
         if (key.startsWith('audioFile_')) {
           audioFiles.push(value as File);
         } else if (key.startsWith('audioDescription_')) {
           // Audio descriptions collected but not currently used
         } else if (key !== 'audioFilesCount') {
-          if (key === 'tagIds') {
-            storyData[key] = JSON.parse(value as string);
+          if (jsonFields.includes(key)) {
+            try {
+              storyData[key] = JSON.parse(value as string);
+            } catch {
+              storyData[key] = value as string;
+            }
           } else {
             storyData[key] = value as string;
           }
@@ -382,6 +388,7 @@ const createStory = createHandler(
           url: uploadedFile.url,
           fileSize: uploadedFile.size, // Note: database field is fileSize, not size
           mimeType: uploadedFile.mimeType,
+          duration: uploadedFile.duration,
           uploadedBy: user.id,
         });
       }

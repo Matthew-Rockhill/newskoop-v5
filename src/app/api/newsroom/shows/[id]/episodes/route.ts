@@ -6,6 +6,16 @@ import { z } from 'zod';
 import { generateSlug, generateUniqueEpisodeSlug } from '@/lib/slug-utils';
 import { publishEpisodeEvent, createEvent } from '@/lib/ably';
 
+// Flatten episode audioClips from join-table format to flat AudioClip objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenEpisodeAudio(episode: any) {
+  if (!episode) return episode;
+  return {
+    ...episode,
+    audioClips: episode.audioClips?.map((eac: any) => eac.audioClip) || [],
+  };
+}
+
 const episodeCreateSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
@@ -34,7 +44,7 @@ const getEpisodes = createHandler(
         showId: id,
       },
       include: {
-        audioClips: true,
+        audioClips: { include: { audioClip: true } },
         publisher: {
           select: {
             id: true,
@@ -48,7 +58,7 @@ const getEpisodes = createHandler(
       },
     });
 
-    return NextResponse.json({ episodes });
+    return NextResponse.json({ episodes: episodes.map(flattenEpisodeAudio) });
   },
   [withErrorHandling, withAuth]
 );
@@ -99,7 +109,7 @@ const createEpisode = createHandler(
         showId: id,
       },
       include: {
-        audioClips: true,
+        audioClips: { include: { audioClip: true } },
         publisher: {
           select: {
             id: true,
@@ -119,7 +129,7 @@ const createEpisode = createHandler(
       })
     ).catch(() => {});
 
-    return NextResponse.json({ episode }, { status: 201 });
+    return NextResponse.json({ episode: flattenEpisodeAudio(episode) }, { status: 201 });
   },
   [withErrorHandling, withAuth, withAudit('episode.create')]
 );

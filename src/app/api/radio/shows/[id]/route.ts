@@ -4,6 +4,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ClassificationType } from '@prisma/client';
 
+// Flatten episode audioClips from join-table format to flat AudioClip objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenEpisodeAudio(episode: any) {
+  if (!episode) return episode;
+  return {
+    ...episode,
+    audioClips: episode.audioClips?.map((eac: any) => eac.audioClip) || [],
+  };
+}
+
 // GET /api/radio/shows/[id] - Get a single show
 export async function GET(
   req: NextRequest,
@@ -56,7 +66,7 @@ export async function GET(
             status: 'PUBLISHED',
           },
           include: {
-            audioClips: true,
+            audioClips: { include: { audioClip: true } },
           },
           orderBy: {
             episodeNumber: 'desc',
@@ -117,6 +127,7 @@ export async function GET(
     const show = {
       ...showRaw,
       classifications: showRaw.classifications.map(sc => sc.classification),
+      episodes: showRaw.episodes.map(flattenEpisodeAudio),
       subShows: showRaw.subShows.map(sub => ({
         ...sub,
         classifications: sub.classifications.map(sc => sc.classification),

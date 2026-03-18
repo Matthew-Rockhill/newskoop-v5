@@ -3,6 +3,16 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+// Flatten episode audioClips from join-table format to flat AudioClip objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenEpisodeAudio(episode: any) {
+  if (!episode) return episode;
+  return {
+    ...episode,
+    audioClips: episode.audioClips?.map((eac: any) => eac.audioClip) || [],
+  };
+}
+
 // GET /api/radio/shows/[id]/episodes - Get published episodes for a show
 export async function GET(
   req: NextRequest,
@@ -50,7 +60,7 @@ export async function GET(
           status: 'PUBLISHED',
         },
         include: {
-          audioClips: true,
+          audioClips: { include: { audioClip: true } },
           publisher: {
             select: {
               id: true,
@@ -74,7 +84,7 @@ export async function GET(
     ]);
 
     return NextResponse.json({
-      episodes,
+      episodes: episodes.map(flattenEpisodeAudio),
       pagination: {
         page,
         perPage,

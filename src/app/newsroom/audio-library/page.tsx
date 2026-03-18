@@ -6,7 +6,6 @@ import {
   MusicalNoteIcon,
   PencilIcon,
   TrashIcon,
-  ArrowUpTrayIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
@@ -15,38 +14,25 @@ import { formatDateShort } from '@/lib/format';
 import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Input, InputGroup } from '@/components/ui/input';
 import { CustomAudioPlayer } from '@/components/ui/audio-player';
 import { formatDuration, formatFileSize } from '@/lib/format-utils';
 import { Pagination } from '@/components/ui/pagination';
-import { FileUpload } from '@/components/ui/file-upload';
 import { AudioClipEditModal } from '@/components/newsroom/AudioClipEditModal';
 import { AudioClipDeleteModal } from '@/components/newsroom/AudioClipDeleteModal';
 
 import {
   useAudioLibrary,
-  useUploadAudioClip,
   useUpdateAudioClip,
   useDeleteAudioClip,
   type AudioClip,
 } from '@/hooks/use-audio-library';
 
-interface AudioFile {
-  id: string;
-  file: File;
-  name: string;
-  size: number;
-}
-
 export default function AudioLibraryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [showUpload, setShowUpload] = useState(false);
-  const [uploadFiles, setUploadFiles] = useState<AudioFile[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
 
   // Edit modal state
   const [editingClip, setEditingClip] = useState<AudioClip | null>(null);
@@ -69,32 +55,11 @@ export default function AudioLibraryPage() {
     perPage: 20,
   });
 
-  const uploadMutation = useUploadAudioClip();
   const updateMutation = useUpdateAudioClip();
   const deleteMutation = useDeleteAudioClip();
 
   const clips: AudioClip[] = data?.clips || [];
   const pagination = data?.pagination;
-
-  const handleUpload = useCallback(async () => {
-    if (uploadFiles.length === 0) return;
-
-    setIsUploading(true);
-    try {
-      for (const audioFile of uploadFiles) {
-        const formData = new FormData();
-        formData.append('audioFile', audioFile.file);
-        await uploadMutation.mutateAsync(formData);
-      }
-      toast.success(`Uploaded ${uploadFiles.length} clip${uploadFiles.length !== 1 ? 's' : ''}`);
-      setUploadFiles([]);
-      setShowUpload(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [uploadFiles, uploadMutation]);
 
   const handleEditSave = useCallback(async (data: { title?: string; description?: string; tags?: string[] }) => {
     if (!editingClip) return;
@@ -123,39 +88,7 @@ export default function AudioLibraryPage() {
   return (
     <Container>
       <div className="space-y-6">
-        <PageHeader
-          title="Audio Library"
-          action={{
-            label: showUpload ? 'Cancel Upload' : 'Upload Audio',
-            onClick: () => {
-              setShowUpload(!showUpload);
-              if (showUpload) setUploadFiles([]);
-            },
-          }}
-        />
-
-        {/* Upload Section */}
-        {showUpload && (
-          <div className="bg-white border border-zinc-200 rounded-lg p-6">
-            <Text className="font-medium mb-3">Upload Audio Clips</Text>
-            <FileUpload
-              onFilesChange={setUploadFiles}
-              maxFiles={10}
-              maxFileSize={50}
-            />
-            {uploadFiles.length > 0 && (
-              <div className="mt-4 flex justify-end">
-                <Button
-                  onClick={handleUpload}
-                  disabled={isUploading}
-                >
-                  <ArrowUpTrayIcon className="h-4 w-4 mr-2" />
-                  {isUploading ? 'Uploading...' : `Upload ${uploadFiles.length} file${uploadFiles.length !== 1 ? 's' : ''}`}
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+        <PageHeader title="Audio Library" />
 
         {/* Search */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -202,7 +135,7 @@ export default function AudioLibraryPage() {
             <Text className="text-zinc-400 text-sm">
               {searchQuery
                 ? 'Try a different search term'
-                : 'Upload audio clips or they\'ll appear here when added to stories'}
+                : 'Audio clips appear here when added to stories'}
             </Text>
           </div>
         ) : (

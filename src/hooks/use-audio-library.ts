@@ -66,30 +66,6 @@ export function useAudioClip(id: string) {
   });
 }
 
-// Upload new audio clip to library
-export function useUploadAudioClip() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (formData: FormData) => {
-      const response = await fetch('/api/newsroom/audio-library', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload audio clip');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['audio-library'] });
-    },
-  });
-}
-
 // Update audio clip metadata
 export function useUpdateAudioClip() {
   const queryClient = useQueryClient();

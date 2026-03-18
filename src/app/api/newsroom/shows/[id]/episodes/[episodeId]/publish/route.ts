@@ -5,6 +5,16 @@ import { canPublishEpisode } from '@/lib/permissions';
 import { z } from 'zod';
 import { publishEpisodeEvent, createEvent } from '@/lib/ably';
 
+// Flatten episode audioClips from join-table format to flat AudioClip objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenEpisodeAudio(episode: any) {
+  if (!episode) return episode;
+  return {
+    ...episode,
+    audioClips: episode.audioClips?.map((eac: any) => eac.audioClip) || [],
+  };
+}
+
 const publishSchema = z.object({
   scheduledPublishAt: z.string().datetime().optional(),
 });
@@ -22,7 +32,7 @@ const publishEpisode = createHandler(
     const episode = await prisma.episode.findUnique({
       where: { id: episodeId },
       include: {
-        audioClips: true,
+        audioClips: { include: { audioClip: true } },
       },
     });
 
@@ -58,7 +68,7 @@ const publishEpisode = createHandler(
         publishedBy: shouldPublishNow ? user.id : null,
       },
       include: {
-        audioClips: true,
+        audioClips: { include: { audioClip: true } },
         publisher: {
           select: {
             id: true,
@@ -81,7 +91,7 @@ const publishEpisode = createHandler(
     }
 
     return NextResponse.json({
-      episode: updatedEpisode,
+      episode: flattenEpisodeAudio(updatedEpisode),
       message: shouldPublishNow ? 'Episode published successfully' : 'Episode scheduled for publication',
     });
   },
@@ -120,13 +130,13 @@ const unpublishEpisode = createHandler(
         publishedBy: null,
       },
       include: {
-        audioClips: true,
+        audioClips: { include: { audioClip: true } },
         show: true,
       },
     });
 
     return NextResponse.json({
-      episode: updatedEpisode,
+      episode: flattenEpisodeAudio(updatedEpisode),
       message: 'Episode unpublished successfully',
     });
   },

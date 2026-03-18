@@ -5,6 +5,16 @@ import { canManageShows, canDeleteShow } from '@/lib/permissions';
 import { z } from 'zod';
 import { publishEpisodeEvent, createEvent } from '@/lib/ably';
 
+// Flatten episode audioClips from join-table format to flat AudioClip objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenEpisodeAudio(episode: any) {
+  if (!episode) return episode;
+  return {
+    ...episode,
+    audioClips: episode.audioClips?.map((eac: any) => eac.audioClip) || [],
+  };
+}
+
 const episodeUpdateSchema = z.object({
   title: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
@@ -34,7 +44,7 @@ const getEpisode = createHandler(
             },
           },
         },
-        audioClips: true,
+        audioClips: { include: { audioClip: true } },
         publisher: {
           select: {
             id: true,
@@ -53,7 +63,7 @@ const getEpisode = createHandler(
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
-    return NextResponse.json({ episode });
+    return NextResponse.json({ episode: flattenEpisodeAudio(episode) });
   },
   [withErrorHandling, withAuth]
 );
@@ -105,7 +115,7 @@ const updateEpisode = createHandler(
         ...(data.coverImage !== undefined && { coverImage: data.coverImage }),
       },
       include: {
-        audioClips: true,
+        audioClips: { include: { audioClip: true } },
         publisher: {
           select: {
             id: true,
@@ -124,7 +134,7 @@ const updateEpisode = createHandler(
       })
     ).catch(() => {});
 
-    return NextResponse.json({ episode: updatedEpisode });
+    return NextResponse.json({ episode: flattenEpisodeAudio(updatedEpisode) });
   },
   [withErrorHandling, withAuth, withAudit('episode.update')]
 );

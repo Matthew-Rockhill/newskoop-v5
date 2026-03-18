@@ -176,6 +176,7 @@ model User {
   publishedStories   Story[]     @relation("PublishedStories")
   uploadedAudioClips AudioClip[]
   addedAudioClips    StoryAudioClip[] @relation("AudioClipAdder")
+  addedEpisodeAudioClips EpisodeAudioClip[] @relation("EpisodeAudioClipAdder")
   comments           Comment[]
   resolvedComments   Comment[]   @relation("ResolvedComments")
 
@@ -584,9 +585,8 @@ model AudioClip {
   // Stories linked via join table
   stories StoryAudioClip[]
 
-  // Episodes still use direct FK
-  episodeId String?
-  episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  // Episodes linked via join table (mirrors StoryAudioClip)
+  episodes EpisodeAudioClip[]
 
   uploadedBy String
   uploader   User   @relation(fields: [uploadedBy], references: [id])
@@ -595,7 +595,6 @@ model AudioClip {
   updatedAt DateTime @updatedAt
 
   @@index([sourceStoryId])
-  @@index([episodeId])
   @@index([uploadedBy])
 }
 
@@ -611,6 +610,21 @@ model StoryAudioClip {
 
   @@unique([storyId, audioClipId])
   @@index([storyId])
+  @@index([audioClipId])
+}
+
+model EpisodeAudioClip {
+  id          String    @id @default(cuid())
+  episodeId   String
+  episode     Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  audioClipId String
+  audioClip   AudioClip @relation(fields: [audioClipId], references: [id], onDelete: Cascade)
+  addedBy     String
+  adder       User      @relation("EpisodeAudioClipAdder", fields: [addedBy], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@unique([episodeId, audioClipId])
+  @@index([episodeId])
   @@index([audioClipId])
 }
 
@@ -898,7 +912,7 @@ model Episode {
   // Content
   content        String?       @db.Text // Rich text show notes
   coverImage     String?       // Optional episode-specific cover image
-  audioClips     AudioClip[]
+  audioClips     EpisodeAudioClip[]
 
   // Publishing
   status            EpisodeStatus @default(DRAFT)

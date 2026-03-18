@@ -410,7 +410,7 @@ export default function TranslatePage() {
                           <FileUpload
                             onFilesChange={setNewAudioFiles}
                             maxFiles={5}
-                            maxFileSize={50}
+                            maxFileSize={100}
                           />
                         </div>
 

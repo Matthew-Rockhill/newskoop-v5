@@ -447,6 +447,7 @@ const updateStory = createHandler(
             url: uploadedFile.url,
             fileSize: uploadedFile.size,
             mimeType: uploadedFile.mimeType,
+            duration: uploadedFile.duration,
             uploadedBy: user.id,
           });
         }

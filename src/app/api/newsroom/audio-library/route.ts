@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
+import { createHandler, withAuth, withErrorHandling } from '@/lib/api-handler';
 import { audioLibrarySearchSchema } from '@/lib/validations';
-import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 import { Prisma } from '@prisma/client';
 
 // GET /api/newsroom/audio-library - List/search audio clips
+// Audio clips always belong to stories — the library is a view of all story audio
 const getAudioClips = createHandler(
   async (req: NextRequest) => {
     const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
@@ -40,9 +40,6 @@ const getAudioClips = createHandler(
     if (tags && tags.length > 0) {
       where.tags = { hasSome: tags };
     }
-
-    // Exclude episode-only clips (clips with episodeId but no library relevance)
-    where.episodeId = null;
 
     const total = await prisma.audioClip.count({ where });
 
@@ -98,71 +95,4 @@ const getAudioClips = createHandler(
   [withErrorHandling, withAuth]
 );
 
-// POST /api/newsroom/audio-library - Upload new clip to library
-const uploadAudioClip = createHandler(
-  async (req: NextRequest) => {
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
-
-    if (!user.staffRole) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
-
-    const formData = await req.formData();
-    const audioFile = formData.get('audioFile') as File;
-    const title = (formData.get('title') as string) || null;
-    const description = (formData.get('description') as string) || null;
-    const tagsRaw = formData.get('tags') as string;
-    const tags = tagsRaw ? JSON.parse(tagsRaw) : [];
-
-    if (!audioFile) {
-      return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
-    }
-
-    const validation = validateAudioFile(audioFile);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
-    }
-
-    const uploadedFile = await saveUploadedFile(audioFile);
-
-    const audioClip = await prisma.audioClip.create({
-      data: {
-        filename: uploadedFile.filename,
-        originalName: uploadedFile.originalName,
-        url: uploadedFile.url,
-        fileSize: uploadedFile.size,
-        mimeType: uploadedFile.mimeType,
-        duration: uploadedFile.duration,
-        uploadedBy: user.id,
-        title,
-        description,
-        tags,
-      },
-      select: {
-        id: true,
-        filename: true,
-        originalName: true,
-        url: true,
-        duration: true,
-        fileSize: true,
-        mimeType: true,
-        title: true,
-        description: true,
-        tags: true,
-        createdAt: true,
-        uploader: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(audioClip, { status: 201 });
-  },
-  [withErrorHandling, withAuth, withAudit('audio-library.upload')]
-);
-
-export { getAudioClips as GET, uploadAudioClip as POST };
+export { getAudioClips as GET };

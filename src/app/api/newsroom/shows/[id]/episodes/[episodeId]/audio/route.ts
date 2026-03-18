@@ -8,21 +8,57 @@ import { deleteAudioFile } from '@/lib/r2-storage';
 // Maximum audio clips allowed per episode
 const MAX_AUDIO_CLIPS_PER_EPISODE = 5;
 
-// Helper to fetch and return the full episode after audio changes
-async function getFullEpisode(episodeId: string) {
-  return prisma.episode.findUnique({
-    where: { id: episodeId },
-    include: {
-      audioClips: true,
-      show: true,
-      publisher: {
+// Flatten episode audioClips from join-table format to flat AudioClip objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenEpisodeAudio(episode: any) {
+  if (!episode) return episode;
+  return {
+    ...episode,
+    audioClips: episode.audioClips?.map((eac: any) => eac.audioClip) || [],
+  };
+}
+
+// Reusable include for episode audio via join table
+const episodeAudioInclude = {
+  audioClips: {
+    select: {
+      id: true,
+      audioClip: {
         select: {
           id: true,
-          firstName: true,
-          lastName: true,
+          filename: true,
+          originalName: true,
+          url: true,
+          duration: true,
+          fileSize: true,
+          mimeType: true,
+          title: true,
+          tags: true,
         },
       },
+      createdAt: true,
     },
+  },
+  show: true,
+  publisher: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+    },
+  },
+} as const;
+
+// Helper to recalculate and update episode duration from linked clips
+async function recalculateEpisodeDuration(episodeId: string) {
+  const links = await prisma.episodeAudioClip.findMany({
+    where: { episodeId },
+    select: { audioClip: { select: { duration: true } } },
+  });
+  const totalDuration = links.reduce((sum, link) => sum + (link.audioClip.duration ?? 0), 0);
+  await prisma.episode.update({
+    where: { id: episodeId },
+    data: { duration: totalDuration > 0 ? totalDuration : null },
   });
 }
 
@@ -53,6 +89,7 @@ const uploadAudio = createHandler(
       return NextResponse.json({ error: 'Episode does not belong to this show' }, { status: 400 });
     }
 
+    const existingClipCount = episode._count.audioClips;
     const contentType = req.headers.get('content-type') || '';
 
     // JSON body: link existing library clips to episode
@@ -64,7 +101,6 @@ const uploadAudio = createHandler(
         return NextResponse.json({ error: 'audioClipIds array is required' }, { status: 400 });
       }
 
-      const existingClipCount = episode._count.audioClips;
       const remainingSlots = MAX_AUDIO_CLIPS_PER_EPISODE - existingClipCount;
 
       if (remainingSlots <= 0) {
@@ -79,31 +115,47 @@ const uploadAudio = createHandler(
         }, { status: 400 });
       }
 
-      // Verify all clips exist and are not already attached to another episode
+      // Verify all clips exist
       const clips = await prisma.audioClip.findMany({
         where: { id: { in: audioClipIds } },
-        select: { id: true, episodeId: true },
+        select: { id: true },
       });
 
-      const validClipIds = clips
-        .filter(c => c.episodeId === null || c.episodeId === episodeId)
-        .map(c => c.id);
+      const validClipIds = clips.map(c => c.id);
 
       if (validClipIds.length === 0) {
         return NextResponse.json({ error: 'No valid audio clips to link' }, { status: 400 });
       }
 
-      // Update each clip to belong to this episode
-      await prisma.audioClip.updateMany({
-        where: { id: { in: validClipIds }, episodeId: null },
-        data: { episodeId },
+      // Create join table links (skip duplicates via unique constraint)
+      const links = await Promise.all(
+        validClipIds.map(async (clipId) => {
+          try {
+            return await prisma.episodeAudioClip.create({
+              data: {
+                episodeId,
+                audioClipId: clipId,
+                addedBy: user.id,
+              },
+            });
+          } catch {
+            // Skip duplicates
+            return null;
+          }
+        })
+      );
+
+      await recalculateEpisodeDuration(episodeId);
+
+      const updatedEpisode = await prisma.episode.findUnique({
+        where: { id: episodeId },
+        include: episodeAudioInclude,
       });
 
-      const updatedEpisode = await getFullEpisode(episodeId);
-      return NextResponse.json({ episode: updatedEpisode, linked: validClipIds.length });
+      return NextResponse.json({ episode: flattenEpisodeAudio(updatedEpisode), linked: links.filter(Boolean).length });
     }
 
-    // Multipart: existing file upload flow
+    // Multipart: file upload flow
     const formData = await req.formData();
     const files = formData.getAll('files') as File[];
 
@@ -111,8 +163,6 @@ const uploadAudio = createHandler(
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
-    // Check if adding new files would exceed the limit
-    const existingClipCount = episode._count.audioClips;
     const remainingSlots = MAX_AUDIO_CLIPS_PER_EPISODE - existingClipCount;
 
     if (remainingSlots <= 0) {
@@ -130,16 +180,14 @@ const uploadAudio = createHandler(
     const audioClips = [];
 
     for (const file of files) {
-      // Validate audio file
       const validation = validateAudioFile(file);
       if (!validation.valid) {
         return NextResponse.json({ error: validation.error }, { status: 400 });
       }
 
-      // Save file to R2 storage
       const uploadedFile = await saveUploadedFile(file, 'newsroom/shows/audio');
 
-      // Create audio clip record
+      // Create AudioClip and link to episode via join table
       const audioClip = await prisma.audioClip.create({
         data: {
           filename: uploadedFile.filename,
@@ -147,34 +195,33 @@ const uploadAudio = createHandler(
           url: uploadedFile.url,
           fileSize: uploadedFile.size,
           mimeType: uploadedFile.mimeType,
-          episodeId: episodeId,
+          duration: uploadedFile.duration,
           uploadedBy: user.id,
+          episodes: {
+            create: {
+              episodeId,
+              addedBy: user.id,
+            },
+          },
         },
       });
 
       audioClips.push(audioClip);
     }
 
-    // Calculate total duration if we have audio clips
-    const totalDuration = audioClips.reduce((sum, clip) => sum + (clip.duration ?? 0), 0);
+    await recalculateEpisodeDuration(episodeId);
 
-    // Update episode duration
-    if (totalDuration > 0) {
-      await prisma.episode.update({
-        where: { id: episodeId },
-        data: { duration: totalDuration },
-      });
-    }
+    const updatedEpisode = await prisma.episode.findUnique({
+      where: { id: episodeId },
+      include: episodeAudioInclude,
+    });
 
-    // Fetch the complete updated episode with all audio clips
-    const updatedEpisode = await getFullEpisode(episodeId);
-
-    return NextResponse.json({ episode: updatedEpisode, audioClips });
+    return NextResponse.json({ episode: flattenEpisodeAudio(updatedEpisode), audioClips });
   },
   [withErrorHandling, withAuth, withAudit('episode.audio.upload')]
 );
 
-// DELETE /api/newsroom/shows/[id]/episodes/[episodeId]/audio - Delete audio file
+// DELETE /api/newsroom/shows/[id]/episodes/[episodeId]/audio - Unlink/delete audio from episode
 const deleteAudio = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id: _id, episodeId } = await params;
@@ -191,59 +238,59 @@ const deleteAudio = createHandler(
       return NextResponse.json({ error: 'Audio clip ID is required' }, { status: 400 });
     }
 
+    // Verify the link exists
+    const link = await prisma.episodeAudioClip.findUnique({
+      where: {
+        episodeId_audioClipId: {
+          episodeId,
+          audioClipId,
+        },
+      },
+    });
+
+    if (!link) {
+      return NextResponse.json({ error: 'Audio clip is not linked to this episode' }, { status: 404 });
+    }
+
+    // Check if clip has other links (stories or other episodes)
     const audioClip = await prisma.audioClip.findUnique({
       where: { id: audioClipId },
-    });
-
-    if (!audioClip) {
-      return NextResponse.json({ error: 'Audio clip not found' }, { status: 404 });
-    }
-
-    if (audioClip.episodeId !== episodeId) {
-      return NextResponse.json({ error: 'Audio clip does not belong to this episode' }, { status: 400 });
-    }
-
-    // Delete from R2 storage
-    try {
-      await deleteAudioFile(audioClip.url);
-    } catch (error) {
-      console.error('Failed to delete audio file from R2:', error);
-    }
-
-    // Delete database record
-    await prisma.audioClip.delete({
-      where: { id: audioClipId },
-    });
-
-    // Recalculate episode duration
-    const remainingClips = await prisma.audioClip.findMany({
-      where: { episodeId: episodeId },
-    });
-
-    const totalDuration = remainingClips.reduce((sum, clip) => sum + (clip.duration ?? 0), 0);
-
-    await prisma.episode.update({
-      where: { id: episodeId },
-      data: { duration: totalDuration > 0 ? totalDuration : null },
-    });
-
-    // Fetch the complete updated episode with remaining audio clips
-    const updatedEpisode = await prisma.episode.findUnique({
-      where: { id: episodeId },
-      include: {
-        audioClips: true,
-        show: true,
-        publisher: {
+      select: {
+        url: true,
+        _count: {
           select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+            stories: true,
+            episodes: true,
           },
         },
       },
     });
 
-    return NextResponse.json({ message: 'Audio clip deleted successfully', episode: updatedEpisode });
+    // Remove the episode link
+    await prisma.episodeAudioClip.delete({
+      where: { id: link.id },
+    });
+
+    // If clip has no other links, delete it entirely (storage + DB)
+    if (audioClip && audioClip._count.stories === 0 && audioClip._count.episodes <= 1) {
+      try {
+        await deleteAudioFile(audioClip.url);
+      } catch (error) {
+        console.error('Failed to delete audio file from R2:', error);
+      }
+      await prisma.audioClip.delete({
+        where: { id: audioClipId },
+      });
+    }
+
+    await recalculateEpisodeDuration(episodeId);
+
+    const updatedEpisode = await prisma.episode.findUnique({
+      where: { id: episodeId },
+      include: episodeAudioInclude,
+    });
+
+    return NextResponse.json({ message: 'Audio clip removed from episode', episode: flattenEpisodeAudio(updatedEpisode) });
   },
   [withErrorHandling, withAuth, withAudit('episode.audio.delete')]
 );

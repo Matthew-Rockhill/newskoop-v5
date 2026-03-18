@@ -5,6 +5,16 @@ import { hasShowPermission, canEditShow, canDeleteShow } from '@/lib/permissions
 import { z } from 'zod';
 import { publishShowEvent, createEvent } from '@/lib/ably';
 
+// Flatten episode audioClips from join-table format to flat AudioClip objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenEpisodeAudio(episode: any) {
+  if (!episode) return episode;
+  return {
+    ...episode,
+    audioClips: episode.audioClips?.map((eac: any) => eac.audioClip) || [],
+  };
+}
+
 const showUpdateSchema = z.object({
   title: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
@@ -58,7 +68,7 @@ const getShow = createHandler(
         },
         episodes: {
           include: {
-            audioClips: true,
+            audioClips: { include: { audioClip: true } },
             publisher: {
               select: {
                 id: true,
@@ -78,7 +88,12 @@ const getShow = createHandler(
       return NextResponse.json({ error: 'Show not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ show });
+    return NextResponse.json({
+      show: {
+        ...show,
+        episodes: show.episodes.map(flattenEpisodeAudio),
+      },
+    });
   },
   [withErrorHandling, withAuth]
 );

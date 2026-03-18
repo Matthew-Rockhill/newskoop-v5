@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { parseBuffer } from 'music-metadata';
 
 // Initialize R2 client
 const R2 = new S3Client({
@@ -41,6 +42,15 @@ export async function uploadAudioFile(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Extract audio duration from buffer
+    let duration: number | undefined;
+    try {
+      const metadata = await parseBuffer(new Uint8Array(buffer), { mimeType: file.type });
+      duration = metadata.format.duration ? Math.round(metadata.format.duration) : undefined;
+    } catch {
+      // Non-fatal: some formats may not have parseable duration
+    }
+
     // Upload to R2
     await R2.send(new PutObjectCommand({
       Bucket: BUCKET_NAME,
@@ -59,6 +69,7 @@ export async function uploadAudioFile(
       uploadedAt: new Date(),
       originalFilename: file.name,
       format: fileExtension || 'unknown',
+      duration,
     };
   } catch (error) {
     console.error('R2 upload error:', error);
@@ -118,6 +129,7 @@ export function validateAudioFile(file: File): { valid: boolean; error?: string 
     'audio/mp4',     // M4A
     'audio/x-m4a',   // M4A (alternative MIME type)
     'audio/aac',     // AAC
+    'audio/webm',    // WebM
   ];
 
   const maxSize = 100 * 1024 * 1024; // 100MB
@@ -125,7 +137,7 @@ export function validateAudioFile(file: File): { valid: boolean; error?: string 
   if (!allowedTypes.includes(file.type)) {
     return {
       valid: false,
-      error: `Invalid file type: ${file.type}. Only MP3, WAV, OGG, M4A, and AAC files are allowed.`,
+      error: `Invalid file type: ${file.type}. Only MP3, WAV, OGG, M4A, AAC, and WebM files are allowed.`,
     };
   }
 

@@ -25,8 +25,8 @@ interface FileUploadProps {
 export function FileUpload({
   onFilesChange,
   maxFiles = 5,
-  maxFileSize = 50, // 50MB default
-  acceptedTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'],
+  maxFileSize = 100, // 100MB default — matches server limit
+  acceptedTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/webm'],
   className,
   existingCount = 0,
 }: FileUploadProps) {
@@ -144,7 +144,7 @@ export function FileUpload({
             or drag and drop
           </p>
           <p className="text-xs text-zinc-500 mt-1">
-            MP3, WAV, OGG, MP4 up to {maxFileSize}MB each (max {maxFiles} files)
+            MP3, WAV, OGG, M4A, AAC, WebM up to {maxFileSize}MB each (max {maxFiles} files)
           </p>
         </div>
       </div>
