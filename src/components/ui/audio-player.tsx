@@ -219,6 +219,7 @@ export function CustomAudioPlayer({
         <div className="flex items-center gap-3">
           {/* Play/Pause Button - Smaller */}
           <button
+            type="button"
             onClick={handlePlayPause}
             className="flex-shrink-0 w-8 h-8 rounded-full bg-kelly-green hover:bg-green-600 text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kelly-green/50"
             aria-label={isPlaying ? 'Pause' : 'Play'}
@@ -293,6 +294,7 @@ export function CustomAudioPlayer({
       <div className="flex items-center gap-4">
         {/* Play/Pause Button */}
         <button
+          type="button"
           onClick={handlePlayPause}
           className="flex-shrink-0 w-16 h-16 rounded-full bg-kelly-green hover:bg-green-600 text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-kelly-green/50"
           aria-label={isPlaying ? 'Pause' : 'Play'}
