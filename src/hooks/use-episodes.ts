@@ -127,7 +127,7 @@ export function useDeleteEpisode() {
   });
 }
 
-// Upload episode audio
+// Upload episode audio via direct-to-R2 presigned URLs
 export function useUploadEpisodeAudio() {
   const queryClient = useQueryClient();
 
@@ -141,17 +141,59 @@ export function useUploadEpisodeAudio() {
       episodeId: string;
       files: File[]
     }) => {
-      const formData = new FormData();
-      files.forEach(file => formData.append('files', file));
+      // Step 1: Upload each file directly to R2 via presigned URLs
+      const uploads = await Promise.all(
+        files.map(async (file) => {
+          // Get presigned URL from server
+          const presignRes = await fetch('/api/newsroom/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: file.name,
+              contentType: file.type,
+              fileSize: file.size,
+              folder: 'newsroom/shows/audio',
+            }),
+          });
 
+          if (!presignRes.ok) {
+            const err = await presignRes.json().catch(() => ({ error: 'Failed to prepare upload' }));
+            throw new Error(err.error || 'Failed to prepare upload');
+          }
+
+          const { presignedUrl, key, publicUrl } = await presignRes.json();
+
+          // Upload file directly to R2
+          const uploadRes = await fetch(presignedUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error(`Failed to upload ${file.name} to storage`);
+          }
+
+          return {
+            key,
+            publicUrl,
+            originalName: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+          };
+        })
+      );
+
+      // Step 2: Confirm uploads with the server to create DB records
       const response = await fetch(`/api/newsroom/shows/${showId}/episodes/${episodeId}/audio`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploads }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload audio files');
+        const error = await response.json().catch(() => ({ error: 'Failed to save audio files' }));
+        throw new Error(error.error || 'Failed to save audio files');
       }
 
       return response.json();
@@ -180,7 +222,7 @@ export function useLinkAudioToEpisode(showId: string, episodeId: string) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: 'Failed to link audio clips' }));
         throw new Error(error.error || 'Failed to link audio clips');
       }
 
@@ -215,7 +257,7 @@ export function useDeleteEpisodeAudio() {
       );
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: 'Failed to delete audio file' }));
         throw new Error(error.error || 'Failed to delete audio file');
       }
 

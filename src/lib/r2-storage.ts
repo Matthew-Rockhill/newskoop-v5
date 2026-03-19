@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { parseBuffer } from 'music-metadata';
 
 // Initialize R2 client
@@ -118,21 +119,50 @@ export async function getFileMetadata(url: string) {
   }
 }
 
+export const ALLOWED_AUDIO_TYPES = [
+  'audio/mpeg',    // MP3
+  'audio/wav',     // WAV
+  'audio/ogg',     // OGG
+  'audio/mp4',     // M4A
+  'audio/x-m4a',   // M4A (alternative MIME type)
+  'audio/aac',     // AAC
+  'audio/webm',    // WebM
+];
+
+export const MAX_AUDIO_SIZE = 100 * 1024 * 1024; // 100MB
+
+/**
+ * Generate a presigned PUT URL for direct client-to-R2 upload.
+ * Returns the presigned URL and the key/public URL to store in the DB.
+ */
+export async function createPresignedUpload(
+  filename: string,
+  contentType: string,
+  folder: string = 'newsroom/audio',
+): Promise<{ presignedUrl: string; key: string; publicUrl: string }> {
+  const timestamp = Date.now();
+  const sanitizedName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const key = `${folder}/${timestamp}-${sanitizedName}`;
+
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  const presignedUrl = await getSignedUrl(R2, command, { expiresIn: 600 }); // 10 min
+  const publicUrl = `${PUBLIC_URL}/${key}`;
+
+  return { presignedUrl, key, publicUrl };
+}
+
 /**
  * Validate audio file before upload
  */
 export function validateAudioFile(file: File): { valid: boolean; error?: string } {
-  const allowedTypes = [
-    'audio/mpeg',    // MP3
-    'audio/wav',     // WAV
-    'audio/ogg',     // OGG
-    'audio/mp4',     // M4A
-    'audio/x-m4a',   // M4A (alternative MIME type)
-    'audio/aac',     // AAC
-    'audio/webm',    // WebM
-  ];
+  const allowedTypes = ALLOWED_AUDIO_TYPES;
 
-  const maxSize = 100 * 1024 * 1024; // 100MB
+  const maxSize = MAX_AUDIO_SIZE;
 
   if (!allowedTypes.includes(file.type)) {
     return {

@@ -47,6 +47,7 @@ interface AudioFile {
   duration?: number;
 }
 
+
 const episodeSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
@@ -71,6 +72,8 @@ export default function EpisodeDetailPage({
   const [showAudioPicker, setShowAudioPicker] = useState(false);
   const [deleteAudioId, setDeleteAudioId] = useState<string | null>(null);
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
+  const [stagedFiles, setStagedFiles] = useState<AudioFile[]>([]);
+  const [fileUploadKey, setFileUploadKey] = useState(0);
 
   const { data: episode, isLoading } = useEpisode(showId, episodeId);
   const updateEpisode = useUpdateEpisode();
@@ -123,12 +126,19 @@ export default function EpisodeDetailPage({
     }
   };
 
-  const handleAudioUpload = async (audioFiles: AudioFile[]) => {
+  const handleFilesStaged = (audioFiles: AudioFile[]) => {
+    setStagedFiles(audioFiles);
+  };
+
+  const handleUploadStaged = async () => {
+    if (stagedFiles.length === 0) return;
     try {
-      // Extract File objects from AudioFile array
-      const files = audioFiles.map(af => af.file);
+      const files = stagedFiles.map(af => af.file);
       await uploadAudio.mutateAsync({ showId, episodeId, files });
       toast.success('Audio files uploaded successfully');
+      // Reset staged files and FileUpload component
+      setStagedFiles([]);
+      setFileUploadKey(prev => prev + 1);
     } catch (error: any) {
       toast.error(error.message || 'Failed to upload audio files');
     }
@@ -328,12 +338,24 @@ export default function EpisodeDetailPage({
           {canManage && (
             <div className="mb-6 space-y-4">
               <FileUpload
-                onFilesChange={handleAudioUpload}
+                key={fileUploadKey}
+                onFilesChange={handleFilesStaged}
                 acceptedTypes={['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/webm']}
                 maxFiles={5}
                 maxFileSize={100}
                 existingCount={episode.audioClips?.length || 0}
               />
+              {stagedFiles.length > 0 && (
+                <Button
+                  type="button"
+                  onClick={handleUploadStaged}
+                  disabled={uploadAudio.isPending}
+                >
+                  {uploadAudio.isPending
+                    ? 'Uploading...'
+                    : `Upload ${stagedFiles.length} File${stagedFiles.length !== 1 ? 's' : ''}`}
+                </Button>
+              )}
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t border-zinc-200" />
                 <span className="text-sm text-zinc-400">or</span>

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createHandler, withAuth, withErrorHandling, withAudit } from '@/lib/api-handler';
 import { canManageShows } from '@/lib/permissions';
-import { saveUploadedFile, validateAudioFile } from '@/lib/file-upload';
 import { deleteAudioFile } from '@/lib/r2-storage';
 
 // Maximum audio clips allowed per episode
@@ -90,11 +89,11 @@ const uploadAudio = createHandler(
     }
 
     const existingClipCount = episode._count.audioClips;
-    const contentType = req.headers.get('content-type') || '';
 
-    // JSON body: link existing library clips to episode
-    if (contentType.includes('application/json')) {
-      const body = await req.json();
+    const body = await req.json();
+
+    // Mode 1: Link existing library clips to episode
+    if (body.audioClipIds) {
       const { audioClipIds } = body;
 
       if (!Array.isArray(audioClipIds) || audioClipIds.length === 0) {
@@ -155,12 +154,20 @@ const uploadAudio = createHandler(
       return NextResponse.json({ episode: flattenEpisodeAudio(updatedEpisode), linked: links.filter(Boolean).length });
     }
 
-    // Multipart: file upload flow
-    const formData = await req.formData();
-    const files = formData.getAll('files') as File[];
+    // Mode 2: Confirm direct uploads — client already uploaded to R2 via presigned URL
+    const { uploads } = body as {
+      uploads: Array<{
+        key: string;
+        publicUrl: string;
+        originalName: string;
+        fileSize: number;
+        mimeType: string;
+        duration?: number;
+      }>;
+    };
 
-    if (!files || files.length === 0) {
-      return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+    if (!Array.isArray(uploads) || uploads.length === 0) {
+      return NextResponse.json({ error: 'uploads array or audioClipIds is required' }, { status: 400 });
     }
 
     const remainingSlots = MAX_AUDIO_CLIPS_PER_EPISODE - existingClipCount;
@@ -171,7 +178,7 @@ const uploadAudio = createHandler(
       }, { status: 400 });
     }
 
-    if (files.length > remainingSlots) {
+    if (uploads.length > remainingSlots) {
       return NextResponse.json({
         error: `Can only upload ${remainingSlots} more audio clip${remainingSlots === 1 ? '' : 's'}. Episode already has ${existingClipCount} clip${existingClipCount === 1 ? '' : 's'}.`
       }, { status: 400 });
@@ -179,23 +186,15 @@ const uploadAudio = createHandler(
 
     const audioClips = [];
 
-    for (const file of files) {
-      const validation = validateAudioFile(file);
-      if (!validation.valid) {
-        return NextResponse.json({ error: validation.error }, { status: 400 });
-      }
-
-      const uploadedFile = await saveUploadedFile(file, 'newsroom/shows/audio');
-
-      // Create AudioClip and link to episode via join table
+    for (const upload of uploads) {
       const audioClip = await prisma.audioClip.create({
         data: {
-          filename: uploadedFile.filename,
-          originalName: file.name,
-          url: uploadedFile.url,
-          fileSize: uploadedFile.size,
-          mimeType: uploadedFile.mimeType,
-          duration: uploadedFile.duration,
+          filename: upload.key,
+          originalName: upload.originalName,
+          url: upload.publicUrl,
+          fileSize: upload.fileSize,
+          mimeType: upload.mimeType,
+          duration: upload.duration ?? null,
           uploadedBy: user.id,
           episodes: {
             create: {
