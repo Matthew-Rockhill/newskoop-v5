@@ -107,6 +107,7 @@ const createEpisode = createHandler(
         coverImage: data.coverImage,
         episodeNumber,
         showId: id,
+        createdById: user.id,
       },
       include: {
         audioClips: { include: { audioClip: true } },

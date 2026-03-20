@@ -200,6 +200,7 @@ model User {
 
   // Show relationships
   createdShows      Show[]    @relation("CreatedShows")
+  createdEpisodes   Episode[] @relation("CreatedEpisodes")
   publishedEpisodes Episode[] @relation("PublishedEpisodes")
 
   // Diary relationships
@@ -914,6 +915,10 @@ model Episode {
   coverImage     String?       // Optional episode-specific cover image
   audioClips     EpisodeAudioClip[]
 
+  // Ownership
+  createdById String
+  createdBy   User   @relation("CreatedEpisodes", fields: [createdById], references: [id])
+
   // Publishing
   status            EpisodeStatus @default(DRAFT)
   scheduledPublishAt DateTime?
@@ -930,6 +935,7 @@ model Episode {
 
   @@unique([showId, episodeNumber])
   @@index([showId])
+  @@index([createdById])
   @@index([status])
   @@index([publishedAt])
   @@index([scheduledPublishAt])
