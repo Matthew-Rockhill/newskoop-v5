@@ -47,7 +47,7 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
           <Link href="/" className="bg-transparent">
             <Logo
               className="h-12 w-auto bg-transparent"
-              variant={transparent && !isScrolled ? 'transparent-white' : 'full'}
+              variant="full"
             />
           </Link>
 
@@ -55,14 +55,14 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <Button
-                color={transparent && !isScrolled ? "white" : "primary"}
+                color="primary"
                 href="/logout"
               >
                 LOGOUT
               </Button>
             ) : (
               <Button
-                color={transparent && !isScrolled ? "white" : "primary"}
+                color="primary"
                 href="/login"
               >
                 LOGIN
@@ -72,9 +72,7 @@ export default function Header({ isLoggedIn = false, transparent = false }: Head
             <div className="relative">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className={`p-2 rounded-md ${
-                  transparent && !isScrolled ? 'text-white' : 'text-zinc-600'
-                }`}
+                className={`p-2 rounded-md text-zinc-600`}
               >
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>

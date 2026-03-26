@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import { Providers } from '@/components/providers/Providers';
@@ -7,6 +7,14 @@ import { Providers } from '@/components/providers/Providers';
 const inter = Inter({
   subsets: ["latin"],
   display: 'swap',
+  variable: '--font-inter',
+});
+
+const sora = Sora({
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-sora',
+  weight: ['400', '600', '700', '800'],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body
-        className={`${inter.className} h-full antialiased text-zinc-950`}
+        className={`${inter.variable} ${sora.variable} ${inter.className} h-full antialiased text-zinc-950`}
       >
         <Providers>
           {children}
