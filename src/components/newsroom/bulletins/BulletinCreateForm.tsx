@@ -145,7 +145,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
       // Check if any story's language doesn't match the schedule's language
       const mismatchedStories = selectedStories.some(story => {
         const languageTag = story.tags.find((t: any) => t.category === 'LANGUAGE');
-        return languageTag && languageTag.name !== selectedSchedule.language;
+        return languageTag && languageTag.name.toUpperCase() !== selectedSchedule.language.toUpperCase();
       });
 
       if (mismatchedStories) {

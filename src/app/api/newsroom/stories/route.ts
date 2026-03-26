@@ -67,11 +67,12 @@ const getStories = createHandler(
       sortFlaggedFirst: searchParams.sortFlaggedFirst === 'true' ? true : undefined,
     });
 
-    // Build where clause
-    const where: Prisma.StoryWhereInput = {
-      // Handle isTranslation filtering - only filter if explicitly specified
-      ...(isTranslation !== undefined && { isTranslation }),
-      ...(query && {
+    // Build where clause using AND array to avoid OR key collisions
+    const andConditions: Prisma.StoryWhereInput[] = [];
+
+    if (isTranslation !== undefined) andConditions.push({ isTranslation });
+    if (query) {
+      andConditions.push({
         OR: [
           { title: { contains: query, mode: 'insensitive' } },
           { content: { contains: query, mode: 'insensitive' } },
@@ -83,32 +84,35 @@ const getStories = createHandler(
             ]
           }},
           { category: { name: { contains: query, mode: 'insensitive' } } },
-          { tags: {
-            some: {
-              tag: { name: { contains: query, mode: 'insensitive' } }
-            }
-          }},
+          { tags: { some: { tag: { name: { contains: query, mode: 'insensitive' } } } } },
         ],
-      }),
-      ...(status && { status }),
-      ...(stage && { stage }),
-      ...(language && { language }),
-      ...(categoryId && { categoryId }),
-      ...(authorId && { authorId }),
-      ...(assignedToId && { assignedToId }),
-      ...(reviewerId && { reviewerId }),
-      ...(assignedReviewerId && { assignedReviewerId }),
-      ...(assignedApproverId && { assignedApproverId }),
-      ...(originalStoryId && { originalStoryId }),
-      ...(tagIds && tagIds.length > 0 && {
-        tags: {
-          some: {
-            tagId: { in: tagIds }
-          }
-        }
-      }),
-      ...(flaggedForBulletin !== undefined && { flaggedForBulletin }),
-    };
+      });
+    }
+    if (status) andConditions.push({ status });
+    if (stage) andConditions.push({ stage });
+    if (language) {
+      // Match stories by language field OR language classification
+      // (stories may have language set only via classification, not the language field)
+      andConditions.push({
+        OR: [
+          { language },
+          { classifications: { some: { classification: { type: 'LANGUAGE', name: { equals: language, mode: 'insensitive' } } } } },
+        ],
+      });
+    }
+    if (categoryId) andConditions.push({ categoryId });
+    if (authorId) andConditions.push({ authorId });
+    if (assignedToId) andConditions.push({ assignedToId });
+    if (reviewerId) andConditions.push({ reviewerId });
+    if (assignedReviewerId) andConditions.push({ assignedReviewerId });
+    if (assignedApproverId) andConditions.push({ assignedApproverId });
+    if (originalStoryId) andConditions.push({ originalStoryId });
+    if (tagIds && tagIds.length > 0) {
+      andConditions.push({ tags: { some: { tagId: { in: tagIds } } } });
+    }
+    if (flaggedForBulletin !== undefined) andConditions.push({ flaggedForBulletin });
+
+    const where: Prisma.StoryWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
     // Role-based filtering
     if (user.staffRole === 'INTERN') {
