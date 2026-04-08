@@ -277,23 +277,22 @@ export const classificationUpdateSchema = z.object({
 export const menuItemCreateSchema = z.object({
   label: z.string().min(1, 'Label is required').max(100),
   labelAfrikaans: z.string().max(100).optional(),
-  type: z.enum(['CATEGORY', 'CUSTOM_LINK', 'DIVIDER']),
+  type: z.enum(['CATEGORY', 'CUSTOM_LINK', 'DIVIDER', 'SHOW', 'BULLETIN', 'PODCAST', 'STORY']),
   categoryId: z.string().optional(),
+  showId: z.string().optional(),
+  podcastId: z.string().optional(),
+  storyId: z.string().optional(),
+  bulletinScheduleId: z.string().optional(),
   url: z.string().url('Must be a valid URL').optional(),
   openInNewTab: z.boolean().default(false),
+  autoPopulate: z.boolean().default(false),
   parentId: z.string().optional(),
   sortOrder: z.number().int().default(0),
   isVisible: z.boolean().default(true),
   icon: z.string().max(50).optional(),
 }).refine((data) => {
-  // If type is CATEGORY, categoryId is required
-  if (data.type === 'CATEGORY' && !data.categoryId) {
-    return false;
-  }
-  // If type is CUSTOM_LINK, url is required
-  if (data.type === 'CUSTOM_LINK' && !data.url) {
-    return false;
-  }
+  if (data.type === 'CATEGORY' && !data.categoryId) return false;
+  if (data.type === 'CUSTOM_LINK' && !data.url) return false;
   return true;
 }, {
   message: "Category ID is required for CATEGORY type, URL is required for CUSTOM_LINK type",
@@ -302,10 +301,15 @@ export const menuItemCreateSchema = z.object({
 export const menuItemUpdateSchema = z.object({
   label: z.string().min(1).max(100).optional(),
   labelAfrikaans: z.string().max(100).optional(),
-  type: z.enum(['CATEGORY', 'CUSTOM_LINK', 'DIVIDER']).optional(),
+  type: z.enum(['CATEGORY', 'CUSTOM_LINK', 'DIVIDER', 'SHOW', 'BULLETIN', 'PODCAST', 'STORY']).optional(),
   categoryId: z.string().nullable().optional(),
+  showId: z.string().nullable().optional(),
+  podcastId: z.string().nullable().optional(),
+  storyId: z.string().nullable().optional(),
+  bulletinScheduleId: z.string().nullable().optional(),
   url: z.string().url('Must be a valid URL').nullable().optional(),
   openInNewTab: z.boolean().optional(),
+  autoPopulate: z.boolean().optional(),
   parentId: z.string().nullable().optional(),
   sortOrder: z.number().int().optional(),
   isVisible: z.boolean().optional(),

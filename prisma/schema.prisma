@@ -86,6 +86,10 @@ enum MenuItemType {
   CATEGORY
   CUSTOM_LINK
   DIVIDER
+  SHOW
+  BULLETIN
+  PODCAST
+  STORY
 }
 
 // Announcement enums
@@ -202,6 +206,12 @@ model User {
   createdShows      Show[]    @relation("CreatedShows")
   createdEpisodes   Episode[] @relation("CreatedEpisodes")
   publishedEpisodes Episode[] @relation("PublishedEpisodes")
+
+  // Podcast relationships
+  createdPodcasts              Podcast[]                  @relation("CreatedPodcasts")
+  createdPodcastEpisodes       PodcastEpisode[]           @relation("CreatedPodcastEpisodes")
+  publishedPodcastEpisodes     PodcastEpisode[]           @relation("PublishedPodcastEpisodes")
+  addedPodcastEpisodeAudioClips PodcastEpisodeAudioClip[] @relation("PodcastEpisodeAudioClipAdder")
 
   // Diary relationships
   createdDiaryEntries  DiaryEntry[] @relation("CreatedDiaryEntries")
@@ -365,6 +375,9 @@ model Story {
   // Bulletin relationships
   bulletinStories BulletinStory[]
 
+  // Menu item relationships
+  menuItems MenuItem[] @relation("MenuItemStory")
+
   // Bulletin flagging fields
   flaggedForBulletin     Boolean   @default(false)
   flaggedForBulletinAt   DateTime?
@@ -439,6 +452,7 @@ model Category {
   stories   Story[]
   bulletins Bulletin[]
   shows     Show[]
+  podcasts  Podcast[]
 
   // Menu items that link to this category
   menuItems MenuItem[]
@@ -457,6 +471,7 @@ model Tag {
   nameAfrikaans String?
   stories       StoryTag[]
   shows         ShowTag[]
+  podcasts      PodcastTag[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -488,6 +503,7 @@ model Classification {
   // Relations
   stories           StoryClassification[]
   shows             ShowClassification[]
+  podcasts          PodcastClassification[]
   allowedByStations StationClassification[]
 
   createdAt DateTime @default(now())
@@ -543,9 +559,28 @@ model MenuItem {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
+  // For SHOW type - links to a show
+  showId String?
+  show   Show? @relation(fields: [showId], references: [id], onDelete: SetNull)
+
+  // For PODCAST type - links to a podcast
+  podcastId String?
+  podcast   Podcast? @relation(fields: [podcastId], references: [id], onDelete: SetNull)
+
+  // For STORY type - links to a story
+  storyId String?
+  story   Story? @relation("MenuItemStory", fields: [storyId], references: [id], onDelete: SetNull)
+
+  // For BULLETIN type - links to a bulletin schedule
+  bulletinScheduleId String?
+  bulletinSchedule   BulletinSchedule? @relation(fields: [bulletinScheduleId], references: [id], onDelete: SetNull)
+
   // For CUSTOM_LINK type
   url          String?
   openInNewTab Boolean @default(false)
+
+  // Auto-populate children from published content of this type
+  autoPopulate Boolean @default(false)
 
   // Hierarchy
   parentId String?
@@ -588,6 +623,9 @@ model AudioClip {
 
   // Episodes linked via join table (mirrors StoryAudioClip)
   episodes EpisodeAudioClip[]
+
+  // Podcast episodes linked via join table
+  podcastEpisodes PodcastEpisodeAudioClip[]
 
   uploadedBy String
   uploader   User   @relation(fields: [uploadedBy], references: [id])
@@ -781,6 +819,7 @@ model BulletinSchedule {
   creator   User   @relation(fields: [createdBy], references: [id])
 
   bulletins Bulletin[]
+  menuItems MenuItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -886,7 +925,8 @@ model Show {
   isPublished Boolean @default(false)
 
   // Relationships
-  episodes Episode[]
+  episodes  Episode[]
+  menuItems MenuItem[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -950,6 +990,127 @@ model ShowTag {
   @@id([showId, tagId])
 }
 
+// PODCASTS & PODCAST EPISODES MODELS
+
+enum PodcastEpisodeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Podcast {
+  id          String  @id @default(cuid())
+  title       String
+  slug        String  @unique
+  description String? @db.Text
+  coverImage  String? // Vercel Blob URL
+
+  // Categorization
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  tags       PodcastTag[]
+
+  // Classifications (Language, Religion, Locality)
+  classifications PodcastClassification[]
+
+  // Ownership
+  createdById String
+  createdBy   User   @relation("CreatedPodcasts", fields: [createdById], references: [id])
+
+  // Status
+  isActive    Boolean @default(true)
+  isPublished Boolean @default(false)
+
+  // Relationships
+  episodes  PodcastEpisode[]
+  menuItems MenuItem[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isPublished])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model PodcastEpisode {
+  id             String              @id @default(cuid())
+  podcastId      String
+  podcast        Podcast             @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+
+  title          String
+  slug           String              @unique
+  description    String?             @db.Text
+  episodeNumber  Int
+
+  // Content
+  content        String?             @db.Text // Rich text show notes
+  coverImage     String?             // Optional episode-specific cover image
+  audioClips     PodcastEpisodeAudioClip[]
+
+  // Ownership
+  createdById String
+  createdBy   User   @relation("CreatedPodcastEpisodes", fields: [createdById], references: [id])
+
+  // Publishing
+  status            PodcastEpisodeStatus @default(DRAFT)
+  scheduledPublishAt DateTime?
+  publishedAt       DateTime?
+  publishedBy       String?
+  publisher         User?               @relation("PublishedPodcastEpisodes", fields: [publishedBy], references: [id])
+
+  // Metadata
+  duration Int? // in seconds, calculated from audio
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([podcastId, episodeNumber])
+  @@index([podcastId])
+  @@index([createdById])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([scheduledPublishAt])
+}
+
+model PodcastTag {
+  podcastId String
+  tagId     String
+  podcast   Podcast @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([podcastId, tagId])
+}
+
+model PodcastClassification {
+  podcastId        String
+  classificationId String
+  podcast          Podcast        @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+  classification   Classification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
+
+  @@id([podcastId, classificationId])
+  @@index([classificationId])
+}
+
+model PodcastEpisodeAudioClip {
+  id          String         @id @default(cuid())
+  episodeId   String
+  episode     PodcastEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  audioClipId String
+  audioClip   AudioClip      @relation(fields: [audioClipId], references: [id], onDelete: Cascade)
+  addedBy     String
+  adder       User           @relation("PodcastEpisodeAudioClipAdder", fields: [addedBy], references: [id])
+  createdAt   DateTime       @default(now())
+
+  @@unique([episodeId, audioClipId])
+  @@index([episodeId])
+  @@index([audioClipId])
+}
+
 // ============================================================================
 // ANALYTICS MODELS
 // ============================================================================
@@ -959,6 +1120,8 @@ enum ContentType {
   BULLETIN
   SHOW
   EPISODE
+  PODCAST
+  PODCAST_EPISODE
 }
 
 enum PeriodType {

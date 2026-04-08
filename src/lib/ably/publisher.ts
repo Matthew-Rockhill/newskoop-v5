@@ -42,13 +42,19 @@ export const publishShowEvent = (event: RealtimeEvent) =>
 export const publishEpisodeEvent = (event: RealtimeEvent) =>
   publishEvent(CHANNELS.EPISODES, event);
 
+export const publishPodcastEvent = (event: RealtimeEvent) =>
+  publishEvent(CHANNELS.PODCASTS, event);
+
+export const publishPodcastEpisodeEvent = (event: RealtimeEvent) =>
+  publishEvent(CHANNELS.PODCAST_EPISODES, event);
+
 export const publishDashboardEvent = (event: RealtimeEvent) =>
   publishEvent(CHANNELS.DASHBOARD, event);
 
 // Helper to create events
 export function createEvent<T>(
   type: string,
-  entityType: 'story' | 'bulletin' | 'show' | 'episode',
+  entityType: 'story' | 'bulletin' | 'show' | 'episode' | 'podcast' | 'podcast_episode',
   entityId: string,
   userId: string,
   data?: T,

@@ -384,7 +384,7 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                   <option value="">Select a bulletin schedule...</option>
                   {schedules.map((schedule: any) => (
                     <option key={schedule.id} value={schedule.id}>
-                      {schedule.title} - {schedule.language} ({schedule.time}) - {schedule.scheduleType.replace('_', ' ')}
+                      {schedule.title} - {schedule.language} (on-air {schedule.time}) - {schedule.scheduleType.replace('_', ' ')}
                     </option>
                   ))}
                 </Select>
@@ -412,9 +412,22 @@ export function BulletinCreateForm({ onSuccess, onCancel }: BulletinCreateFormPr
                   <p className="text-red-600 text-sm mt-1">{errors.scheduledDate.message}</p>
                 )}
                 {selectedSchedule && (
-                  <Text className="text-xs text-zinc-500 mt-1">
-                    Bulletin will be scheduled for {selectedSchedule.time} on this date
-                  </Text>
+                  <div className="mt-1 space-y-0.5">
+                    <Text className="text-xs text-zinc-500">
+                      On-air at {selectedSchedule.time} on this date
+                    </Text>
+                    <Text className="text-xs text-blue-600 font-medium">
+                      Auto-publishes at {(() => {
+                        const [h, m] = selectedSchedule.time.split(':').map(Number);
+                        const total = h * 60 + m - 40;
+                        const pH = Math.floor(total / 60);
+                        const pM = total % 60;
+                        const period = pH >= 12 ? 'PM' : 'AM';
+                        const h12 = pH === 0 ? 12 : pH > 12 ? pH - 12 : pH;
+                        return `${h12}:${String(pM).padStart(2, '0')} ${period}`;
+                      })()} (40 min before on-air)
+                    </Text>
+                  </div>
                 )}
               </div>
             </div>

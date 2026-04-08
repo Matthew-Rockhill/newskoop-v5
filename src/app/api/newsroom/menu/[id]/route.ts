@@ -78,8 +78,13 @@ const updateMenuItem = createHandler(
       labelAfrikaans?: string | null;
       type?: MenuItemType;
       categoryId?: string | null;
+      showId?: string | null;
+      podcastId?: string | null;
+      storyId?: string | null;
+      bulletinScheduleId?: string | null;
       url?: string | null;
       openInNewTab?: boolean;
+      autoPopulate?: boolean;
       parentId?: string | null;
       sortOrder?: number;
       isVisible?: boolean;
@@ -140,8 +145,13 @@ const updateMenuItem = createHandler(
         labelAfrikaans: data.labelAfrikaans,
         type: data.type,
         categoryId: data.categoryId,
+        showId: data.showId,
+        podcastId: data.podcastId,
+        storyId: data.storyId,
+        bulletinScheduleId: data.bulletinScheduleId,
         url: data.url,
         openInNewTab: data.openInNewTab,
+        autoPopulate: data.autoPopulate,
         parentId: data.parentId,
         sortOrder: data.sortOrder,
         isVisible: data.isVisible,
@@ -149,13 +159,12 @@ const updateMenuItem = createHandler(
       },
       include: {
         category: {
-          select: {
-            id: true,
-            name: true,
-            nameAfrikaans: true,
-            slug: true,
-          },
+          select: { id: true, name: true, nameAfrikaans: true, slug: true },
         },
+        show: { select: { id: true, title: true, slug: true } },
+        podcast: { select: { id: true, title: true, slug: true } },
+        story: { select: { id: true, title: true, slug: true } },
+        bulletinSchedule: { select: { id: true, title: true, time: true, language: true } },
       },
     });
 

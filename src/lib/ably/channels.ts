@@ -3,6 +3,8 @@ export const CHANNELS = {
   BULLETINS: 'newsroom:bulletins',
   SHOWS: 'newsroom:shows',
   EPISODES: 'newsroom:episodes',
+  PODCASTS: 'newsroom:podcasts',
+  PODCAST_EPISODES: 'newsroom:podcast-episodes',
   DASHBOARD: 'newsroom:dashboard',
 } as const;
 

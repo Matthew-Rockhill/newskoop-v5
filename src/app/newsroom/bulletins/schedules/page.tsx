@@ -10,7 +10,7 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   PlusIcon,
   ClockIcon,
   CalendarIcon,
@@ -18,10 +18,27 @@ import {
   PencilIcon,
   CheckCircleIcon,
   XCircleIcon,
+  SignalIcon,
 } from '@heroicons/react/24/outline';
 import { BulletinScheduleManager } from '@/components/newsroom/bulletins/BulletinScheduleManager';
 import { getLanguageColor } from '@/lib/color-system';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+
+function getPublishTime(airTime: string): string {
+  if (!airTime) return '';
+  const [h, m] = airTime.split(':').map(Number);
+  const totalMinutes = h * 60 + m - 40;
+  const pubH = Math.floor(totalMinutes / 60);
+  const pubM = totalMinutes % 60;
+  return `${String(pubH).padStart(2, '0')}:${String(pubM).padStart(2, '0')}`;
+}
+
+function formatTime12h(time24: string): string {
+  const [h, m] = time24.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
 
 interface BulletinSchedule {
   id: string;
@@ -213,8 +230,12 @@ export default function BulletinSchedulesPage() {
                     </div>
                     <div className="flex items-center gap-4 text-sm text-zinc-600">
                       <span className="flex items-center gap-1">
+                        <SignalIcon className="h-4 w-4" />
+                        On-air: {formatTime12h(schedule.time)}
+                      </span>
+                      <span className="flex items-center gap-1 text-blue-600">
                         <ClockIcon className="h-4 w-4" />
-                        {schedule.time}
+                        Publishes: {formatTime12h(getPublishTime(schedule.time))}
                       </span>
                       <span>•</span>
                       <span>{schedule._count.bulletins} bulletins</span>

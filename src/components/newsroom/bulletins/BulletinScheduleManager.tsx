@@ -37,6 +37,26 @@ interface BulletinScheduleManagerProps {
   onSuccess: () => void;
 }
 
+/**
+ * Given a bulletin air time like "07:00", returns the publish time
+ * which is 40 minutes earlier, e.g. "06:20".
+ */
+function getPublishTime(airTime: string): string {
+  if (!airTime) return '';
+  const [h, m] = airTime.split(':').map(Number);
+  const totalMinutes = h * 60 + m - 40;
+  const pubH = Math.floor(totalMinutes / 60);
+  const pubM = totalMinutes % 60;
+  return `${String(pubH).padStart(2, '0')}:${String(pubM).padStart(2, '0')}`;
+}
+
+function formatTime12h(time24: string): string {
+  const [h, m] = time24.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
 export function BulletinScheduleManager({
   schedule,
   defaultType = 'WEEKDAY',
@@ -50,6 +70,7 @@ export function BulletinScheduleManager({
     handleSubmit,
     formState: { errors },
     setError,
+    watch,
   } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
     defaultValues: schedule ? {
@@ -66,6 +87,8 @@ export function BulletinScheduleManager({
       isActive: true,
     },
   });
+
+  const watchedTime = watch('time');
 
   const createMutation = useMutation({
     mutationFn: async (data: ScheduleFormData) => {
@@ -152,51 +175,35 @@ export function BulletinScheduleManager({
             {/* Time */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Time *
+                Bulletin Time (on-air) *
               </label>
-              <Select 
-                {...register('time')} 
+              <Select
+                {...register('time')}
                 data-invalid={!!errors.time}
               >
                 <option value="">Select time...</option>
-                <option value="04:00">4:00 AM</option>
-                <option value="04:30">4:30 AM</option>
-                <option value="05:00">5:00 AM</option>
-                <option value="05:30">5:30 AM</option>
                 <option value="06:00">6:00 AM</option>
-                <option value="06:30">6:30 AM</option>
                 <option value="07:00">7:00 AM</option>
-                <option value="07:30">7:30 AM</option>
                 <option value="08:00">8:00 AM</option>
-                <option value="08:30">8:30 AM</option>
                 <option value="09:00">9:00 AM</option>
-                <option value="09:30">9:30 AM</option>
                 <option value="10:00">10:00 AM</option>
-                <option value="10:30">10:30 AM</option>
                 <option value="11:00">11:00 AM</option>
-                <option value="11:30">11:30 AM</option>
                 <option value="12:00">12:00 PM</option>
-                <option value="12:30">12:30 PM</option>
                 <option value="13:00">1:00 PM</option>
-                <option value="13:30">1:30 PM</option>
                 <option value="14:00">2:00 PM</option>
-                <option value="14:30">2:30 PM</option>
                 <option value="15:00">3:00 PM</option>
-                <option value="15:30">3:30 PM</option>
                 <option value="16:00">4:00 PM</option>
-                <option value="16:30">4:30 PM</option>
                 <option value="17:00">5:00 PM</option>
-                <option value="17:30">5:30 PM</option>
                 <option value="18:00">6:00 PM</option>
-                <option value="18:30">6:30 PM</option>
-                <option value="19:00">7:00 PM</option>
               </Select>
               {errors.time && (
                 <p className="text-red-600 text-sm mt-1">{errors.time.message}</p>
               )}
-              <p className="text-xs text-zinc-500 mt-1">
-                Business hours: 4:00 AM - 7:00 PM (30-minute intervals)
-              </p>
+              {watchedTime && (
+                <p className="text-xs text-blue-600 mt-1 font-medium">
+                  Auto-publishes at {formatTime12h(getPublishTime(watchedTime))} (40 minutes before on-air)
+                </p>
+              )}
             </div>
 
             {/* Language */}

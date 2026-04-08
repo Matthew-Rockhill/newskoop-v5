@@ -363,3 +363,97 @@ export async function generateUniqueEpisodeSlug(
 
   return uniqueSlug;
 }
+
+/**
+ * Generate a unique slug for a podcast
+ * Optimized: Single query instead of unbounded loop
+ */
+export async function generateUniquePodcastSlug(
+  baseSlug: string,
+  excludeId?: string
+): Promise<string> {
+  const existingSlugs = await prisma.podcast.findMany({
+    where: {
+      slug: { startsWith: baseSlug },
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+    select: { slug: true },
+  });
+
+  if (existingSlugs.length === 0) {
+    return baseSlug;
+  }
+
+  const exactMatch = existingSlugs.some((s) => s.slug === baseSlug);
+  if (!exactMatch) {
+    return baseSlug;
+  }
+
+  const slugSet = new Set(existingSlugs.map((s) => s.slug));
+  let counter = 1;
+
+  for (const { slug } of existingSlugs) {
+    const match = slug.match(new RegExp(`^${baseSlug}-(\\d+)$`));
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= counter) {
+        counter = num + 1;
+      }
+    }
+  }
+
+  let uniqueSlug = `${baseSlug}-${counter}`;
+  while (slugSet.has(uniqueSlug)) {
+    counter++;
+    uniqueSlug = `${baseSlug}-${counter}`;
+  }
+
+  return uniqueSlug;
+}
+
+/**
+ * Generate a unique slug for a podcast episode
+ * Optimized: Single query instead of unbounded loop
+ */
+export async function generateUniquePodcastEpisodeSlug(
+  baseSlug: string,
+  excludeId?: string
+): Promise<string> {
+  const existingSlugs = await prisma.podcastEpisode.findMany({
+    where: {
+      slug: { startsWith: baseSlug },
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+    select: { slug: true },
+  });
+
+  if (existingSlugs.length === 0) {
+    return baseSlug;
+  }
+
+  const exactMatch = existingSlugs.some((s) => s.slug === baseSlug);
+  if (!exactMatch) {
+    return baseSlug;
+  }
+
+  const slugSet = new Set(existingSlugs.map((s) => s.slug));
+  let counter = 1;
+
+  for (const { slug } of existingSlugs) {
+    const match = slug.match(new RegExp(`^${baseSlug}-(\\d+)$`));
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= counter) {
+        counter = num + 1;
+      }
+    }
+  }
+
+  let uniqueSlug = `${baseSlug}-${counter}`;
+  while (slugSet.has(uniqueSlug)) {
+    counter++;
+    uniqueSlug = `${baseSlug}-${counter}`;
+  }
+
+  return uniqueSlug;
+}

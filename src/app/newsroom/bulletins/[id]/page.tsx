@@ -549,7 +549,21 @@ export default function BulletinViewPage() {
                   <DescriptionDetails>
                     {bulletin.schedule.title}
                     <br />
-                    <span className="text-sm text-zinc-500">{bulletin.schedule.time}</span>
+                    <span className="text-sm text-zinc-500">
+                      On-air: {bulletin.schedule.time}
+                    </span>
+                    <br />
+                    <span className="text-sm text-blue-600">
+                      Publishes: {(() => {
+                        const [h, m] = bulletin.schedule.time.split(':').map(Number);
+                        const total = h * 60 + m - 40;
+                        const pH = Math.floor(total / 60);
+                        const pM = total % 60;
+                        const period = pH >= 12 ? 'PM' : 'AM';
+                        const h12 = pH === 0 ? 12 : pH > 12 ? pH - 12 : pH;
+                        return `${h12}:${String(pM).padStart(2, '0')} ${period}`;
+                      })()}
+                    </span>
                   </DescriptionDetails>
                 </>
               )}

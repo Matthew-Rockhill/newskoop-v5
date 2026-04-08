@@ -665,6 +665,54 @@ export function canDeleteShow(userRole: StaffRole | null): boolean {
 }
 
 // ============================================================================
+// PODCAST PERMISSIONS
+// ============================================================================
+
+/**
+ * Podcast permissions matrix (mirrors shows)
+ * Sub-editors and above can create and manage podcasts
+ */
+const podcastPermissions = {
+  INTERN: ['read'],
+  JOURNALIST: ['read'],
+  SUB_EDITOR: ['create', 'read', 'update', 'delete'],
+  EDITOR: ['create', 'read', 'update', 'delete'],
+  ADMIN: ['create', 'read', 'update', 'delete'],
+  SUPERADMIN: ['create', 'read', 'update', 'delete'],
+};
+
+export function hasPodcastPermission(userRole: StaffRole | null, action: PermissionAction): boolean {
+  if (!userRole) return false;
+  return podcastPermissions[userRole]?.includes(action) || false;
+}
+
+export function canManagePodcasts(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+export function canPublishPodcastEpisode(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+export function canEditPodcast(
+  userRole: StaffRole | null,
+  podcastCreatorId: string,
+  currentUserId: string
+): boolean {
+  if (!userRole) return false;
+  if (['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) return true;
+  if (userRole === 'SUB_EDITOR') return podcastCreatorId === currentUserId;
+  return false;
+}
+
+export function canDeletePodcast(userRole: StaffRole | null): boolean {
+  if (!userRole) return false;
+  return ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
+}
+
+// ============================================================================
 // BULLETIN PERMISSIONS
 // ============================================================================
 

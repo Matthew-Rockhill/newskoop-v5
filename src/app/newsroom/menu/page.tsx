@@ -31,6 +31,10 @@ import {
   FolderIcon,
   MinusIcon,
   Bars2Icon,
+  SpeakerWaveIcon,
+  MicrophoneIcon,
+  MegaphoneIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { MenuItemType } from '@prisma/client';
 
@@ -49,7 +53,10 @@ import {
   MenuItem,
 } from '@/hooks/use-menu';
 import { useCategories } from '@/hooks/use-categories';
+import { useShows } from '@/hooks/use-shows';
+import { usePodcasts } from '@/hooks/use-podcasts';
 import { useSession } from 'next-auth/react';
+import { useQuery } from '@tanstack/react-query';
 
 // Sortable menu item component
 function SortableMenuItem({
@@ -95,6 +102,14 @@ function SortableMenuItem({
         return <LinkIcon className="h-4 w-4 text-purple-500" />;
       case 'DIVIDER':
         return <MinusIcon className="h-4 w-4 text-zinc-400" />;
+      case 'SHOW':
+        return <SpeakerWaveIcon className="h-4 w-4 text-green-500" />;
+      case 'PODCAST':
+        return <MicrophoneIcon className="h-4 w-4 text-orange-500" />;
+      case 'BULLETIN':
+        return <MegaphoneIcon className="h-4 w-4 text-amber-500" />;
+      case 'STORY':
+        return <DocumentTextIcon className="h-4 w-4 text-cyan-500" />;
       default:
         return <Bars3BottomLeftIcon className="h-4 w-4" />;
     }
@@ -108,6 +123,14 @@ function SortableMenuItem({
         return <Badge color="purple">Custom Link</Badge>;
       case 'DIVIDER':
         return <Badge color="zinc">Divider</Badge>;
+      case 'SHOW':
+        return <Badge color="green">Show</Badge>;
+      case 'PODCAST':
+        return <Badge color="orange">Podcast</Badge>;
+      case 'BULLETIN':
+        return <Badge color="amber">Bulletin</Badge>;
+      case 'STORY':
+        return <Badge color="cyan">Story</Badge>;
       default:
         return null;
     }
@@ -167,6 +190,35 @@ function SortableMenuItem({
           {item.type === 'CUSTOM_LINK' && item.url && (
             <div className="text-xs text-zinc-500 truncate">
               URL: {item.url}
+            </div>
+          )}
+          {item.type === 'SHOW' && item.show && (
+            <div className="text-xs text-zinc-500">
+              Show: {item.show.title}{item.autoPopulate ? ' (auto-populates episodes)' : ''}
+            </div>
+          )}
+          {item.type === 'SHOW' && !item.show && item.autoPopulate && (
+            <div className="text-xs text-zinc-500">All Shows (auto-populates)</div>
+          )}
+          {item.type === 'PODCAST' && item.podcast && (
+            <div className="text-xs text-zinc-500">
+              Podcast: {item.podcast.title}{item.autoPopulate ? ' (auto-populates episodes)' : ''}
+            </div>
+          )}
+          {item.type === 'PODCAST' && !item.podcast && item.autoPopulate && (
+            <div className="text-xs text-zinc-500">All Podcasts (auto-populates)</div>
+          )}
+          {item.type === 'BULLETIN' && item.bulletinSchedule && (
+            <div className="text-xs text-zinc-500">
+              Schedule: {item.bulletinSchedule.title} ({item.bulletinSchedule.time})
+            </div>
+          )}
+          {item.type === 'BULLETIN' && !item.bulletinSchedule && item.autoPopulate && (
+            <div className="text-xs text-zinc-500">All Bulletins (auto-populates)</div>
+          )}
+          {item.type === 'STORY' && item.story && (
+            <div className="text-xs text-zinc-500">
+              Story: {item.story.title}
             </div>
           )}
         </div>
@@ -243,15 +295,46 @@ function MenuItemModal({
   const [labelAfrikaans, setLabelAfrikaans] = useState('');
   const [type, setType] = useState<MenuItemType>('CATEGORY');
   const [categoryId, setCategoryId] = useState('');
+  const [showId, setShowId] = useState('');
+  const [podcastId, setPodcastId] = useState('');
+  const [storyId, setStoryId] = useState('');
+  const [bulletinScheduleId, setBulletinScheduleId] = useState('');
   const [url, setUrl] = useState('');
   const [openInNewTab, setOpenInNewTab] = useState(false);
+  const [autoPopulate, setAutoPopulate] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>('');
   const [isVisible, setIsVisible] = useState(true);
   const [icon, setIcon] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const { data: categoriesData } = useCategories(true); // flat list
+  const { data: categoriesData } = useCategories(true);
   const categories = categoriesData?.categories || [];
+
+  const { data: showsData } = useShows({ perPage: 100 });
+  const shows = showsData?.shows || [];
+
+  const { data: podcastsData } = usePodcasts({ perPage: 100 });
+  const podcasts = podcastsData?.podcasts || [];
+
+  const { data: schedulesData } = useQuery({
+    queryKey: ['bulletin-schedules'],
+    queryFn: async () => {
+      const res = await fetch('/api/newsroom/bulletins/schedules');
+      if (!res.ok) return { schedules: [] };
+      return res.json();
+    },
+  });
+  const schedules = schedulesData?.schedules || [];
+
+  const { data: storiesData } = useQuery({
+    queryKey: ['published-stories-for-menu'],
+    queryFn: async () => {
+      const res = await fetch('/api/newsroom/stories?status=PUBLISHED&perPage=50');
+      if (!res.ok) return { stories: [] };
+      return res.json();
+    },
+  });
+  const stories = storiesData?.stories || [];
 
   const createMutation = useCreateMenuItem();
   const updateMutation = useUpdateMenuItem();
@@ -266,8 +349,13 @@ function MenuItemModal({
       setLabelAfrikaans(menuItem.labelAfrikaans || '');
       setType(menuItem.type);
       setCategoryId(menuItem.categoryId || '');
+      setShowId(menuItem.showId || '');
+      setPodcastId(menuItem.podcastId || '');
+      setStoryId(menuItem.storyId || '');
+      setBulletinScheduleId(menuItem.bulletinScheduleId || '');
       setUrl(menuItem.url || '');
       setOpenInNewTab(menuItem.openInNewTab);
+      setAutoPopulate(menuItem.autoPopulate);
       setSelectedParentId(menuItem.parentId || '');
       setIsVisible(menuItem.isVisible);
       setIcon(menuItem.icon || '');
@@ -276,8 +364,13 @@ function MenuItemModal({
       setLabelAfrikaans('');
       setType('CATEGORY');
       setCategoryId('');
+      setShowId('');
+      setPodcastId('');
+      setStoryId('');
+      setBulletinScheduleId('');
       setUrl('');
       setOpenInNewTab(false);
+      setAutoPopulate(false);
       setSelectedParentId(parentId || '');
       setIsVisible(true);
       setIcon('');
@@ -307,32 +400,41 @@ function MenuItemModal({
     setError(null);
 
     try {
+      const commonData = {
+        label,
+        labelAfrikaans: labelAfrikaans || null,
+        type,
+        isVisible,
+        icon: icon || null,
+        parentId: selectedParentId || null,
+        autoPopulate: ['SHOW', 'BULLETIN', 'PODCAST'].includes(type) ? autoPopulate : false,
+        categoryId: type === 'CATEGORY' ? (categoryId || null) : null,
+        showId: type === 'SHOW' ? (showId || null) : null,
+        podcastId: type === 'PODCAST' ? (podcastId || null) : null,
+        storyId: type === 'STORY' ? (storyId || null) : null,
+        bulletinScheduleId: type === 'BULLETIN' ? (bulletinScheduleId || null) : null,
+        url: type === 'CUSTOM_LINK' ? (url || null) : null,
+        openInNewTab: type === 'CUSTOM_LINK' ? openInNewTab : false,
+      };
+
       if (isEditing) {
         await updateMutation.mutateAsync({
           id: menuItem.id,
-          data: {
-            label,
-            labelAfrikaans: labelAfrikaans || null,
-            type,
-            isVisible,
-            icon: icon || null,
-            parentId: selectedParentId || null,
-            categoryId: type === 'CATEGORY' ? (categoryId || null) : null,
-            url: type === 'CUSTOM_LINK' ? (url || null) : null,
-            openInNewTab: type === 'CUSTOM_LINK' ? openInNewTab : undefined,
-          },
+          data: commonData,
         });
       } else {
+        // Convert nulls to undefined for create
         await createMutation.mutateAsync({
-          label,
-          labelAfrikaans: labelAfrikaans || undefined,
-          type,
-          isVisible,
-          icon: icon || undefined,
-          parentId: selectedParentId || undefined,
-          categoryId: type === 'CATEGORY' ? (categoryId || undefined) : undefined,
-          url: type === 'CUSTOM_LINK' ? (url || undefined) : undefined,
-          openInNewTab: type === 'CUSTOM_LINK' ? openInNewTab : undefined,
+          ...commonData,
+          labelAfrikaans: commonData.labelAfrikaans || undefined,
+          icon: commonData.icon || undefined,
+          parentId: commonData.parentId || undefined,
+          categoryId: commonData.categoryId || undefined,
+          showId: commonData.showId || undefined,
+          podcastId: commonData.podcastId || undefined,
+          storyId: commonData.storyId || undefined,
+          bulletinScheduleId: commonData.bulletinScheduleId || undefined,
+          url: commonData.url || undefined,
         });
       }
       onClose();
@@ -369,43 +471,30 @@ function MenuItemModal({
               <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Type
               </label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setType('CATEGORY')}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    type === 'CATEGORY'
-                      ? 'bg-blue-50 border-blue-500 text-blue-700'
-                      : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50'
-                  }`}
-                >
-                  <FolderIcon className="h-4 w-4 inline mr-1" />
-                  Category Link
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setType('CUSTOM_LINK')}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    type === 'CUSTOM_LINK'
-                      ? 'bg-purple-50 border-purple-500 text-purple-700'
-                      : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50'
-                  }`}
-                >
-                  <LinkIcon className="h-4 w-4 inline mr-1" />
-                  Custom Link
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setType('DIVIDER')}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    type === 'DIVIDER'
-                      ? 'bg-zinc-100 border-zinc-500 text-zinc-700'
-                      : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50'
-                  }`}
-                >
-                  <MinusIcon className="h-4 w-4 inline mr-1" />
-                  Divider
-                </button>
+              <div className="grid grid-cols-4 gap-2">
+                {([
+                  { value: 'CATEGORY' as MenuItemType, label: 'Category', icon: FolderIcon, color: 'blue' },
+                  { value: 'SHOW' as MenuItemType, label: 'Show', icon: SpeakerWaveIcon, color: 'green' },
+                  { value: 'PODCAST' as MenuItemType, label: 'Podcast', icon: MicrophoneIcon, color: 'orange' },
+                  { value: 'BULLETIN' as MenuItemType, label: 'Bulletin', icon: MegaphoneIcon, color: 'amber' },
+                  { value: 'STORY' as MenuItemType, label: 'Story', icon: DocumentTextIcon, color: 'cyan' },
+                  { value: 'CUSTOM_LINK' as MenuItemType, label: 'Custom Link', icon: LinkIcon, color: 'purple' },
+                  { value: 'DIVIDER' as MenuItemType, label: 'Divider', icon: MinusIcon, color: 'zinc' },
+                ] as const).map(({ value, label: typeLabel, icon: Icon, color }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setType(value)}
+                    className={`px-2 py-2 rounded-lg border text-xs font-medium transition-colors text-center ${
+                      type === value
+                        ? `bg-${color}-50 border-${color}-500 text-${color}-700`
+                        : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 inline mr-1" />
+                    {typeLabel}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -460,6 +549,98 @@ function MenuItemModal({
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {/* Show Selection */}
+            {type === 'SHOW' && (
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Show (optional — leave empty for "All Shows")
+                </label>
+                <select
+                  value={showId}
+                  onChange={(e) => setShowId(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-kelly-green focus:border-kelly-green"
+                >
+                  <option value="">All Shows</option>
+                  {shows.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Podcast Selection */}
+            {type === 'PODCAST' && (
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Podcast (optional — leave empty for "All Podcasts")
+                </label>
+                <select
+                  value={podcastId}
+                  onChange={(e) => setPodcastId(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-kelly-green focus:border-kelly-green"
+                >
+                  <option value="">All Podcasts</option>
+                  {podcasts.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Bulletin Schedule Selection */}
+            {type === 'BULLETIN' && (
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Bulletin Schedule (optional — leave empty for "All Bulletins")
+                </label>
+                <select
+                  value={bulletinScheduleId}
+                  onChange={(e) => setBulletinScheduleId(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-kelly-green focus:border-kelly-green"
+                >
+                  <option value="">All Bulletins</option>
+                  {schedules.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.title} ({s.time})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Story Selection */}
+            {type === 'STORY' && (
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Story *
+                </label>
+                <select
+                  value={storyId}
+                  onChange={(e) => setStoryId(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-kelly-green focus:border-kelly-green"
+                >
+                  <option value="">Select a story...</option>
+                  {stories.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Auto-Populate Toggle */}
+            {['SHOW', 'BULLETIN', 'PODCAST'].includes(type) && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="autoPopulate"
+                  checked={autoPopulate}
+                  onChange={(e) => setAutoPopulate(e.target.checked)}
+                  className="h-4 w-4 text-kelly-green rounded border-zinc-300 focus:ring-kelly-green"
+                />
+                <label htmlFor="autoPopulate" className="text-sm text-zinc-700">
+                  Auto-populate children from published content
+                </label>
               </div>
             )}
 

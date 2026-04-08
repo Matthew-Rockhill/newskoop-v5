@@ -4,7 +4,7 @@ import type { StoryStage } from '@prisma/client';
 export interface RealtimeEvent<T = unknown> {
   type: string;
   entityId: string;
-  entityType: 'story' | 'bulletin' | 'show' | 'episode';
+  entityType: 'story' | 'bulletin' | 'show' | 'episode' | 'podcast' | 'podcast_episode';
   data?: T;
   userId: string;
   timestamp: string;
@@ -60,6 +60,17 @@ export type EpisodeEvent =
   | ({ type: 'episode:updated'; metadata: { showId: string } } & RealtimeEvent)
   | ({ type: 'episode:published'; metadata: { showId: string } } & RealtimeEvent);
 
+// Podcast events
+export type PodcastEvent =
+  | ({ type: 'podcast:created' } & RealtimeEvent)
+  | ({ type: 'podcast:updated' } & RealtimeEvent)
+  | ({ type: 'podcast:deleted' } & RealtimeEvent);
+
+export type PodcastEpisodeEvent =
+  | ({ type: 'podcast_episode:created'; metadata: { podcastId: string } } & RealtimeEvent)
+  | ({ type: 'podcast_episode:updated'; metadata: { podcastId: string } } & RealtimeEvent)
+  | ({ type: 'podcast_episode:published'; metadata: { podcastId: string } } & RealtimeEvent);
+
 // Dashboard events
 export type DashboardEvent =
   | ({ type: 'dashboard:metrics_updated'; metadata: { trigger: string } } & RealtimeEvent);
@@ -70,4 +81,6 @@ export type NewsroomEvent =
   | BulletinEvent
   | ShowEvent
   | EpisodeEvent
+  | PodcastEvent
+  | PodcastEpisodeEvent
   | DashboardEvent;

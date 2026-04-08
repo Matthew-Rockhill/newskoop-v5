@@ -7,6 +7,8 @@ export {
   publishBulletinEvent,
   publishShowEvent,
   publishEpisodeEvent,
+  publishPodcastEvent,
+  publishPodcastEpisodeEvent,
   publishDashboardEvent,
   createEvent,
 } from './publisher';
@@ -18,6 +20,8 @@ export type {
   BulletinEvent,
   ShowEvent,
   EpisodeEvent,
+  PodcastEvent,
+  PodcastEpisodeEvent,
   DashboardEvent,
   NewsroomEvent,
 } from './types';

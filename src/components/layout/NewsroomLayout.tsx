@@ -21,6 +21,7 @@ import {
   Bars3BottomLeftIcon,
   MusicalNoteIcon,
   CalendarDaysIcon,
+  MicrophoneIcon,
 } from '@heroicons/react/24/outline'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -89,6 +90,7 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
 
     if (role && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(role)) {
       contentItems.push({ name: 'Shows', href: '/newsroom/shows', icon: SpeakerWaveIcon })
+      contentItems.push({ name: 'Podcasts', href: '/newsroom/podcasts', icon: MicrophoneIcon })
     }
 
     if (role && ['EDITOR', 'SUB_EDITOR'].includes(role)) {

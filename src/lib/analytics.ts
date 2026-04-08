@@ -236,9 +236,11 @@ export async function getTopContent(params: TopContentParams) {
     .map((item) => item.contentId);
   const showIds = topContent.filter((item) => item.contentType === 'SHOW').map((item) => item.contentId);
   const episodeIds = topContent.filter((item) => item.contentType === 'EPISODE').map((item) => item.contentId);
+  const podcastIds = topContent.filter((item) => item.contentType === 'PODCAST').map((item) => item.contentId);
+  const podcastEpisodeIds = topContent.filter((item) => item.contentType === 'PODCAST_EPISODE').map((item) => item.contentId);
 
   // Batch fetch all content in parallel
-  const [stories, shows, episodes] = await Promise.all([
+  const [stories, shows, episodes, podcasts, podcastEpisodes] = await Promise.all([
     storyIds.length > 0
       ? prisma.story.findMany({
           where: { id: { in: storyIds } },
@@ -273,12 +275,36 @@ export async function getTopContent(params: TopContentParams) {
           },
         })
       : Promise.resolve([]),
+    podcastIds.length > 0
+      ? prisma.podcast.findMany({
+          where: { id: { in: podcastIds } },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            category: { select: { name: true } },
+          },
+        })
+      : Promise.resolve([]),
+    podcastEpisodeIds.length > 0
+      ? prisma.podcastEpisode.findMany({
+          where: { id: { in: podcastEpisodeIds } },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            podcast: { select: { title: true } },
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   // Create lookup maps for O(1) access
   const storyMap = new Map(stories.map((s) => [s.id, s]));
   const showMap = new Map(shows.map((s) => [s.id, s]));
   const episodeMap = new Map(episodes.map((e) => [e.id, e]));
+  const podcastMap = new Map(podcasts.map((p) => [p.id, p]));
+  const podcastEpisodeMap = new Map(podcastEpisodes.map((pe) => [pe.id, pe]));
 
   // Enrich content using lookup maps
   const enrichedContent = topContent.map((item) => {
@@ -290,6 +316,10 @@ export async function getTopContent(params: TopContentParams) {
       content = showMap.get(item.contentId) || null;
     } else if (item.contentType === 'EPISODE') {
       content = episodeMap.get(item.contentId) || null;
+    } else if (item.contentType === 'PODCAST') {
+      content = podcastMap.get(item.contentId) || null;
+    } else if (item.contentType === 'PODCAST_EPISODE') {
+      content = podcastEpisodeMap.get(item.contentId) || null;
     }
 
     return {

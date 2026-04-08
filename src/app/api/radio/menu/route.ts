@@ -25,8 +25,17 @@ function buildMenuTree(items: Array<{
   type: MenuItemType;
   categoryId: string | null;
   category: { id: string; name: string; nameAfrikaans: string | null; slug: string; parent: { slug: string } | null } | null;
+  showId: string | null;
+  show: { id: string; title: string; slug: string } | null;
+  podcastId: string | null;
+  podcast: { id: string; title: string; slug: string } | null;
+  storyId: string | null;
+  story: { id: string; title: string; slug: string } | null;
+  bulletinScheduleId: string | null;
+  bulletinSchedule: { id: string; title: string; time: string; language: string } | null;
   url: string | null;
   openInNewTab: boolean;
+  autoPopulate: boolean;
   parentId: string | null;
   sortOrder: number;
   isVisible: boolean;
@@ -87,16 +96,21 @@ function virtualMenuItem(overrides: {
   };
 }
 
-// Dynamically inject children for News Bulletins and Speciality
+// Dynamically inject children for auto-populated menu items (by type)
 async function injectDynamicChildren(
   menuTree: ReturnType<typeof buildMenuTree>,
   allowedLanguageEnums: string[]
 ) {
-  const bulletinsItem = menuTree.find(item => item.url === '/radio/bulletins');
-  const specialityItem = menuTree.find(item => item.url === '/radio/shows');
+  // Find auto-populate items by type (or fall back to URL matching for legacy items)
+  const bulletinsItem = menuTree.find(item => item.type === 'BULLETIN' && item.autoPopulate)
+    || menuTree.find(item => item.url === '/radio/bulletins');
+  const showsItem = menuTree.find(item => item.type === 'SHOW' && item.autoPopulate)
+    || menuTree.find(item => item.url === '/radio/shows');
+  const podcastsItem = menuTree.find(item => item.type === 'PODCAST' && item.autoPopulate)
+    || menuTree.find(item => item.url === '/radio/podcasts');
 
-  // Run both queries in parallel
-  const [schedules, shows] = await Promise.all([
+  // Run all queries in parallel
+  const [schedules, shows, podcasts] = await Promise.all([
     bulletinsItem
       ? prisma.bulletinSchedule.findMany({
           where: {
@@ -108,7 +122,7 @@ async function injectDynamicChildren(
           orderBy: [{ time: 'asc' }, { language: 'asc' }],
         })
       : Promise.resolve([]),
-    specialityItem
+    showsItem
       ? prisma.show.findMany({
           where: {
             isActive: true,
@@ -124,9 +138,18 @@ async function injectDynamicChildren(
           orderBy: { title: 'asc' },
         })
       : Promise.resolve([]),
+    podcastsItem
+      ? prisma.podcast.findMany({
+          where: {
+            isActive: true,
+            isPublished: true,
+          },
+          orderBy: { title: 'asc' },
+        })
+      : Promise.resolve([]),
   ]);
 
-  // Inject all bulletin schedule children (client-side navbar handles time windowing)
+  // Inject bulletin schedule children (client-side navbar handles time windowing)
   if (bulletinsItem) {
     bulletinsItem.children = schedules.map((schedule, i) => {
       const langAbbrev = LANG_ABBREV[schedule.language] || schedule.language;
@@ -141,24 +164,36 @@ async function injectDynamicChildren(
   }
 
   // Inject show children (with sub-show grandchildren)
-  if (specialityItem) {
-    specialityItem.children = shows.map((show, i) => {
+  if (showsItem) {
+    showsItem.children = shows.map((show, i) => {
       const subShowChildren = (show.subShows ?? []).map((sub, j) =>
         virtualMenuItem({
           label: sub.title,
           url: `/radio/shows?showId=${sub.id}`,
           sortOrder: j + 1,
-          parentId: `virtual-${specialityItem.id}-${i + 1}`,
+          parentId: `virtual-${showsItem.id}-${i + 1}`,
         })
       );
       return virtualMenuItem({
         label: show.title,
         url: `/radio/shows?showId=${show.id}`,
         sortOrder: i + 1,
-        parentId: specialityItem.id,
+        parentId: showsItem.id,
         children: subShowChildren,
       });
     });
+  }
+
+  // Inject podcast children
+  if (podcastsItem) {
+    podcastsItem.children = podcasts.map((podcast, i) =>
+      virtualMenuItem({
+        label: podcast.title,
+        url: `/radio/podcasts?podcastId=${podcast.id}`,
+        sortOrder: i + 1,
+        parentId: podcastsItem.id,
+      })
+    );
   }
 }
 
@@ -210,6 +245,10 @@ const getRadioMenu = createHandler(
             },
           },
         },
+        show: { select: { id: true, title: true, slug: true } },
+        podcast: { select: { id: true, title: true, slug: true } },
+        story: { select: { id: true, title: true, slug: true } },
+        bulletinSchedule: { select: { id: true, title: true, time: true, language: true } },
       },
       orderBy: [
         { sortOrder: 'asc' },

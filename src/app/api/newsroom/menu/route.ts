@@ -87,13 +87,12 @@ const getMenuItems = createHandler(
     const menuItems = await prisma.menuItem.findMany({
       include: {
         category: {
-          select: {
-            id: true,
-            name: true,
-            nameAfrikaans: true,
-            slug: true,
-          },
+          select: { id: true, name: true, nameAfrikaans: true, slug: true },
         },
+        show: { select: { id: true, title: true, slug: true } },
+        podcast: { select: { id: true, title: true, slug: true } },
+        story: { select: { id: true, title: true, slug: true } },
+        bulletinSchedule: { select: { id: true, title: true, time: true, language: true } },
       },
       orderBy: [
         { sortOrder: 'asc' },
@@ -121,8 +120,13 @@ const createMenuItem = createHandler(
       labelAfrikaans?: string;
       type: MenuItemType;
       categoryId?: string;
+      showId?: string;
+      podcastId?: string;
+      storyId?: string;
+      bulletinScheduleId?: string;
       url?: string;
       openInNewTab?: boolean;
+      autoPopulate?: boolean;
       parentId?: string;
       sortOrder?: number;
       isVisible?: boolean;
@@ -133,24 +137,32 @@ const createMenuItem = createHandler(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // Validate category exists if type is CATEGORY
+    // Validate referenced content exists
     if (data.type === 'CATEGORY' && data.categoryId) {
-      const category = await prisma.category.findUnique({
-        where: { id: data.categoryId },
-      });
-      if (!category) {
-        return NextResponse.json({ error: 'Category not found' }, { status: 400 });
-      }
+      const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+      if (!category) return NextResponse.json({ error: 'Category not found' }, { status: 400 });
+    }
+    if (data.type === 'SHOW' && data.showId) {
+      const show = await prisma.show.findUnique({ where: { id: data.showId } });
+      if (!show) return NextResponse.json({ error: 'Show not found' }, { status: 400 });
+    }
+    if (data.type === 'PODCAST' && data.podcastId) {
+      const podcast = await prisma.podcast.findUnique({ where: { id: data.podcastId } });
+      if (!podcast) return NextResponse.json({ error: 'Podcast not found' }, { status: 400 });
+    }
+    if (data.type === 'STORY' && data.storyId) {
+      const story = await prisma.story.findUnique({ where: { id: data.storyId } });
+      if (!story) return NextResponse.json({ error: 'Story not found' }, { status: 400 });
+    }
+    if (data.type === 'BULLETIN' && data.bulletinScheduleId) {
+      const schedule = await prisma.bulletinSchedule.findUnique({ where: { id: data.bulletinScheduleId } });
+      if (!schedule) return NextResponse.json({ error: 'Bulletin schedule not found' }, { status: 400 });
     }
 
     // Validate parent exists if provided
     if (data.parentId) {
-      const parent = await prisma.menuItem.findUnique({
-        where: { id: data.parentId },
-      });
-      if (!parent) {
-        return NextResponse.json({ error: 'Parent menu item not found' }, { status: 400 });
-      }
+      const parent = await prisma.menuItem.findUnique({ where: { id: data.parentId } });
+      if (!parent) return NextResponse.json({ error: 'Parent menu item not found' }, { status: 400 });
     }
 
     // Get next sort order if not provided
@@ -168,9 +180,14 @@ const createMenuItem = createHandler(
         label: data.label,
         labelAfrikaans: data.labelAfrikaans,
         type: data.type,
-        categoryId: data.categoryId,
-        url: data.url,
-        openInNewTab: data.openInNewTab ?? false,
+        categoryId: data.type === 'CATEGORY' ? data.categoryId : undefined,
+        showId: data.type === 'SHOW' ? data.showId : undefined,
+        podcastId: data.type === 'PODCAST' ? data.podcastId : undefined,
+        storyId: data.type === 'STORY' ? data.storyId : undefined,
+        bulletinScheduleId: data.type === 'BULLETIN' ? data.bulletinScheduleId : undefined,
+        url: data.type === 'CUSTOM_LINK' ? data.url : undefined,
+        openInNewTab: data.type === 'CUSTOM_LINK' ? (data.openInNewTab ?? false) : false,
+        autoPopulate: data.autoPopulate ?? false,
         parentId: data.parentId,
         sortOrder,
         isVisible: data.isVisible ?? true,
@@ -178,13 +195,12 @@ const createMenuItem = createHandler(
       },
       include: {
         category: {
-          select: {
-            id: true,
-            name: true,
-            nameAfrikaans: true,
-            slug: true,
-          },
+          select: { id: true, name: true, nameAfrikaans: true, slug: true },
         },
+        show: { select: { id: true, title: true, slug: true } },
+        podcast: { select: { id: true, title: true, slug: true } },
+        story: { select: { id: true, title: true, slug: true } },
+        bulletinSchedule: { select: { id: true, title: true, time: true, language: true } },
       },
     });
 
