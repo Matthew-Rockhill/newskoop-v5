@@ -74,9 +74,12 @@ DO $$ BEGIN
     END IF;
 END $$;
 
+-- ShowClassification FKs deferred to 20260113_add_show_tables (Show table doesn't exist yet)
 DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ShowClassification_showId_fkey') THEN
-        ALTER TABLE "ShowClassification" ADD CONSTRAINT "ShowClassification_showId_fkey" FOREIGN KEY ("showId") REFERENCES "Show"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Show') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ShowClassification_showId_fkey') THEN
+            ALTER TABLE "ShowClassification" ADD CONSTRAINT "ShowClassification_showId_fkey" FOREIGN KEY ("showId") REFERENCES "Show"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        END IF;
     END IF;
 END $$;
 
