@@ -30,6 +30,7 @@ const episodeAudioInclude = {
           mimeType: true,
           title: true,
           tags: true,
+          createdAt: true,
         },
       },
       createdAt: true,

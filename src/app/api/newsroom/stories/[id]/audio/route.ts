@@ -95,6 +95,7 @@ const addAudioClip = createHandler(
                     mimeType: true,
                     title: true,
                     tags: true,
+                    createdAt: true,
                   },
                 },
               },

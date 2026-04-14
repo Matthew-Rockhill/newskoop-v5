@@ -121,6 +121,7 @@ export async function getFileMetadata(url: string) {
 
 export const ALLOWED_AUDIO_TYPES = [
   'audio/mpeg',    // MP3
+  'audio/mp3',     // MP3 (alternative MIME type reported by some browsers)
   'audio/wav',     // WAV
   'audio/ogg',     // OGG
   'audio/mp4',     // M4A
