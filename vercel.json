@@ -38,10 +38,6 @@
     {
       "path": "/api/cron/reset-bulletin-flags",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/auto-publish-bulletins",
-      "schedule": "*/10 * * * *"
     }
   ]
 }
