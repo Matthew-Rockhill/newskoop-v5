@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "BulletinStatus" ADD VALUE 'SCHEDULED' BEFORE 'PUBLISHED';

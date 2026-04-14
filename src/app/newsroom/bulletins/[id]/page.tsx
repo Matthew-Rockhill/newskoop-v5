@@ -19,7 +19,7 @@ import {
   PaperAirplaneIcon,
   CheckCircleIcon,
   ArrowPathIcon,
-  MegaphoneIcon,
+  CalendarDaysIcon,
   ArchiveBoxIcon,
   XMarkIcon,
   SpeakerWaveIcon,
@@ -201,7 +201,7 @@ export default function BulletinViewPage() {
   const canSubmitForReview = bulletin?.status === 'DRAFT' && (isAuthor || isEditor);
   const canRequestRevision = bulletin?.status === 'IN_REVIEW' && isSubEditorOrAbove;
   const canApprove = bulletin?.status === 'IN_REVIEW' && isSubEditorOrAbove;
-  const canPublish = bulletin?.status === 'APPROVED' && isSubEditorOrAbove;
+  const canSchedule = bulletin?.status === 'APPROVED' && isSubEditorOrAbove;
   const canArchive = bulletin?.status === 'PUBLISHED' && isEditor;
   const canEdit = (bulletin?.status === 'DRAFT' && (isAuthor || isEditor)) ||
                   (bulletin?.status === 'NEEDS_REVISION' && (isAuthor || isEditor)) ||
@@ -213,6 +213,7 @@ export default function BulletinViewPage() {
       case 'IN_REVIEW': return 'amber';
       case 'NEEDS_REVISION': return 'red';
       case 'APPROVED': return 'lime';
+      case 'SCHEDULED': return 'blue';
       case 'PUBLISHED': return 'emerald';
       case 'ARCHIVED': return 'zinc';
       default: return 'zinc';
@@ -375,22 +376,22 @@ export default function BulletinViewPage() {
               </Button>
             )}
 
-            {/* Publish - APPROVED → PUBLISHED */}
-            {canPublish && (
+            {/* Schedule - APPROVED → SCHEDULED */}
+            {canSchedule && (
               <Button
                 color="primary"
                 onClick={() => setConfirmAction({
-                  status: 'PUBLISHED',
-                  message: 'Bulletin published!',
-                  title: 'Publish Bulletin',
-                  description: `Are you sure you want to publish "${bulletin.title}"? This will distribute the bulletin to radio stations.`,
-                  label: 'Publish',
+                  status: 'SCHEDULED',
+                  message: 'Bulletin scheduled! It will auto-publish 40 minutes before air time.',
+                  title: 'Schedule Bulletin',
+                  description: `Are you sure you want to schedule "${bulletin.title}"? It will be automatically published 40 minutes before its on-air time.`,
+                  label: 'Schedule',
                   variant: 'warning',
                 })}
                 disabled={isUpdating}
               >
-                <MegaphoneIcon className="h-4 w-4 mr-2" />
-                {isUpdating ? 'Publishing...' : 'Publish'}
+                <CalendarDaysIcon className="h-4 w-4 mr-2" />
+                {isUpdating ? 'Scheduling...' : 'Schedule'}
               </Button>
             )}
 

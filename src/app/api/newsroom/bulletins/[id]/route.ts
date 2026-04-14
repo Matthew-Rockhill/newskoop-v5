@@ -13,7 +13,7 @@ const updateBulletinSchema = z.object({
   language: z.enum(['ENGLISH', 'AFRIKAANS', 'XHOSA']).optional(),
   scheduleId: z.string().nullable().optional(),
   scheduledFor: z.string().datetime().nullable().optional(),
-  status: z.enum(['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION', 'APPROVED', 'PUBLISHED', 'ARCHIVED']).optional(),
+  status: z.enum(['DRAFT', 'IN_REVIEW', 'NEEDS_REVISION', 'APPROVED', 'SCHEDULED', 'PUBLISHED', 'ARCHIVED']).optional(),
   reviewerId: z.string().nullable().optional(),
 });
 
@@ -194,7 +194,11 @@ export async function PATCH(
     }
 
     if (existing.status === 'APPROVED' && !isSubEditorOrAbove) {
-      return NextResponse.json({ error: 'Only sub-editors and above can publish approved bulletins' }, { status: 403 });
+      return NextResponse.json({ error: 'Only sub-editors and above can schedule approved bulletins' }, { status: 403 });
+    }
+
+    if (existing.status === 'SCHEDULED' && !isSubEditorOrAbove) {
+      return NextResponse.json({ error: 'Only sub-editors and above can manage scheduled bulletins' }, { status: 403 });
     }
 
     if (existing.status === 'PUBLISHED' && !isEditor) {

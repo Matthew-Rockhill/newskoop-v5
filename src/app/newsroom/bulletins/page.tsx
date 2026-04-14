@@ -322,6 +322,21 @@ export default function BulletinsPage() {
               Approved
             </button>
             <button
+              onClick={() => handleFilterChange('status', 'SCHEDULED')}
+              aria-pressed={filters.status === 'SCHEDULED'}
+              className={`
+                inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
+                transition-colors duration-150
+                ${filters.status === 'SCHEDULED'
+                  ? 'bg-kelly-green text-white'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                }
+              `}
+            >
+              <CalendarDaysIcon className="h-4 w-4" />
+              Scheduled
+            </button>
+            <button
               onClick={() => handleFilterChange('status', 'PUBLISHED')}
               aria-pressed={filters.status === 'PUBLISHED'}
               className={`

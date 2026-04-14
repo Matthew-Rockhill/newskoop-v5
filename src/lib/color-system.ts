@@ -222,6 +222,7 @@ export const BULLETIN_STATUS_COLORS: Record<string, BadgeColor> = {
   IN_REVIEW: 'amber',
   NEEDS_REVISION: 'red',
   APPROVED: 'lime',
+  SCHEDULED: 'blue',
   PUBLISHED: 'emerald',
   ARCHIVED: 'zinc',
 } as const;
