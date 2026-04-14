@@ -10,6 +10,7 @@ declare module 'next-auth' {
       userType: UserType;
       staffRole?: StaffRole;
       radioStationId?: string;
+      isContentProducer?: boolean;
       name?: string | null;
       image?: string | null;
     };
@@ -23,6 +24,7 @@ declare module 'next-auth' {
     userType: UserType;
     staffRole?: StaffRole;
     radioStationId?: string;
+    isContentProducer?: boolean;
   }
 }
 
@@ -35,5 +37,6 @@ declare module 'next-auth/jwt' {
     userType: UserType;
     staffRole?: StaffRole;
     radioStationId?: string;
+    isContentProducer?: boolean;
   }
 } 

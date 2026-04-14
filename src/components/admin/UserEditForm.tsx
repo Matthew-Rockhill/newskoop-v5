@@ -28,6 +28,7 @@ type User = {
   translationLanguage?: 'AFRIKAANS' | 'XHOSA' | null;
   isActive: boolean;
   isPrimaryContact: boolean;
+  isContentProducer: boolean;
   radioStationId?: string | null;
   radioStation?: {
     id: string;
@@ -49,6 +50,7 @@ const userEditSchema = z.object({
     z.undefined()
   ]).optional(),
   isActive: z.boolean(),
+  isContentProducer: z.boolean(),
 });
 
 type UserEditFormData = z.infer<typeof userEditSchema>;
@@ -78,6 +80,7 @@ export function UserEditForm({ user }: UserEditFormProps) {
       staffRole: user.staffRole || undefined,
       translationLanguage: user.translationLanguage || '',
       isActive: user.isActive,
+      isContentProducer: user.isContentProducer,
     },
   });
 
@@ -292,6 +295,24 @@ export function UserEditForm({ user }: UserEditFormProps) {
               </div>
             )}
           </div>
+
+          {userType === 'STAFF' && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-zinc-900">Content Producer</div>
+                  <div className="text-sm text-zinc-500">
+                    Allows this user to create, manage, and publish shows and podcasts regardless of their editorial role.
+                  </div>
+                </div>
+                <Switch
+                  checked={watch('isContentProducer')}
+                  onChange={(checked) => setValue('isContentProducer', checked)}
+                  color="green"
+                />
+              </div>
+            </div>
+          )}
         </Fieldset>
 
         {/* Station Assignment */}

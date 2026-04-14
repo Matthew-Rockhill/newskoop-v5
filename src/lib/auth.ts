@@ -77,6 +77,7 @@ export const authOptions: NextAuthOptions = {
           userType: user.userType,
           staffRole: user.staffRole || undefined,
           radioStationId: user.radioStationId || undefined,
+          isContentProducer: user.isContentProducer,
         };
       },
     }),
@@ -91,6 +92,7 @@ export const authOptions: NextAuthOptions = {
         token.userType = user.userType;
         token.staffRole = user.staffRole;
         token.radioStationId = user.radioStationId;
+        token.isContentProducer = user.isContentProducer;
       }
       return token;
     },
@@ -103,6 +105,7 @@ export const authOptions: NextAuthOptions = {
         session.user.userType = token.userType;
         session.user.staffRole = token.staffRole;
         session.user.radioStationId = token.radioStationId;
+        session.user.isContentProducer = token.isContentProducer;
       }
       return session;
     },

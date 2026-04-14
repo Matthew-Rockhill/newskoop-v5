@@ -27,6 +27,7 @@ export const userCreateSchema = z.object({
     return val === '' ? null : val;
   }),
   isActive: z.boolean(),
+  isContentProducer: z.boolean().optional(),
 }).refine((data) => {
   // For STAFF users, staffRole is required
   if (data.userType === UserType.STAFF && !data.staffRole) {
@@ -52,6 +53,7 @@ export const userFormSchema = z.object({
     z.undefined()
   ]).optional(),
   isActive: z.boolean(),
+  isContentProducer: z.boolean().optional(),
 }).refine((data) => {
   // For STAFF users, staffRole is required
   if (data.userType === UserType.STAFF && !data.staffRole) {
@@ -102,6 +104,7 @@ export const userUpdateSchema = z.object({
   radioStationId: z.string().optional(),
   isPrimaryContact: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  isContentProducer: z.boolean().optional(),
 });
 
 // Station schema for basic station operations

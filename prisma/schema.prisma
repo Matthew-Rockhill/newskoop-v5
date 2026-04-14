@@ -155,6 +155,7 @@ model User {
   userType                  UserType
   isActive                  Boolean              @default(true)
   isPrimaryContact          Boolean              @default(false)
+  isContentProducer         Boolean              @default(false)
   mustChangePassword        Boolean              @default(false)
   translationLanguage       TranslationLanguage?
   createdAt                 DateTime             @default(now())

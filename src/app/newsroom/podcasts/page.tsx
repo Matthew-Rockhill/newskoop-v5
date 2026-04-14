@@ -18,6 +18,7 @@ import { toast } from 'react-hot-toast';
 export default function PodcastsPage() {
   const { data: session } = useSession();
   const userRole = session?.user?.staffRole;
+  const isProducer = session?.user?.isContentProducer;
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,8 +30,8 @@ export default function PodcastsPage() {
   const updatePodcast = useUpdatePodcast();
   const deletePodcast = useDeletePodcast();
 
-  const canManage = canManagePodcasts(userRole as any);
-  const canDelete = canDeletePodcastPerm(userRole as any);
+  const canManage = canManagePodcasts(userRole as any, isProducer);
+  const canDelete = canDeletePodcastPerm(userRole as any, isProducer);
 
   const handleCreate = async (data: CreatePodcastData | UpdatePodcastData) => {
     try {

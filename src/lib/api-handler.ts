@@ -55,6 +55,7 @@ export const withAuth: ApiMiddleware = (handler) => {
         userType: true,
         staffRole: true,
         isActive: true,
+        isContentProducer: true,
       },
     });
 

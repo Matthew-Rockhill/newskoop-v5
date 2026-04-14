@@ -18,6 +18,7 @@ type User = {
   translationLanguage?: 'AFRIKAANS' | 'XHOSA' | null;
   isActive: boolean;
   isPrimaryContact: boolean;
+  isContentProducer: boolean;
   radioStationId?: string | null;
   createdAt: Date;
   updatedAt: Date;

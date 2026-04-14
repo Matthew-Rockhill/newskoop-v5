@@ -26,9 +26,9 @@ const podcastSchema = z.object({
 // GET /api/newsroom/podcasts - List podcasts with filtering and pagination
 const getPodcasts = createHandler(
   async (req: NextRequest) => {
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!hasPodcastPermission(user.staffRole as any, 'read')) {
+    if (!hasPodcastPermission(user.staffRole as any, 'read', user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -120,9 +120,9 @@ const getPodcasts = createHandler(
 // POST /api/newsroom/podcasts - Create a new podcast
 const createPodcast = createHandler(
   async (req: NextRequest) => {
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canManagePodcasts(user.staffRole as any)) {
+    if (!canManagePodcasts(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

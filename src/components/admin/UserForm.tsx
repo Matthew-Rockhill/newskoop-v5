@@ -38,6 +38,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
       staffRole: user?.staffRole || undefined,
       translationLanguage: user?.translationLanguage || undefined,
       isActive: user?.isActive ?? true,
+      isContentProducer: user?.isContentProducer ?? false,
     },
   });
 
@@ -182,6 +183,25 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
             </Field>
           )}
         </div>
+
+        {userType === 'STAFF' && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Content Producer</div>
+                <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Allows this user to create, manage, and publish shows and podcasts regardless of their editorial role.
+                </div>
+              </div>
+              <Switch
+                checked={watch('isContentProducer') ?? false}
+                onChange={(checked) => setValue('isContentProducer', checked)}
+                color="green"
+                aria-label="Toggle content producer access"
+              />
+            </div>
+          </div>
+        )}
       </Fieldset>
 
       {/* Account Status */}

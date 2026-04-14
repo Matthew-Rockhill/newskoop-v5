@@ -27,7 +27,7 @@ const episodeUpdateSchema = z.object({
 const getEpisode = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id, episodeId } = await params;
-    const _user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const _user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
     const episode = await prisma.episode.findUnique({
       where: { id: episodeId },
@@ -72,9 +72,9 @@ const getEpisode = createHandler(
 const updateEpisode = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id, episodeId } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canManageShows(user.staffRole as any)) {
+    if (!canManageShows(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -143,9 +143,9 @@ const updateEpisode = createHandler(
 const deleteEpisode = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id, episodeId } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canDeleteShow(user.staffRole as any)) {
+    if (!canDeleteShow(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

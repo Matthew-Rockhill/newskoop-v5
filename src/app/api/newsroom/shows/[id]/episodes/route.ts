@@ -27,7 +27,7 @@ const episodeCreateSchema = z.object({
 const getEpisodes = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const _user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const _user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
     // Verify show exists
     const show = await prisma.show.findUnique({
@@ -67,9 +67,9 @@ const getEpisodes = createHandler(
 const createEpisode = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canManageShows(user.staffRole as any)) {
+    if (!canManageShows(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

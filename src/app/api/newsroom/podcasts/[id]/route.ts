@@ -28,9 +28,9 @@ const podcastUpdateSchema = z.object({
 const getPodcast = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!hasPodcastPermission(user.staffRole as any, 'read')) {
+    if (!hasPodcastPermission(user.staffRole as any, 'read', user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -87,7 +87,7 @@ const getPodcast = createHandler(
 const updatePodcast = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
     const podcast = await prisma.podcast.findUnique({
       where: { id },
@@ -97,7 +97,7 @@ const updatePodcast = createHandler(
       return NextResponse.json({ error: 'Podcast not found' }, { status: 404 });
     }
 
-    if (!canEditPodcast(user.staffRole as any, podcast.createdById, user.id)) {
+    if (!canEditPodcast(user.staffRole as any, podcast.createdById, user.id, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions to edit this podcast' }, { status: 403 });
     }
 
@@ -164,9 +164,9 @@ const updatePodcast = createHandler(
 const deletePodcast = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canDeletePodcast(user.staffRole as any)) {
+    if (!canDeletePodcast(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

@@ -218,6 +218,9 @@ export default function UserDetailPage() {
                   {user.isPrimaryContact && (
                     <Badge color="blue">Primary Contact</Badge>
                   )}
+                  {user.isContentProducer && (
+                    <Badge color="amber">Content Producer</Badge>
+                  )}
                 </div>
                 <div className="mt-2 space-y-1 text-sm text-zinc-600">
                   <div>

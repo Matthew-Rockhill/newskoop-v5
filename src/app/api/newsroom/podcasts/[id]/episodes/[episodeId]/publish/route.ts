@@ -22,9 +22,9 @@ const publishSchema = z.object({
 const publishEpisode = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id, episodeId } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canPublishPodcastEpisode(user.staffRole as any)) {
+    if (!canPublishPodcastEpisode(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -92,9 +92,9 @@ const publishEpisode = createHandler(
 const unpublishEpisode = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id, episodeId } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canPublishPodcastEpisode(user.staffRole as any)) {
+    if (!canPublishPodcastEpisode(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

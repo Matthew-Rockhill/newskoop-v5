@@ -18,6 +18,7 @@ import { toast } from 'react-hot-toast';
 export default function ShowsPage() {
   const { data: session } = useSession();
   const userRole = session?.user?.staffRole;
+  const isProducer = session?.user?.isContentProducer;
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,8 +30,8 @@ export default function ShowsPage() {
   const updateShow = useUpdateShow();
   const deleteShow = useDeleteShow();
 
-  const canManage = canManageShows(userRole as any);
-  const canDelete = canDeleteShowPerm(userRole as any);
+  const canManage = canManageShows(userRole as any, isProducer);
+  const canDelete = canDeleteShowPerm(userRole as any, isProducer);
 
   const handleCreate = async (data: CreateShowData | UpdateShowData) => {
     try {

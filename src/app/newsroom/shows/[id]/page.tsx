@@ -41,6 +41,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
   const { data: session } = useSession();
   const router = useRouter();
   const userRole = session?.user?.staffRole;
+  const isProducer = session?.user?.isContentProducer;
 
   const [isCreateEpisodeModalOpen, setIsCreateEpisodeModalOpen] = useState(false);
   const [isCreateSubShowModalOpen, setIsCreateSubShowModalOpen] = useState(false);
@@ -61,7 +62,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
     resolver: zodResolver(episodeSchema),
   });
 
-  const canManage = canManageShows(userRole as any);
+  const canManage = canManageShows(userRole as any, isProducer);
 
   const handleCreateEpisode = async (data: EpisodeFormData) => {
     try {

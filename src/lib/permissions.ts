@@ -599,7 +599,8 @@ export function canUpdateStoryStage(
 
 /**
  * Show permissions matrix
- * Sub-editors and above can create and manage shows
+ * Sub-editors and above can create and manage shows.
+ * Content producers (isContentProducer flag) get full CRUD regardless of role.
  */
 const showPermissions = {
   INTERN: ['read'],
@@ -610,35 +611,42 @@ const showPermissions = {
   SUPERADMIN: ['create', 'read', 'update', 'delete'],
 };
 
-export function hasShowPermission(userRole: StaffRole | null, action: PermissionAction): boolean {
+export function hasShowPermission(userRole: StaffRole | null, action: PermissionAction, isContentProducer?: boolean): boolean {
   if (!userRole) return false;
+  if (isContentProducer) return true;
   return showPermissions[userRole]?.includes(action) || false;
 }
 
 /**
  * Check if user can manage shows (create/edit/delete)
+ * Content producers can manage shows regardless of editorial role.
  */
-export function canManageShows(userRole: StaffRole | null): boolean {
+export function canManageShows(userRole: StaffRole | null, isContentProducer?: boolean): boolean {
   if (!userRole) return false;
+  if (isContentProducer) return true;
   return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 }
 
 /**
  * Check if user can publish episodes
+ * Content producers can publish episodes regardless of editorial role.
  */
-export function canPublishEpisode(userRole: StaffRole | null): boolean {
+export function canPublishEpisode(userRole: StaffRole | null, isContentProducer?: boolean): boolean {
   if (!userRole) return false;
+  if (isContentProducer) return true;
   return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 }
 
 /**
  * Check if user can edit a show
- * Only creator or editors and above can edit
+ * Content producers can edit their own shows.
+ * Editors and above can edit any show.
  */
 export function canEditShow(
   userRole: StaffRole | null,
   showCreatorId: string,
-  currentUserId: string
+  currentUserId: string,
+  isContentProducer?: boolean
 ): boolean {
   if (!userRole) return false;
 
@@ -647,8 +655,8 @@ export function canEditShow(
     return true;
   }
 
-  // Sub-editors can only edit their own shows
-  if (userRole === 'SUB_EDITOR') {
+  // Sub-editors and content producers can edit their own shows
+  if (userRole === 'SUB_EDITOR' || isContentProducer) {
     return showCreatorId === currentUserId;
   }
 
@@ -657,10 +665,12 @@ export function canEditShow(
 
 /**
  * Check if user can delete a show
- * Only editors and above can delete shows
+ * Editors and above can delete any show.
+ * Content producers can delete their own shows (handled at route level with creator check).
  */
-export function canDeleteShow(userRole: StaffRole | null): boolean {
+export function canDeleteShow(userRole: StaffRole | null, isContentProducer?: boolean): boolean {
   if (!userRole) return false;
+  if (isContentProducer) return true;
   return ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 }
 
@@ -670,7 +680,7 @@ export function canDeleteShow(userRole: StaffRole | null): boolean {
 
 /**
  * Podcast permissions matrix (mirrors shows)
- * Sub-editors and above can create and manage podcasts
+ * Content producers get full CRUD regardless of role.
  */
 const podcastPermissions = {
   INTERN: ['read'],
@@ -681,34 +691,39 @@ const podcastPermissions = {
   SUPERADMIN: ['create', 'read', 'update', 'delete'],
 };
 
-export function hasPodcastPermission(userRole: StaffRole | null, action: PermissionAction): boolean {
+export function hasPodcastPermission(userRole: StaffRole | null, action: PermissionAction, isContentProducer?: boolean): boolean {
   if (!userRole) return false;
+  if (isContentProducer) return true;
   return podcastPermissions[userRole]?.includes(action) || false;
 }
 
-export function canManagePodcasts(userRole: StaffRole | null): boolean {
+export function canManagePodcasts(userRole: StaffRole | null, isContentProducer?: boolean): boolean {
   if (!userRole) return false;
+  if (isContentProducer) return true;
   return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 }
 
-export function canPublishPodcastEpisode(userRole: StaffRole | null): boolean {
+export function canPublishPodcastEpisode(userRole: StaffRole | null, isContentProducer?: boolean): boolean {
   if (!userRole) return false;
+  if (isContentProducer) return true;
   return ['SUB_EDITOR', 'EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 }
 
 export function canEditPodcast(
   userRole: StaffRole | null,
   podcastCreatorId: string,
-  currentUserId: string
+  currentUserId: string,
+  isContentProducer?: boolean
 ): boolean {
   if (!userRole) return false;
   if (['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole)) return true;
-  if (userRole === 'SUB_EDITOR') return podcastCreatorId === currentUserId;
+  if (userRole === 'SUB_EDITOR' || isContentProducer) return podcastCreatorId === currentUserId;
   return false;
 }
 
-export function canDeletePodcast(userRole: StaffRole | null): boolean {
+export function canDeletePodcast(userRole: StaffRole | null, isContentProducer?: boolean): boolean {
   if (!userRole) return false;
+  if (isContentProducer) return true;
   return ['EDITOR', 'ADMIN', 'SUPERADMIN'].includes(userRole);
 }
 

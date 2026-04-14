@@ -16,11 +16,12 @@ export default function EditShowPage({ params }: { params: Promise<{ id: string 
   const { data: session } = useSession();
   const router = useRouter();
   const userRole = session?.user?.staffRole;
+  const isProducer = session?.user?.isContentProducer;
 
   const { data: show, isLoading } = useShow(id);
   const updateShow = useUpdateShow();
 
-  const canManage = canManageShows(userRole as any);
+  const canManage = canManageShows(userRole as any, isProducer);
 
   const handleUpdate = async (data: CreateShowData | UpdateShowData) => {
     try {

@@ -39,6 +39,7 @@ export default function PodcastDetailPage({ params }: { params: Promise<{ id: st
   const { data: session } = useSession();
   const router = useRouter();
   const userRole = session?.user?.staffRole;
+  const isProducer = session?.user?.isContentProducer;
 
   const [isCreateEpisodeModalOpen, setIsCreateEpisodeModalOpen] = useState(false);
   const [deleteEpisodeId, setDeleteEpisodeId] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export default function PodcastDetailPage({ params }: { params: Promise<{ id: st
     resolver: zodResolver(episodeSchema),
   });
 
-  const canManage = canManagePodcasts(userRole as any);
+  const canManage = canManagePodcasts(userRole as any, isProducer);
 
   const handleCreateEpisode = async (data: EpisodeFormData) => {
     try {

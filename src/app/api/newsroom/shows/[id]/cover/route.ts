@@ -8,7 +8,7 @@ import { put, del } from '@vercel/blob';
 const uploadCover = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
     const show = await prisma.show.findUnique({
       where: { id },
@@ -18,7 +18,7 @@ const uploadCover = createHandler(
       return NextResponse.json({ error: 'Show not found' }, { status: 404 });
     }
 
-    if (!canEditShow(user.staffRole as any, show.createdById, user.id)) {
+    if (!canEditShow(user.staffRole as any, show.createdById, user.id, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -93,7 +93,7 @@ const uploadCover = createHandler(
 const deleteCover = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
     const show = await prisma.show.findUnique({
       where: { id },
@@ -103,7 +103,7 @@ const deleteCover = createHandler(
       return NextResponse.json({ error: 'Show not found' }, { status: 404 });
     }
 
-    if (!canEditShow(user.staffRole as any, show.createdById, user.id)) {
+    if (!canEditShow(user.staffRole as any, show.createdById, user.id, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

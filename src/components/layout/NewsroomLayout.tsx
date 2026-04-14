@@ -88,7 +88,8 @@ export function NewsroomLayout({ children }: NewsroomLayoutProps) {
     contentItems.push({ name: 'Stories', href: '/newsroom/stories', icon: DocumentTextIcon })
     contentItems.push({ name: 'Audio Library', href: '/newsroom/audio-library', icon: MusicalNoteIcon })
 
-    if (role && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(role)) {
+    const isProducer = session?.user?.isContentProducer
+    if (isProducer || (role && ['EDITOR', 'SUB_EDITOR', 'ADMIN', 'SUPERADMIN'].includes(role))) {
       contentItems.push({ name: 'Shows', href: '/newsroom/shows', icon: SpeakerWaveIcon })
       contentItems.push({ name: 'Podcasts', href: '/newsroom/podcasts', icon: MicrophoneIcon })
     }

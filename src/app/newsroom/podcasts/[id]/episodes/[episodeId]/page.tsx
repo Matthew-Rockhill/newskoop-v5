@@ -63,6 +63,7 @@ export default function PodcastEpisodeDetailPage({
   const { data: session } = useSession();
   const router = useRouter();
   const userRole = session?.user?.staffRole;
+  const isProducer = session?.user?.isContentProducer;
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -98,8 +99,8 @@ export default function PodcastEpisodeDetailPage({
   });
 
   const content = watch('content');
-  const canManage = canManagePodcasts(userRole as any);
-  const canPublish = canPublishPodcastEpisode(userRole as any);
+  const canManage = canManagePodcasts(userRole as any, isProducer);
+  const canPublish = canPublishPodcastEpisode(userRole as any, isProducer);
 
   const handleSave = async (data: EpisodeFormData) => {
     try {

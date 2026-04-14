@@ -8,7 +8,7 @@ import { put, del } from '@vercel/blob';
 const uploadCover = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
     const podcast = await prisma.podcast.findUnique({ where: { id } });
 
@@ -16,7 +16,7 @@ const uploadCover = createHandler(
       return NextResponse.json({ error: 'Podcast not found' }, { status: 404 });
     }
 
-    if (!canEditPodcast(user.staffRole as any, podcast.createdById, user.id)) {
+    if (!canEditPodcast(user.staffRole as any, podcast.createdById, user.id, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -70,7 +70,7 @@ const uploadCover = createHandler(
 const deleteCover = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
     const podcast = await prisma.podcast.findUnique({ where: { id } });
 
@@ -78,7 +78,7 @@ const deleteCover = createHandler(
       return NextResponse.json({ error: 'Podcast not found' }, { status: 404 });
     }
 
-    if (!canEditPodcast(user.staffRole as any, podcast.createdById, user.id)) {
+    if (!canEditPodcast(user.staffRole as any, podcast.createdById, user.id, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

@@ -16,11 +16,12 @@ export default function EditPodcastPage({ params }: { params: Promise<{ id: stri
   const { data: session } = useSession();
   const router = useRouter();
   const userRole = session?.user?.staffRole;
+  const isProducer = session?.user?.isContentProducer;
 
   const { data: podcast, isLoading } = usePodcast(id);
   const updatePodcast = useUpdatePodcast();
 
-  const canManage = canManagePodcasts(userRole as any);
+  const canManage = canManagePodcasts(userRole as any, isProducer);
 
   const handleUpdate = async (data: CreatePodcastData | UpdatePodcastData) => {
     try {

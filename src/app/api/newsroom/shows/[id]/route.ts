@@ -30,9 +30,9 @@ const showUpdateSchema = z.object({
 const getShow = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!hasShowPermission(user.staffRole as any, 'read')) {
+    if (!hasShowPermission(user.staffRole as any, 'read', user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -102,7 +102,7 @@ const getShow = createHandler(
 const updateShow = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
     const show = await prisma.show.findUnique({
       where: { id: id },
@@ -112,7 +112,7 @@ const updateShow = createHandler(
       return NextResponse.json({ error: 'Show not found' }, { status: 404 });
     }
 
-    if (!canEditShow(user.staffRole as any, show.createdById, user.id)) {
+    if (!canEditShow(user.staffRole as any, show.createdById, user.id, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions to edit this show' }, { status: 403 });
     }
 
@@ -198,9 +198,9 @@ const updateShow = createHandler(
 const deleteShow = createHandler(
   async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }) => {
     const { id } = await params;
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canDeleteShow(user.staffRole as any)) {
+    if (!canDeleteShow(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

@@ -31,9 +31,9 @@ const showSchema = z.object({
 // GET /api/newsroom/shows - List shows with filtering and pagination
 const getShows = createHandler(
   async (req: NextRequest) => {
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!hasShowPermission(user.staffRole as any, 'read')) {
+    if (!hasShowPermission(user.staffRole as any, 'read', user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -148,9 +148,9 @@ const getShows = createHandler(
 // POST /api/newsroom/shows - Create a new show
 const createShow = createHandler(
   async (req: NextRequest) => {
-    const user = (req as NextRequest & { user: { id: string; staffRole: string | null } }).user;
+    const user = (req as NextRequest & { user: { id: string; staffRole: string | null; isContentProducer: boolean } }).user;
 
-    if (!canManageShows(user.staffRole as any)) {
+    if (!canManageShows(user.staffRole as any, user.isContentProducer)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

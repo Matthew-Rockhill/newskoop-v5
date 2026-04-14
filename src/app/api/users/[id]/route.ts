@@ -73,6 +73,7 @@ const updateUser = createHandler(
           radioStationId: data.radioStationId,
           isPrimaryContact: data.isPrimaryContact,
           isActive: data.isActive,
+          isContentProducer: data.isContentProducer,
         },
         include: { radioStation: true },
       });
